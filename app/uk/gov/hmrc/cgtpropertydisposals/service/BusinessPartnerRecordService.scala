@@ -39,7 +39,7 @@ trait BusinessPartnerRecordService {
 }
 
 @Singleton
-class BusinessPartnerRecordServiceImpl @Inject() (connector: BusinessPartnerRecordConnector)(implicit ec: ExecutionContext) {
+class BusinessPartnerRecordServiceImpl @Inject() (connector: BusinessPartnerRecordConnector)(implicit ec: ExecutionContext) extends BusinessPartnerRecordService {
 
   def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): Future[Either[Error, BusinessPartnerRecord]] =
     connector.getBusinessPartnerRecord(nino).map(response =>
