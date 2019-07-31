@@ -16,12 +16,17 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-final case class Error(value: Either[String, Throwable]) extends AnyVal
+import Error._
+
+final case class Error(value: Either[String, Throwable], identifiers: Map[IdKey, IdValue])
 
 object Error {
 
-  def apply(message: String): Error = Error(Left(message))
+  type IdKey = String
+  type IdValue = String
 
-  def apply(error: Throwable): Error = Error(Right(error))
+  def apply(message: String, identifiers: (IdKey, IdValue)*): Error = Error(Left(message), identifiers.toMap)
+
+  def apply(error: Throwable, identifiers: (IdKey, IdValue)*): Error = Error(Right(error), identifiers.toMap)
 
 }

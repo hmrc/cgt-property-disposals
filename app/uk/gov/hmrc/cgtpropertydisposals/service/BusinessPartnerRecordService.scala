@@ -42,14 +42,20 @@ trait BusinessPartnerRecordService {
 class BusinessPartnerRecordServiceImpl @Inject() (connector: BusinessPartnerRecordConnector)(implicit ec: ExecutionContext) extends BusinessPartnerRecordService {
 
   def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): Future[Either[Error, BusinessPartnerRecord]] =
-    connector.getBusinessPartnerRecord(nino).map(response =>
+    connector.getBusinessPartnerRecord(nino).map { response =>
+      lazy val identifiers =
+        List("NINO" -> nino.value, "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-"))
+
       if (response.status === 200) {
-        response.parseJSON[DesBusinessPartnerRecord]().flatMap(toBusinessPartnerRecord).leftMap(Error.apply)
+        response.parseJSON[DesBusinessPartnerRecord]().flatMap(toBusinessPartnerRecord).leftMap(Error(_, identifiers: _*))
       } else {
-        Left(Error(s"Call to get BPR came back with status ${response.status}"))
-      }).recover {
-      case e => Left(Error(e))
+        Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
+      }
+    }.recover {
+      case e => Left(Error(e, "NINO" -> nino.value))
     }
+
+  val correlationIdHeaderKey = "CorrelationId"
 
   def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
     val a = d.address
