@@ -1,1 +1,3 @@
-# microservice specific routes
+
+
+GET  /:nino/business-partner-record  uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.getBusinessPartnerRecord(nino: uk.gov.hmrc.cgtpropertydisposals.models.NINO)

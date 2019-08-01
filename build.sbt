@@ -1,4 +1,5 @@
 import scalariform.formatter.preferences._
+import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.SbtArtifactory
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
@@ -6,19 +7,21 @@ import wartremover.wartremoverExcluded
 
 val appName = "cgt-property-disposals"
 
-
 lazy val wartremoverSettings =
   Seq(
-    wartremoverErrors ++= Warts.allBut(
+    wartremoverErrors in (Compile,compile) ++= Warts.allBut(
       Wart.DefaultArguments,
       Wart.ImplicitConversion,
       Wart.ImplicitParameter,
+      Wart.Nothing,
+      Wart.Overloading,
       Wart.ToString
     ),
-    wartremoverExcluded ++=
+    wartremoverExcluded in (Compile, compile) ++=
       routes.in(Compile).value ++
         (baseDirectory.value ** "*.sc").get ++
-        Seq(sourceManaged.value / "main" / "sbt-buildinfo" / "BuildInfo.scala")
+        Seq(sourceManaged.value / "main" / "sbt-buildinfo" / "BuildInfo.scala"),
+    wartremoverErrors in (Test, compile) --= Seq(Wart.NonUnitStatements, Wart.Null, Wart.PublicInference)
   )
 
 lazy val scalariformSettings =
@@ -50,6 +53,13 @@ lazy val scalariformSettings =
     .setPreference(SpacesAroundMultiImports, false)
     .setPreference(SpacesWithinPatternBinders, true)
 
+lazy val scoverageSettings =
+  Seq(
+    ScoverageKeys.coverageExcludedPackages := "<empty>;.*Reverse.*;.*(config|views.*);.*(BuildInfo|Routes).*",
+    ScoverageKeys.coverageMinimum := 80.00,
+    ScoverageKeys.coverageFailOnMinimum := true,
+    ScoverageKeys.coverageHighlighting := true
+  )
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory)
@@ -64,4 +74,5 @@ lazy val microservice = Project(appName, file("."))
   .settings(resolvers += Resolver.jcenterRepo)
   .settings(wartremoverSettings: _*)
   .settings(scalariformSettings)
+  .settings(scoverageSettings: _*)
   .settings(PlayKeys.playDefaultPort := 7021)
