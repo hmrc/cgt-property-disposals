@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json.{JsObject, JsValue, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.NINO
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -55,6 +55,6 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
   def url(nino: NINO): String = s"$baseUrl/registration/individual/nino/${nino.value}"
 
   def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): Future[HttpResponse] =
-    http.post(url(nino), body, headers)
+    http.post(url(nino), body, headers)(implicitly[Writes[JsValue]], hc.copy(authorization = None), ec)
 
 }
