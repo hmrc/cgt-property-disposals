@@ -70,7 +70,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (connector: BusinessPartnerReco
         Right(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, a.countryCode))
       }
 
-    maybeAddress.map(a => BusinessPartnerRecord(d.individual.firstName, d.individual.lastName, d.individual.dateOfBirth, d.contactDetails.emailAddress, a))
+    maybeAddress.map(a => BusinessPartnerRecord(d.individual.firstName, d.individual.lastName, d.individual.dateOfBirth, d.contactDetails.emailAddress, a, d.sapNumber))
   }
 
 }
@@ -82,7 +82,8 @@ object BusinessPartnerRecordServiceImpl {
   final case class DesBusinessPartnerRecord(
       individual: DesIndividual,
       address: DesAddress,
-      contactDetails: DesContactDetails
+      contactDetails: DesContactDetails,
+      sapNumber: String
   )
 
   object DesBusinessPartnerRecord {

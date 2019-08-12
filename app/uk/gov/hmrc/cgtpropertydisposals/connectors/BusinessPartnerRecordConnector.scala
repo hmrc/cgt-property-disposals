@@ -34,21 +34,12 @@ trait BusinessPartnerRecordConnector {
 }
 
 @Singleton
-class BusinessPartnerRecordConnectorImpl @Inject() (
-    http: HttpClient,
-    servicesConfig: ServicesConfig
-)(implicit ec: ExecutionContext) extends BusinessPartnerRecordConnector {
+  class BusinessPartnerRecordConnectorImpl @Inject() (
+                                                       http: HttpClient,
+                                                       val config: ServicesConfig
+                                                     )(implicit ec: ExecutionContext) extends BusinessPartnerRecordConnector with DesConnector {
 
-  val baseUrl: String = servicesConfig.baseUrl("business-partner-record")
-
-  val bearerToken: String = servicesConfig.getString("des.bearer-token")
-
-  val environment: String = servicesConfig.getString("des.environment")
-
-  val headers: Map[String, String] = Map(
-    "Authorization" -> s"Bearer $bearerToken",
-    "Environment" -> environment
-  )
+  val baseUrl: String = config.baseUrl("business-partner-record")
 
   val body: JsValue = JsObject(Map.empty[String, JsValue])
 

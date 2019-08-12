@@ -53,7 +53,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           "surname",
           DateOfBirth(LocalDate.of(2000, 1, 2)),
           Some("email"),
-          address
+          address,
+          "1234567890"
         )
 
         def json(addressBody: String) =
@@ -67,6 +68,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
            |  "contactDetails" : {
            |    "emailAddress" : "email"
            |  },
+           |  "sapNumber" : "1234567890",
            |  $addressBody
            |}
            |""".stripMargin)

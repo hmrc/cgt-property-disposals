@@ -52,7 +52,8 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
       "return a BPR if one can be found" in {
         val bpr = BusinessPartnerRecord(
           "name", "surname", DateOfBirth(LocalDate.ofEpochDay(0L)),
-                             Some("email"), UkAddress("line1", Some("line2"), Some("line3"), None, "postcode")
+                             Some("email"), UkAddress("line1", Some("line2"), Some("line3"), None, "postcode"),
+          "sap"
         )
 
         mockBprService(nino)(Future.successful(Right(bpr)))
