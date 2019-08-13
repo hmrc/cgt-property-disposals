@@ -19,48 +19,47 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.{Configuration, Mode}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.NINO
+import play.api.{Configuration, Mode}
+import uk.gov.hmrc.cgtpropertydisposals.models.{SubscriptionDetails, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
   val config = Configuration(ConfigFactory.parseString(
     s"""
-      |microservice {
-      |  services {
-      |      business-partner-record {
-      |      protocol = http
-      |      host     = host
-      |      port     = 123
-      |    }
-      |  }
-      |}
-      |
-      |des {
-      |  bearer-token = $desBearerToken
-      |  environment  = $desEnvironment
-      |}
-      |""".stripMargin
+       |microservice {
+       |  services {
+       |      subscription {
+       |      protocol = http
+       |      host     = host
+       |      port     = 123
+       |    }
+       |  }
+       |}
+       |
+       |des {
+       |  bearer-token = $desBearerToken
+       |  environment  = $desEnvironment
+       |}
+       |""".stripMargin
   ))
 
-  val connector = new BusinessPartnerRecordConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector = new SubscriptionConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
-  "BusinessPartnerRecordConnectorImpl" when {
+  "SubscriptionConnectorImpl" when {
 
-    "handling request to get the business partner record" must {
+    "handling request to subscribe" must {
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
-      val nino = NINO("AB123456C")
       val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-      val expectedBody = Json.parse("{}")
+      val subscriptionDetails = sample[SubscriptionDetails]
 
       "do a post http call and return the result" in {
         List(
@@ -69,20 +68,20 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
           HttpResponse(500)
         ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody)(Some(httpResponse))
+              mockPost(s"http://host:123/subscribe/individual", expectedHeaders, Json.toJson(subscriptionDetails))(Some(httpResponse))
 
-              await(connector.getBusinessPartnerRecord(nino).value) shouldBe Right(httpResponse)
+              await(connector.subscribe(subscriptionDetails).value) shouldBe Right(httpResponse)
             }
           }
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody)(None)
+        mockPost(s"http://host:123/subscribe/individual", expectedHeaders, Json.toJson(subscriptionDetails))(None)
 
-        await(connector.getBusinessPartnerRecord(nino).value).isLeft shouldBe true
+        await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }
-    }
 
+    }
   }
 
 }

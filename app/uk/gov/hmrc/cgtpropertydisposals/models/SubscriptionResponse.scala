@@ -18,16 +18,10 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import play.api.libs.json.{Format, Json}
 
-final case class SubscriptionDetails(
-    forename: String,
-    surname: String,
-    emailAddress: String,
-    address: Address,
-    sapNumber: String
-)
+final case class SubscriptionResponse(cgtReferenceNumber: String) extends AnyVal
 
-object SubscriptionDetails {
+object SubscriptionResponse {
 
-  implicit val format: Format[SubscriptionDetails] = Json.format
+  implicit val format: Format[SubscriptionResponse] = Json.format[SubscriptionResponse]
 
 }
