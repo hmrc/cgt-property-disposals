@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.connectors
 
-import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-final case class BusinessPartnerRecord(
-    forename: String,
-    surname: String,
-    dateOfBirth: DateOfBirth,
-    emailAddress: Option[String],
-    address: Address,
-    sapNumber: String
-)
+trait DesConnector {
 
-object BusinessPartnerRecord {
+  val config: ServicesConfig
 
-  implicit val format: Format[BusinessPartnerRecord] = Json.format
+  val bearerToken: String = config.getString("des.bearer-token")
+
+  val environment: String = config.getString("des.environment")
+
+  val headers: Map[String, String] = Map(
+    "Authorization" -> s"Bearer $bearerToken",
+    "Environment" -> environment
+  )
 
 }

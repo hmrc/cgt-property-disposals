@@ -18,17 +18,16 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import play.api.libs.json.{Format, Json}
 
-final case class BusinessPartnerRecord(
+final case class SubscriptionDetails(
     forename: String,
     surname: String,
-    dateOfBirth: DateOfBirth,
-    emailAddress: Option[String],
+    emailAddress: String,
     address: Address,
     sapNumber: String
 )
 
-object BusinessPartnerRecord {
+object SubscriptionDetails {
 
-  implicit val format: Format[BusinessPartnerRecord] = Json.format
+  implicit val format: Format[SubscriptionDetails] = Json.format
 
 }

@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals
 
-import play.api.libs.json.{Format, Json}
+import org.scalacheck.ScalacheckShapeless._
+import org.scalacheck.{Arbitrary, Gen}
 
-final case class BusinessPartnerRecord(
-    forename: String,
-    surname: String,
-    dateOfBirth: DateOfBirth,
-    emailAddress: Option[String],
-    address: Address,
-    sapNumber: String
-)
+import scala.reflect._
 
-object BusinessPartnerRecord {
+package object models {
 
-  implicit val format: Format[BusinessPartnerRecord] = Json.format
+  implicit val subscriptionDetailsArb: Gen[SubscriptionDetails] = implicitly[Arbitrary[SubscriptionDetails]].arbitrary
+
+  def sample[A: ClassTag](implicit gen: Gen[A]): A =
+    gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
 
 }

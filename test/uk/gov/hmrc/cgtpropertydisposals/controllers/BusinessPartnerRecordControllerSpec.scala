@@ -18,13 +18,14 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers
 
 import java.time.LocalDate
 
+import cats.data.EitherT
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, DateOfBirth, Error, NINO}
+import uk.gov.hmrc.cgtpropertydisposals.models.{BusinessPartnerRecord, DateOfBirth, Error, NINO}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -36,10 +37,10 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
 
   override val overrideBindings: List[GuiceableModule] = List(bind[BusinessPartnerRecordService].toInstance(bprService))
 
-  def mockBprService(expectedNino: NINO)(result: Future[Either[Error, BusinessPartnerRecord]]) =
+  def mockBprService(expectedNino: NINO)(result: Either[Error, BusinessPartnerRecord]) =
     (bprService.getBusinessPartnerRecord(_: NINO)(_: HeaderCarrier))
       .expects(expectedNino, *)
-      .returning(result)
+      .returning(EitherT(Future.successful(result)))
 
   lazy val controller = instanceOf[BusinessPartnerRecordController]
 
@@ -52,10 +53,11 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
       "return a BPR if one can be found" in {
         val bpr = BusinessPartnerRecord(
           "name", "surname", DateOfBirth(LocalDate.ofEpochDay(0L)),
-                             Some("email"), UkAddress("line1", Some("line2"), Some("line3"), None, "postcode")
+                             Some("email"), UkAddress("line1", Some("line2"), Some("line3"), None, "postcode"),
+          "sap"
         )
 
-        mockBprService(nino)(Future.successful(Right(bpr)))
+        mockBprService(nino)(Right(bpr))
 
         val result = controller.getBusinessPartnerRecord(nino)(FakeRequest())
         status(result) shouldBe OK
@@ -69,7 +71,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
             Error(new Exception("oh no!")),
             Error("oh no!")
           ).foreach { e =>
-              mockBprService(nino)(Future.successful(Left(e)))
+              mockBprService(nino)(Left(e))
 
               val result = controller.getBusinessPartnerRecord(nino)(FakeRequest())
               status(result) shouldBe INTERNAL_SERVER_ERROR

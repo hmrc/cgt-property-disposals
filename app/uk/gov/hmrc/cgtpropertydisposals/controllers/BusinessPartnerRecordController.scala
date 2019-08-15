@@ -33,7 +33,7 @@ class BusinessPartnerRecordController @Inject() (
 )(implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
 
   def getBusinessPartnerRecord(nino: NINO): Action[AnyContent] = Action.async { implicit request =>
-    bprService.getBusinessPartnerRecord(nino).map {
+    bprService.getBusinessPartnerRecord(nino).value.map {
       case Left(e) =>
         logger.warn(s"Could not get BPR for NINO ${nino.value}", e)
         InternalServerError

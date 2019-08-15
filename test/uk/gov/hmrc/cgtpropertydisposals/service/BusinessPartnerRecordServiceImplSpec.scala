@@ -18,13 +18,14 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import java.time.LocalDate
 
+import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, DateOfBirth, NINO}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, DateOfBirth, Error, NINO}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,10 +37,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val service = new BusinessPartnerRecordServiceImpl(mockConnector)
 
-  def mockGetBPR(nino: NINO)(response: Future[HttpResponse]) =
+  def mockGetBPR(nino: NINO)(response: Either[Error, HttpResponse]) =
     (mockConnector.getBusinessPartnerRecord(_: NINO)(_: HeaderCarrier))
       .expects(nino, *)
-      .returning(response)
+      .returning(EitherT(Future.successful(response)))
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   val nino = NINO("AB123456C")
@@ -53,7 +54,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           "surname",
           DateOfBirth(LocalDate.of(2000, 1, 2)),
           Some("email"),
-          address
+          address,
+          "1234567890"
         )
 
         def json(addressBody: String) =
@@ -67,36 +69,37 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
            |  "contactDetails" : {
            |    "emailAddress" : "email"
            |  },
+           |  "sapNumber" : "1234567890",
            |  $addressBody
            |}
            |""".stripMargin)
 
       "return an error" when {
 
-          def testError(response: => Future[HttpResponse]) = {
+          def testError(response: => Either[Error, HttpResponse]) = {
             mockGetBPR(nino)(response)
 
-            await(service.getBusinessPartnerRecord(nino)).isLeft shouldBe true
+            await(service.getBusinessPartnerRecord(nino).value).isLeft shouldBe true
           }
 
         "the response comes back with a status other than 200" in {
           List(400, 401, 403, 404, 500, 501, 502).foreach { status =>
-            testError(Future.successful(HttpResponse(status)))
+            testError(Right(HttpResponse(status)))
           }
         }
 
         "the json cannot be parsed" in {
-          testError(Future.successful(HttpResponse(200, Some(JsNumber(0)))))
-          testError(Future.successful(HttpResponse(200, responseString = Some("hello"))))
+          testError(Right(HttpResponse(200, Some(JsNumber(0)))))
+          testError(Right(HttpResponse(200, responseString = Some("hello"))))
 
         }
 
         "there is no json in the http response body" in {
-          testError(Future.successful(HttpResponse(200)))
+          testError(Right(HttpResponse(200)))
         }
 
         "the call to get a BPR fails" in {
-          testError(Future.failed(new Exception("Oh no!")))
+          testError(Left(Error(new Exception("Oh no!"))))
         }
 
         "the call comes back with status 200 and valid JSON but a postcode cannot " +
@@ -110,7 +113,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |""".stripMargin
             )
 
-            testError(Future.successful(HttpResponse(200, Some(body))))
+            testError(Right(HttpResponse(200, Some(body))))
           }
 
       }
@@ -131,10 +134,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |""".stripMargin
           )
 
-          mockGetBPR(nino)(Future.successful(HttpResponse(200, Some(body))))
+          mockGetBPR(nino)(Right(HttpResponse(200, Some(body))))
 
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
-          await(service.getBusinessPartnerRecord(nino)) shouldBe Right(expectedBpr(expectedAddress))
+          await(service.getBusinessPartnerRecord(nino).value) shouldBe Right(expectedBpr(expectedAddress))
         }
 
         "the call comes back with status 200 with valid JSON and a valid non-UK address" in {
@@ -150,10 +153,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |""".stripMargin
           )
 
-          mockGetBPR(nino)(Future.successful(HttpResponse(200, Some(body))))
+          mockGetBPR(nino)(Right(HttpResponse(200, Some(body))))
 
           val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, "HK")
-          await(service.getBusinessPartnerRecord(nino)) shouldBe Right(expectedBpr(expectedAddress))
+          await(service.getBusinessPartnerRecord(nino).value) shouldBe Right(expectedBpr(expectedAddress))
         }
 
       }

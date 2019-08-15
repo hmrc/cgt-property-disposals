@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
+import cats.data.EitherT
 import cats.syntax.either._
 import cats.syntax.eq._
+import cats.instances.future._
 import cats.instances.int._
 import cats.instances.string._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{Format, Json, Reads}
+import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, DateOfBirth, Error, NINO}
@@ -34,15 +36,15 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[BusinessPartnerRecordServiceImpl])
 trait BusinessPartnerRecordService {
 
-  def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): Future[Either[Error, BusinessPartnerRecord]]
+  def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): EitherT[Future, Error, BusinessPartnerRecord]
 
 }
 
 @Singleton
 class BusinessPartnerRecordServiceImpl @Inject() (connector: BusinessPartnerRecordConnector)(implicit ec: ExecutionContext) extends BusinessPartnerRecordService {
 
-  def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): Future[Either[Error, BusinessPartnerRecord]] =
-    connector.getBusinessPartnerRecord(nino).map { response =>
+  def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): EitherT[Future, Error, BusinessPartnerRecord] =
+    connector.getBusinessPartnerRecord(nino).subflatMap { response =>
       lazy val identifiers =
         List("NINO" -> nino.value, "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-"))
 
@@ -51,8 +53,6 @@ class BusinessPartnerRecordServiceImpl @Inject() (connector: BusinessPartnerReco
       } else {
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
       }
-    }.recover {
-      case e => Left(Error(e, "NINO" -> nino.value))
     }
 
   val correlationIdHeaderKey = "CorrelationId"
@@ -70,7 +70,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (connector: BusinessPartnerReco
         Right(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, a.countryCode))
       }
 
-    maybeAddress.map(a => BusinessPartnerRecord(d.individual.firstName, d.individual.lastName, d.individual.dateOfBirth, d.contactDetails.emailAddress, a))
+    maybeAddress.map(a => BusinessPartnerRecord(d.individual.firstName, d.individual.lastName, d.individual.dateOfBirth, d.contactDetails.emailAddress, a, d.sapNumber))
   }
 
 }
@@ -82,7 +82,8 @@ object BusinessPartnerRecordServiceImpl {
   final case class DesBusinessPartnerRecord(
       individual: DesIndividual,
       address: DesAddress,
-      contactDetails: DesContactDetails
+      contactDetails: DesContactDetails,
+      sapNumber: String
   )
 
   object DesBusinessPartnerRecord {
