@@ -72,7 +72,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
         mockBprService(nino, name, dateOfBirth)(Right(bpr))
 
         val payload =
-          Json.toJson[BprRequest](BprRequest(nino.value, name.firstName, name.lastName, dateOfBirth.value.toString))
+          Json.toJson[BprRequest](BprRequest(nino.value, name.firstName, name.lastName, dateOfBirth.value))
 
         val result = controller.getBusinessPartnerRecord(
           FakeRequest("POST", "/business-partner-record").withHeaders(CONTENT_TYPE -> JSON).withBody(payload)
@@ -109,7 +109,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
             mockBprService(nino, name, dateOfBirth)(Left(e))
 
             val requestPayload =
-              Json.toJson[BprRequest](BprRequest(nino.value, name.firstName, name.lastName, dateOfBirth.value.toString))
+              Json.toJson[BprRequest](BprRequest(nino.value, name.firstName, name.lastName, dateOfBirth.value))
             val result = controller.getBusinessPartnerRecord()(
               FakeRequest("POST", "/business-partner-record")
                 .withHeaders(CONTENT_TYPE -> JSON)

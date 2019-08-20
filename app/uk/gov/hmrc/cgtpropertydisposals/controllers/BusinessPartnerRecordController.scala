@@ -48,8 +48,8 @@ class BusinessPartnerRecordController @Inject()(
           bprService
             .getBusinessPartnerRecord(
               NINO(bprRequest.nino),
-              Name(bprRequest.fname, bprRequest.lname),
-              DateOfBirth(LocalDate.parse(bprRequest.dob))
+              Name(bprRequest.forename, bprRequest.surname),
+              DateOfBirth(bprRequest.dateOfBirth)
             )
             .value
             .map {

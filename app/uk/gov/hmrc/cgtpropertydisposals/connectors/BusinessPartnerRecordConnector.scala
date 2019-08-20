@@ -53,9 +53,9 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
   ): EitherT[Future, Error, HttpResponse] = {
     val registerDetails = RegisterDetails(
       regime            = "CGT",  // TODO: TBD
-      requiresNameMatch = true,   // TODO: check if this should be set to true
+      requiresNameMatch = false,
       isAnIndividual    = true,
-      individual        = Individual(name.firstName, name.lastName, dob.value.toString)
+      individual        = Individual(name.firstName, name.lastName, dob.value)
     )
     EitherT[Future, Error, HttpResponse](
       http
@@ -66,7 +66,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
         )
         .map(Right(_))
         .recover {
-          case e => Left(Error(e, "nino" -> nino.value, "name" -> name.toString, "dob" -> dob.value.toString))
+          case e => Left(Error(e, "nino" -> nino.value))
         }
     )
   }

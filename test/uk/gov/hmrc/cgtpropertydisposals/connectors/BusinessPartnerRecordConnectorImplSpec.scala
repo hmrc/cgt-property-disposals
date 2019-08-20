@@ -72,7 +72,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
       val expectedBody    = Json.parse(s"""
            | {
            |   "regime" : "CGT",
-           |   "requiresNameMatch" : true,
+           |   "requiresNameMatch" : false,
            |   "isAnIndividual" : true,
            |   "individual" : {
            |     "firstName" : "forename",

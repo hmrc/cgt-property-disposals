@@ -20,12 +20,13 @@ Service responsible for making DES requests to register a user for the CGT schem
  
 * **Data Params**
 
-  ```javascript
+  ```json
   {
     "nino" : "AB123456Z",
     "fname" : "Joe",
     "lname" : "Bloggs",
-    "dateOfBirth" : "2000-10-11"  
+    "dateOfBirth" : "2000-10-11"
+  }  
   ```
   
   Date of birth must be in [LOCAL_ISO_DATE](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_LOCAL_DATE) format.
@@ -34,18 +35,18 @@ Service responsible for making DES requests to register a user for the CGT schem
 
   * **Code:** 200 <br />
     **Content:** 
-    ```javascript
+    ```json
     { 
-      dateOfBirth : 2000-10-11, 
-      emailAddress : "joe.bloggs@gmail.com",
-      address : { 
-        line1 : "13 Some Lane", 
-        line2 : "Some Town", 
-        line3: "", 
-        line4 : "", 
-        postCode: "NN11 2RR"
+      "dateOfBirth" : "2000-10-11", 
+      "emailAddress" : "joe.bloggs@gmail.com",
+      "address" : { 
+        "line1" : "13 Some Lane", 
+        "line2" : "Some Town", 
+        "line3": "", 
+        "line4" : "", 
+        "postCode": "NN11 2RR"
       },
-      sapNumber: "CG23423423"
+      "sapNumber": "CG23423423"
     }
     ```
     

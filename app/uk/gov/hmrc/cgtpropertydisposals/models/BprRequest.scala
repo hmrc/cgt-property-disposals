@@ -19,21 +19,16 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json._
 
-import scala.util.{Failure, Success, Try}
-
-final case class BprRequest(nino: String, fname: String, lname: String, dob: String) {
-  require(BprRequest.isValidDateOfBirth(dob), "Bad date format for date of birth")
-}
+final case class BprRequest(nino: String, forename: String, surname: String, dateOfBirth: LocalDate)
 
 object BprRequest {
-  def isValidDateOfBirth(dob: String): Boolean =
-    Try {
-      LocalDate.parse(dob, DateTimeFormatter.ISO_LOCAL_DATE)
-    } match {
-      case Failure(_) => false
-      case Success(_) => true
-    }
+//  implicit val localDateFormat: Format[LocalDate] = new Format[LocalDate] {
+//    override def reads(json: JsValue): JsResult[LocalDate] =
+//      json.validate[String].map(date => LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE))
+//
+//    override def writes(o: LocalDate): JsValue = Json.toJson(o.toString)
+//  }
   implicit val format: OFormat[BprRequest] = Json.format[BprRequest]
 }
