@@ -23,8 +23,8 @@ Service responsible for making DES requests to register a user for the CGT schem
   ```json
   {
     "nino" : "AB123456Z",
-    "fname" : "Joe",
-    "lname" : "Bloggs",
+    "firstname" : "Joe",
+    "surname" : "Bloggs",
     "dateOfBirth" : "2000-10-11"
   }  
   ```
