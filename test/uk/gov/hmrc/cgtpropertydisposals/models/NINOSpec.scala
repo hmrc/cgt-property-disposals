@@ -25,7 +25,7 @@ class NINOSpec extends WordSpec with Matchers {
     "have a PathBindable instance" in {
       import uk.gov.hmrc.cgtpropertydisposals.models.NINO.binder
 
-      binder.bind("key", "value") shouldBe Right(NINO("value"))
+      binder.bind("key", "value")         shouldBe Right(NINO("value"))
       binder.unbind("key", NINO("value")) shouldBe "value"
     }
 

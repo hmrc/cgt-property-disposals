@@ -16,18 +16,24 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Format, Json}
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
-final case class SubscriptionDetails(
-  forename: String,
-  surname: String,
-  emailAddress: String,
-  address: Address,
-  sapNumber: String
-)
+import play.api.libs.json.{Json, OFormat}
 
-object SubscriptionDetails {
+import scala.util.{Failure, Success, Try}
 
-  implicit val format: Format[SubscriptionDetails] = Json.format
+final case class BprRequest(nino: String, fname: String, lname: String, dob: String) {
+  require(BprRequest.isValidDateOfBirth(dob), "Bad date format for date of birth")
+}
 
+object BprRequest {
+  def isValidDateOfBirth(dob: String): Boolean =
+    Try {
+      LocalDate.parse(dob, DateTimeFormatter.ISO_LOCAL_DATE)
+    } match {
+      case Failure(_) => false
+      case Success(_) => true
+    }
+  implicit val format: OFormat[BprRequest] = Json.format[BprRequest]
 }

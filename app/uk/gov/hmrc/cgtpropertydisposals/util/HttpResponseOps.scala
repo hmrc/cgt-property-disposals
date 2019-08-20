@@ -17,8 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.util
 
 import play.api.libs.json.{JsDefined, JsError, JsLookupResult, Reads}
-import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
+import uk.gov.hmrc.http.HttpResponse
 
 import scala.util.{Failure, Success, Try}
 
@@ -30,14 +30,18 @@ object HttpResponseOps {
       Try(path.fold[JsLookupResult](JsDefined(response.json))(response.json \ _)) match {
         case Success(jsLookupResult) ⇒
           // use Option here to filter out null values
-          jsLookupResult.toOption.flatMap(Option(_)).fold[Either[String, A]](
-            Left("No JSON found in body of http response")
-          )(_.validate[A].fold[Either[String, A]](
-              errors ⇒
-                // there was JSON in the response but we couldn't read it
-                Left(s"Could not parse http response JSON: ${JsError(errors).prettyPrint()}"),
-              Right(_)
-            ))
+          jsLookupResult.toOption
+            .flatMap(Option(_))
+            .fold[Either[String, A]](
+              Left("No JSON found in body of http response")
+            )(
+              _.validate[A].fold[Either[String, A]](
+                errors ⇒
+                  // there was JSON in the response but we couldn't read it
+                  Left(s"Could not parse http response JSON: ${JsError(errors).prettyPrint()}"),
+                Right(_)
+              )
+            )
         case Failure(error) ⇒
           // response.json failed in this case - there was no JSON in the response
           Left(s"Could not read http response as JSON: ${error.getMessage}")

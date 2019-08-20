@@ -16,32 +16,50 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
+import java.time.LocalDate
+
 import com.google.inject.Inject
-import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.cgtpropertydisposals.models.NINO
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.cgtpropertydisposals.models.{BprRequest, DateOfBirth, NINO, Name}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
-class BusinessPartnerRecordController @Inject() (
-    bprService: BusinessPartnerRecordService,
-    cc: ControllerComponents
-)(implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
+class BusinessPartnerRecordController @Inject()(
+  bprService: BusinessPartnerRecordService,
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
+    with Logging {
 
-  def getBusinessPartnerRecord(nino: NINO): Action[AnyContent] = Action.async { implicit request =>
-    bprService.getBusinessPartnerRecord(nino).value.map {
-      case Left(e) =>
-        logger.warn(s"Could not get BPR for NINO ${nino.value}", e)
-        InternalServerError
-
-      case Right(bpr) =>
-        Ok(Json.toJson(bpr))
-    }
-
+  def getBusinessPartnerRecord: Action[JsValue] = Action(parse.json).async { implicit request =>
+    request.body
+      .validate[BprRequest]
+      .fold(
+        jsError => {
+          logger.error(s"Bad JSON payload ${jsError.toString}")
+          Future.successful(BadRequest)
+        },
+        bprRequest => {
+          bprService
+            .getBusinessPartnerRecord(
+              NINO(bprRequest.nino),
+              Name(bprRequest.fname, bprRequest.lname),
+              DateOfBirth(LocalDate.parse(bprRequest.dob))
+            )
+            .value
+            .map {
+              case Left(e) =>
+                logger.warn(s"Failed to get BPR with following parameters ${bprRequest.toString}", e)
+                InternalServerError
+              case Right(bpr) =>
+                Ok(Json.toJson(bpr))
+            }
+        }
+      )
   }
-
 }

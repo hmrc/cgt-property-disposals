@@ -18,9 +18,9 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsObject, JsValue, Writes}
+import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, NINO}
+import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -30,27 +30,45 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[BusinessPartnerRecordConnectorImpl])
 trait BusinessPartnerRecordConnector {
 
-  def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse]
+  def getBusinessPartnerRecord(nino: NINO, name: Name, dob: DateOfBirth)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse]
 
 }
 
 @Singleton
-class BusinessPartnerRecordConnectorImpl @Inject() (
-    http: HttpClient,
-    val config: ServicesConfig
-)(implicit ec: ExecutionContext) extends BusinessPartnerRecordConnector with DesConnector {
+class BusinessPartnerRecordConnectorImpl @Inject()(
+  http: HttpClient,
+  val config: ServicesConfig
+)(implicit ec: ExecutionContext)
+    extends BusinessPartnerRecordConnector
+    with DesConnector {
 
   val baseUrl: String = config.baseUrl("business-partner-record")
 
-  val body: JsValue = JsObject(Map.empty[String, JsValue])
-
   def url(nino: NINO): String = s"$baseUrl/registration/individual/nino/${nino.value}"
 
-  def getBusinessPartnerRecord(nino: NINO)(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] =
-    EitherT[Future, Error, HttpResponse](
-      http.post(url(nino), body, headers)(implicitly[Writes[JsValue]], hc.copy(authorization = None), ec)
-        .map(Right(_))
-        .recover { case e => Left(Error(e, "NINO" -> nino.value)) }
+  def getBusinessPartnerRecord(nino: NINO, name: Name, dob: DateOfBirth)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse] = {
+    val registerDetails = RegisterDetails(
+      regime            = "CGT",  // TODO: TBD
+      requiresNameMatch = true,   // TODO: check if this should be set to true
+      isAnIndividual    = true,
+      individual        = Individual(name.firstName, name.lastName, dob.value.toString)
     )
+    EitherT[Future, Error, HttpResponse](
+      http
+        .post(url(nino), Json.toJson(registerDetails), headers)(
+          implicitly[Writes[JsValue]],
+          hc.copy(authorization = None),
+          ec
+        )
+        .map(Right(_))
+        .recover {
+          case e => Left(Error(e, "nino" -> nino.value, "name" -> name.toString, "dob" -> dob.value.toString))
+        }
+    )
+  }
 
 }

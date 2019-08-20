@@ -30,13 +30,15 @@ trait ControllerSpec extends WordSpec with Matchers with BeforeAndAfterAll with 
 
   def buildFakeApplication(): Application =
     new GuiceApplicationBuilder()
-      .configure(Configuration(
-        ConfigFactory.parseString(
-          """
+      .configure(
+        Configuration(
+          ConfigFactory.parseString(
+            """
             | metrics.enabled = false
           """.stripMargin
+          )
         )
-      ))
+      )
       .overrides(overrideBindings: _*)
       .build()
 

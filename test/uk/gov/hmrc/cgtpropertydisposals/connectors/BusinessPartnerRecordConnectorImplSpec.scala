@@ -16,13 +16,16 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.{Configuration, Mode}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.NINO
+import play.api.{Configuration, Mode}
+import uk.gov.hmrc.cgtpropertydisposals.models.{DateOfBirth, NINO, Name}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -32,8 +35,9 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
-  val config = Configuration(ConfigFactory.parseString(
-    s"""
+  val config = Configuration(
+    ConfigFactory.parseString(
+      s"""
       |microservice {
       |  services {
       |      business-partner-record {
@@ -49,18 +53,34 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
       |  environment  = $desEnvironment
       |}
       |""".stripMargin
-  ))
+    )
+  )
 
-  val connector = new BusinessPartnerRecordConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector =
+    new BusinessPartnerRecordConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
   "BusinessPartnerRecordConnectorImpl" when {
 
     "handling request to get the business partner record" must {
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
-      val nino = NINO("AB123456C")
+      val nino                       = NINO("AB123456C")
+      val name                       = Name("forename", "surname")
+      val dateOfBirth                = DateOfBirth(LocalDate.parse("2001-09-20", DateTimeFormatter.ISO_LOCAL_DATE))
+
       val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-      val expectedBody = Json.parse("{}")
+      val expectedBody    = Json.parse(s"""
+           | {
+           |   "regime" : "CGT",
+           |   "requiresNameMatch" : true,
+           |   "isAnIndividual" : true,
+           |   "individual" : {
+           |     "firstName" : "forename",
+           |     "lastName" : "surname",
+           |     "dateOfBirth" : "2001-09-20"
+           |    }
+           | }
+           |""".stripMargin)
 
       "do a post http call and return the result" in {
         List(
@@ -68,18 +88,20 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
           HttpResponse(200, Some(JsString("hi"))),
           HttpResponse(500)
         ).foreach { httpResponse =>
-            withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody)(Some(httpResponse))
+          withClue(s"For http response [${httpResponse.toString}]") {
+            mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody)(
+              Some(httpResponse)
+            )
 
-              await(connector.getBusinessPartnerRecord(nino).value) shouldBe Right(httpResponse)
-            }
+            await(connector.getBusinessPartnerRecord(nino, name, dateOfBirth).value) shouldBe Right(httpResponse)
           }
+        }
       }
 
       "return an error when the future fails" in {
         mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody)(None)
 
-        await(connector.getBusinessPartnerRecord(nino).value).isLeft shouldBe true
+        await(connector.getBusinessPartnerRecord(nino, name, dateOfBirth).value).isLeft shouldBe true
       }
     }
 

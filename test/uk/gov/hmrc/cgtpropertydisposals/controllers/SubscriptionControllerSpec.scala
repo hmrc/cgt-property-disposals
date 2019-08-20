@@ -20,8 +20,7 @@ import akka.stream.Materializer
 import cats.data.EitherT
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.{JsString, JsValue, Json}
-import play.api.mvc.{RequestHeader, Result}
+import play.api.libs.json.{JsString, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample}
@@ -29,7 +28,6 @@ import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class SubscriptionControllerSpec extends ControllerSpec {
 
@@ -41,7 +39,8 @@ class SubscriptionControllerSpec extends ControllerSpec {
   lazy val controller = instanceOf[SubscriptionController]
 
   def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(response: Either[Error, SubscriptionResponse]) =
-    (mockService.subscribe(_: SubscriptionDetails)(_: HeaderCarrier))
+    (mockService
+      .subscribe(_: SubscriptionDetails)(_: HeaderCarrier))
       .expects(expectedSubscriptionDetails, *)
       .returning(EitherT(Future.successful(response)))
 
@@ -51,7 +50,7 @@ class SubscriptionControllerSpec extends ControllerSpec {
 
       implicit lazy val mat: Materializer = fakeApplication.materializer
 
-      val subscriptionDetails = sample[SubscriptionDetails]
+      val subscriptionDetails     = sample[SubscriptionDetails]
       val subscriptionDetailsJson = Json.toJson(subscriptionDetails)
 
       "return a bad request" when {
@@ -87,7 +86,7 @@ class SubscriptionControllerSpec extends ControllerSpec {
           mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
 
           val result = controller.subscribe()(FakeRequest().withJsonBody(subscriptionDetailsJson))
-          status(result) shouldBe OK
+          status(result)        shouldBe OK
           contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
         }
       }
