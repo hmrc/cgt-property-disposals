@@ -13,8 +13,7 @@
         </encoder>
     </appender>
 
-    <!-- switch on to debug tests -->
-    <root level="OFF">
+    <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 

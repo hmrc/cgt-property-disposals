@@ -99,6 +99,22 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
         status(result) shouldBe BAD_REQUEST
       }
 
+      "return a bad request if payload has incorrect structure" in {
+        val payload = Json.parse(
+          s"""
+             | {
+             |   "bino" : "AB123456C",
+             |   "lname" : "surname"
+             |   }
+             |""".stripMargin
+        )
+
+        val result = controller.getBusinessPartnerRecord(
+          FakeRequest("POST", "/business-partner-record").withHeaders(CONTENT_TYPE -> JSON).withBody(payload)
+        )
+        status(result) shouldBe BAD_REQUEST
+      }
+
       "return an error" when {
 
         "there is an error getting a BPR" in {
