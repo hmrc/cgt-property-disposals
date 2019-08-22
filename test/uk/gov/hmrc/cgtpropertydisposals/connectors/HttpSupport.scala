@@ -30,8 +30,16 @@ trait HttpSupport { this: MockFactory with Matchers ⇒
   val mockHttp: HttpClient = mock[HttpClient]
 
   def mockPost[A](url: String, headers: Map[String, String], body: A)(result: Option[HttpResponse]): Unit =
-    (mockHttp.POST(_: String, _: A, _: Seq[(String, String)])(_: Writes[A], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext))
+    (mockHttp
+      .POST(_: String, _: A, _: Seq[(String, String)])(
+        _: Writes[A],
+        _: HttpReads[HttpResponse],
+        _: HeaderCarrier,
+        _: ExecutionContext
+      ))
       .expects(url, body, headers.toSeq, *, *, *, *)
-      .returning(result.fold[Future[HttpResponse]](Future.failed(new Exception("Test exception message")))(Future.successful))
+      .returning(
+        result.fold[Future[HttpResponse]](Future.failed(new Exception("Test exception message")))(Future.successful)
+      )
 
 }

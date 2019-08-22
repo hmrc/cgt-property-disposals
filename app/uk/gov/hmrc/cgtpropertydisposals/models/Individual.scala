@@ -16,18 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Format, Json}
+import java.time.LocalDate
 
-final case class SubscriptionDetails(
-  forename: String,
-  surname: String,
-  emailAddress: String,
-  address: Address,
-  sapNumber: String
-)
+import play.api.libs.json.{Json, OFormat}
 
-object SubscriptionDetails {
+final case class Individual(firstName: String, lastName: String, dateOfBirth: LocalDate)
 
-  implicit val format: Format[SubscriptionDetails] = Json.format
-
+object Individual {
+  implicit val format: OFormat[Individual] = Json.format[Individual]
 }
+

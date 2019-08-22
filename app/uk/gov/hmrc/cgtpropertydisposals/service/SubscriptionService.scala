@@ -18,9 +18,9 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
 import cats.instances.future._
+import cats.instances.int._
 import cats.syntax.either._
 import cats.syntax.eq._
-import cats.instances.int._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse}
@@ -32,14 +32,19 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[SubscriptionServiceImpl])
 trait SubscriptionService {
 
-  def subscribe(subscriptionDetails: SubscriptionDetails)(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse]
+  def subscribe(subscriptionDetails: SubscriptionDetails)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, SubscriptionResponse]
 
 }
 
 @Singleton
-class SubscriptionServiceImpl @Inject() (connector: SubscriptionConnector)(implicit ec: ExecutionContext) extends SubscriptionService {
+class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector)(implicit ec: ExecutionContext)
+    extends SubscriptionService {
 
-  override def subscribe(subscriptionDetails: SubscriptionDetails)(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] =
+  override def subscribe(
+    subscriptionDetails: SubscriptionDetails
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] =
     connector.subscribe(subscriptionDetails).subflatMap { response =>
       if (response.status === 200) {
         response.parseJSON[SubscriptionResponse]().leftMap(Error(_))

@@ -1,5 +1,2 @@
-
-
-GET  /:nino/business-partner-record  uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.getBusinessPartnerRecord(nino: uk.gov.hmrc.cgtpropertydisposals.models.NINO)
-
-POST /subscribe                      uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.subscribe()
+POST            /business-partner-record            uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.getBusinessPartnerRecord
+POST            /subscribe                          uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.subscribe()

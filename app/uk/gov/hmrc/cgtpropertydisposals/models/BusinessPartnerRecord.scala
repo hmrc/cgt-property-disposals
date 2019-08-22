@@ -19,12 +19,9 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 import play.api.libs.json.{Format, Json}
 
 final case class BusinessPartnerRecord(
-    forename: String,
-    surname: String,
-    dateOfBirth: DateOfBirth,
-    emailAddress: Option[String],
-    address: Address,
-    sapNumber: String
+  emailAddress: Option[String],
+  address: Address,
+  sapNumber: String
 )
 
 object BusinessPartnerRecord {

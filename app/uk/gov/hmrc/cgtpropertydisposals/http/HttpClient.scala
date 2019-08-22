@@ -34,9 +34,9 @@ object HttpClient {
   implicit class HttpClientOps(val http: uk.gov.hmrc.play.bootstrap.http.HttpClient) extends AnyVal {
 
     def post[A](
-        url: String,
-        body: A,
-        headers: Map[String, String] = Map.empty[String, String]
+      url: String,
+      body: A,
+      headers: Map[String, String] = Map.empty[String, String]
     )(implicit w: Writes[A], hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] =
       http.POST(url, body, headers.toSeq)(w, rawHttpReads, hc, ec)
 

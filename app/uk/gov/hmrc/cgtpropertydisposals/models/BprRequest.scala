@@ -16,18 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Format, Json}
+import java.time.LocalDate
 
-final case class SubscriptionDetails(
-  forename: String,
-  surname: String,
-  emailAddress: String,
-  address: Address,
-  sapNumber: String
-)
+import play.api.libs.json._
 
-object SubscriptionDetails {
+final case class BprRequest(nino: String, forename: String, surname: String, dateOfBirth: LocalDate)
 
-  implicit val format: Format[SubscriptionDetails] = Json.format
-
+object BprRequest {
+  implicit val format: OFormat[BprRequest] = Json.format[BprRequest]
 }

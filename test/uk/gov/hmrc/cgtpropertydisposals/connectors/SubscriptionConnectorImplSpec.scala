@@ -32,8 +32,9 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
-  val config = Configuration(ConfigFactory.parseString(
-    s"""
+  val config = Configuration(
+    ConfigFactory.parseString(
+      s"""
        |microservice {
        |  services {
        |      subscription {
@@ -49,7 +50,8 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
        |  environment  = $desEnvironment
        |}
        |""".stripMargin
-  ))
+    )
+  )
 
   val connector = new SubscriptionConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
@@ -58,8 +60,8 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     "handling request to subscribe" must {
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
-      val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-      val subscriptionDetails = sample[SubscriptionDetails]
+      val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+      val subscriptionDetails        = sample[SubscriptionDetails]
 
       "do a post http call and return the result" in {
         List(
@@ -67,12 +69,14 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(200, Some(JsString("hi"))),
           HttpResponse(500)
         ).foreach { httpResponse =>
-            withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(s"http://host:123/subscribe/individual", expectedHeaders, Json.toJson(subscriptionDetails))(Some(httpResponse))
+          withClue(s"For http response [${httpResponse.toString}]") {
+            mockPost(s"http://host:123/subscribe/individual", expectedHeaders, Json.toJson(subscriptionDetails))(
+              Some(httpResponse)
+            )
 
-              await(connector.subscribe(subscriptionDetails).value) shouldBe Right(httpResponse)
-            }
+            await(connector.subscribe(subscriptionDetails).value) shouldBe Right(httpResponse)
           }
+        }
       }
 
       "return an error when the future fails" in {

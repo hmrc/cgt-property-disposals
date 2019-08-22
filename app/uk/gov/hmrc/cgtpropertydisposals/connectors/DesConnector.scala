@@ -28,7 +28,7 @@ trait DesConnector {
 
   val headers: Map[String, String] = Map(
     "Authorization" -> s"Bearer $bearerToken",
-    "Environment" -> environment
+    "Environment"   -> environment
   )
 
 }

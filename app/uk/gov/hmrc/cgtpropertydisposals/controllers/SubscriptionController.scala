@@ -32,13 +32,26 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubscriptionController @Inject() (service: SubscriptionService, cc: ControllerComponents)(implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
+class SubscriptionController @Inject()(service: SubscriptionService, cc: ControllerComponents)(
+  implicit ec: ExecutionContext
+) extends BackendController(cc)
+    with Logging {
 
   def subscribe(): Action[AnyContent] = Action.async { implicit request =>
     val result =
       for {
-        json <- EitherT.fromEither[Future](Either.fromOption(request.body.asJson, RequestValidationError("No JSON body found in request")))
-        subscriptionDetails <- EitherT.fromEither[Future](json.validate[SubscriptionDetails].asEither.leftMap(e => RequestValidationError(s"Could not parse JSON body as subscription request: $e")))
+        json <- EitherT.fromEither[Future](
+                 Either.fromOption(request.body.asJson, RequestValidationError("No JSON body found in request"))
+               )
+        subscriptionDetails <- EitherT.fromEither[Future](
+                                json
+                                  .validate[SubscriptionDetails]
+                                  .asEither
+                                  .leftMap(
+                                    e =>
+                                      RequestValidationError(s"Could not parse JSON body as subscription request: $e")
+                                  )
+                              )
         subscriptionResponse <- service.subscribe(subscriptionDetails).leftMap[SubscriptionError](BackendError(_))
       } yield subscriptionResponse
 
