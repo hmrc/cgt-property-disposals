@@ -63,7 +63,6 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
 
       "return a BPR if one can be found" in {
         val bpr = BusinessPartnerRecord(
-          DateOfBirth(LocalDate.ofEpochDay(0L)),
           Some("email"),
           UkAddress("line1", Some("line2"), Some("line3"), None, "postcode"),
           "sap"

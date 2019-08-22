@@ -81,7 +81,6 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
     maybeAddress.map(
       a =>
         BusinessPartnerRecord(
-          d.individual.dateOfBirth,
           d.contactDetails.emailAddress,
           a,
           d.sapNumber
@@ -96,7 +95,6 @@ object BusinessPartnerRecordServiceImpl {
   import DesBusinessPartnerRecord._
 
   final case class DesBusinessPartnerRecord(
-    individual: DesIndividual,
     address: DesAddress,
     contactDetails: DesContactDetails,
     sapNumber: String

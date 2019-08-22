@@ -54,7 +54,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
     "getting a business partner record" must {
 
       def expectedBpr(address: Address) = BusinessPartnerRecord(
-        DateOfBirth(LocalDate.of(2000, 1, 2)),
         Some("email"),
         address,
         "1234567890"
