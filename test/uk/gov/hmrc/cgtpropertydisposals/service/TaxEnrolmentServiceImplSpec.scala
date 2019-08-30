@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, Name, SubscriptionDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
@@ -55,8 +55,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
-            "firstname",
-            "lastname",
+           Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
             Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
             "sapNumber"
@@ -74,8 +73,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
-            "firstname",
-            "lastname",
+            Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
             Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
             "sapNumber"
@@ -92,8 +90,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
-            "firstname",
-            "lastname",
+            Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
             Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
             "sapNumber"
@@ -112,8 +109,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           val enrolmentRequest =
             EnrolmentRequest(List(KeyValuePair("Postcode", "OK11KO")), List(KeyValuePair("CGTPDRef", cgtReference)))
           val subscriptionDetails = SubscriptionDetails(
-            "firstname",
-            "lastname",
+            Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
             Address.UkAddress("line1", None, None, None, "OK11KO"),
             "sapNumber"
@@ -131,8 +127,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
-            "firstname",
-            "lastname",
+            Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
             Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
             "sapNumber"
@@ -147,8 +142,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           val enrolmentRequest =
             EnrolmentRequest(List(KeyValuePair("CountryCode", "GB")), List(KeyValuePair("CGTPDRef", cgtReference)))
           val subscriptionDetails = SubscriptionDetails(
-            "firstname",
-            "lastname",
+            Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
             Address.NonUkAddress("line1", None, None, None, None, "GB"),
             "sapNumber"

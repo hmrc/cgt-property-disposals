@@ -18,9 +18,10 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{JsString, JsValue, Json, Writes}
+import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnectorImpl.{SubscriptionRequest, TypeOfPerson}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Error, SubscriptionDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -43,14 +44,22 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
 
   val baseUrl: String = config.baseUrl("subscription")
 
-  val url: String = s"$baseUrl/subscribe/individual"
+  val url: String = s"$baseUrl/subscribe"
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
+    val subscriptionRequest = SubscriptionRequest(
+      subscriptionDetails.contactName.fold[TypeOfPerson](_ => TypeOfPerson.Trustee, _ => TypeOfPerson.Individual),
+      subscriptionDetails.contactName.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
+      subscriptionDetails.emailAddress,
+      subscriptionDetails.address,
+      subscriptionDetails.sapNumber
+    )
+
     EitherT[Future, Error, HttpResponse](
       http
-        .post(url, Json.toJson(subscriptionDetails), headers)(
+        .post(url, Json.toJson(subscriptionRequest), headers)(
           implicitly[Writes[JsValue]],
           hc.copy(authorization = None),
           ec
@@ -58,5 +67,33 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
+  }
 
+}
+
+object SubscriptionConnectorImpl {
+
+  sealed trait TypeOfPerson { val value: Int }
+
+  object TypeOfPerson {
+
+    final case object Individual extends TypeOfPerson {
+      val value = 1
+    }
+
+    final case object Trustee extends TypeOfPerson {
+      val value = 2
+    }
+
+  }
+  final case class SubscriptionRequest(
+    typeOfPerson: TypeOfPerson,
+    contactName: String,
+    emailAddress: String,
+    address: Address,
+    sapNumber: String
+                                      )
+
+  implicit val typeOfPersonWrites: Writes[TypeOfPerson] = Writes(p => JsString(p.value.toString))
+  implicit val subscriptionRequestWrites: Writes[SubscriptionRequest] = Json.writes[SubscriptionRequest]
 }

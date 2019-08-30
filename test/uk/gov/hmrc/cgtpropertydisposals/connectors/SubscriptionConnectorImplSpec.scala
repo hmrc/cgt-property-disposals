@@ -22,7 +22,8 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.{SubscriptionDetails, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Name, SubscriptionDetails, TrustName, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -57,11 +58,35 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
   "SubscriptionConnectorImpl" when {
 
-    "handling request to subscribe" must {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
-      implicit val hc: HeaderCarrier = HeaderCarrier()
-      val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-      val subscriptionDetails        = sample[SubscriptionDetails]
+
+    "handling request to subscribe for individuals" must {
+
+      val subscriptionDetails = SubscriptionDetails(
+        Right(Name("name", "surname")),
+        "email",
+        UkAddress("line1", None, None, None, "postcode"),
+        "sap"
+      )
+
+      val expectedRequest = Json.parse(
+        """
+          |{
+          |  "typeOfPerson" : "1",
+          |  "contactName"  : "name surname",
+          |  "emailAddress" : "email",
+          |  "address"      : {
+          |    "UkAddress" : {
+          |        "line1" : "line1",
+          |        "postcode" : "postcode"
+          |      }
+          |  },
+          |  "sapNumber"    : "sap"
+          |}
+          |""".stripMargin
+      )
 
       "do a post http call and return the result" in {
         List(
@@ -70,7 +95,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(s"http://host:123/subscribe/individual", expectedHeaders, Json.toJson(subscriptionDetails))(
+            mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -80,7 +105,57 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/subscribe/individual", expectedHeaders, Json.toJson(subscriptionDetails))(None)
+        mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(None)
+
+        await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
+      }
+
+    }
+
+    "handling request to subscribe for trusts" must {
+
+      val subscriptionDetails = SubscriptionDetails(
+        Left(TrustName("name")),
+        "email",
+        UkAddress("line1", None, None, None, "postcode"),
+        "sap"
+      )
+
+      val expectedRequest = Json.parse(
+        """
+          |{
+          |  "typeOfPerson" : "2",
+          |  "contactName"  : "name",
+          |  "emailAddress" : "email",
+          |  "address"      : {
+          |    "UkAddress" : {
+          |        "line1" : "line1",
+          |        "postcode" : "postcode"
+          |      }
+          |  },
+          |  "sapNumber"    : "sap"
+          |}
+          |""".stripMargin
+      )
+
+      "do a post http call and return the result" in {
+        List(
+          HttpResponse(200),
+          HttpResponse(200, Some(JsString("hi"))),
+          HttpResponse(500)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+            mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(
+              Some(httpResponse)
+            )
+
+            await(connector.subscribe(subscriptionDetails).value) shouldBe Right(httpResponse)
+          }
+        }
+      }
+
+      "return an error when the future fails" in {
+        mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }

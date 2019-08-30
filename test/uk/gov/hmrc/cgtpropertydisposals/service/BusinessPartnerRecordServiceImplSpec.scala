@@ -26,7 +26,8 @@ import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, DateOfBirth, Error, NINO, Name}
+import uk.gov.hmrc.cgtpropertydisposals.models.BprRequest.Organisation
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BprRequest, BusinessPartnerRecord, DateOfBirth, Error, NINO, Name, SAUTR, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -38,10 +39,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val service = new BusinessPartnerRecordServiceImpl(mockConnector)
 
-  def mockGetBPR(nino: NINO, name: Name, dob: DateOfBirth)(response: Either[Error, HttpResponse]) =
+  def mockGetBPR(bprRequest: BprRequest)(response: Either[Error, HttpResponse]) =
     (mockConnector
-      .getBusinessPartnerRecord(_: NINO, _: Name, _: DateOfBirth)(_: HeaderCarrier))
-      .expects(nino, name, dob, *)
+      .getBusinessPartnerRecord(_: BprRequest)(_: HeaderCarrier))
+      .expects(bprRequest, *)
       .returning(EitherT(Future.successful(response)))
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -53,13 +54,16 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
     "getting a business partner record" must {
 
-      def expectedBpr(address: Address) = BusinessPartnerRecord(
+      val bprRequest = BprRequest(Left(Organisation(SAUTR(""))))
+
+      def expectedBpr(address: Address, organisationName: Option[String]) = BusinessPartnerRecord(
         Some("email"),
         address,
-        "1234567890"
+        "1234567890",
+        organisationName
       )
 
-      def json(addressBody: String) =
+      def json(addressBody: String, organisationName: Option[String]) =
         Json.parse(s"""
            |{
            |  "individual" : {
@@ -71,6 +75,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
            |    "emailAddress" : "email"
            |  },
            |  "sapNumber" : "1234567890",
+           |  ${organisationName.map(n => s""""organisation" : { "name" : "$n" },""").getOrElse("")}
            |  $addressBody
            |}
            |""".stripMargin)
@@ -78,9 +83,9 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
       "return an error" when {
 
         def testError(response: => Either[Error, HttpResponse]) = {
-          mockGetBPR(nino, name, dateOfBirth)(response)
+          mockGetBPR(bprRequest)(response)
 
-          await(service.getBusinessPartnerRecord(nino, name, dateOfBirth).value).isLeft shouldBe true
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
         "the response comes back with a status other than 200" in {
@@ -111,7 +116,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |    "addressLine1" : "line1",
               |    "countryCode"  : "GB"
               |  }
-              |""".stripMargin
+              |""".stripMargin,
+            None
           )
 
           testError(Right(HttpResponse(200, Some(body))))
@@ -132,14 +138,15 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |    "postalCode"   : "postcode",
               |    "countryCode"  : "GB"
               |  }
-              |""".stripMargin
+              |""".stripMargin,
+            None
           )
 
-          mockGetBPR(nino, name, dateOfBirth)(Right(HttpResponse(200, Some(body))))
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
 
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
-          await(service.getBusinessPartnerRecord(nino, name, dateOfBirth).value) shouldBe Right(
-            expectedBpr(expectedAddress)
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+            expectedBpr(expectedAddress, None)
           )
         }
 
@@ -153,14 +160,37 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |    "addressLine4" : "line4",
               |    "countryCode"  : "HK"
               |  }
-              |""".stripMargin
+              |""".stripMargin,
+            None
           )
 
-          mockGetBPR(nino, name, dateOfBirth)(Right(HttpResponse(200, Some(body))))
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
 
           val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, "HK")
-          await(service.getBusinessPartnerRecord(nino, name, dateOfBirth).value) shouldBe Right(
-            expectedBpr(expectedAddress)
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+            expectedBpr(expectedAddress, None)
+          )
+        }
+
+        "the call comes back with status 200 with valid JSON and an organisation name" in {
+          val body = json(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "addressLine2" : "line2",
+              |    "addressLine3" : "line3",
+              |    "addressLine4" : "line4",
+              |    "countryCode"  : "HK"
+              |  }
+              |""".stripMargin,
+            Some("organisation")
+          )
+
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
+
+          val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, "HK")
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+            expectedBpr(expectedAddress, Some("organisation"))
           )
         }
 

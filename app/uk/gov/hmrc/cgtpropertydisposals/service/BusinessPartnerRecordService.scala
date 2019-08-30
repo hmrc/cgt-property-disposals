@@ -26,7 +26,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, DateOfBirth, Error, NINO, Name}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BprRequest, BusinessPartnerRecord, DateOfBirth, Error, NINO, Name}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -36,7 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[BusinessPartnerRecordServiceImpl])
 trait BusinessPartnerRecordService {
 
-  def getBusinessPartnerRecord(nino: NINO, name: Name, dob: DateOfBirth)(
+  def getBusinessPartnerRecord(bprRequest: BprRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, BusinessPartnerRecord]
 
@@ -47,12 +47,14 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
   implicit ec: ExecutionContext
 ) extends BusinessPartnerRecordService {
 
-  def getBusinessPartnerRecord(nino: NINO, name: Name, dob: DateOfBirth)(
+  def getBusinessPartnerRecord(bprRequest: BprRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, BusinessPartnerRecord] =
-    connector.getBusinessPartnerRecord(nino, name, dob).subflatMap { response =>
+    connector.getBusinessPartnerRecord(bprRequest).subflatMap { response =>
       lazy val identifiers =
-        List("NINO" -> nino.value, "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-"))
+        List(
+          "id" -> bprRequest.id.fold(_.value, _.value),
+          "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-"))
 
       if (response.status === 200) {
         response
@@ -79,11 +81,12 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
       }
 
     maybeAddress.map(
-      a =>
+      address =>
         BusinessPartnerRecord(
           d.contactDetails.emailAddress,
-          a,
-          d.sapNumber
+          address,
+          d.sapNumber,
+          d.organisation.map(_.name)
         )
     )
   }
@@ -97,10 +100,13 @@ object BusinessPartnerRecordServiceImpl {
   final case class DesBusinessPartnerRecord(
     address: DesAddress,
     contactDetails: DesContactDetails,
-    sapNumber: String
+    sapNumber: String,
+    organisation: Option[DesOrganisation]
   )
 
   object DesBusinessPartnerRecord {
+    final case class DesOrganisation(name: String)
+
     final case class DesAddress(
       addressLine1: String,
       addressLine2: Option[String],
@@ -118,6 +124,7 @@ object BusinessPartnerRecordServiceImpl {
 
     final case class DesContactDetails(emailAddress: Option[String])
 
+    implicit val organisationReads: Reads[DesOrganisation]     = Json.reads
     implicit val addressReads: Reads[DesAddress]               = Json.reads
     implicit val individualReads: Reads[DesIndividual]         = Json.reads
     implicit val contactDetailsReads: Reads[DesContactDetails] = Json.reads
