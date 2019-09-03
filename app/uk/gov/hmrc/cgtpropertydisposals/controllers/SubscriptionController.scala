@@ -25,14 +25,18 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails}
-import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService
+import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubscriptionController @Inject()(service: SubscriptionService, cc: ControllerComponents)(
+class SubscriptionController @Inject()(
+  subscriptionService: SubscriptionService,
+  taxEnrolmentService: TaxEnrolmentService,
+  cc: ControllerComponents
+)(
   implicit ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
@@ -52,7 +56,12 @@ class SubscriptionController @Inject()(service: SubscriptionService, cc: Control
                                       RequestValidationError(s"Could not parse JSON body as subscription request: $e")
                                   )
                               )
-        subscriptionResponse <- service.subscribe(subscriptionDetails).leftMap[SubscriptionError](BackendError(_))
+        subscriptionResponse <- subscriptionService
+                                 .subscribe(subscriptionDetails)
+                                 .leftMap[SubscriptionError](BackendError(_))
+        _ <- taxEnrolmentService
+              .allocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)
+              .leftMap[SubscriptionError](BackendError(_))
       } yield subscriptionResponse
 
     result.fold(

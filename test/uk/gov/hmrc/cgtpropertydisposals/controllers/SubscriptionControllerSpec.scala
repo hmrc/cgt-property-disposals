@@ -24,24 +24,36 @@ import play.api.libs.json.{JsString, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample}
-import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentServiceImpl.TaxEnrolmentResponse
+import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentServiceImpl.TaxEnrolmentResponse.TaxEnrolmentCreated
+import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
 
 class SubscriptionControllerSpec extends ControllerSpec {
 
-  val mockService = mock[SubscriptionService]
+  val mockSubscriptionService = mock[SubscriptionService]
+  val mockTaxEnrolmentService = mock[TaxEnrolmentService]
 
   override val overrideBindings: List[GuiceableModule] =
-    List(bind[SubscriptionService].toInstance(mockService))
+    List(
+      bind[SubscriptionService].toInstance(mockSubscriptionService),
+      bind[TaxEnrolmentService].toInstance(mockTaxEnrolmentService)
+    )
 
   lazy val controller = instanceOf[SubscriptionController]
 
   def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(response: Either[Error, SubscriptionResponse]) =
-    (mockService
+    (mockSubscriptionService
       .subscribe(_: SubscriptionDetails)(_: HeaderCarrier))
       .expects(expectedSubscriptionDetails, *)
+      .returning(EitherT(Future.successful(response)))
+
+  def mockAllocateEnrolmentToGroup(cgtReference: String, subscriptionDetails: SubscriptionDetails)(response: Either[Error, TaxEnrolmentResponse]) =
+    (mockTaxEnrolmentService
+      .allocateEnrolmentToGroup(_: String, _: SubscriptionDetails)(_: HeaderCarrier))
+      .expects(cgtReference, subscriptionDetails, *)
       .returning(EitherT(Future.successful(response)))
 
   "The SubscriptionController" when {
@@ -84,6 +96,7 @@ class SubscriptionControllerSpec extends ControllerSpec {
           val subscriptionResponse = SubscriptionResponse("number")
 
           mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
+          mockAllocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)(Right(TaxEnrolmentCreated))
 
           val result = controller.subscribe()(FakeRequest().withJsonBody(subscriptionDetailsJson))
           status(result)        shouldBe OK
