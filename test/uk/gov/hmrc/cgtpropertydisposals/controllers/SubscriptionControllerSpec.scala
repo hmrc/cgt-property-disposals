@@ -24,10 +24,10 @@ import play.api.libs.json.{JsString, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample}
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentServiceImpl.TaxEnrolmentResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentServiceImpl.TaxEnrolmentResponse.TaxEnrolmentCreated
+import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse
+import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse.TaxEnrolmentCreated
 import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
@@ -50,7 +50,9 @@ class SubscriptionControllerSpec extends ControllerSpec {
       .expects(expectedSubscriptionDetails, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockAllocateEnrolmentToGroup(cgtReference: String, subscriptionDetails: SubscriptionDetails)(response: Either[Error, TaxEnrolmentResponse]) =
+  def mockAllocateEnrolmentToGroup(cgtReference: String, subscriptionDetails: SubscriptionDetails)(
+    response: Either[Error, TaxEnrolmentResponse]
+  ) =
     (mockTaxEnrolmentService
       .allocateEnrolmentToGroup(_: String, _: SubscriptionDetails)(_: HeaderCarrier))
       .expects(cgtReference, subscriptionDetails, *)
@@ -96,7 +98,9 @@ class SubscriptionControllerSpec extends ControllerSpec {
           val subscriptionResponse = SubscriptionResponse("number")
 
           mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
-          mockAllocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)(Right(TaxEnrolmentCreated))
+          mockAllocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)(
+            Right(TaxEnrolmentCreated)
+          )
 
           val result = controller.subscribe()(FakeRequest().withJsonBody(subscriptionDetailsJson))
           status(result)        shouldBe OK

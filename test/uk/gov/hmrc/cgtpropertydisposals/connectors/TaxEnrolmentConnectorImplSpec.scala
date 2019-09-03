@@ -50,7 +50,8 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val cgtReference               = "XACGTP123456789"
-    val enrolmentRequest           = EnrolmentRequest(List(KeyValuePair("Postcode", "OK113KO")), List(KeyValuePair("CGTPDRef", cgtReference)))
+    val enrolmentRequest =
+      EnrolmentRequest(List(KeyValuePair("Postcode", "OK113KO")), List(KeyValuePair("CGTPDRef", cgtReference)))
 
     "it receives a request to enrol a user it" must {
 

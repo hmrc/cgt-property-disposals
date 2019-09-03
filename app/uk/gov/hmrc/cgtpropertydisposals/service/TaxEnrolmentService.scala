@@ -22,8 +22,8 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, SubscriptionDetails}
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentServiceImpl.TaxEnrolmentResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentServiceImpl.TaxEnrolmentResponse.TaxEnrolmentCreated
+import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse
+import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse.TaxEnrolmentCreated
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,7 +36,7 @@ trait TaxEnrolmentService {
   ): EitherT[Future, Error, TaxEnrolmentResponse]
 }
 
-object TaxEnrolmentServiceImpl {
+object TaxEnrolmentService {
 
   sealed trait TaxEnrolmentResponse
 

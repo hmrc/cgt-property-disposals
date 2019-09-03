@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, SubscriptionDetails, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, SubscriptionDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
@@ -41,7 +41,6 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   "TaxEnrolment Service Implementation" when {
 
-
     "it receives a request to allocate an enrolment it" must {
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -51,8 +50,17 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         "the http call comes back with a status of unauthorized" in {
           val enrolmentRequest =
-            EnrolmentRequest(List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")), List(KeyValuePair("CGTPDRef", cgtReference)))
-          val subscriptionDetails = SubscriptionDetails("firstname", "lastname", "firstname.lastname@gmail.com", Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"), "sapNumber")
+            EnrolmentRequest(
+              List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("CGTPDRef", cgtReference))
+            )
+          val subscriptionDetails = SubscriptionDetails(
+            "firstname",
+            "lastname",
+            "firstname.lastname@gmail.com",
+            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
+            "sapNumber"
+          )
 
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(401)))
 
@@ -61,8 +69,17 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         "the http call comes back with a status of bad request" in {
           val enrolmentRequest =
-            EnrolmentRequest(List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")), List(KeyValuePair("CGTPDRef", cgtReference)))
-          val subscriptionDetails = SubscriptionDetails("firstname", "lastname", "firstname.lastname@gmail.com", Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"), "sapNumber")
+            EnrolmentRequest(
+              List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("CGTPDRef", cgtReference))
+            )
+          val subscriptionDetails = SubscriptionDetails(
+            "firstname",
+            "lastname",
+            "firstname.lastname@gmail.com",
+            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
+            "sapNumber"
+          )
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(400)))
 
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isLeft shouldBe true
@@ -70,8 +87,17 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         "the http call comes back with any other non-successful status" in {
           val enrolmentRequest =
-            EnrolmentRequest(List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")), List(KeyValuePair("CGTPDRef", cgtReference)))
-          val subscriptionDetails = SubscriptionDetails("firstname", "lastname", "firstname.lastname@gmail.com", Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"), "sapNumber")
+            EnrolmentRequest(
+              List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("CGTPDRef", cgtReference))
+            )
+          val subscriptionDetails = SubscriptionDetails(
+            "firstname",
+            "lastname",
+            "firstname.lastname@gmail.com",
+            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
+            "sapNumber"
+          )
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(500)))
 
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isLeft shouldBe true
@@ -85,7 +111,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of no content and the address is a UK address with a postcode" in {
           val enrolmentRequest =
             EnrolmentRequest(List(KeyValuePair("Postcode", "OK11KO")), List(KeyValuePair("CGTPDRef", cgtReference)))
-          val subscriptionDetails = SubscriptionDetails("firstname", "lastname", "firstname.lastname@gmail.com", Address.UkAddress("line1", None, None, None, "OK11KO"), "sapNumber")
+          val subscriptionDetails = SubscriptionDetails(
+            "firstname",
+            "lastname",
+            "firstname.lastname@gmail.com",
+            Address.UkAddress("line1", None, None, None, "OK11KO"),
+            "sapNumber"
+          )
 
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(204)))
 
@@ -94,8 +126,17 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         "the http call comes back with a status of no content and the address is a non-uk address with a postcode and a country code" in {
           val enrolmentRequest =
-            EnrolmentRequest(List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")), List(KeyValuePair("CGTPDRef", cgtReference)))
-          val subscriptionDetails = SubscriptionDetails("firstname", "lastname", "firstname.lastname@gmail.com", Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"), "sapNumber")
+            EnrolmentRequest(
+              List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("CGTPDRef", cgtReference))
+            )
+          val subscriptionDetails = SubscriptionDetails(
+            "firstname",
+            "lastname",
+            "firstname.lastname@gmail.com",
+            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
+            "sapNumber"
+          )
 
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(204)))
 
@@ -105,7 +146,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of no content and the address is a non-uk address with no postcode and a country code" in {
           val enrolmentRequest =
             EnrolmentRequest(List(KeyValuePair("CountryCode", "GB")), List(KeyValuePair("CGTPDRef", cgtReference)))
-          val subscriptionDetails = SubscriptionDetails("firstname", "lastname", "firstname.lastname@gmail.com", Address.NonUkAddress("line1", None, None, None, None, "GB"), "sapNumber")
+          val subscriptionDetails = SubscriptionDetails(
+            "firstname",
+            "lastname",
+            "firstname.lastname@gmail.com",
+            Address.NonUkAddress("line1", None, None, None, None, "GB"),
+            "sapNumber"
+          )
 
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(204)))
 
