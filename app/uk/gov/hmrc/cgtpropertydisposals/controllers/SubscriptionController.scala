@@ -74,7 +74,7 @@ class SubscriptionController @Inject()(
           InternalServerError
         case EnrolmentError(cgtReference) =>
           logger.warn("Error while trying to allocate enrolment")
-          Ok(Json.toJson(cgtReference)) // We return a 200 OK even though it is an error as we will retry asynchronously
+          Ok(Json.toJson(SubscriptionResponse(cgtReference))) // We return a 200 OK even though it is an error as we will retry asynchronously
       }, { r =>
         Ok(Json.toJson(r))
       }

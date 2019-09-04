@@ -106,10 +106,21 @@ class SubscriptionControllerSpec extends ControllerSpec {
           status(result)        shouldBe OK
           contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
         }
+
+        "subscription is successful even if allocation of enrolment fails" in {
+          val subscriptionResponse = SubscriptionResponse("number")
+
+          mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
+          mockAllocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)(
+            Left(Error("Unauthorized"))
+          )
+
+          val result = controller.subscribe()(FakeRequest().withJsonBody(subscriptionDetailsJson))
+          status(result)        shouldBe OK
+          contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
+        }
+
       }
-
     }
-
   }
-
 }
