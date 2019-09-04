@@ -71,7 +71,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
       val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
       val expectedBody    = Json.parse(s"""
            | {
-           |   "regime" : "CGT",
+           |   "regime" : "HMRC-CGT-PD",
            |   "requiresNameMatch" : false,
            |   "isAnIndividual" : true,
            |   "individual" : {

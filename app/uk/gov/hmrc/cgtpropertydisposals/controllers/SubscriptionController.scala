@@ -23,22 +23,26 @@ import com.google.inject.Inject
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError
-import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails}
-import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService
+import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, EnrolmentError, RequestValidationError}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse}
+import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubscriptionController @Inject()(service: SubscriptionService, cc: ControllerComponents)(
+class SubscriptionController @Inject()(
+  subscriptionService: SubscriptionService,
+  taxEnrolmentService: TaxEnrolmentService,
+  cc: ControllerComponents
+)(
   implicit ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
   def subscribe(): Action[AnyContent] = Action.async { implicit request =>
-    val result =
+    val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
       for {
         json <- EitherT.fromEither[Future](
                  Either.fromOption(request.body.asJson, RequestValidationError("No JSON body found in request"))
@@ -52,7 +56,12 @@ class SubscriptionController @Inject()(service: SubscriptionService, cc: Control
                                       RequestValidationError(s"Could not parse JSON body as subscription request: $e")
                                   )
                               )
-        subscriptionResponse <- service.subscribe(subscriptionDetails).leftMap[SubscriptionError](BackendError(_))
+        subscriptionResponse <- subscriptionService
+                                 .subscribe(subscriptionDetails)
+                                 .leftMap[SubscriptionError](BackendError(_))
+        _ <- taxEnrolmentService
+              .allocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)
+              .leftMap[SubscriptionError](_ => EnrolmentError(subscriptionResponse.cgtReferenceNumber))
       } yield subscriptionResponse
 
     result.fold(
@@ -60,16 +69,17 @@ class SubscriptionController @Inject()(service: SubscriptionService, cc: Control
         case RequestValidationError(msg) =>
           logger.warn(s"Error in request to subscribe: $msg")
           BadRequest
-
         case BackendError(e) =>
           logger.warn("Error while trying to subscribe", e)
           InternalServerError
+        case EnrolmentError(cgtReference) =>
+          logger.warn("Error while trying to allocate enrolment")
+          Ok(Json.toJson(SubscriptionResponse(cgtReference))) // We return a 200 OK even though it is an error as we will retry asynchronously
       }, { r =>
         Ok(Json.toJson(r))
       }
     )
   }
-
 }
 
 object SubscriptionController {
@@ -81,6 +91,8 @@ object SubscriptionController {
     final case class BackendError(e: Error) extends SubscriptionError
 
     final case class RequestValidationError(msg: String) extends SubscriptionError
+
+    final case class EnrolmentError(cgtReference: String) extends SubscriptionError
 
   }
 

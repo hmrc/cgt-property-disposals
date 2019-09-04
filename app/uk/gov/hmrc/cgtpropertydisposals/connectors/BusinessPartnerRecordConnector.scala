@@ -52,7 +52,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
     val registerDetails = RegisterDetails(
-      regime            = "CGT",  // TODO: TBD
+      regime            = "HMRC-CGT-PD",
       requiresNameMatch = false,
       isAnIndividual    = true,
       individual        = Individual(name.firstName, name.lastName, dob.value)
