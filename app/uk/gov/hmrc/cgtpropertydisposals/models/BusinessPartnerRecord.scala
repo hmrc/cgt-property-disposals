@@ -21,7 +21,8 @@ import play.api.libs.json.{Format, Json}
 final case class BusinessPartnerRecord(
   emailAddress: Option[String],
   address: Address,
-  sapNumber: String
+  sapNumber: String,
+  organisationName: Option[String]
 )
 
 object BusinessPartnerRecord {

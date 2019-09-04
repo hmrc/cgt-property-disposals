@@ -18,12 +18,14 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers
 
 import akka.stream.Materializer
 import cats.data.EitherT
+import org.scalacheck.Arbitrary
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample, subscriptionDetailsGen}
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse.TaxEnrolmentCreated
 import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
@@ -31,7 +33,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class SubscriptionControllerSpec extends ControllerSpec {
+class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
 
   val mockSubscriptionService = mock[SubscriptionService]
   val mockTaxEnrolmentService = mock[TaxEnrolmentService]
@@ -64,9 +66,6 @@ class SubscriptionControllerSpec extends ControllerSpec {
 
       implicit lazy val mat: Materializer = fakeApplication.materializer
 
-      val subscriptionDetails     = sample[SubscriptionDetails]
-      val subscriptionDetailsJson = Json.toJson(subscriptionDetails)
-
       "return a bad request" when {
 
         "there is no JSON body in the request" in {
@@ -84,6 +83,9 @@ class SubscriptionControllerSpec extends ControllerSpec {
       "return an internal server error" when {
 
         "there is a problem while trying to subscribe" in {
+          val subscriptionDetails     = sample[SubscriptionDetails]
+          val subscriptionDetailsJson = Json.toJson(subscriptionDetails)
+
           mockSubscribe(subscriptionDetails)(Left(Error("oh no!")))
 
           val result = controller.subscribe()(FakeRequest().withJsonBody(subscriptionDetailsJson))
@@ -94,30 +96,40 @@ class SubscriptionControllerSpec extends ControllerSpec {
 
       "return the subscription response" when {
 
+        implicit val subscriptionDetailsArb: Arbitrary[SubscriptionDetails] =
+          Arbitrary(subscriptionDetailsGen)
+
         "subscription is successful" in {
-          val subscriptionResponse = SubscriptionResponse("number")
+          forAll { subscriptionDetails: SubscriptionDetails =>
+            val subscriptionResponse = SubscriptionResponse("number")
 
-          mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
-          mockAllocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)(
-            Right(TaxEnrolmentCreated)
-          )
+            inSequence {
+              mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
+              mockAllocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)(
+                Right(TaxEnrolmentCreated)
+              )
+            }
 
-          val result = controller.subscribe()(FakeRequest().withJsonBody(subscriptionDetailsJson))
-          status(result)        shouldBe OK
-          contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
+            val result = controller.subscribe()(FakeRequest().withJsonBody(Json.toJson((subscriptionDetails))))
+            status(result) shouldBe OK
+            contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
+          }
         }
 
         "subscription is successful even if allocation of enrolment fails" in {
-          val subscriptionResponse = SubscriptionResponse("number")
+          forAll { subscriptionDetails: SubscriptionDetails =>
 
-          mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
-          mockAllocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)(
-            Left(Error("Unauthorized"))
-          )
+            val subscriptionResponse = SubscriptionResponse("number")
 
-          val result = controller.subscribe()(FakeRequest().withJsonBody(subscriptionDetailsJson))
-          status(result)        shouldBe OK
-          contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
+            mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
+            mockAllocateEnrolmentToGroup(subscriptionResponse.cgtReferenceNumber, subscriptionDetails)(
+              Left(Error("Unauthorized"))
+            )
+
+            val result = controller.subscribe()(FakeRequest().withJsonBody(Json.toJson(subscriptionDetails)))
+            status(result) shouldBe OK
+            contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
+          }
         }
 
       }

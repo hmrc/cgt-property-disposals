@@ -16,10 +16,4 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Json, OFormat}
-
-final case class RegisterDetails(regime: String, requiresNameMatch: Boolean, isAnIndividual: Boolean, individual: Individual)
-
-object RegisterDetails {
-  implicit val format: OFormat[RegisterDetails] = Json.format[RegisterDetails]
-}
+final case class SAUTR(value: String) extends AnyVal

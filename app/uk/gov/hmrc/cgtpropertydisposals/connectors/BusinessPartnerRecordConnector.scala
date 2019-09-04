@@ -16,9 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
+import java.time.LocalDate
+
 import cats.data.EitherT
+import cats.syntax.either._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{JsValue, Json, OFormat, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -30,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[BusinessPartnerRecordConnectorImpl])
 trait BusinessPartnerRecordConnector {
 
-  def getBusinessPartnerRecord(nino: NINO, name: Name, dob: DateOfBirth)(
+  def getBusinessPartnerRecord(bprRequest: BprRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -44,31 +47,53 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
     extends BusinessPartnerRecordConnector
     with DesConnector {
 
+  import BusinessPartnerRecordConnectorImpl._
+
   val baseUrl: String = config.baseUrl("business-partner-record")
 
-  def url(nino: NINO): String = s"$baseUrl/registration/individual/nino/${nino.value}"
+  def url(id: Either[SAUTR,NINO]): String = {
+    val suffix = id.fold(s => s"/sautr/${s.value}", n => s"/nino/${n.value}")
+    s"$baseUrl/registration/individual$suffix"
+  }
 
-  def getBusinessPartnerRecord(nino: NINO, name: Name, dob: DateOfBirth)(
+
+  def getBusinessPartnerRecord(bprRequest: BprRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
     val registerDetails = RegisterDetails(
       regime            = "HMRC-CGT-PD",
       requiresNameMatch = false,
-      isAnIndividual    = true,
-      individual        = Individual(name.firstName, name.lastName, dob.value)
+      isAnIndividual    = bprRequest.entity.isRight,
+      individual        = bprRequest.entity.map(i => RegisterIndividual(i.name.firstName, i.name.lastName, i.dateOfBirth.value)).toOption
     )
     EitherT[Future, Error, HttpResponse](
       http
-        .post(url(nino), Json.toJson(registerDetails), headers)(
+        .post(url(bprRequest.id), Json.toJson(registerDetails), headers)(
           implicitly[Writes[JsValue]],
           hc.copy(authorization = None),
           ec
         )
         .map(Right(_))
         .recover {
-          case e => Left(Error(e, "nino" -> nino.value))
+          case e => Left(Error(e, "id" -> bprRequest.id.fold(_.value, _.value)))
         }
     )
   }
+
+}
+
+object BusinessPartnerRecordConnectorImpl {
+
+  private final case class RegisterDetails(regime: String,
+                                           requiresNameMatch: Boolean,
+                                           isAnIndividual: Boolean,
+                                           individual: Option[RegisterIndividual]
+                                          )
+
+  private final case class RegisterIndividual(firstName: String, lastName: String, dateOfBirth: LocalDate)
+
+  private implicit val desIndividualFormat: OFormat[RegisterIndividual] = Json.format[RegisterIndividual]
+
+  private implicit val registerDetailsFormat: OFormat[RegisterDetails] = Json.format[RegisterDetails]
 
 }

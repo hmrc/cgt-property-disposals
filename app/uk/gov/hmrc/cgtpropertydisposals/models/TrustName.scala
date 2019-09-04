@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import java.time.LocalDate
+import play.api.libs.json.{Format, Json, Reads}
 
-import play.api.libs.json.{Json, OFormat}
+final case class TrustName(value: String) extends AnyVal
 
-final case class Individual(firstName: String, lastName: String, dateOfBirth: LocalDate)
+object TrustName {
 
-object Individual {
-  implicit val format: OFormat[Individual] = Json.format[Individual]
+  implicit val format: Format[TrustName] = Json.format[TrustName]
+
 }
-
