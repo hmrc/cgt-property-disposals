@@ -63,7 +63,7 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockPut[EnrolmentRequest](
-              s"http://host:123/tax-enrolments/enrolments/HMRC-CGT-PD~$cgtReference",
+              s"http://host:123/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~$cgtReference",
               enrolmentRequest
             )(Some(httpResponse))
 
@@ -75,7 +75,7 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
     "return an error" when {
       "the future fails" in {
         mockPut[EnrolmentRequest](
-          s"http://host:123/tax-enrolments/enrolments/HMRC-CGT-PD~$cgtReference",
+          s"http://host:123/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~$cgtReference",
           enrolmentRequest
         )(None)
         await(connector.allocateEnrolmentToGroup(cgtReference, enrolmentRequest).value).isLeft shouldBe true
