@@ -120,7 +120,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isRight shouldBe true
         }
 
-        "the http call comes back with a status of no content and the address is a non-uk address with a postcode and a country code" in {
+        "the http call comes back with a status of no content and the address is a non-uk address with a postcode" in {
           val enrolmentRequest =
             EnrolmentRequest(
               List(KeyValuePair("Postcode", "OK11KO")),
@@ -138,7 +138,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isRight shouldBe true
         }
 
-        "the http call comes back with a status of no content and the address is a non-uk address with no postcode and a country code" in {
+        "the http call comes back with a status of no content and the address is a non-uk address with no country code and a post code" in {
           val enrolmentRequest =
             EnrolmentRequest(List(KeyValuePair("CountryCode", "GB")), List(KeyValuePair("CGTPDRef", cgtReference)))
           val subscriptionDetails = SubscriptionDetails(
