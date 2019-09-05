@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.{EnrolmentRequest, Error}
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -35,7 +36,7 @@ trait TaxEnrolmentConnector {
 @Singleton
 class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: ServicesConfig)(
   implicit ec: ExecutionContext
-) extends TaxEnrolmentConnector {
+) extends TaxEnrolmentConnector with Logging {
 
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
 
@@ -45,6 +46,7 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
 
     val serviceName: String  = "HMRC-CGT-PD~CGTPDRef"
     val enrolmentUrl: String = s"$serviceUrl/tax-enrolments/enrolments/$serviceName~$cgtReference"
+    logger.info(s"Allocating enrolment with following parameters: [ enrolment url : $enrolmentUrl | payload : ${enrolmentRequest.toString} ]")
     EitherT[Future, Error, HttpResponse](
       http
         .PUT[EnrolmentRequest, HttpResponse](enrolmentUrl, enrolmentRequest)
