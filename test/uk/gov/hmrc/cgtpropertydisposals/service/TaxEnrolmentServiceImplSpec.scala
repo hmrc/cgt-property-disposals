@@ -51,25 +51,24 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of unauthorized" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", "OK11KO")),
+              List(KeyValuePair("CountryCode", "GB")),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
-           Right(Name("firstname", "lastname")),
+            Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
             Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
             "sapNumber"
           )
 
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(401)))
-
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isLeft shouldBe true
         }
 
         "the http call comes back with a status of bad request" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", "OK11KO")),
+              List(KeyValuePair("CountryCode", "GB")),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
@@ -79,14 +78,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
             "sapNumber"
           )
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(400)))
-
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isLeft shouldBe true
         }
 
         "the http call comes back with any other non-successful status" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", "OK11KO")),
+              List(KeyValuePair("CountryCode", "GB")),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
@@ -96,7 +94,6 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
             "sapNumber"
           )
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(500)))
-
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isLeft shouldBe true
         }
 
@@ -116,14 +113,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           )
 
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(204)))
-
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isRight shouldBe true
         }
 
-        "the http call comes back with a status of no content and the address is a non-uk address with a postcode" in {
+        "the http call comes back with a status of no content and the address is a non-uk address with a country code" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", "OK11KO")),
+              List(KeyValuePair("CountryCode", "GB")),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
@@ -134,24 +130,9 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           )
 
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(204)))
-
           await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isRight shouldBe true
         }
 
-        "the http call comes back with a status of no content and the address is a non-uk address with no country code and a post code" in {
-          val enrolmentRequest =
-            EnrolmentRequest(List(KeyValuePair("CountryCode", "GB")), List(KeyValuePair("CGTPDRef", cgtReference)))
-          val subscriptionDetails = SubscriptionDetails(
-            Right(Name("firstname", "lastname")),
-            "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, None, "GB"),
-            "sapNumber"
-          )
-
-          mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(204)))
-
-          await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isRight shouldBe true
-        }
       }
     }
   }

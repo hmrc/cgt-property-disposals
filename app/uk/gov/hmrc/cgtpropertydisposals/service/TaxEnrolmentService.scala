@@ -57,18 +57,7 @@ class TaxEnrolmentServiceImpl @Inject()(connector: TaxEnrolmentConnector) extend
       case Address.UkAddress(line1, line2, line3, line4, postcode) =>
         EnrolmentRequest(List(KeyValuePair("Postcode", postcode)), List(KeyValuePair("CGTPDRef", cgtReference)))
       case Address.NonUkAddress(line1, line2, line3, line4, maybePostcode, countryCode) =>
-        maybePostcode match {
-          case Some(postcode) =>
-            EnrolmentRequest(
-              List(KeyValuePair("Postcode", postcode)),
-              List(KeyValuePair("CGTPDRef", cgtReference))
-            )
-          case None =>
-            EnrolmentRequest(
-              List(KeyValuePair("CountryCode", countryCode)),
-              List(KeyValuePair("CGTPDRef", cgtReference))
-            )
-        }
+        EnrolmentRequest(List(KeyValuePair("CountryCode", countryCode)), List(KeyValuePair("CGTPDRef", cgtReference)))
     }
 
     connector
