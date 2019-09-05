@@ -51,7 +51,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of unauthorized" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("Postcode", "OK11KO")),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
@@ -69,7 +69,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of bad request" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("Postcode", "OK11KO")),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
@@ -86,7 +86,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with any other non-successful status" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("Postcode", "OK11KO")),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
@@ -123,7 +123,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of no content and the address is a non-uk address with a postcode and a country code" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", "OK11KO"), KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("Postcode", "OK11KO")),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(

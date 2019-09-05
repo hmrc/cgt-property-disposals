@@ -60,7 +60,7 @@ class TaxEnrolmentServiceImpl @Inject()(connector: TaxEnrolmentConnector) extend
         maybePostcode match {
           case Some(postcode) =>
             EnrolmentRequest(
-              List(KeyValuePair("Postcode", postcode), KeyValuePair("CountryCode", countryCode)),
+              List(KeyValuePair("Postcode", postcode)),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           case None =>
