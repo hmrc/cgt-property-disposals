@@ -73,7 +73,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         val nino                       = NINO("AB123456C")
         val name                       = Name("forename", "surname")
         val dateOfBirth                = DateOfBirth(LocalDate.parse("2001-09-20", DateTimeFormatter.ISO_LOCAL_DATE))
-        val bprRequest                 = BprRequest(Right(Individual(nino, name, dateOfBirth)))
+        val bprRequest                 = BprRequest(Right(Individual(Right(nino), name, Some(dateOfBirth))))
 
         val expectedBody    = Json.parse(s"""
                                             | {

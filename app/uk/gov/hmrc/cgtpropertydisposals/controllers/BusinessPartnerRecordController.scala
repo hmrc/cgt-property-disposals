@@ -32,10 +32,10 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 class BusinessPartnerRecordController @Inject()(
-  bprService: BusinessPartnerRecordService,
-  cc: ControllerComponents
-)(implicit ec: ExecutionContext)
-    extends BackendController(cc)
+                                                 bprService: BusinessPartnerRecordService,
+                                                 cc: ControllerComponents
+                                               )(implicit ec: ExecutionContext)
+  extends BackendController(cc)
     with Logging {
 
   def getBusinessPartnerRecordFromNino(nino: String): Action[JsValue] = Action(parse.json).async { implicit request =>
@@ -47,41 +47,56 @@ class BusinessPartnerRecordController @Inject()(
           Future.successful(BadRequest)
         },
         i => getBusinessPartnerRecord(
-          BprRequest(Right(
-            BprRequest.Individual(NINO(nino), Name(i.forename, i.surname), DateOfBirth(i.dateOfBirth))
-          ))
-        )
+          toIndividualBprRequest(Right(NINO(nino)), i))
       )
   }
 
-  def getBusinessPartnerRecordFromSautr(sautr: String): Action[AnyContent] = Action.async { implicit request =>
-    getBusinessPartnerRecord(
-      BprRequest(Left(
-        BprRequest.Organisation(SAUTR(sautr))
-      ))
-    )
+  def getBusinessPartnerRecordFromSautr(sautr: String): Action[JsValue] = Action(parse.json).async { implicit request =>
+    request.body
+      .validateOpt[IndividualBprRequest]
+      .fold(
+        jsError => {
+          logger.error(s"Bad JSON payload ${jsError.toString}")
+          Future.successful(BadRequest)
+        },
+        maybeIndividual => {
+          val bprRequest =
+            maybeIndividual
+              .fold(
+                BprRequest(Left(BprRequest.Organisation(SAUTR(sautr))))
+              )(
+                toIndividualBprRequest(Left(SAUTR(sautr)), _)
+              )
+          getBusinessPartnerRecord(bprRequest)
+        }
+      )
   }
+
+  private def toIndividualBprRequest(id: Either[SAUTR,NINO], request: IndividualBprRequest): BprRequest =
+    BprRequest(Right(
+      BprRequest.Individual(id, Name(request.forename, request.surname), request.dateOfBirth.map(DateOfBirth(_)))
+    ))
 
   private def getBusinessPartnerRecord(bprRequest: BprRequest)(
     implicit hc: HeaderCarrier
   ): Future[Result] =
-          bprService
-            .getBusinessPartnerRecord(bprRequest)
-            .value
-            .map {
-              case Left(e) =>
-                logger.warn(s"Failed to get BPR for id ${bprRequest.id}", e)
-                InternalServerError
-              case Right(bpr) =>
-                Ok(Json.toJson(bpr))
-            }
+    bprService
+      .getBusinessPartnerRecord(bprRequest)
+      .value
+      .map {
+        case Left(e) =>
+          logger.warn(s"Failed to get BPR for id ${bprRequest.id}", e)
+          InternalServerError
+        case Right(bpr) =>
+          Ok(Json.toJson(bpr))
+      }
 
 }
 
 
 object BusinessPartnerRecordController {
 
-  private final case class IndividualBprRequest(forename: String, surname: String, dateOfBirth: LocalDate)
+  private final case class IndividualBprRequest(forename: String, surname: String, dateOfBirth: Option[LocalDate])
 
   private object IndividualBprRequest {
     implicit val format: OFormat[IndividualBprRequest] = Json.format[IndividualBprRequest]

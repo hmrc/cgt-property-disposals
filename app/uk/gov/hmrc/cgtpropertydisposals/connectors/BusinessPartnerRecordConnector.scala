@@ -64,7 +64,9 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
       regime            = "HMRC-CGT-PD",
       requiresNameMatch = false,
       isAnIndividual    = bprRequest.entity.isRight,
-      individual        = bprRequest.entity.map(i => RegisterIndividual(i.name.firstName, i.name.lastName, i.dateOfBirth.value)).toOption
+      individual        = bprRequest.entity.map(i =>
+        RegisterIndividual(i.name.firstName, i.name.lastName, i.dateOfBirth.map(_.value))
+      ).toOption
     )
     EitherT[Future, Error, HttpResponse](
       http
@@ -90,7 +92,7 @@ object BusinessPartnerRecordConnectorImpl {
                                            individual: Option[RegisterIndividual]
                                           )
 
-  private final case class RegisterIndividual(firstName: String, lastName: String, dateOfBirth: LocalDate)
+  private final case class RegisterIndividual(firstName: String, lastName: String, dateOfBirth: Option[LocalDate])
 
   private implicit val desIndividualFormat: OFormat[RegisterIndividual] = Json.format[RegisterIndividual]
 
