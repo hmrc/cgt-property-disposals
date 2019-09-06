@@ -44,8 +44,8 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
 
-    val serviceName: String  = "HMRC-CGT-PD~CGTPDRef"
-    val enrolmentUrl: String = s"$serviceUrl/tax-enrolments/enrolments/$serviceName~$cgtReference"
+    val serviceName: String  = "HMRC-CGT-PD"
+    val enrolmentUrl: String = s"$serviceUrl/tax-enrolments/service/$serviceName/enrolment"
     logger.info(s"Allocating enrolment with following parameters: [ enrolment url : $enrolmentUrl | payload : ${enrolmentRequest.toString} ]")
     EitherT[Future, Error, HttpResponse](
       http
