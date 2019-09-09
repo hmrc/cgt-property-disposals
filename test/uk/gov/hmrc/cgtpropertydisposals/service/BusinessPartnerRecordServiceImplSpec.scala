@@ -54,7 +54,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
     "getting a business partner record" must {
 
-      val bprRequest = BprRequest(Left(Organisation(SAUTR(""))))
+      val bprRequest = BprRequest(Left(Organisation(SAUTR(""))), false)
 
       def expectedBpr(address: Address, organisationName: Option[String]) = BusinessPartnerRecord(
         Some("email"),
