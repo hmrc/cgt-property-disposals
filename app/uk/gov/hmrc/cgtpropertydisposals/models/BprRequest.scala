@@ -26,12 +26,12 @@ object BprRequest {
 
   sealed trait Entity
 
-  final case class Individual(nino: NINO, name: Name, dateOfBirth: DateOfBirth) extends Entity
+  final case class Individual(id: Either[SAUTR,NINO], name: Name, dateOfBirth: Option[DateOfBirth]) extends Entity
 
   final case class Organisation(sautr: SAUTR) extends Entity
 
   implicit class BprRequestOps(val bprRequest: BprRequest) extends AnyVal {
-    def id: Either[SAUTR,NINO] = bprRequest.entity.bimap(_.sautr,_.nino)
+    def id: Either[SAUTR,NINO] = bprRequest.entity.leftMap(_.sautr).flatMap(_.id)
   }
 
 }

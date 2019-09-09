@@ -19,12 +19,12 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.Materializer
 import cats.data.EitherT
+import play.api.mvc.Result
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.Json
+import play.api.libs.json.{JsNull, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
@@ -53,6 +53,8 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
 
   implicit lazy val mat: Materializer = fakeApplication.materializer
 
+  def fakeRequestWithJsonBody(body: JsValue) = FakeRequest().withHeaders(CONTENT_TYPE -> JSON).withBody(body)
+
   "BusinessPartnerRecordController" when {
 
     val bpr = BusinessPartnerRecord(
@@ -62,7 +64,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
       None
     )
 
-    "handling requests to get BPR's for sautrs" must {
+    "handling requests to get BPR's for organisations" must {
       val sautr = SAUTR("satur")
 
       val expectedBprRequest = BprRequest(Left(Organisation(sautr)))
@@ -70,7 +72,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
       "return a BPR if one can be found" in {
         mockBprService(expectedBprRequest)(Right(bpr))
 
-        val result = controller.getBusinessPartnerRecordFromSautr(sautr.value)(FakeRequest())
+        val result = controller.getBusinessPartnerRecordFromSautr(sautr.value)(fakeRequestWithJsonBody(JsNull))
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.toJson(bpr)
       }
@@ -84,7 +86,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
           ).foreach { e =>
             mockBprService(expectedBprRequest)(Left(e))
 
-            val result = controller.getBusinessPartnerRecordFromSautr(sautr.value)(FakeRequest())
+            val result = controller.getBusinessPartnerRecordFromSautr(sautr.value)(fakeRequestWithJsonBody(JsNull))
             status(result) shouldBe INTERNAL_SERVER_ERROR
           }
 
@@ -93,12 +95,11 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
 
     }
 
-    "handling requests to get BPR's for ninos" must {
+    "handling requests to get BPR's for individuals" when {
 
-      val nino           = NINO("AB123456C")
-      val name           = Name("forename", "surname")
-      val dateOfBirth    = DateOfBirth(LocalDate.of(2000,4,12))
-      val validPayload   = Json.parse(
+      val name = Name("forename", "surname")
+      val dateOfBirth = DateOfBirth(LocalDate.of(2000, 4, 12))
+      val validPayload = Json.parse(
         s"""
            | {
            |   "forename" : "${name.firstName}",
@@ -107,70 +108,86 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
            |   }
            |""".stripMargin
       )
-      val expectedBprRequest = BprRequest(Right(Individual(nino , name, dateOfBirth)))
 
-      "return a BPR if one can be found" in {
-        mockBprService(expectedBprRequest)(Right(bpr))
+      def commonBehaviour(performAction: JsValue => Future[Result],
+                          expectedBprRequest: BprRequest): Unit = {
 
-        val result = controller.getBusinessPartnerRecordFromNino(nino.value)(
-          FakeRequest().withHeaders(CONTENT_TYPE -> JSON).withBody(validPayload)
-        )
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(bpr)
-      }
+        "return a BPR if one can be found" in {
+          mockBprService(expectedBprRequest)(Right(bpr))
 
-      "return a bad request if a date with the incorrect format is sent in the payload" in {
-        val payload = Json.parse(
-          s"""
-             | {
-             |   "forename" : "forename",
-             |   "surname" : "surname",
-             |   "dateOfBirth" : "12-100-9999"
-             |   }
-             |""".stripMargin
-        )
+          val result = performAction(validPayload)
+          status(result) shouldBe OK
+          contentAsJson(result) shouldBe Json.toJson(bpr)
+        }
 
-        val result = controller.getBusinessPartnerRecordFromNino(nino.value)(
-          FakeRequest().withHeaders(CONTENT_TYPE -> JSON).withBody(payload)
-        )
-        status(result) shouldBe BAD_REQUEST
-      }
+        "return a bad request if a date with the incorrect format is sent in the payload" in {
+          val payload = Json.parse(
+            s"""
+               | {
+               |   "forename" : "forename",
+               |   "surname" : "surname",
+               |   "dateOfBirth" : "12-100-9999"
+               |   }
+               |""".stripMargin
+          )
 
-      "return a bad request if payload has incorrect structure" in {
-        val payload = Json.parse(
-          s"""
-             | {
-             |   "bino" : "AB123456C",
-             |   "lname" : "surname"
-             |   }
-             |""".stripMargin
-        )
+          val result = performAction(payload)
+          status(result) shouldBe BAD_REQUEST
+        }
 
-        val result = controller.getBusinessPartnerRecordFromNino(nino.value)(
-          FakeRequest().withHeaders(CONTENT_TYPE -> JSON).withBody(payload)
-        )
-        status(result) shouldBe BAD_REQUEST
-      }
+        "return a bad request if payload has incorrect structure" in {
+          val payload = Json.parse(
+            s"""
+               | {
+               |   "bino" : "AB123456C",
+               |   "lname" : "surname"
+               |   }
+               |""".stripMargin
+          )
 
-      "return an error" when {
+          val result = performAction(payload)
+          status(result) shouldBe BAD_REQUEST
+        }
 
-        "there is an error getting a BPR" in {
-          List(
-            Error(new Exception("oh no!")),
-            Error("oh no!")
-          ).foreach { e =>
-            mockBprService(expectedBprRequest)(Left(e))
+        "return an error" when {
 
-            val result = controller.getBusinessPartnerRecordFromNino(nino.value)(
-              FakeRequest().withHeaders(CONTENT_TYPE -> JSON).withBody(validPayload)
-            )
-            status(result) shouldBe INTERNAL_SERVER_ERROR
+          "there is an error getting a BPR" in {
+            List(
+              Error(new Exception("oh no!")),
+              Error("oh no!")
+            ).foreach { e =>
+              mockBprService(expectedBprRequest)(Left(e))
+
+              val result = performAction(validPayload)
+              status(result) shouldBe INTERNAL_SERVER_ERROR
+            }
+
           }
 
         }
+      }
+
+      "passed an SAUTR" must {
+        val sautr = SAUTR("1234567890")
+        val expectedBprRequest = BprRequest(Right(Individual(Left(sautr), name, Some(dateOfBirth))))
+
+        behave like commonBehaviour(
+          json => controller.getBusinessPartnerRecordFromSautr(sautr.value)(fakeRequestWithJsonBody(json)),
+          expectedBprRequest
+        )
 
       }
 
+      "passed a NINO" must {
+        val nino = NINO("AB123456C")
+        val expectedBprRequest = BprRequest(Right(Individual(Right(nino), name, Some(dateOfBirth))))
+
+        behave like commonBehaviour(
+          json => controller.getBusinessPartnerRecordFromNino(nino.value)(fakeRequestWithJsonBody(json)),
+          expectedBprRequest
+        )
+
+      }
     }
 
   }
