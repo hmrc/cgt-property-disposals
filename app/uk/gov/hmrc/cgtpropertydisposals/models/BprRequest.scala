@@ -17,10 +17,9 @@
 package uk.gov.hmrc.cgtpropertydisposals.models
 
 import cats.syntax.either._
-
 import uk.gov.hmrc.cgtpropertydisposals.models.BprRequest.{Individual, Organisation}
 
-final case class BprRequest(entity: Either[Organisation,Individual])
+final case class BprRequest(entity: Either[Organisation,Individual], requiresNameMatch: Boolean)
 
 object BprRequest {
 

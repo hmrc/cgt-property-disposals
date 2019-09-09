@@ -73,12 +73,12 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         val nino                       = NINO("AB123456C")
         val name                       = Name("forename", "surname")
         val dateOfBirth                = DateOfBirth(LocalDate.parse("2001-09-20", DateTimeFormatter.ISO_LOCAL_DATE))
-        val bprRequest                 = BprRequest(Right(Individual(Right(nino), name, Some(dateOfBirth))))
+        def bprRequest(requiresNameMatch: Boolean) = BprRequest(Right(Individual(Right(nino), name, Some(dateOfBirth))), requiresNameMatch)
 
-        val expectedBody    = Json.parse(s"""
+        def expectedBody(requiresNameMatch: Boolean) = Json.parse(s"""
                                             | {
                                             |   "regime" : "HMRC-CGT-PD",
-                                            |   "requiresNameMatch" : false,
+                                            |   "requiresNameMatch" : $requiresNameMatch,
                                             |   "isAnIndividual" : true,
                                             |   "individual" : {
                                             |     "firstName" : "forename",
@@ -95,25 +95,25 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
             HttpResponse(500)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody)(
+              mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody(true))(
                 Some(httpResponse)
               )
 
-              await(connector.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(httpResponse)
+              await(connector.getBusinessPartnerRecord(bprRequest(true)).value) shouldBe Right(httpResponse)
             }
           }
         }
 
         "return an error when the future fails" in {
-          mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody)(None)
+          mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody(false))(None)
 
-          await(connector.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+          await(connector.getBusinessPartnerRecord(bprRequest(false)).value).isLeft shouldBe true
         }
       }
 
       "handling organisations with SAUTRs" must {
         val sautr      = SAUTR("sautr")
-        val bprRequest = BprRequest(Left(Organisation(sautr)))
+        val bprRequest = BprRequest(Left(Organisation(sautr)), false)
 
         val expectedBody    = Json.parse(s"""
                                             | {

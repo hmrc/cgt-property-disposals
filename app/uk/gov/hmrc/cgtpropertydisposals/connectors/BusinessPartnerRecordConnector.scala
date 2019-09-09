@@ -62,7 +62,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
   ): EitherT[Future, Error, HttpResponse] = {
     val registerDetails = RegisterDetails(
       regime            = "HMRC-CGT-PD",
-      requiresNameMatch = false,
+      requiresNameMatch = bprRequest.requiresNameMatch,
       isAnIndividual    = bprRequest.entity.isRight,
       individual        = bprRequest.entity.map(i =>
         RegisterIndividual(i.name.firstName, i.name.lastName, i.dateOfBirth.map(_.value))
