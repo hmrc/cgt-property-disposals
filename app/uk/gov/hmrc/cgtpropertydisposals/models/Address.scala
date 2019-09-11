@@ -24,11 +24,11 @@ sealed trait Address
 object Address {
 
   final case class UkAddress(
-    line1: String,
-    line2: Option[String],
-    line3: Option[String],
-    line4: Option[String],
-    postcode: String
+                              line1: String,
+                              line2: Option[String],
+                              town: Option[String],
+                              county: Option[String],
+                              postcode: String
   ) extends Address {
     val countryCode: String = "GB"
   }
