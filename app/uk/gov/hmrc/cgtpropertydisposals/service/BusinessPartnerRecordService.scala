@@ -16,18 +16,20 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
-import cats.data.EitherT
+import cats.data.Validated.{Invalid, Valid}
+import cats.data.{EitherT, NonEmptyList, ValidatedNel}
 import cats.instances.future._
 import cats.instances.int._
 import cats.instances.string._
+import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BprRequest, BusinessPartnerRecord, DateOfBirth, Error, NINO, Name}
-import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, Error, Name, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -36,7 +38,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[BusinessPartnerRecordServiceImpl])
 trait BusinessPartnerRecordService {
 
-  def getBusinessPartnerRecord(bprRequest: BprRequest)(
+  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, BusinessPartnerRecord]
 
@@ -47,14 +49,15 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
   implicit ec: ExecutionContext
 ) extends BusinessPartnerRecordService {
 
-  def getBusinessPartnerRecord(bprRequest: BprRequest)(
+  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, BusinessPartnerRecord] =
     connector.getBusinessPartnerRecord(bprRequest).subflatMap { response =>
       lazy val identifiers =
         List(
-          "id" -> bprRequest.id.fold(_.value, _.value),
-          "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-"))
+          "id"                -> bprRequest.id.fold(_.value, _.value),
+          "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-")
+        )
 
       if (response.status === 200) {
         response
@@ -71,24 +74,34 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
   def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
     val a = d.address
 
-    val maybeAddress: Either[String, Address] =
+    val addressValidation: Validation[Address] =
       if (a.countryCode === "GB") {
-        a.postalCode.fold[Either[String, UkAddress]](
-          Left("Could not find postcode for UK address")
-        )(p => Right(UkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, p)))
+        a.postalCode.fold[ValidatedNel[String, Address]](
+          Invalid(NonEmptyList.one("Could not find postcode for UK address"))
+        )(p => Valid(UkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, p)))
       } else {
-        Right(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, a.countryCode))
+        Valid(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, a.countryCode))
       }
 
-    maybeAddress.map(
-      address =>
-        BusinessPartnerRecord(
-          d.contactDetails.emailAddress,
-          address,
-          d.sapNumber,
-          d.organisation.map(_.name)
-        )
-    )
+    val nameValidation: Validation[Either[TrustName, Name]] =
+      d.individual -> d.organisation match {
+        case (Some(individual), None)   => Valid(Right(Name(individual.firstName, individual.lastName)))
+        case (None, Some(organisation)) => Valid(Left(TrustName(organisation.name)))
+        case (Some(_), Some(_)) =>
+          Invalid(NonEmptyList.one("BPR contained both an organisation name and individual name"))
+        case (None, None) =>
+          Invalid(NonEmptyList.one("BPR contained contained neither an organisation name or an individual name"))
+      }
+
+    (addressValidation, nameValidation).mapN{ case (address, name) =>
+      BusinessPartnerRecord(
+        d.contactDetails.emailAddress,
+        address,
+        d.sapNumber,
+        name
+      )
+    }.toEither
+      .leftMap(errors => s"Could not read DES response: ${errors.toList.mkString("; ")}")
   }
 
 }
@@ -97,11 +110,14 @@ object BusinessPartnerRecordServiceImpl {
 
   import DesBusinessPartnerRecord._
 
+  type Validation[A] = ValidatedNel[String,A]
+
   final case class DesBusinessPartnerRecord(
     address: DesAddress,
     contactDetails: DesContactDetails,
     sapNumber: String,
-    organisation: Option[DesOrganisation]
+    organisation: Option[DesOrganisation],
+    individual: Option[DesIndividual]
   )
 
   object DesBusinessPartnerRecord {
@@ -118,8 +134,7 @@ object BusinessPartnerRecordServiceImpl {
 
     final case class DesIndividual(
       firstName: String,
-      lastName: String,
-      dateOfBirth: DateOfBirth
+      lastName: String
     )
 
     final case class DesContactDetails(emailAddress: Option[String])

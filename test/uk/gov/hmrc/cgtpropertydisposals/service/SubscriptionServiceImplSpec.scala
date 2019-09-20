@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
+import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._

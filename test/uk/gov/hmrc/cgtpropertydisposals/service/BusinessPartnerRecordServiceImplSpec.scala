@@ -16,18 +16,15 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-
 import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
+import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.BprRequest.Organisation
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BprRequest, BusinessPartnerRecord, DateOfBirth, Error, NINO, Name, SAUTR, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, Error, Name, TrustName, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,43 +36,36 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val service = new BusinessPartnerRecordServiceImpl(mockConnector)
 
-  def mockGetBPR(bprRequest: BprRequest)(response: Either[Error, HttpResponse]) =
+  def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
     (mockConnector
-      .getBusinessPartnerRecord(_: BprRequest)(_: HeaderCarrier))
+      .getBusinessPartnerRecord(_: BusinessPartnerRecordRequest)(_: HeaderCarrier))
       .expects(bprRequest, *)
       .returning(EitherT(Future.successful(response)))
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
-  val nino                       = NINO("AB123456C")
-  val name                       = Name("forename", "surname")
-  val dateOfBirth                = DateOfBirth(LocalDate.parse("2000-11-12", DateTimeFormatter.ISO_LOCAL_DATE))
+
+  val bprRequest = sample[BusinessPartnerRecordRequest]
+
+  val (name, trustName) = sample[Name] -> sample[TrustName]
+
+
 
   "The BusinessPartnerRecordServiceImpl" when {
 
     "getting a business partner record" must {
 
-      val bprRequest = BprRequest(Left(Organisation(SAUTR(""))), false)
+      def expectedBpr(address: Address, name: Either[TrustName, Name]) =
+        BusinessPartnerRecord(Some("email"), address, "1234567890", name)
 
-      def expectedBpr(address: Address, organisationName: Option[String]) = BusinessPartnerRecord(
-        Some("email"),
-        address,
-        "1234567890",
-        organisationName
-      )
-
-      def json(addressBody: String, organisationName: Option[String]) =
+      def responseJson(addressBody: String, organisationName: Option[TrustName], individualName: Option[Name]) =
         Json.parse(s"""
            |{
-           |  "individual" : {
-           |    "firstName"   : "forename",
-           |    "lastName"    : "surname",
-           |    "dateOfBirth" : "2000-01-02"
-           |  },
+           |  ${individualName.map(n => s""""individual":{"firstName":"${n.firstName}","lastName":"${n.lastName}"},""").getOrElse("")}
            |  "contactDetails" : {
            |    "emailAddress" : "email"
            |  },
            |  "sapNumber" : "1234567890",
-           |  ${organisationName.map(n => s""""organisation" : { "name" : "$n" },""").getOrElse("")}
+           |  ${organisationName.map(trustName => s""""organisation":{"name":"${trustName.value}"},""").getOrElse("")}
            |  $addressBody
            |}
            |""".stripMargin)
@@ -110,25 +100,60 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
         "the call comes back with status 200 and valid JSON but a postcode cannot " +
           "be found for a uk address" in {
-          val body = json(
+          val body = responseJson(
             """
               |"address" : {
               |    "addressLine1" : "line1",
               |    "countryCode"  : "GB"
               |  }
               |""".stripMargin,
+            Some(trustName),
             None
           )
 
           testError(Right(HttpResponse(200, Some(body))))
         }
 
+        "there is no organisation name or individual name in the response body" in {
+          val body = responseJson(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+            None,
+            None
+          )
+
+          testError(Right(HttpResponse(200, Some(body))))
+        }
+
+        "there is both an organisation name and an individual name in the response body" in {
+          val body = responseJson(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+            Some(trustName),
+            Some(name)
+          )
+
+          testError(Right(HttpResponse(200, Some(body))))
+        }
+
+
+
       }
 
       "return a BPR" when {
 
         "the call comes back with status 200 with valid JSON and a valid UK address" in {
-          val body = json(
+          val body = responseJson(
             """
               |"address" : {
               |    "addressLine1" : "line1",
@@ -139,19 +164,20 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |    "countryCode"  : "GB"
               |  }
               |""".stripMargin,
-            None
+            None,
+            Some(name)
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
 
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            expectedBpr(expectedAddress, None)
+            expectedBpr(expectedAddress, Right(name))
           )
         }
 
         "the call comes back with status 200 with valid JSON and a valid non-UK address" in {
-          val body = json(
+          val body = responseJson(
             """
               |"address" : {
               |    "addressLine1" : "line1",
@@ -161,6 +187,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |    "countryCode"  : "HK"
               |  }
               |""".stripMargin,
+            Some(trustName),
             None
           )
 
@@ -168,31 +195,11 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
           val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, "HK")
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            expectedBpr(expectedAddress, None)
+            expectedBpr(expectedAddress, Left(trustName))
           )
         }
 
-        "the call comes back with status 200 with valid JSON and an organisation name" in {
-          val body = json(
-            """
-              |"address" : {
-              |    "addressLine1" : "line1",
-              |    "addressLine2" : "line2",
-              |    "addressLine3" : "line3",
-              |    "addressLine4" : "line4",
-              |    "countryCode"  : "HK"
-              |  }
-              |""".stripMargin,
-            Some("organisation")
-          )
 
-          mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-
-          val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, "HK")
-          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            expectedBpr(expectedAddress, Some("organisation"))
-          )
-        }
 
       }
 

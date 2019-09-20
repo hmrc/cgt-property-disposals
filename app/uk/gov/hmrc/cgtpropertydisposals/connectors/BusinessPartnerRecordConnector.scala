@@ -33,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[BusinessPartnerRecordConnectorImpl])
 trait BusinessPartnerRecordConnector {
 
-  def getBusinessPartnerRecord(bprRequest: BprRequest)(
+  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -57,17 +57,19 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
   }
 
 
-  def getBusinessPartnerRecord(bprRequest: BprRequest)(
+  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
     val registerDetails = RegisterDetails(
       regime            = "HMRC-CGT-PD",
-      requiresNameMatch = bprRequest.requiresNameMatch,
-      isAnIndividual    = bprRequest.entity.isRight,
-      individual        = bprRequest.entity.map(i =>
-        RegisterIndividual(i.name.firstName, i.name.lastName, i.dateOfBirth.map(_.value))
-      ).toOption
+      requiresNameMatch = bprRequest.fold(_ => false, _.nameMatch.isDefined),
+      isAnIndividual    = bprRequest.fold(_ => false, _ => true),
+      individual        = bprRequest.fold(
+        _ => None,
+        _.nameMatch.map(name => RegisterIndividual(name.firstName, name.lastName))
+      )
     )
+
     EitherT[Future, Error, HttpResponse](
       http
         .post(url(bprRequest.id), Json.toJson(registerDetails), headers)(
@@ -92,7 +94,7 @@ object BusinessPartnerRecordConnectorImpl {
                                            individual: Option[RegisterIndividual]
                                           )
 
-  private final case class RegisterIndividual(firstName: String, lastName: String, dateOfBirth: Option[LocalDate])
+  private final case class RegisterIndividual(firstName: String, lastName: String)
 
   private implicit val desIndividualFormat: OFormat[RegisterIndividual] = Json.format[RegisterIndividual]
 
