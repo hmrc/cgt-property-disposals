@@ -19,13 +19,14 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers
 import akka.stream.Materializer
 import cats.data.EitherT
 import org.scalacheck.Arbitrary
+import org.scalacheck.ScalacheckShapeless._
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample, subscriptionDetailsGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse.TaxEnrolmentCreated
 import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
@@ -95,9 +96,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       }
 
       "return the subscription response" when {
-
-        implicit val subscriptionDetailsArb: Arbitrary[SubscriptionDetails] =
-          Arbitrary(subscriptionDetailsGen)
 
         "subscription is successful" in {
           forAll { subscriptionDetails: SubscriptionDetails =>

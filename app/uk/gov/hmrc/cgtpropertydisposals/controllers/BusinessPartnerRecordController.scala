@@ -16,15 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
-import java.time.LocalDate
-
-import cats.syntax.either._
 import com.google.inject.Inject
-import julienrf.json.derived
-import play.api.libs.json.{JsValue, Json, Reads}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.cgtpropertydisposals.models.{BprRequest, DateOfBirth, NINO, Name, SAUTR}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.BusinessPartnerRecordRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
@@ -39,19 +34,15 @@ class BusinessPartnerRecordController @Inject()(
   extends BackendController(cc)
     with Logging {
 
-  import uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.IncomingRequest
-  import uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.IncomingRequest._
-
   def getBusinessPartnerRecord(): Action[JsValue] = Action(parse.json).async { implicit request =>
     request.body
-      .validate[IncomingRequest]
+      .validate[BusinessPartnerRecordRequest]
       .fold(
         jsError => {
           logger.error(s"Bad JSON payload ${jsError.toString}")
           Future.successful(BadRequest)
         },
-        incomingRequest => {
-          val bprRequest = toBprRequest(incomingRequest)
+        bprRequest => {
           bprService
             .getBusinessPartnerRecord(bprRequest)
             .value
@@ -64,49 +55,6 @@ class BusinessPartnerRecordController @Inject()(
             }
         }
       )
-  }
-
-  private def toBprRequest(incomingRequest: IncomingRequest): BprRequest =
-    incomingRequest match {
-      case IndividualBprRequest(id, forename, surname, dateOfBirth, requiresNameMatch) =>
-        BprRequest(Right(
-          BprRequest.Individual(
-            id.bimap(SAUTR(_), NINO(_)),
-            Name(forename, surname),
-            dateOfBirth.map(DateOfBirth(_)))
-        ),
-          requiresNameMatch
-        )
-
-      case OrganisationBprRequest(sautr, requiresNameMatch) =>
-        BprRequest(Left(BprRequest.Organisation(SAUTR(sautr))), requiresNameMatch)
-    }
-
-}
-
-
-object BusinessPartnerRecordController {
-
-  private sealed trait IncomingRequest
-
-  private object IncomingRequest {
-    final case class IndividualBprRequest(id: Either[String,String],
-                                          forename: String,
-                                          surname: String,
-                                          dateOfBirth: Option[LocalDate],
-                                          requiresNameMatch: Boolean
-                                         ) extends IncomingRequest
-
-    final case class OrganisationBprRequest(sautr: String,
-                                            requiresNameMatch: Boolean
-                                           ) extends IncomingRequest
-
-
-    implicit val individualBprRequestReads: Reads[IndividualBprRequest] = Json.reads[IndividualBprRequest]
-
-    @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-    implicit val format: Reads[IncomingRequest] = derived.reads[IncomingRequest]
-
   }
 
 }

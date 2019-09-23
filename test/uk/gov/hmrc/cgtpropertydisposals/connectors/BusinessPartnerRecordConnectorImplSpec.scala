@@ -16,17 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.BprRequest.{Individual, Organisation}
-import uk.gov.hmrc.cgtpropertydisposals.models.{BprRequest, DateOfBirth, NINO, Name, SAUTR}
+import uk.gov.hmrc.cgtpropertydisposals.models.BusinessPartnerRecordRequest.{IndividualBusinessPartnerRecordRequest, TrustBusinessPartnerRecordRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.{NINO, Name, SAUTR}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -60,33 +57,39 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
   val connector =
     new BusinessPartnerRecordConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
-
-
   "BusinessPartnerRecordConnectorImpl" when {
 
     "handling request to get the business partner records" when {
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
-      val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+      val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+
+      val name = Name("forename", "surname")
+
+      def individualBprRequest(id: Either[SAUTR, NINO], requiresNameMatch: Boolean) =
+        IndividualBusinessPartnerRecordRequest(id, if (requiresNameMatch) Some(name) else None)
+
+      def expectedIndividualBody(requiresNameMatch: Boolean) = {
+        val individualJsonString = if(requiresNameMatch)
+          """,
+            |  "individual" : {
+            |     "firstName" : "forename",
+            |     "lastName" : "surname"
+            |    }
+            |""".stripMargin
+        else ""
+
+        Json.parse(s"""
+                      | {
+                      |   "regime" : "HMRC-CGT-PD",
+                      |   "requiresNameMatch" : $requiresNameMatch,
+                      |   "isAnIndividual" : true$individualJsonString
+                      | }
+                      |""".stripMargin)
+      }
 
       "handling individuals with NINOs" must {
-        val nino                       = NINO("AB123456C")
-        val name                       = Name("forename", "surname")
-        val dateOfBirth                = DateOfBirth(LocalDate.parse("2001-09-20", DateTimeFormatter.ISO_LOCAL_DATE))
-        def bprRequest(requiresNameMatch: Boolean) = BprRequest(Right(Individual(Right(nino), name, Some(dateOfBirth))), requiresNameMatch)
-
-        def expectedBody(requiresNameMatch: Boolean) = Json.parse(s"""
-                                            | {
-                                            |   "regime" : "HMRC-CGT-PD",
-                                            |   "requiresNameMatch" : $requiresNameMatch,
-                                            |   "isAnIndividual" : true,
-                                            |   "individual" : {
-                                            |     "firstName" : "forename",
-                                            |     "lastName" : "surname",
-                                            |     "dateOfBirth" : "2001-09-20"
-                                            |    }
-                                            | }
-                                            |""".stripMargin)
+        val nino = NINO("AB123456C")
 
         "do a post http call and return the result" in {
           List(
@@ -95,27 +98,73 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
             HttpResponse(500)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody(true))(
+              mockPost(
+                s"http://host:123/registration/individual/nino/${nino.value}",
+                expectedHeaders,
+                expectedIndividualBody(true)
+              )(
                 Some(httpResponse)
               )
 
-              await(connector.getBusinessPartnerRecord(bprRequest(true)).value) shouldBe Right(httpResponse)
+              await(connector.getBusinessPartnerRecord(individualBprRequest(Right(nino), true)).value) shouldBe Right(
+                httpResponse
+              )
             }
           }
         }
 
         "return an error when the future fails" in {
-          mockPost(s"http://host:123/registration/individual/nino/${nino.value}", expectedHeaders, expectedBody(false))(None)
+          mockPost(
+            s"http://host:123/registration/individual/nino/${nino.value}",
+            expectedHeaders,
+            expectedIndividualBody(false)
+          )(None)
 
-          await(connector.getBusinessPartnerRecord(bprRequest(false)).value).isLeft shouldBe true
+          await(connector.getBusinessPartnerRecord(individualBprRequest(Right(nino), false)).value).isLeft shouldBe true
+        }
+      }
+
+      "handling individuals with SA UTRs" must {
+        val sautr = SAUTR("12345")
+
+        "do a post http call and return the result" in {
+          List(
+            HttpResponse(200),
+            HttpResponse(200, Some(JsString("hi"))),
+            HttpResponse(500)
+          ).foreach { httpResponse =>
+            withClue(s"For http response [${httpResponse.toString}]") {
+              mockPost(
+                s"http://host:123/registration/individual/sautr/${sautr.value}",
+                expectedHeaders,
+                expectedIndividualBody(true)
+              )(
+                Some(httpResponse)
+              )
+
+              await(connector.getBusinessPartnerRecord(individualBprRequest(Left(sautr), true)).value) shouldBe Right(
+                httpResponse
+              )
+            }
+          }
+        }
+
+        "return an error when the future fails" in {
+          mockPost(
+            s"http://host:123/registration/individual/sautr/${sautr.value}",
+            expectedHeaders,
+            expectedIndividualBody(false)
+          )(None)
+
+          await(connector.getBusinessPartnerRecord(individualBprRequest(Left(sautr), false)).value).isLeft shouldBe true
         }
       }
 
       "handling organisations with SAUTRs" must {
         val sautr      = SAUTR("sautr")
-        val bprRequest = BprRequest(Left(Organisation(sautr)), false)
+        val bprRequest = TrustBusinessPartnerRecordRequest(sautr)
 
-        val expectedBody    = Json.parse(s"""
+        val expectedBody = Json.parse(s"""
                                             | {
                                             |   "regime" : "HMRC-CGT-PD",
                                             |   "requiresNameMatch" : false,
@@ -145,7 +194,6 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
           await(connector.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
       }
-
 
     }
 

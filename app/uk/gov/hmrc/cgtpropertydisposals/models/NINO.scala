@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models
 
 import cats.syntax.either._
+import play.api.libs.json.{Json, OFormat}
 import play.api.mvc.PathBindable
 
 final case class NINO(value: String) extends AnyVal
@@ -33,5 +34,8 @@ object NINO {
       override def unbind(key: String, value: NINO): String =
         stringBinder.unbind(key, value.value)
     }
+
+  implicit val format: OFormat[NINO] = Json.format[NINO]
+
 
 }
