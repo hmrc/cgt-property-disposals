@@ -17,14 +17,16 @@
 package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
+import com.typesafe.config.{Config, ConfigFactory}
 import org.scalamock.scalatest.MockFactory
 import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, Error, Name, TrustName, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, Country, Error, Name, TrustName, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,7 +36,14 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val mockConnector: BusinessPartnerRecordConnector = mock[BusinessPartnerRecordConnector]
 
-  val service = new BusinessPartnerRecordServiceImpl(mockConnector)
+  val nonIsoCountryCode = "XZ"
+
+  val config = Configuration(ConfigFactory.parseString(
+    s"""
+      |des.non-iso-country-codes = ["$nonIsoCountryCode"]
+      |""".stripMargin))
+
+  val service = new BusinessPartnerRecordServiceImpl(mockConnector, config)
 
   def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
     (mockConnector
@@ -146,6 +155,22 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           testError(Right(HttpResponse(200, Some(body))))
         }
 
+        "a country code is returned for which a name cannot be found and which hasn't been configured " +
+          "as a non-ISO country code" in {
+          val body = responseJson(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "XX"
+              |  }
+              |""".stripMargin,
+            Some(trustName),
+            Some(name)
+          )
+
+          testError(Right(HttpResponse(200, Some(body))))
+        }
 
 
       }
@@ -176,7 +201,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
         }
 
-        "the call comes back with status 200 with valid JSON and a valid non-UK address" in {
+        "the call comes back with status 200 with valid JSON and a valid non-UK address where a country name exists" in {
           val body = responseJson(
             """
               |"address" : {
@@ -193,12 +218,35 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
 
-          val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, "HK")
+          val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             expectedBpr(expectedAddress, Left(trustName))
           )
         }
 
+        "the call comes back with status 200 with valid JSON and a valid non-UK address where a country name does not exist " +
+          "but the country code has been configured as a non-ISO country code" in {
+          val body = responseJson(
+            s"""
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "addressLine2" : "line2",
+              |    "addressLine3" : "line3",
+              |    "addressLine4" : "line4",
+              |    "countryCode"  : "$nonIsoCountryCode"
+              |  }
+              |""".stripMargin,
+            Some(trustName),
+            None
+          )
+
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
+
+          val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country(nonIsoCountryCode, None))
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+            expectedBpr(expectedAddress, Left(trustName))
+          )
+        }
 
 
       }
