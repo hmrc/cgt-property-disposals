@@ -6,7 +6,7 @@ import sbt._
 object AppDependencies {
 
   val compile = Seq(
-
+    "com.github.kxbmap"       %% "configs"                  % "0.4.4",
     "uk.gov.hmrc"             %% "simple-reactivemongo"     % "7.19.0-play-26",
     "uk.gov.hmrc"             %% "bootstrap-play-26"        % "0.42.0",
     "org.typelevel"           %% "cats-core"                % "1.6.1",

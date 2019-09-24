@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, Name, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Country, EnrolmentRequest, Error, KeyValuePair, Name, SubscriptionDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
@@ -39,6 +39,8 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(cgtReference, enrolmentRequest, *)
       .returning(EitherT(Future.successful(response)))
 
+  val (nonUkCountry, nonUkCountryCode) = Country("HK", Some("Hong Kong")) -> "HK"
+
   "TaxEnrolment Service Implementation" when {
 
     "it receives a request to allocate an enrolment it" must {
@@ -51,13 +53,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of unauthorized" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("CountryCode", nonUkCountryCode)),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
             Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
+            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), nonUkCountry),
             "sapNumber"
           )
 
@@ -68,13 +70,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of bad request" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("CountryCode", nonUkCountryCode)),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
             Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
+            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), nonUkCountry),
             "sapNumber"
           )
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(400)))
@@ -84,13 +86,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with any other non-successful status" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("CountryCode", nonUkCountryCode)),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
             Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
+            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), nonUkCountry),
             "sapNumber"
           )
           mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(500)))
@@ -119,13 +121,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status of no content and the address is a non-uk address with a country code" in {
           val enrolmentRequest =
             EnrolmentRequest(
-              List(KeyValuePair("CountryCode", "GB")),
+              List(KeyValuePair("CountryCode", nonUkCountryCode)),
               List(KeyValuePair("CGTPDRef", cgtReference))
             )
           val subscriptionDetails = SubscriptionDetails(
             Right(Name("firstname", "lastname")),
             "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
+            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), nonUkCountry),
             "sapNumber"
           )
 

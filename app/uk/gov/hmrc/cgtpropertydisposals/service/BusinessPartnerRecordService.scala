@@ -25,10 +25,13 @@ import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import configs.syntax._
+import play.api.Configuration
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, Error, Name, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.Country.CountryCode
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, Country, Error, Name, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -45,9 +48,12 @@ trait BusinessPartnerRecordService {
 }
 
 @Singleton
-class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecordConnector)(
+class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecordConnector, config: Configuration)(
   implicit ec: ExecutionContext
 ) extends BusinessPartnerRecordService {
+
+  val desNonIsoCountryCodes: List[CountryCode] =
+    config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
@@ -74,14 +80,23 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
   def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
     val a = d.address
 
-    val addressValidation: Validation[Address] =
+    val addressValidation: Validation[Address] = {
       if (a.countryCode === "GB") {
         a.postalCode.fold[ValidatedNel[String, Address]](
           Invalid(NonEmptyList.one("Could not find postcode for UK address"))
         )(p => Valid(UkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, p)))
       } else {
-        Valid(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, a.countryCode))
+        val country = Country.countryCodeToCountryName.get(a.countryCode) match {
+          case Some(countryName)                                     => Some(Country(a.countryCode, Some(countryName)))
+          case None if desNonIsoCountryCodes.contains(a.countryCode) => Some(Country(a.countryCode, None))
+          case None                                                  => None
+        }
+
+        country.fold[ValidatedNel[String, Address]](
+          Invalid(NonEmptyList.one(s"Received unknown country code: ${a.countryCode}"))
+        )(c => Valid(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, c)))
       }
+    }
 
     val nameValidation: Validation[Either[TrustName, Name]] =
       d.individual -> d.organisation match {
@@ -93,14 +108,17 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
           Invalid(NonEmptyList.one("BPR contained contained neither an organisation name or an individual name"))
       }
 
-    (addressValidation, nameValidation).mapN{ case (address, name) =>
-      BusinessPartnerRecord(
-        d.contactDetails.emailAddress,
-        address,
-        d.sapNumber,
-        name
-      )
-    }.toEither
+    (addressValidation, nameValidation)
+      .mapN {
+        case (address, name) =>
+          BusinessPartnerRecord(
+            d.contactDetails.emailAddress,
+            address,
+            d.sapNumber,
+            name
+          )
+      }
+      .toEither
       .leftMap(errors => s"Could not read DES response: ${errors.toList.mkString("; ")}")
   }
 
@@ -110,7 +128,7 @@ object BusinessPartnerRecordServiceImpl {
 
   import DesBusinessPartnerRecord._
 
-  type Validation[A] = ValidatedNel[String,A]
+  type Validation[A] = ValidatedNel[String, A]
 
   final case class DesBusinessPartnerRecord(
     address: DesAddress,
