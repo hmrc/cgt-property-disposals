@@ -24,7 +24,7 @@ import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.{BusinessPartnerRecord, BusinessPartnerRecordRequest, Error, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse, Error, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -37,7 +37,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
   override val overrideBindings: List[GuiceableModule] = List(bind[BusinessPartnerRecordService].toInstance(bprService))
 
   def mockBprService(expectedBprRequest: BusinessPartnerRecordRequest)(
-    result: Either[Error, BusinessPartnerRecord]
+    result: Either[Error, BusinessPartnerRecordResponse]
   ) =
     (bprService
       .getBusinessPartnerRecord(_: BusinessPartnerRecordRequest)(_: HeaderCarrier))
@@ -58,12 +58,18 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
 
     "handling requests to get BPR's" must {
 
-      "return a BPR if one can be found" in {
-        mockBprService(bprRequest)(Right(bpr))
+      "return a BPR response if one is returned" in {
+        List(
+          BusinessPartnerRecordResponse(Some(bpr)),
+          BusinessPartnerRecordResponse(None)
+        ).foreach{ bprResponse =>
+          mockBprService(bprRequest)(Right(bprResponse))
 
-        val result = controller.getBusinessPartnerRecord()(fakeRequestWithJsonBody(Json.toJson(bprRequest)))
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(bpr)
+          val result = controller.getBusinessPartnerRecord()(fakeRequestWithJsonBody(Json.toJson(bprRequest)))
+          status(result)        shouldBe OK
+          contentAsJson(result) shouldBe Json.toJson(bprResponse)
+        }
+
       }
 
       "return an error" when {

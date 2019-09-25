@@ -26,7 +26,7 @@ import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, Country, Error, Name, TrustName, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse, Country, Error, Name, TrustName, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -175,7 +175,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
       }
 
-      "return a BPR" when {
+      "return a BPR response" when {
 
         "the call comes back with status 200 with valid JSON and a valid UK address" in {
           val body = responseJson(
@@ -197,7 +197,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            expectedBpr(expectedAddress, Right(name))
+            BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Right(name))))
           )
         }
 
@@ -220,7 +220,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
           val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            expectedBpr(expectedAddress, Left(trustName))
+            BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Left(trustName))))
           )
         }
 
@@ -244,7 +244,24 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
           val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country(nonIsoCountryCode, None))
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            expectedBpr(expectedAddress, Left(trustName))
+            BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Left(trustName))))
+          )
+        }
+
+        "the call comes back with status 404 and there is a valid JSON body" in {
+          val body = Json.parse(
+            """
+              |{
+              |  "code" : "NOT_FOUND",
+              |  "reason" : "The remote endpoint has indicated that no data can be found"
+              |}
+              |""".stripMargin
+          )
+
+          mockGetBPR(bprRequest)(Right(HttpResponse(404, Some(body))))
+
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+            BusinessPartnerRecordResponse(None)
           )
         }
 
