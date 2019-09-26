@@ -28,13 +28,15 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
 import play.api.libs.json.{Json, Reads}
+import play.api.http.Status.{NOT_FOUND, OK}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, Country, Error, Name, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse, Country, Error, Name, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,7 +45,7 @@ trait BusinessPartnerRecordService {
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, BusinessPartnerRecord]
+  ): EitherT[Future, Error, BusinessPartnerRecordResponse]
 
 }
 
@@ -57,7 +59,7 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, BusinessPartnerRecord] =
+  ): EitherT[Future, Error, BusinessPartnerRecordResponse] =
     connector.getBusinessPartnerRecord(bprRequest).subflatMap { response =>
       lazy val identifiers =
         List(
@@ -65,17 +67,23 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
           "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-")
         )
 
-      if (response.status === 200) {
+      if (response.status === OK) {
         response
           .parseJSON[DesBusinessPartnerRecord]()
-          .flatMap(toBusinessPartnerRecord)
+          .flatMap(toBusinessPartnerRecord(_).map(bpr => BusinessPartnerRecordResponse(Some(bpr))))
           .leftMap(Error(_, identifiers: _*))
+      } else if(isNotFoundResponse(response)){
+        Right(BusinessPartnerRecordResponse(None))
       } else {
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
       }
     }
 
   val correlationIdHeaderKey = "CorrelationId"
+
+  def isNotFoundResponse(response: HttpResponse): Boolean =
+  // check that a 404 response has actually come from DES by inspecting the body
+    response.status === NOT_FOUND && response.parseJSON[DesErrorResponse]().map(_.code).exists(_ === "NOT_FOUND")
 
   def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
     val a = d.address
@@ -157,11 +165,14 @@ object BusinessPartnerRecordServiceImpl {
 
     final case class DesContactDetails(emailAddress: Option[String])
 
+    final case class DesErrorResponse(code: String, reason: String)
+
     implicit val organisationReads: Reads[DesOrganisation]     = Json.reads
     implicit val addressReads: Reads[DesAddress]               = Json.reads
     implicit val individualReads: Reads[DesIndividual]         = Json.reads
     implicit val contactDetailsReads: Reads[DesContactDetails] = Json.reads
     implicit val bprReads: Reads[DesBusinessPartnerRecord]     = Json.reads
+    implicit val errorResponseReads: Reads[DesErrorResponse]   = Json.reads
   }
 
 }
