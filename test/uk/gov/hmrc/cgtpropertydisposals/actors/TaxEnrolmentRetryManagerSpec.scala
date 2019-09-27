@@ -82,15 +82,9 @@ class TaxEnrolmentRetryManagerSpec
       .expects()
       .returning(EitherT(Future.successful(response)))
 
-//  val actor =
-//    system.actorOf(
-//      TaxEnrolmentRetryManager
-//        .props(mockTaxEnrolmentRepository, mockTaxEnrolmentService, mongoListener.ref, connectorListener.ref, scheduler)
-//    )
-
   implicit val localDateArb: Arbitrary[LocalDateTime] = Arbitrary.apply[LocalDateTime](Gen.const(LocalDateTime.now()))
   val taxEnrolmentRequest                             = sample[TaxEnrolmentRequest]
-  // val taxEnrolmentRequest                             = sample[TaxEnrolmentRequest]
+
   "A Tax Enrolment Retry Manager actor" must {
 
     "send a message to the mongo actor if tax enrolnment call was successful" in {
@@ -122,7 +116,6 @@ class TaxEnrolmentRetryManagerSpec
 
       app ! MarkTaxEnrolmentRetryRequestAsSuccess(taxEnrolmentRequest)
 
-      //mongoProbe.expectMsg(UpdateTaxEnrolmentRetryStatusToFail(taxEnrolmentRequest))
       mongoProbe.receiveN(2)
     }
 
@@ -154,8 +147,6 @@ class TaxEnrolmentRetryManagerSpec
       )
 
       app ! RetryTaxEnrolmentRequest(taxEnrolmentRequest)
-
-      //mongoProbe.expectMsg(UpdateTaxEnrolmentRetryStatusToFail(taxEnrolmentRequest))
       mongoProbe.receiveN(2)
     }
 
@@ -188,7 +179,6 @@ class TaxEnrolmentRetryManagerSpec
 
       app ! RetryTaxEnrolmentRequest(taxEnrolmentRequest)
       // need to advance the time
-
 //      time.advance(FiniteDuration(10, TimeUnit.SECONDS))
 
       connectorProbe.expectMsg(
@@ -207,38 +197,7 @@ class TaxEnrolmentRetryManagerSpec
       )
     }
 
-//    "send a message to the mongo actor if the tax enrolment request was successful" in {
-//      val taxEnrolmentRequest = TaxEnrolmentRequest(
-//        "userId",
-//        "someref",
-//        Address.UkAddress("line1", None, None, None, "KO"),
-//        "InProgress",
-//        2,
-//        0,
-//        1,
-//        LocalDateTime.now()
-//      )
-//      actor ! MarkTaxEnrolmentRetryRequestAsSuccess(taxEnrolmentRequest)
-//      mongoListener.expectMsg(DeleteTaxEnrolmentRetryRequest(taxEnrolmentRequest))
-//    }
-
     "must restart the mongo actor if it dies" in {
-      // mockGetAllNonFailedEnrolmentRequests()(Right(List(taxEnrolmentRequest)))
-
-      // here you will need to create a new instance of this class and then pass in for the function
-      // the child actor provider class that will send a message to the
-      // the test probe then will look for this message and it if finds when the poison pill is sent then it means
-      // that it has created the a0ctor
-      //mongoListener.ref ! PoisonPill // I need to then create a mongo actor and then get a reference to it, once I get a reference to it
-      // then I pass that to the above retry manager - once I get that, then I send a poison pill to that mongo actor
-      // then the actor system will receive a terminated message
-      // once it receives a terminated message it will then instantiate the new mongo actor via the child provider class which then
-      // send a message saying that it has created an actor
-      // then some actor, maybe, the test-actor can do the expectMsg
-
-      //val childMaker: ChildMaker = new ChildMaker(self)
-      //val child                  = childMaker.newChild()
-
       val mongoProbe     = TestProbe()
       val connectorProbe = TestProbe()
 
@@ -258,22 +217,6 @@ class TaxEnrolmentRetryManagerSpec
     }
 
     "must restart the connector actor if it dies" in {
-      // mockGetAllNonFailedEnrolmentRequests()(Right(List(taxEnrolmentRequest)))
-
-      // here you will need to create a new instance of this class and then pass in for the function
-      // the child actor provider class that will send a message to the
-      // the test probe then will look for this message and it if finds when the poison pill is sent then it means
-      // that it has created the a0ctor
-      //mongoListener.ref ! PoisonPill // I need to then create a mongo actor and then get a reference to it, once I get a reference to it
-      // then I pass that to the above retry manager - once I get that, then I send a poison pill to that mongo actor
-      // then the actor system will receive a terminated message
-      // once it receives a terminated message it will then instantiate the new mongo actor via the child provider class which then
-      // send a message saying that it has created an actor
-      // then some actor, maybe, the test-actor can do the expectMsg
-
-      //val childMaker: ChildMaker = new ChildMaker(self)
-      //val child                  = childMaker.newChild()
-
       val mongoProbe     = TestProbe()
       val connectorProbe = TestProbe()
 
