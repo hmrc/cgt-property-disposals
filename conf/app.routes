@@ -1,3 +1,2 @@
-POST     /business-partner-record/nino/:nino            uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.getBusinessPartnerRecordFromNino(nino)
-GET      /business-partner-record/sautr/:sautr          uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.getBusinessPartnerRecordFromSautr(sautr)
-POST     /subscribe                                     uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.subscribe()
+POST     /business-partner-record             uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.getBusinessPartnerRecord()
+POST     /subscribe                           uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.subscribe()

@@ -27,13 +27,13 @@ import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentError, TaxEnrolmentRequest, sample}
 import uk.gov.hmrc.cgtpropertydisposals.modules.TaxEnrolmentRetryProvider
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse.TaxEnrolmentCreated
 import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
-import uk.gov.hmrc.cgtpropertydisposals.{Example, Fake}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -71,7 +71,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
   "The SubscriptionController" when {
     val controller = new SubscriptionController(
-      authenticate              = Fake.loggedAs(Example.user, LocalDateTime.of(2019, 9, 24, 15, 47, 20)),
+      authenticate              = Fake.login(Fake.user, LocalDateTime.of(2019, 9, 24, 15, 47, 20)),
       subscriptionService       = mockSubscriptionService,
       taxEnrolmentService       = mockTaxEnrolmentService,
       taxEnrolmentRetryProvider = mockTaxEnrolmentRetryProvider,
@@ -86,7 +86,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         "there is no JSON body in the request" in {
           val request =
             new AuthenticatedRequest(
-              Example.user,
+              Fake.user,
               LocalDateTime.now(),
               headerCarrier,
               FakeRequest().withJsonBody(JsString("hi"))
@@ -98,7 +98,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         "the JSON body cannot be parsed in the request" in {
           val request =
             new AuthenticatedRequest(
-              Example.user,
+              Fake.user,
               LocalDateTime.now(),
               headerCarrier,
               FakeRequest().withJsonBody(JsString("hi"))
@@ -118,7 +118,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           mockSubscribe(subscriptionDetails)(Left(Error("oh no!")))
           val request =
             new AuthenticatedRequest(
-              Example.user,
+              Fake.user,
               LocalDateTime.now(),
               headerCarrier,
               FakeRequest().withJsonBody(subscriptionDetailsJson)
@@ -155,7 +155,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             }
             val request =
               new AuthenticatedRequest(
-                Example.user,
+                Fake.user,
                 fixedTimestamp,
                 headerCarrier,
                 FakeRequest().withJsonBody(Json.toJson(subscriptionDetails))
@@ -189,7 +189,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           )
           val request =
             new AuthenticatedRequest(
-              Example.user,
+              Fake.user,
               fixedTimestamp,
               headerCarrier,
               FakeRequest().withJsonBody(Json.toJson(subscriptionDetails))

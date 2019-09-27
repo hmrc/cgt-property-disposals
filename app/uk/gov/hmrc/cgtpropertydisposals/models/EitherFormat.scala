@@ -16,15 +16,23 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import java.time.LocalDate
+import play.api.libs.json.{Format, JsObject, JsResult, JsValue, Json}
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Format
+object EitherFormat {
 
-final case class DateOfBirth(value: LocalDate) extends AnyVal
+  implicit def eitherFormat[A, B](implicit aFormat: Format[A], bFormat: Format[B]): Format[Either[A, B]] =
+    new Format[Either[A, B]] {
+      override def reads(json: JsValue): JsResult[Either[A, B]] =
+        (json \ "l")
+          .validate[A]
+          .map[Either[A, B]](Left(_))
+          .orElse((json \ "r").validate[B].map(Right(_)))
 
-object DateOfBirth {
-
-  implicit val format: Format[DateOfBirth] = implicitly[Format[LocalDate]].inmap(DateOfBirth(_), _.value)
+      override def writes(o: Either[A, B]): JsValue =
+        o.fold(
+          a ⇒ JsObject(Seq("l" → Json.toJson(a))),
+          b ⇒ JsObject(Seq("r" → Json.toJson(b)))
+        )
+    }
 
 }

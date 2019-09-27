@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Enrolments, KeyValuePair, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Country, Enrolments, KeyValuePair, TaxEnrolmentRequest}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -65,7 +65,7 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
     val nonUKTaxEnrolment = TaxEnrolmentRequest(
       "user-id",
       cgtReference,
-      Address.NonUkAddress("line1", None, None, None, None, "NZ"),
+      Address.NonUkAddress("line1", None, None, None, None, Country("NZ", Some("New Zealand"))),
       "InProgress")
 
     "it receives a request to enrol a UK user it" must {

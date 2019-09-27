@@ -26,8 +26,8 @@ object Address {
   final case class UkAddress(
     line1: String,
     line2: Option[String],
-    line3: Option[String],
-    line4: Option[String],
+    town: Option[String],
+    county: Option[String],
     postcode: String
   ) extends Address {
     val countryCode: String = "GB"
@@ -39,7 +39,7 @@ object Address {
     line3: Option[String],
     line4: Option[String],
     postcode: Option[String],
-    countryCode: String
+    country: Country
   ) extends Address
 
   // the format instance using the play-json-derived-codecs library wraps

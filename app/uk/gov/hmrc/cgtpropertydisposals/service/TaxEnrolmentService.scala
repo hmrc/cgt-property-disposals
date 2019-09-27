@@ -102,7 +102,6 @@ object TaxEnrolmentService {
       taxEnrolmentRequest: TaxEnrolmentRequest,
       httpResponse: HttpResponse
     ) extends TaxEnrolmentResponse
-
   }
 
 }

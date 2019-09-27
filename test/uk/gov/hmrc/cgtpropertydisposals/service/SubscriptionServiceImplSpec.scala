@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 import cats.data.EitherT
+import org.scalacheck.ScalacheckShapeless._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, Json}
@@ -23,7 +24,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import org.scalacheck.ScalacheckShapeless._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -47,27 +48,21 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       val subscriptionDetails        = sample[SubscriptionDetails]
 
       "return an error" when {
-
         "the http call comes back with a status other than 200" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(500)))
-
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(200)))
-
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(JsNumber(1)))))
-
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
-
       }
-
       "return the subscription response if the call comes back with a " +
         "200 status and the JSON body can be parsed" in {
         val cgtReferenceNumber = "number"
@@ -78,13 +73,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
              |}
              |""".stripMargin
         )
-
         mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(jsonBody))))
-
         await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionResponse(cgtReferenceNumber))
       }
     }
-
   }
-
 }

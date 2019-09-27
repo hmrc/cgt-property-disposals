@@ -47,7 +47,6 @@ class SubscriptionController @Inject()(
 ) extends BackendController(cc)
     with Logging {
 
-  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   def subscribe(): Action[AnyContent] = authenticate.async { implicit request =>
     val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
       for {

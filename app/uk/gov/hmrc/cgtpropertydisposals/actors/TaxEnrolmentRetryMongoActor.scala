@@ -67,7 +67,6 @@ class TaxEnrolmentRetryMongoActor(
           }
       }
 
-    //TODO: check with TE team about duplicate attempts
     case request: DeleteTaxEnrolmentRetryRequest =>
       taxEnrolmentRetryRepository.delete(request.taxEnrolmentRequest.userId).value.map {
         case Left(error) => logger.warn(s"Error deleting tax enrolment retry request : [$error]")

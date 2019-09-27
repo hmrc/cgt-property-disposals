@@ -56,7 +56,7 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
         )
       case Address.NonUkAddress(line1, line2, line3, line4, maybePostcode, countryCode) =>
         Enrolments(
-          List(KeyValuePair("CountryCode", countryCode)),
+          List(KeyValuePair("CountryCode", countryCode.code)),
           List(KeyValuePair("CGTPDRef", taxEnrolmentRequest.cgtReference))
         )
     }

@@ -16,21 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import cats.syntax.either._
-import uk.gov.hmrc.cgtpropertydisposals.models.BprRequest.{Individual, Organisation}
+import play.api.libs.json.{Json, OFormat}
 
-final case class BprRequest(entity: Either[Organisation, Individual])
+final case class BusinessPartnerRecordResponse(businessPartnerRecord: Option[BusinessPartnerRecord]) extends AnyVal
 
-object BprRequest {
+object BusinessPartnerRecordResponse {
 
-  sealed trait Entity
-
-  final case class Individual(nino: NINO, name: Name, dateOfBirth: DateOfBirth) extends Entity
-
-  final case class Organisation(sautr: SAUTR) extends Entity
-
-  implicit class BprRequestOps(val bprRequest: BprRequest) extends AnyVal {
-    def id: Either[SAUTR, NINO] = bprRequest.entity.bimap(_.sautr, _.nino)
-  }
+  implicit val format: OFormat[BusinessPartnerRecordResponse] = Json.format[BusinessPartnerRecordResponse]
 
 }

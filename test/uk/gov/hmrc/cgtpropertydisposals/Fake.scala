@@ -27,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Fake {
 
-  def loggedAs(
+  def login(
     user: AuthenticatedUser,
     timestamp: LocalDateTime,
     hc: HeaderCarrier = HeaderCarrier()
@@ -43,5 +43,7 @@ object Fake {
 
       override protected def executionContext: ExecutionContext = ExecutionContext.global
     }
+
+  val user: AuthenticatedUser = AuthenticatedUser("user-cred-id")
 
 }
