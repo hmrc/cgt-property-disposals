@@ -51,37 +51,6 @@ class TaxEnrolmentRetryManagerSpec
   val mockTaxEnrolmentService    = mock[TaxEnrolmentService]
   val mockTaxEnrolmentRepository = mock[TaxEnrolmentRetryRepository]
 
-  def mockInsertTaxEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
-    response: Either[Error, Boolean]
-  ) =
-    (mockTaxEnrolmentRepository
-      .insert(_: TaxEnrolmentRequest))
-      .expects(taxEnrolmentRequest)
-      .returning(EitherT(Future.successful(response)))
-
-  def mockDeleteTaxEnrolment(userId: String)(
-    response: Either[Error, Int]
-  ) =
-    (mockTaxEnrolmentRepository
-      .delete(_: String))
-      .expects(userId)
-      .returning(EitherT(Future.successful(response)))
-
-  def mockUpdateStatusToFail(userId: String)(
-    response: Either[Error, Option[TaxEnrolmentRequest]]
-  ) =
-    (mockTaxEnrolmentRepository
-      .updateStatusToFail(_: String))
-      .expects(userId)
-      .returning(EitherT(Future.successful(response)))
-
-  def mockGetAllNonFailedEnrolmentRequests()(
-    response: Either[Error, List[TaxEnrolmentRequest]]
-  ) =
-    (mockTaxEnrolmentRepository.getAllNonFailedEnrolmentRequests _)
-      .expects()
-      .returning(EitherT(Future.successful(response)))
-
   implicit val localDateArb: Arbitrary[LocalDateTime] = Arbitrary.apply[LocalDateTime](Gen.const(LocalDateTime.now()))
   val taxEnrolmentRequest                             = sample[TaxEnrolmentRequest]
 
