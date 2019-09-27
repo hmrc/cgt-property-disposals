@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Json, OFormat}
+final case class TaxEnrolmentError(taxEnrolmentRequest: TaxEnrolmentRequest)
 
-final case class Name(firstName: String, lastName: String)
-
-object Name {
-  implicit val format: OFormat[Name] = Json.format[Name]
+object TaxEnrolmentError {
+  sealed trait TaxEnrolmentErrorType
+  final case object TaxEnrolmentCallUnRecoverable extends TaxEnrolmentErrorType
+  final case class TaxEnrolmentCallRecoverable(taxEnrolmentRequest: TaxEnrolmentRequest) extends TaxEnrolmentErrorType
 }

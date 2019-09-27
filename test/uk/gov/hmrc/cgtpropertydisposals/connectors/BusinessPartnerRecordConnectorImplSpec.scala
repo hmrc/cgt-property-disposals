@@ -60,22 +60,20 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
   val connector =
     new BusinessPartnerRecordConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
-
-
   "BusinessPartnerRecordConnectorImpl" when {
 
     "handling request to get the business partner records" when {
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
-      val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+      val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
       "handling individuals with NINOs" must {
-        val nino                       = NINO("AB123456C")
-        val name                       = Name("forename", "surname")
-        val dateOfBirth                = DateOfBirth(LocalDate.parse("2001-09-20", DateTimeFormatter.ISO_LOCAL_DATE))
-        val bprRequest                 = BprRequest(Right(Individual(nino, name, dateOfBirth)))
+        val nino        = NINO("AB123456C")
+        val name        = Name("forename", "surname")
+        val dateOfBirth = DateOfBirth(LocalDate.parse("2001-09-20", DateTimeFormatter.ISO_LOCAL_DATE))
+        val bprRequest  = BprRequest(Right(Individual(nino, name, dateOfBirth)))
 
-        val expectedBody    = Json.parse(s"""
+        val expectedBody = Json.parse(s"""
                                             | {
                                             |   "regime" : "HMRC-CGT-PD",
                                             |   "requiresNameMatch" : false,
@@ -115,7 +113,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         val sautr      = SAUTR("sautr")
         val bprRequest = BprRequest(Left(Organisation(sautr)))
 
-        val expectedBody    = Json.parse(s"""
+        val expectedBody = Json.parse(s"""
                                             | {
                                             |   "regime" : "HMRC-CGT-PD",
                                             |   "requiresNameMatch" : false,
@@ -145,7 +143,6 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
           await(connector.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
       }
-
 
     }
 

@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals
 
-import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedUser
 
-final case class Name(firstName: String, lastName: String)
-
-object Name {
-  implicit val format: OFormat[Name] = Json.format[Name]
+object Example {
+  val user: AuthenticatedUser = AuthenticatedUser("user-cred-id")
 }

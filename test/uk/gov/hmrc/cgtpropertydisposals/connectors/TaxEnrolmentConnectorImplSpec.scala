@@ -20,7 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.{EnrolmentRequest, KeyValuePair}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Enrolments, KeyValuePair, TaxEnrolmentRequest}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -50,10 +50,25 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val cgtReference               = "XACGTP123456789"
-    val enrolmentRequest =
-      EnrolmentRequest(List(KeyValuePair("Postcode", "OK113KO")), List(KeyValuePair("CGTPDRef", cgtReference)))
+    val ukEnrolmentRequest =
+      Enrolments(List(KeyValuePair("Postcode", "OK113KO")), List(KeyValuePair("CGTPDRef", cgtReference)))
 
-    "it receives a request to enrol a user it" must {
+    val nonUkEnrolmentRequest =
+      Enrolments(List(KeyValuePair("CountryCode", "NZ")), List(KeyValuePair("CGTPDRef", cgtReference)))
+
+    val ukTaxEnrolment = TaxEnrolmentRequest(
+      "user-id",
+      cgtReference,
+      Address.UkAddress("line1", None, None, None, "OK113KO"),
+      "InProgress")
+
+    val nonUKTaxEnrolment = TaxEnrolmentRequest(
+      "user-id",
+      cgtReference,
+      Address.NonUkAddress("line1", None, None, None, None, "NZ"),
+      "InProgress")
+
+    "it receives a request to enrol a UK user it" must {
 
       "make a http put call and return a result" in {
         List(
@@ -62,23 +77,42 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(400)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPut[EnrolmentRequest](
+            mockPut[Enrolments](
               s"http://host:123/tax-enrolments/service/HMRC-CGT-PD/enrolment",
-              enrolmentRequest
+              ukEnrolmentRequest
             )(Some(httpResponse))
 
-            await(connector.allocateEnrolmentToGroup(cgtReference, enrolmentRequest).value) shouldBe Right(httpResponse)
+            await(connector.allocateEnrolmentToGroup(ukTaxEnrolment).value) shouldBe Right(httpResponse)
+          }
+        }
+      }
+    }
+    "it receives a request to enrol a non UK user it" must {
+
+      "make a http put call and return a result" in {
+        List(
+          HttpResponse(204),
+          HttpResponse(401),
+          HttpResponse(400)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+            mockPut[Enrolments](
+              s"http://host:123/tax-enrolments/service/HMRC-CGT-PD/enrolment",
+              nonUkEnrolmentRequest
+            )(Some(httpResponse))
+
+            await(connector.allocateEnrolmentToGroup(nonUKTaxEnrolment).value) shouldBe Right(httpResponse)
           }
         }
       }
     }
     "return an error" when {
       "the future fails" in {
-        mockPut[EnrolmentRequest](
+        mockPut[Enrolments](
           s"http://host:123/tax-enrolments/service/HMRC-CGT-PD/enrolment",
-          enrolmentRequest
+          ukEnrolmentRequest
         )(None)
-        await(connector.allocateEnrolmentToGroup(cgtReference, enrolmentRequest).value).isLeft shouldBe true
+        await(connector.allocateEnrolmentToGroup(ukTaxEnrolment).value).isLeft shouldBe true
       }
     }
   }

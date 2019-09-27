@@ -20,24 +20,34 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, Name, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Error, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRetryRepository
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
 
 class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
-  val mockConnector: TaxEnrolmentConnector = mock[TaxEnrolmentConnector]
+  val mockConnector: TaxEnrolmentConnector        = mock[TaxEnrolmentConnector]
+  val mockRepository: TaxEnrolmentRetryRepository = mock[TaxEnrolmentRetryRepository]
 
-  val service = new TaxEnrolmentServiceImpl(mockConnector)
+  val service = new TaxEnrolmentServiceImpl(mockConnector, mockRepository)
 
-  def mockAllocateEnrolmentToGroup(cgtReference: String, enrolmentRequest: EnrolmentRequest)(
+  def mockConnectorToAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, HttpResponse]
   ) =
     (mockConnector
-      .allocateEnrolmentToGroup(_: String, _: EnrolmentRequest)(_: HeaderCarrier))
-      .expects(cgtReference, enrolmentRequest, *)
-      .returning(EitherT(Future.successful(response)))
+      .allocateEnrolmentToGroup(_: TaxEnrolmentRequest)(_: HeaderCarrier))
+      .expects(taxEnrolmentRequest, *)
+      .returning(EitherT[Future, Error, HttpResponse](Future.successful(response)))
+
+  def mockRepositoryToAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
+    response: Either[Error, Boolean]
+  ) =
+    (mockRepository
+      .insert(_: TaxEnrolmentRequest))
+      .expects(taxEnrolmentRequest)
+      .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
 
   "TaxEnrolment Service Implementation" when {
 
@@ -46,93 +56,98 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       implicit val hc: HeaderCarrier = HeaderCarrier()
 
       "return an error" when {
-        val cgtReference = "XACGTP123456789"
-
         "the http call comes back with a status of unauthorized" in {
-          val enrolmentRequest =
-            EnrolmentRequest(
-              List(KeyValuePair("CountryCode", "GB")),
-              List(KeyValuePair("CGTPDRef", cgtReference))
-            )
-          val subscriptionDetails = SubscriptionDetails(
-            Right(Name("firstname", "lastname")),
-            "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
-            "sapNumber"
+          val cgtReference = "XACGTP123456789"
+          val taxEnrolmentRequest = TaxEnrolmentRequest(
+            "userId-1",
+            cgtReference,
+            Address.UkAddress("line1", None, None, None, "KO11OK"),
+            "InProgress"
           )
-
-          mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(401)))
-          await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isLeft shouldBe true
+          mockRepositoryToAllocateEnrolment(taxEnrolmentRequest)(Right(true))
+          mockConnectorToAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(401)))
+          await(service.allocateEnrolmentToGroup(taxEnrolmentRequest).value).isRight shouldBe true
         }
 
         "the http call comes back with a status of bad request" in {
-          val enrolmentRequest =
-            EnrolmentRequest(
-              List(KeyValuePair("CountryCode", "GB")),
-              List(KeyValuePair("CGTPDRef", cgtReference))
-            )
-          val subscriptionDetails = SubscriptionDetails(
-            Right(Name("firstname", "lastname")),
-            "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
-            "sapNumber"
+          val cgtReference = "XACGTP123456789"
+          val taxEnrolmentRequest = TaxEnrolmentRequest(
+            "userId-1",
+            cgtReference,
+            Address.UkAddress("line1", None, None, None, "KO11OK"),
+            "InProgress"
           )
-          mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(400)))
-          await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isLeft shouldBe true
+          mockRepositoryToAllocateEnrolment(taxEnrolmentRequest)(Right(true))
+          mockConnectorToAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(400)))
+          await(service.allocateEnrolmentToGroup(taxEnrolmentRequest).value).isRight shouldBe true
         }
 
-        "the http call comes back with any other non-successful status" in {
-          val enrolmentRequest =
-            EnrolmentRequest(
-              List(KeyValuePair("CountryCode", "GB")),
-              List(KeyValuePair("CGTPDRef", cgtReference))
-            )
-          val subscriptionDetails = SubscriptionDetails(
-            Right(Name("firstname", "lastname")),
-            "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
-            "sapNumber"
+        "the http call comes back with any other 5xx non-successful status" in {
+          val cgtReference = "XACGTP123456789"
+          val taxEnrolmentRequest = TaxEnrolmentRequest(
+            "userId-1",
+            cgtReference,
+            Address.UkAddress("line1", None, None, None, "KO11OK"),
+            "InProgress"
           )
-          mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(500)))
-          await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isLeft shouldBe true
+          mockRepositoryToAllocateEnrolment(taxEnrolmentRequest)(Right(true))
+          mockConnectorToAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(500)))
+          await(service.allocateEnrolmentToGroup(taxEnrolmentRequest).value).isLeft shouldBe true
+        }
+
+        "the http call comes back with any other 4xx non-successful status" in {
+          val cgtReference = "XACGTP123456789"
+          val taxEnrolmentRequest = TaxEnrolmentRequest(
+            "userId-1",
+            cgtReference,
+            Address.UkAddress("line1", None, None, None, "KO11OK"),
+            "InProgress"
+          )
+          mockRepositoryToAllocateEnrolment(taxEnrolmentRequest)(Right(true))
+          mockConnectorToAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(429)))
+          await(service.allocateEnrolmentToGroup(taxEnrolmentRequest).value).isRight shouldBe true
         }
 
       }
 
-      "return a tax enrolment created success response" when {
+      "return a tax enrolment created success response" in {
         val cgtReference = "XACGTP123456789"
+        val taxEnrolmentRequest = TaxEnrolmentRequest(
+          "userId-1",
+          cgtReference,
+          Address.UkAddress("line1", None, None, None, "KO11OK"),
+          "InProgress"
+        )
 
-        "the http call comes back with a status of no content and the address is a UK address with a postcode" in {
-          val enrolmentRequest =
-            EnrolmentRequest(List(KeyValuePair("Postcode", "OK11KO")), List(KeyValuePair("CGTPDRef", cgtReference)))
-          val subscriptionDetails = SubscriptionDetails(
-            Right(Name("firstname", "lastname")),
-            "firstname.lastname@gmail.com",
-            Address.UkAddress("line1", None, None, None, "OK11KO"),
-            "sapNumber"
-          )
+        mockRepositoryToAllocateEnrolment(taxEnrolmentRequest)(Right(true))
+        mockConnectorToAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(204)))
+        await(service.allocateEnrolmentToGroup(taxEnrolmentRequest).value).isRight shouldBe true
+      }
 
-          mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(204)))
-          await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isRight shouldBe true
-        }
+      "return failure if database insert failed" in {
+        val cgtReference = "XACGTP123456789"
+        val taxEnrolmentRequest = TaxEnrolmentRequest(
+          "userId-1",
+          cgtReference,
+          Address.UkAddress("line1", None, None, None, "KO11OK"),
+          "InProgress"
+        )
 
-        "the http call comes back with a status of no content and the address is a non-uk address with a country code" in {
-          val enrolmentRequest =
-            EnrolmentRequest(
-              List(KeyValuePair("CountryCode", "GB")),
-              List(KeyValuePair("CGTPDRef", cgtReference))
-            )
-          val subscriptionDetails = SubscriptionDetails(
-            Right(Name("firstname", "lastname")),
-            "firstname.lastname@gmail.com",
-            Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), "GB"),
-            "sapNumber"
-          )
+        mockRepositoryToAllocateEnrolment(taxEnrolmentRequest)(Left(Error("Mongodb error")))
+        await(service.allocateEnrolmentToGroup(taxEnrolmentRequest).value).isLeft shouldBe true
+      }
+      "return failure if connector failed" in {
+        val cgtReference = "XACGTP123456789"
+        val taxEnrolmentRequest = TaxEnrolmentRequest(
+          "userId-1",
+          cgtReference,
+          Address.UkAddress("line1", None, None, None, "KO11OK"),
+          "InProgress"
+        )
 
-          mockAllocateEnrolmentToGroup(cgtReference, enrolmentRequest)(Right(HttpResponse(204)))
-          await(service.allocateEnrolmentToGroup(cgtReference, subscriptionDetails).value).isRight shouldBe true
-        }
-
+        mockRepositoryToAllocateEnrolment(taxEnrolmentRequest)(Right(true))
+        mockConnectorToAllocateEnrolment(taxEnrolmentRequest)(Left(Error("Connection failed")))
+        await(service.allocateEnrolmentToGroup(taxEnrolmentRequest).value).isLeft shouldBe true
       }
     }
   }

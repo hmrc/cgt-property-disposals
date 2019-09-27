@@ -21,57 +21,88 @@ import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentError, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRetryRepository
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse.TaxEnrolmentCreated
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
 trait TaxEnrolmentService {
-  def allocateEnrolmentToGroup(cgtReference: String, subscriptionDetails: SubscriptionDetails)(
+  def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, TaxEnrolmentResponse]
+  ): EitherT[Future, TaxEnrolmentError, TaxEnrolmentResponse]
+}
+
+@Singleton
+class TaxEnrolmentServiceImpl @Inject()(
+  connector: TaxEnrolmentConnector,
+  taxEnrolmentRetryRepository: TaxEnrolmentRetryRepository
+) extends TaxEnrolmentService
+    with Logging {
+
+  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+  override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, TaxEnrolmentError, TaxEnrolmentResponse] = {
+
+    val result: EitherT[Future, Error, HttpResponse] = for {
+      _        <- taxEnrolmentRetryRepository.insert(taxEnrolmentRequest)
+      response <- connector.allocateEnrolmentToGroup(taxEnrolmentRequest)
+    } yield response
+
+    EitherT(
+      result.fold[Either[TaxEnrolmentError, TaxEnrolmentResponse]](
+        _ => {
+          logger.warn(
+            "Could not allocate enrolments to group due to unexpected exception received - will schedule to retry asynchronously"
+          )
+          Left(TaxEnrolmentError(taxEnrolmentRequest))
+        },
+        httpResponse =>
+          httpResponse.status match {
+            case NO_CONTENT => {
+              logger.info("Successfully allocated enrolments to group")
+              Right(TaxEnrolmentCreated)
+            }
+            case status => {
+              logger.warn(
+                s"Could not allocate enrolment to group due to unexpected error - http response status is: $status"
+              )
+              if (is5xx(httpResponse.status)) {
+                Left(TaxEnrolmentError(taxEnrolmentRequest))
+              } else {
+                Right(TaxEnrolmentFailedForSomeOtherReason(taxEnrolmentRequest, httpResponse))
+              }
+            }
+        }
+      )
+    )
+  }
+
+  private def is5xx(status: Int): Boolean = status >= 500 && status < 600
 }
 
 object TaxEnrolmentService {
 
-  sealed trait TaxEnrolmentResponse
+  sealed trait TaxEnrolmentResponse extends Product with Serializable
 
   object TaxEnrolmentResponse {
+
     case object TaxEnrolmentCreated extends TaxEnrolmentResponse
+
+    case object UnauthorisedTaxEnrolmentRequest extends TaxEnrolmentResponse
+
+    case object BadTaxEnrolmentRequest extends TaxEnrolmentResponse
+
+    final case class TaxEnrolmentFailedForSomeOtherReason(
+      taxEnrolmentRequest: TaxEnrolmentRequest,
+      httpResponse: HttpResponse
+    ) extends TaxEnrolmentResponse
+
   }
 
-}
-
-@Singleton
-class TaxEnrolmentServiceImpl @Inject()(connector: TaxEnrolmentConnector) extends TaxEnrolmentService {
-
-  override def allocateEnrolmentToGroup(cgtReference: String, subscriptionDetails: SubscriptionDetails)(
-    implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, TaxEnrolmentResponse] = {
-
-    val enrolmentRequest = subscriptionDetails.address match {
-      case Address.UkAddress(line1, line2, line3, line4, postcode) =>
-        EnrolmentRequest(List(KeyValuePair("Postcode", postcode)), List(KeyValuePair("CGTPDRef", cgtReference)))
-      case Address.NonUkAddress(line1, line2, line3, line4, maybePostcode, countryCode) =>
-        EnrolmentRequest(List(KeyValuePair("CountryCode", countryCode)), List(KeyValuePair("CGTPDRef", cgtReference)))
-    }
-
-    connector
-      .allocateEnrolmentToGroup(cgtReference, enrolmentRequest)
-      .subflatMap { response =>
-        response.status match {
-          case NO_CONTENT =>
-            Right(TaxEnrolmentCreated)
-          case UNAUTHORIZED =>
-            Left(Error("Unauthorized"))
-          case BAD_REQUEST =>
-            Left(Error("Bad request"))
-          case other => Left(Error(s"Received unexpected http status in response from tax-enrolment service"))
-        }
-      }
-  }
 }

@@ -19,8 +19,11 @@ lazy val wartremoverSettings =
     wartremoverExcluded in (Compile, compile) ++=
       routes.in(Compile).value ++
         (baseDirectory.value ** "*.sc").get ++
+        (baseDirectory.value ** "TaxEnrolmentRetryConnectorActor.scala").get ++
+        (baseDirectory.value ** "TaxEnrolmentRetryManager.scala").get ++
+        (baseDirectory.value ** "TaxEnrolmentRetryMongoActor.scala").get ++
         Seq(sourceManaged.value / "main" / "sbt-buildinfo" / "BuildInfo.scala"),
-    wartremoverErrors in (Test, compile) --= Seq(Wart.NonUnitStatements, Wart.Null, Wart.PublicInference)
+    wartremoverErrors in (Test, compile) --= Seq(Wart.NonUnitStatements, Wart.Null, Wart.PublicInference, Wart.Any)
   )
 
 lazy val scoverageSettings =
@@ -28,7 +31,8 @@ lazy val scoverageSettings =
     ScoverageKeys.coverageExcludedPackages := "<empty>;.*Reverse.*;.*(config|views.*);.*(BuildInfo|Routes).*",
     ScoverageKeys.coverageMinimum := 80.00,
     ScoverageKeys.coverageFailOnMinimum := true,
-    ScoverageKeys.coverageHighlighting := true
+    ScoverageKeys.coverageHighlighting := true,
+    coverageEnabled.in(ThisBuild, Test, test) := true
   )
 
 lazy val microservice = Project(appName, file("."))
@@ -42,6 +46,7 @@ lazy val microservice = Project(appName, file("."))
   )
   .settings(scalaVersion := "2.11.12")
   .settings(
+    scalafmtOnCompile := true,
     majorVersion := 0,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
   )

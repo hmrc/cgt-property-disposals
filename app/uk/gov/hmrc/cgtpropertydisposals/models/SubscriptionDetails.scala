@@ -16,20 +16,23 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Format, JsObject, JsResult, JsValue, Json}
+import play.api.libs.json._
 
 final case class SubscriptionDetails(
-                                      contactName: Either[TrustName,Name],
-                                      emailAddress: String,
-                                      address: Address,
-                                      sapNumber: String
-                                    )
+  id: String,
+  contactName: Either[TrustName, Name],
+  emailAddress: String,
+  address: Address,
+  sapNumber: String
+)
 object SubscriptionDetails {
 
   implicit def eitherFormat[A, B](implicit aFormat: Format[A], bFormat: Format[B]): Format[Either[A, B]] =
     new Format[Either[A, B]] {
       override def reads(json: JsValue): JsResult[Either[A, B]] =
-        (json \ "l").validate[A].map[Either[A, B]](Left(_))
+        (json \ "l")
+          .validate[A]
+          .map[Either[A, B]](Left(_))
           .orElse((json \ "r").validate[B].map(Right(_)))
 
       override def writes(o: Either[A, B]): JsValue =

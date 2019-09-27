@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.actors
 
-import play.api.libs.json.{Json, OFormat}
+import akka.actor.ActorRef
+import com.google.inject.Inject
+import uk.gov.hmrc.cgtpropertydisposals.actors.FakeChildMaker.NewChildCreated
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
-final case class Name(firstName: String, lastName: String)
+class FakeChildMaker @Inject()(reportTo: ActorRef, child: ActorRef) extends Logging {
+  def newChild(): ActorRef = {
+    reportTo ! NewChildCreated
+    child
+  }
+}
 
-object Name {
-  implicit val format: OFormat[Name] = Json.format[Name]
+object FakeChildMaker {
+  final case object NewChildCreated
 }

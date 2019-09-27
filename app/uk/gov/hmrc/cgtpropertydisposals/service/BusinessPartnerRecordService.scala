@@ -26,7 +26,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BprRequest, BusinessPartnerRecord, DateOfBirth, Error, NINO, Name}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BprRequest, BusinessPartnerRecord, DateOfBirth, Error}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -53,8 +53,9 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
     connector.getBusinessPartnerRecord(bprRequest).subflatMap { response =>
       lazy val identifiers =
         List(
-          "id" -> bprRequest.id.fold(_.value, _.value),
-          "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-"))
+          "id"                -> bprRequest.id.fold(_.value, _.value),
+          "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-")
+        )
 
       if (response.status === 200) {
         response
@@ -87,7 +88,7 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
           address,
           d.sapNumber,
           d.organisation.map(_.name)
-        )
+      )
     )
   }
 

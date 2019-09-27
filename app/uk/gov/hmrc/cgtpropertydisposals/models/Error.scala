@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import Error._
+import uk.gov.hmrc.cgtpropertydisposals.models.Error._
 
 final case class Error(value: Either[String, Throwable], identifiers: Map[IdKey, IdValue])
 
-object  Error {
+object Error {
 
   type IdKey   = String
   type IdValue = String

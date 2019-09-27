@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals
 
-import play.api.libs.json.{Json, OFormat}
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration._
 
-final case class Name(firstName: String, lastName: String)
+trait TestSupport {
+  implicit val defaultTimeout: FiniteDuration = 5 seconds
 
-object Name {
-  implicit val format: OFormat[Name] = Json.format[Name]
+  def await[A](future: Future[A])(implicit timeout: Duration): A = Await.result(future, timeout)
 }

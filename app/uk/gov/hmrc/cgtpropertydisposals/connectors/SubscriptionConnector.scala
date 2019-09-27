@@ -92,8 +92,8 @@ object SubscriptionConnectorImpl {
     emailAddress: String,
     address: Address,
     sapNumber: String
-                                      )
+  )
 
-  implicit val typeOfPersonWrites: Writes[TypeOfPerson] = Writes(p => JsString(p.value.toString))
+  implicit val typeOfPersonWrites: Writes[TypeOfPerson]               = Writes(p => JsString(p.value.toString))
   implicit val subscriptionRequestWrites: Writes[SubscriptionRequest] = Json.writes[SubscriptionRequest]
 }

@@ -15,7 +15,6 @@
  */
 
 package uk.gov.hmrc.cgtpropertydisposals.service
-
 import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
@@ -24,7 +23,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-
+import org.scalacheck.ScalacheckShapeless._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.models.{EnrolmentRequest, Error}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Enrolments, Error, KeyValuePair, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -28,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[TaxEnrolmentConnectorImpl])
 trait TaxEnrolmentConnector {
-  def allocateEnrolmentToGroup(cgtReference: String, enrolmentRequest: EnrolmentRequest)(
+  def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 }
@@ -41,18 +41,32 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
 
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
 
-  override def allocateEnrolmentToGroup(cgtReference: String, enrolmentRequest: EnrolmentRequest)(
+  override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
 
     val serviceName: String  = "HMRC-CGT-PD"
     val enrolmentUrl: String = s"$serviceUrl/tax-enrolments/service/$serviceName/enrolment"
+
+    val enrolmentRequest = taxEnrolmentRequest.address match {
+      case Address.UkAddress(line1, line2, line3, line4, postcode) =>
+        Enrolments(
+          List(KeyValuePair("Postcode", postcode)),
+          List(KeyValuePair("CGTPDRef", taxEnrolmentRequest.cgtReference))
+        )
+      case Address.NonUkAddress(line1, line2, line3, line4, maybePostcode, countryCode) =>
+        Enrolments(
+          List(KeyValuePair("CountryCode", countryCode)),
+          List(KeyValuePair("CGTPDRef", taxEnrolmentRequest.cgtReference))
+        )
+    }
+
     logger.info(
-      s"Allocating enrolment with following parameters: [ enrolment url : $enrolmentUrl | payload : ${enrolmentRequest.toString} ]"
+      s"Allocating enrolment with these details : $taxEnrolmentRequest"
     )
     EitherT[Future, Error, HttpResponse](
       http
-        .PUT[EnrolmentRequest, HttpResponse](enrolmentUrl, enrolmentRequest)
+        .PUT[Enrolments, HttpResponse](enrolmentUrl, enrolmentRequest)
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
