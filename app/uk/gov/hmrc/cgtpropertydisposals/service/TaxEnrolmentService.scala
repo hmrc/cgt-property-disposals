@@ -16,92 +16,74 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
+import akka.pattern.ask
+import akka.util.Timeout
 import cats.data.EitherT
-import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.http.Status._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentError, TaxEnrolmentRequest}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRetryRepository
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse._
+import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.AttemptTaxEnrolmentAllocationToGroup
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.modules.TaxEnrolmentRetryProvider
+import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentDatabaseInsertResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration._
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
 trait TaxEnrolmentService {
   def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, TaxEnrolmentError, TaxEnrolmentResponse]
+  ): EitherT[Future, Error, Unit]
 }
 
 @Singleton
 class TaxEnrolmentServiceImpl @Inject()(
-  connector: TaxEnrolmentConnector,
-  taxEnrolmentRetryRepository: TaxEnrolmentRetryRepository
+  taxEnrolmentRetryProvider: TaxEnrolmentRetryProvider
 ) extends TaxEnrolmentService
     with Logging {
 
-  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, TaxEnrolmentError, TaxEnrolmentResponse] = {
+  ): EitherT[Future, Error, Unit] = {
+    implicit val timeout: Timeout = Timeout(5.seconds)
 
-    val result: EitherT[Future, Error, HttpResponse] = for {
-      _        <- taxEnrolmentRetryRepository.insert(taxEnrolmentRequest)
-      response <- connector.allocateEnrolmentToGroup(taxEnrolmentRequest)
-    } yield response
-
-    EitherT(
-      result.fold[Either[TaxEnrolmentError, TaxEnrolmentResponse]](
-        _ => {
-          logger.warn(
-            "Could not allocate enrolments to group due to unexpected exception received - will schedule to retry asynchronously"
-          )
-          Left(TaxEnrolmentError(taxEnrolmentRequest))
-        },
-        httpResponse =>
-          httpResponse.status match {
-            case NO_CONTENT => {
-              logger.info("Successfully allocated enrolments to group")
-              Right(TaxEnrolmentCreated)
-            }
-            case status => {
-              logger.warn(
-                s"Could not allocate enrolment to group due to unexpected error - http response status is: $status"
-              )
-              if (is5xx(httpResponse.status)) {
-                Left(TaxEnrolmentError(taxEnrolmentRequest))
-              } else {
-                Right(TaxEnrolmentFailedForSomeOtherReason(taxEnrolmentRequest, httpResponse))
+    EitherT[Future, Error, Unit](
+      taxEnrolmentRetryProvider.taxEnrolmentRetryManager
+        .ask(AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest))
+        .mapTo[TaxEnrolmentDatabaseInsertResponse]
+        .map[Either[Error, Unit]](
+          database =>
+            database.result match {
+              case Left(error) => {
+                logger.warn(s"Failed to insert tax enrolment record $taxEnrolmentRequest into database: $error")
+                Left(error)
               }
-            }
+              case Right(writeResult) => {
+                if (writeResult) {
+                  logger.info(
+                    s"Successfully inserted tax enrolment record $taxEnrolmentRequest into database"
+                  )
+                  Right(())
+                } else {
+                  Left(Error("Failed to insert tax enrolment record into database"))
+                }
+              }
+          }
+        )
+        .recover {
+          case e: Exception => {
+            Left(
+              Error(
+                s"Received an exception when sending message to call tax enrolment service $e"
+              )
+            )
+          }
         }
-      )
     )
   }
-
-  private def is5xx(status: Int): Boolean = status >= 500 && status < 600
 }
 
 object TaxEnrolmentService {
-
-  sealed trait TaxEnrolmentResponse extends Product with Serializable
-
-  object TaxEnrolmentResponse {
-
-    case object TaxEnrolmentCreated extends TaxEnrolmentResponse
-
-    case object UnauthorisedTaxEnrolmentRequest extends TaxEnrolmentResponse
-
-    case object BadTaxEnrolmentRequest extends TaxEnrolmentResponse
-
-    final case class TaxEnrolmentFailedForSomeOtherReason(
-      taxEnrolmentRequest: TaxEnrolmentRequest,
-      httpResponse: HttpResponse
-    ) extends TaxEnrolmentResponse
-  }
-
+  final case class TaxEnrolmentDatabaseInsertResponse(result: Either[Error, Boolean])
 }

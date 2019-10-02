@@ -15,11 +15,11 @@
  */
 
 package uk.gov.hmrc.cgtpropertydisposals.modules
-import akka.actor.{ActorRef, ActorRefFactory, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem}
 import com.google.inject.{AbstractModule, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.actors.{TaxEnrolmentRetryConnectorActor, TaxEnrolmentRetryManager, TaxEnrolmentRetryMongoActor}
+import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager
+import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRetryRepository
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
@@ -35,32 +35,20 @@ trait TaxEnrolmentRetryProvider {
 @Singleton
 class TaxEnrolmentRetryOrchestrator @Inject()(
   servicesConfig: ServicesConfig,
+  taxEnrolmentConnector: TaxEnrolmentConnector,
   taxEnrolmentRetryRepository: TaxEnrolmentRetryRepository,
-  taxEnrolmentService: TaxEnrolmentService,
   system: ActorSystem
 ) extends TaxEnrolmentRetryProvider
     with Logging {
-
-  val maxStaggerTime: Int = servicesConfig.getInt("tax-enrolment-retry.max-time-to-wait-after-recovery")
-
-  def makeMongoConnectorChildActor(actorRefFactory: ActorRefFactory): ActorRef =
-    actorRefFactory.actorOf(
-      TaxEnrolmentRetryMongoActor.props(system.scheduler, taxEnrolmentRetryRepository, maxStaggerTime))
-
-  def makeConnectorChildActor(actorRefFactory: ActorRefFactory): ActorRef =
-    actorRefFactory.actorOf(TaxEnrolmentRetryConnectorActor.props(taxEnrolmentService))
 
   val taxEnrolmentRetryManager: ActorRef = {
     logger.info("Starting Tax Enrolment Retry Manager")
     system.actorOf(
       TaxEnrolmentRetryManager.props(
-        makeMongoConnectorChildActor,
-        makeConnectorChildActor,
+        taxEnrolmentConnector,
         taxEnrolmentRetryRepository,
-        taxEnrolmentService,
         system.scheduler
       )
     )
   }
 }
-

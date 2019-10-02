@@ -34,6 +34,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultTaxEnrolmentRetryRepository])
 trait TaxEnrolmentRetryRepository {
   def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Boolean]
+  def exists(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
+  def get(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
   def delete(userId: String): EitherT[Future, Error, Int]
   def getAllNonFailedEnrolmentRequests(): EitherT[Future, Error, List[TaxEnrolmentRequest]]
   def updateStatusToFail(
@@ -72,6 +74,32 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
         }
     )
 
+  override def get(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
+    EitherT[Future, Error, Option[TaxEnrolmentRequest]](
+      collection
+        .find(Json.obj("userId" -> userId), None)
+        .one[TaxEnrolmentRequest]
+        .map { maybeEnrolmentRequest =>
+          Right(maybeEnrolmentRequest)
+        }
+        .recover {
+          case exception => Left(Error(exception.getMessage))
+        }
+    )
+
+  override def exists(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
+    EitherT[Future, Error, Option[TaxEnrolmentRequest]](
+      collection
+        .find(Json.obj("userId" -> userId, "status" -> "TaxEnrolmentFailed"), None)
+        .one[TaxEnrolmentRequest]
+        .map { maybeEnrolmentRequest =>
+          Right(maybeEnrolmentRequest)
+        }
+        .recover {
+          case exception => Left(Error(exception.getMessage))
+        }
+    )
+
   override def delete(userId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
       collection.delete
@@ -87,7 +115,7 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
   override def getAllNonFailedEnrolmentRequests(): EitherT[Future, Error, List[TaxEnrolmentRequest]] =
     EitherT[Future, Error, List[TaxEnrolmentRequest]](
       collection
-        .find(Json.obj("status" -> "Retry"), None)
+        .find(Json.obj("status" -> "TaxEnrolmentInProgress"), None)
         .cursor[TaxEnrolmentRequest]()
         .collect(maxDocs = -1, FailOnError[List[TaxEnrolmentRequest]]())
         .map { maybeEnrolmentRequest =>
@@ -105,7 +133,7 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
       collection
         .findAndUpdate(
           Json.obj("userId" -> userId),
-          Json.obj("$set"   -> Json.obj("status" -> "Failed")),
+          Json.obj("$set"   -> Json.obj("status" -> "TaxEnrolmentFailed")),
           true
         )
         .map(r => Right(r.result[TaxEnrolmentRequest]))

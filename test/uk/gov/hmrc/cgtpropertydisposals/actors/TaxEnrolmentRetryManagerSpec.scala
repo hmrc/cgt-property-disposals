@@ -16,23 +16,22 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.actors
 
-import java.time.LocalDateTime
-import org.scalacheck.ScalacheckShapeless._
-import akka.actor.{ActorRefFactory, ActorSystem, PoisonPill, Props}
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.actor.{ActorSystem, Props}
+import akka.testkit.{ImplicitSender, TestKit}
 import cats.data.EitherT
 import com.miguno.akka.testing.VirtualTime
-import org.scalacheck.{Arbitrary, Gen}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import uk.gov.hmrc.cgtpropertydisposals.actors.FakeChildMaker.NewChildCreated
-import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryConnectorActor.RetryCallToTaxEnrolmentService
-import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.{MarkTaxEnrolmentRetryRequestAsSuccess, RetryTaxEnrolmentRequest}
+import play.api.test.Helpers._
+import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.{AttemptTaxEnrolmentAllocationToGroup, RetryTaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Error, TaxEnrolmentRequest, sample}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRetryRepository
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest.{TaxEnrolmentFailed, TaxEnrolmentInProgress}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.{DefaultTaxEnrolmentRetryRepository, MongoSupport, TaxEnrolmentRetryRepository}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class TaxEnrolmentRetryManagerSpec
@@ -41,168 +40,132 @@ class TaxEnrolmentRetryManagerSpec
     with WordSpecLike
     with Matchers
     with BeforeAndAfterAll
+    with MongoSupport
     with MockFactory {
+
+  override def beforeEach: Unit =
+    mongo().drop()
 
   override def afterAll: Unit =
     TestKit.shutdownActorSystem(system)
 
-  val time: VirtualTime = new VirtualTime()
+  val connector                  = mock[TaxEnrolmentConnector]
+  val mockRepo                   = mock[TaxEnrolmentRetryRepository]
+  val repository                 = new DefaultTaxEnrolmentRetryRepository(reactiveMongoComponent)
+  val time: VirtualTime          = new VirtualTime()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val mockTaxEnrolmentService    = mock[TaxEnrolmentService]
-  val mockTaxEnrolmentRepository = mock[TaxEnrolmentRetryRepository]
+  def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(response: Either[Error, HttpResponse]) =
+    (connector
+      .allocateEnrolmentToGroup(_: TaxEnrolmentRequest)(_: HeaderCarrier))
+      .expects(taxEnrolmentRequest, *)
+      .returning(EitherT(Future.successful(response)))
 
-  implicit val localDateArb: Arbitrary[LocalDateTime] = Arbitrary.apply[LocalDateTime](Gen.const(LocalDateTime.now()))
-  val taxEnrolmentRequest                             = sample[TaxEnrolmentRequest]
+  def mockUpdate(userId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
+    (mockRepo
+      .updateStatusToFail(_: String))
+      .expects(userId)
+      .returning(EitherT(Future.successful(response)))
+
+  def mockGetAll()(response: Either[Error, List[TaxEnrolmentRequest]]) =
+    (mockRepo.getAllNonFailedEnrolmentRequests _)
+      .expects()
+      .returning(EitherT(Future.successful(response)))
+
+  def mockInsert(taxEnrolmentRequest: TaxEnrolmentRequest)(response: Either[Error, Boolean]) =
+    (mockRepo
+      .insert(_: TaxEnrolmentRequest))
+      .expects(taxEnrolmentRequest)
+      .returning(EitherT(Future.successful(response)))
+
+  def mockGet(userId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
+    (mockRepo
+      .get(_: String))
+      .expects(userId)
+      .returning(EitherT(Future.successful(response)))
+
+  val taxEnrolmentRequest =
+    TaxEnrolmentRequest("userId-1", 1, "test-cgt-reference", UkAddress("line1", None, None, None, "BN11 3JB"))
 
   "A Tax Enrolment Retry Manager actor" must {
 
-    "send a message to the mongo actor if tax enrolnment call was successful" in {
-      val mongoProbe     = TestProbe()
-      val connectorProbe = TestProbe()
-
-      val app = system.actorOf(
-        Props(
-          new TaxEnrolmentRetryManager(
-            (_: ActorRefFactory) => new FakeChildMaker(self, mongoProbe.ref).newChild(),
-            (_: ActorRefFactory) => new FakeChildMaker(self, connectorProbe.ref).newChild(),
-            mockTaxEnrolmentRepository,
-            mockTaxEnrolmentService,
-            system.scheduler
-          )
-        )
-      )
-
-      val taxEnrolmentRequest = TaxEnrolmentRequest(
-        "userId",
-        "someref",
-        Address.UkAddress("line1", None, None, None, "KO"),
-        "InProgress",
-        2,
-        0,
-        249237542,
-        LocalDateTime.now()
-      )
-
-      app ! MarkTaxEnrolmentRetryRequestAsSuccess(taxEnrolmentRequest)
-
-      mongoProbe.receiveN(2)
+    "recover all tax enrolments records from mongo on start up" in {
+      await(repository.insert(taxEnrolmentRequest).value).isRight shouldBe true
+      system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
+      await(repository.get(taxEnrolmentRequest.userId).value).shouldBe(Right(Some(taxEnrolmentRequest)))
     }
 
-    "send a message to the mongo actor if the elapsed time has exceeded the max elapsed time" in {
-      val mongoProbe     = TestProbe()
-      val connectorProbe = TestProbe()
+    "remove the request from db if the tax enrolment request was successful" in {
+      mockAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(204)))
 
-      val app = system.actorOf(
-        Props(
-          new TaxEnrolmentRetryManager(
-            (_: ActorRefFactory) => new FakeChildMaker(self, mongoProbe.ref).newChild(),
-            (_: ActorRefFactory) => new FakeChildMaker(self, connectorProbe.ref).newChild(),
-            mockTaxEnrolmentRepository,
-            mockTaxEnrolmentService,
-            system.scheduler
-          )
-        )
-      )
+      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
 
-      val taxEnrolmentRequest = TaxEnrolmentRequest(
-        "userId",
-        "someref",
-        Address.UkAddress("line1", None, None, None, "KO"),
-        "InProgress",
-        2,
-        0,
-        249237542,
-        LocalDateTime.now()
-      )
+      manager ! AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest)
 
-      app ! RetryTaxEnrolmentRequest(taxEnrolmentRequest)
-      mongoProbe.receiveN(2)
+      Thread.sleep(1000) // wait for akka system to do its work
+
+      await(repository.get(taxEnrolmentRequest.userId).value).shouldBe(Right(None))
     }
 
-    "send a message to the connector actor if the elapsed time has exceeded the max elapsed time" in {
-      val mongoProbe     = TestProbe()
-      val connectorProbe = TestProbe()
+    "not remove the request from db if the response from the tax enrolment service is a 5xx" in {
+      mockAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(500)))
 
-      val app = system.actorOf(
-        Props(
-          new TaxEnrolmentRetryManager(
-            (_: ActorRefFactory) => new FakeChildMaker(self, mongoProbe.ref).newChild(),
-            (_: ActorRefFactory) => new FakeChildMaker(self, connectorProbe.ref).newChild(),
-            mockTaxEnrolmentRepository,
-            mockTaxEnrolmentService,
-            system.scheduler
-          )
-        )
-      )
+      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
 
-      val taxEnrolmentRequest = TaxEnrolmentRequest(
-        "userId",
-        "someref",
-        Address.UkAddress("line1", None, None, None, "KO"),
-        "InProgress",
-        0,
-        0,
-        0,
-        LocalDateTime.of(2019, 12, 1, 12, 10)
-      )
+      manager ! AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest)
 
-      app ! RetryTaxEnrolmentRequest(taxEnrolmentRequest)
-      // need to advance the time
-//      time.advance(FiniteDuration(10, TimeUnit.SECONDS))
+      Thread.sleep(1000) // wait for akka system to do its work
 
-      connectorProbe.expectMsg(
-        RetryCallToTaxEnrolmentService(
-          TaxEnrolmentRequest(
-            "userId",
-            "someref",
-            UkAddress("line1", None, None, None, "KO"),
-            "InProgress",
-            1,
-            1,
-            0,
-            LocalDateTime.of(2019, 12, 1, 12, 10)
-          )
-        )
-      )
+      await(repository.get(taxEnrolmentRequest.userId).value)
+        .shouldBe(Right(Some(taxEnrolmentRequest)))
     }
 
-    "must restart the mongo actor if it dies" in {
-      val mongoProbe     = TestProbe()
-      val connectorProbe = TestProbe()
+    "not remove the request from db if the response from the tax enrolment service is an exception" in {
+      mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("Connection Timeout")))
 
-      system.actorOf(
-        Props(
-          new TaxEnrolmentRetryManager(
-            (_: ActorRefFactory) => new FakeChildMaker(self, mongoProbe.ref).newChild(),
-            (_: ActorRefFactory) => new FakeChildMaker(self, connectorProbe.ref).newChild(),
-            mockTaxEnrolmentRepository,
-            mockTaxEnrolmentService,
-            system.scheduler
-          )
-        )
-      )
-      mongoProbe.ref ! PoisonPill
-      expectMsg(NewChildCreated)
+      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
+
+      manager ! AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest)
+
+      Thread.sleep(1000) // wait for akka system to do its work
+
+      await(repository.get(taxEnrolmentRequest.userId).value)
+        .shouldBe(Right(Some(taxEnrolmentRequest)))
     }
 
-    "must restart the connector actor if it dies" in {
-      val mongoProbe     = TestProbe()
-      val connectorProbe = TestProbe()
+    "update the record to failed state if the elapsed time has exceeded the max elapsed time" in {
 
-      system.actorOf(
-        Props(
-          new TaxEnrolmentRetryManager(
-            (_: ActorRefFactory) => new FakeChildMaker(self, mongoProbe.ref).newChild(),
-            (_: ActorRefFactory) => new FakeChildMaker(self, connectorProbe.ref).newChild(),
-            mockTaxEnrolmentRepository,
-            mockTaxEnrolmentService,
-            system.scheduler
-          )
-        )
-      )
-      connectorProbe.ref ! PoisonPill
-      expectMsg(NewChildCreated)
+      await(repository.insert(taxEnrolmentRequest).value).isRight shouldBe true
+
+      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
+      manager ! RetryTaxEnrolmentRequest(taxEnrolmentRequest, 0, 0, 100000)
+
+      Thread.sleep(1000) // wait for akka system to do its work
+
+      await(repository.get(taxEnrolmentRequest.userId).value)
+        .shouldBe(Right(Some(taxEnrolmentRequest.copy(status = TaxEnrolmentFailed))))
+    }
+
+    "assert that the update did not occur if the the db query fails" in {
+
+      mockGetAll()(Right(List.empty))
+
+      mockUpdate("userId-1")(Left(Error("Exception")))
+
+      mockGet(taxEnrolmentRequest.userId)(Right(Some(taxEnrolmentRequest)))
+
+      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, mockRepo, time.scheduler)))
+
+      await(repository.insert(taxEnrolmentRequest).value).isRight shouldBe true
+
+      manager ! RetryTaxEnrolmentRequest(taxEnrolmentRequest, 0, 0, 100000)
+
+      Thread.sleep(1000) // wait for akka system to do its work
+
+      await(mockRepo.get(taxEnrolmentRequest.userId).value)
+        .shouldBe(Right(Some(taxEnrolmentRequest)))
     }
 
   }
+
 }

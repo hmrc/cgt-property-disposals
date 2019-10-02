@@ -18,19 +18,38 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.LocalDateTime
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json._
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest.{TaxEnrolmentInProgress, TaxEnrolmentRequestStatus}
 
 final case class TaxEnrolmentRequest(
   userId: String,
+  requestId: Long,
   cgtReference: String,
   address: Address,
-  status: String                    = "InProgress",
-  numOfRetries: Int                 = 0,
-  timeToNextRetryInSeconds: Long    = 0,
-  currentElapsedTimeInSeconds: Long = 0,
+  status: TaxEnrolmentRequestStatus = TaxEnrolmentInProgress,
   timestamp: LocalDateTime          = LocalDateTime.now()
 )
 
 object TaxEnrolmentRequest {
+  sealed trait TaxEnrolmentRequestStatus extends Product with Serializable
+  case object TaxEnrolmentInProgress extends TaxEnrolmentRequestStatus
+  case object TaxEnrolmentFailed extends TaxEnrolmentRequestStatus
+
+  implicit val statusFormat: Format[TaxEnrolmentRequestStatus] = new Format[TaxEnrolmentRequestStatus] {
+    override def writes(o: TaxEnrolmentRequestStatus): JsValue = o match {
+      case TaxEnrolmentInProgress => JsString("TaxEnrolmentInProgress")
+      case TaxEnrolmentFailed     => JsString("TaxEnrolmentFailed")
+    }
+
+    override def reads(json: JsValue): JsResult[TaxEnrolmentRequestStatus] =
+      json match {
+        case JsString("TaxEnrolmentInProgress") => JsSuccess(TaxEnrolmentInProgress)
+        case JsString("TaxEnrolmentFailed")     => JsSuccess(TaxEnrolmentFailed)
+        case JsString(err) =>
+          JsError(s"only two valid statuses:, TaxEnrolmentInProgress, TaxEnrolmentFailed")
+        case _ => JsError("Failure")
+      }
+  }
   implicit val format: OFormat[TaxEnrolmentRequest] = Json.format[TaxEnrolmentRequest]
+
 }

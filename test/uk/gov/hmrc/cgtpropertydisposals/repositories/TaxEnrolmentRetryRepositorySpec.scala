@@ -16,52 +16,76 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
-import java.time.LocalDateTime
-
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.TestSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest.TaxEnrolmentFailed
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class TaxEnrolmentRetryRepositorySpec extends WordSpec with Matchers with MongoSupport with TestSupport {
 
   val repository = new DefaultTaxEnrolmentRetryRepository(reactiveMongoComponent)
+  val inProgressEnrolment =
+    TaxEnrolmentRequest("userId-1", 1, "test-cgt-reference", UkAddress("line1", None, None, None, "BN11 3JB"))
+
+  val failedEnrolment =
+    TaxEnrolmentRequest(
+      "userId-2",
+      1,
+      "test-cgt-reference",
+      UkAddress("line1", None, None, None, "BN11 3JB"),
+      status = TaxEnrolmentFailed
+    )
 
   "The Tax Enrolment Retry repository" when {
     "inserting" should {
       "create a new tax enrolment retry record" in {
-        await(
-          repository
-            .insert(
-              TaxEnrolmentRequest(
-                "userId-1",
-                "test-cgt-reference",
-                UkAddress("line1", None, None, None, "BN11 3JB"),
-                "InProgress"
-              )
-            )
-            .value
-        ) shouldBe Right(true)
+        await(repository.insert(inProgressEnrolment).value) shouldBe Right(true)
       }
     }
 
-    "recovering all retry records" should {
-      "return empty list when there are no fail records" in {
-        await(
-          repository
-            .insert(
-              TaxEnrolmentRequest(
-                "userId-1",
-                "test-cgt-reference",
-                UkAddress("line1", None, None, None, "BN11 3JB"),
-                "InProgress"
-              )
-            )
-            .value
-        )
+//    "checking if a record exists" should {
+//      "return false if the record does not exist" in {
+//        await(repository.exists(failedEnrolment.userId).value) shouldBe (Right(None))
+//      }
+//
+//      "return true if the record does exist" in {
+//
+//        val tr = TaxEnrolmentRequest(
+//          "userId-1",
+//          "test-cgt-reference",
+//          UkAddress("line1", None, None, None, "BN11 3JB"),
+//          "Failed"
+//        )
+//
+//        await(
+//          repository
+//            .insert(
+//              tr
+//            )
+//            .value
+//        )
+//
+//        await(
+//          repository
+//            .exists(
+//              tr.userId
+//            )
+//            .value
+//        ) shouldBe (Right(Some(tr)))
+//      }
+//
+//    }
 
+    "recovering all tax enrolment records" should {
+      "return a list of one record when there is one outstanding tax enrolment request" in {
+        await(repository.insert(inProgressEnrolment).value)
+        await(repository.getAllNonFailedEnrolmentRequests().value) shouldBe (Right(List(inProgressEnrolment)))
+      }
+
+      "return empty list when there are no fail records" in {
         await(
           repository
             .getAllNonFailedEnrolmentRequests()
@@ -70,74 +94,23 @@ class TaxEnrolmentRetryRepositorySpec extends WordSpec with Matchers with MongoS
       }
     }
 
-    "failing an enrolment retry record" should {
-      "update a record from in-progress state to failed state" in {
-        await(
-          repository
-            .insert(
-              TaxEnrolmentRequest(
-                "userId-1",
-                "test-cgt-reference",
-                UkAddress("line1", None, None, None, "BN11 3JB"),
-                "InProgress",
-                0,
-                0,
-                0,
-                LocalDateTime.of(2019, 9, 18, 12, 15)
-              )
-            )
-            .value
-        )
-
-        await(
-          repository
-            .updateStatusToFail("userId-1")
-            .value
-        ) shouldBe (Right(
-          Some(
-            TaxEnrolmentRequest(
-              "userId-1",
-              "test-cgt-reference",
-              UkAddress("line1", None, None, None, "BN11 3JB"),
-              "Failed",
-              0,
-              0,
-              0,
-              LocalDateTime.of(2019, 9, 18, 12, 15)
-            )
-          )
+    "updating the status of a failed tax enrolment record" should {
+      "return the updated tax enrolment record" in {
+        await(repository.insert(inProgressEnrolment).value)
+        await(repository.updateStatusToFail("userId-1").value) shouldBe (Right(
+          Some(inProgressEnrolment.copy(status = TaxEnrolmentFailed))
         ))
       }
     }
 
-    "deleting" should {
-      "delete an existing a record" in {
-        await(
-          repository
-            .insert(
-              TaxEnrolmentRequest(
-                "userId-1",
-                "test-cgt-reference",
-                UkAddress("line1", None, None, None, "BN11 3JB"),
-                "InProgress"
-              )
-            )
-            .value
-        )
-
-        await(
-          repository
-            .delete("userId-1")
-            .value
-        ) shouldBe (Right(1))
+    "deleting a tax enrolment record" should {
+      "return a count of one when deleting a unique tax enrolment record" in {
+        await(repository.insert(inProgressEnrolment).value)
+        await(repository.delete(inProgressEnrolment.userId).value) shouldBe (Right(1))
       }
 
-      "delete a non-existent record" in {
-        await(
-          repository
-            .delete("this-delete-id-does-not-exist")
-            .value
-        ) shouldBe (Right(0))
+      "return a count of zero when the tax enrolment record does not exist" in {
+        await(repository.delete("this-user-id-does-not-exist").value) shouldBe (Right(0))
       }
     }
   }

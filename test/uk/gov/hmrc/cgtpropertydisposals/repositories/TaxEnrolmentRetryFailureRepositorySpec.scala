@@ -20,61 +20,49 @@ import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.TestSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest.TaxEnrolmentFailed
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class TaxEnrolmentRetryFailureRepositorySpec extends WordSpec with Matchers with MongoSupport with TestSupport {
 
   val repository = new DefaultTaxEnrolmentRetryRepository(reactiveMongoComponent)
+  val inProgressEnrolment =
+    TaxEnrolmentRequest("userId-1", 1, "test-cgt-reference", UkAddress("line1", None, None, None, "BN11 3JB"))
+
+  val failedEnrolment =
+    TaxEnrolmentRequest(
+      "userId-2",
+      1,
+      "test-cgt-reference",
+      UkAddress("line1", None, None, None, "BN11 3JB"),
+      status = TaxEnrolmentFailed
+    )
 
   "The Tax Enrolment Retry repository" when {
     "inserting into a broken repository" should {
       reactiveMongoComponent.mongoConnector.helper.driver.close()
       "fail the insert" in {
-        await(
-          repository
-            .insert(
-              TaxEnrolmentRequest(
-                "userId-1",
-                "test-cgt-reference",
-                UkAddress("line1", None, None, None, "BN11 3JB"),
-                "InProgress"
-              )
-            )
-            .value
-        ).isLeft shouldBe true
+        await(repository.insert(inProgressEnrolment).value).isLeft shouldBe true
       }
     }
 
     "recovering all retry records" should {
       "fail" in {
-        await(
-          repository
-            .getAllNonFailedEnrolmentRequests()
-            .value
-        ).isLeft shouldBe true
+        await(repository.getAllNonFailedEnrolmentRequests().value).isLeft shouldBe true
       }
     }
 
     "failing an enrolment retry record" should {
       "fail" in {
-        await(
-          repository
-            .updateStatusToFail("userId-1")
-            .value
-        ).isLeft shouldBe true
+        await(repository.updateStatusToFail("userId-1").value).isLeft shouldBe true
       }
     }
 
     "deleting" should {
       "fail " in {
-        await(
-          repository
-            .delete("userId-1")
-            .value
-        ).isLeft shouldBe true
+        await(repository.delete("userId-1").value).isLeft shouldBe true
       }
-
     }
   }
 }

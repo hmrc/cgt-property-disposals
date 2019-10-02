@@ -16,19 +16,16 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
-import akka.actor.ActorRef
 import cats.data.EitherT
 import cats.instances.future._
 import cats.syntax.either._
 import com.google.inject.Inject
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.RetryTaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError
-import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, FailedTaxEnrolmentCall, RequestValidationError}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest}
-import uk.gov.hmrc.cgtpropertydisposals.modules.TaxEnrolmentRetryProvider
 import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
@@ -40,14 +37,12 @@ class SubscriptionController @Inject()(
   authenticate: AuthenticateActions,
   subscriptionService: SubscriptionService,
   taxEnrolmentService: TaxEnrolmentService,
-  taxEnrolmentRetryProvider: TaxEnrolmentRetryProvider,
   cc: ControllerComponents
 )(
   implicit ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
-  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   def subscribe(): Action[AnyContent] = authenticate.async { implicit request =>
     val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
       for {
@@ -70,14 +65,13 @@ class SubscriptionController @Inject()(
               .allocateEnrolmentToGroup(
                 TaxEnrolmentRequest(
                   request.user.id,
+                  request.id,
                   subscriptionResponse.cgtReferenceNumber,
                   subscriptionDetails.address,
                   timestamp = request.timestamp
                 )
               )
-              .leftMap[SubscriptionError](
-                tt => FailedTaxEnrolmentCall(tt.taxEnrolmentRequest, subscriptionResponse.cgtReferenceNumber)
-              )
+              .leftMap[SubscriptionError](BackendError(_))
       } yield subscriptionResponse
 
     result.fold(
@@ -86,36 +80,13 @@ class SubscriptionController @Inject()(
           logger.warn(s"Error in request to subscribe: $msg")
           BadRequest
         case BackendError(e) =>
-          logger.warn("Error while trying to subscribe", e)
+          logger.warn("Error while trying to subscribe:", e)
           InternalServerError
-        case FailedTaxEnrolmentCall(taxEnrolmentRequest, cgt) =>
-          logger.warn("Error while trying to allocate enrolment - sending message to retry asynchronously")
-          retry(taxEnrolmentRequest).value.map {
-            case Left(error) =>
-              logger.warn(s"Failed to submit async retry request for $taxEnrolmentRequest: error [$error]")
-            case Right(_) => logger.info(s"Successfully submitted async retry request for $taxEnrolmentRequest")
-          }
-          Ok(Json.toJson(SubscriptionResponse(cgt)))
       }, { r =>
         Ok(Json.toJson(r))
       }
     )
   }
-
-  private def retry(taxEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit] =
-    EitherT[Future, Error, Unit](
-      Future {
-        Right(
-          taxEnrolmentRetryProvider.taxEnrolmentRetryManager
-            .tell(
-              RetryTaxEnrolmentRequest(taxEnrolmentRequest),
-              ActorRef.noSender
-            )
-        )
-      }.recover {
-        case e => Left(Error(e.getMessage))
-      }
-    )
 }
 
 object SubscriptionController {
@@ -127,11 +98,6 @@ object SubscriptionController {
     final case class BackendError(e: Error) extends SubscriptionError
 
     final case class RequestValidationError(msg: String) extends SubscriptionError
-
-    final case class UserIdError(msg: String) extends SubscriptionError
-
-    final case class FailedTaxEnrolmentCall(taxEnrolmentRequest: TaxEnrolmentRequest, cgtReference: String)
-        extends SubscriptionError
   }
 
 }
