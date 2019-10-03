@@ -24,6 +24,8 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, OFormat, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models._
+import uk.gov.hmrc.cgtpropertydisposals.models.bpr.BusinessPartnerRecordRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient

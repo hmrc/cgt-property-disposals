@@ -20,7 +20,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Country, Error, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRepository
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 

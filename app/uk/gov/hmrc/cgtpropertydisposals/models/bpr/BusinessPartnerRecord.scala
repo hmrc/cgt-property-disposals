@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.bpr
 
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 
 final case class BusinessPartnerRecord(
   emailAddress: Option[String],
   address: Address,
   sapNumber: String,
-  name: Either[TrustName, Name]
+  name: Either[TrustName, IndividualName]
 )
 
 object BusinessPartnerRecord {

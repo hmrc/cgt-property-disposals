@@ -30,9 +30,12 @@ import play.api.Configuration
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse, Country, Error, Name, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
@@ -106,9 +109,9 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
       }
     }
 
-    val nameValidation: Validation[Either[TrustName, Name]] =
+    val nameValidation: Validation[Either[TrustName, IndividualName]] =
       d.individual -> d.organisation match {
-        case (Some(individual), None)   => Valid(Right(Name(individual.firstName, individual.lastName)))
+        case (Some(individual), None)   => Valid(Right(IndividualName(individual.firstName, individual.lastName)))
         case (None, Some(organisation)) => Valid(Left(TrustName(organisation.name)))
         case (Some(_), Some(_)) =>
           Invalid(NonEmptyList.one("BPR contained both an organisation name and individual name"))

@@ -18,12 +18,12 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
 import cats.instances.future._
-//import cats.implicits._
-import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import com.google.inject.{ImplementedBy, Inject, Singleton}
+import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global

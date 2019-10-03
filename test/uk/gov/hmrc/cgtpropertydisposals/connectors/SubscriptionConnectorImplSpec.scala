@@ -22,8 +22,9 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Name, SubscriptionDetails, TrustName, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SubscriptionDetails, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -64,9 +65,9 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     "handling request to subscribe for individuals" must {
 
       val subscriptionDetails = SubscriptionDetails(
-        "id",
-        Right(Name("name", "surname")),
-        "email",
+        Right(IndividualName("name", "surname")),
+        ContactName("contact"),
+        Email("email"),
         UkAddress("line1", None, None, None, "postcode"),
         "sap"
       )
@@ -75,7 +76,8 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         """
           |{
           |  "typeOfPerson" : "1",
-          |  "contactName"  : "name surname",
+          |  "name"  : "name surname",
+          |  "contactName" : "contact",
           |  "emailAddress" : "email",
           |  "address"      : {
           |    "UkAddress" : {
@@ -115,9 +117,9 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     "handling request to subscribe for trusts" must {
 
       val subscriptionDetails = SubscriptionDetails(
-        "id",
         Left(TrustName("name")),
-        "email",
+        ContactName("contact"),
+        Email("email"),
         UkAddress("line1", None, None, None, "postcode"),
         "sap"
       )
@@ -126,7 +128,8 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         """
           |{
           |  "typeOfPerson" : "2",
-          |  "contactName"  : "name",
+          |  "name"  : "name",
+          |  "contactName" : "contact",
           |  "emailAddress" : "email",
           |  "address"      : {
           |    "UkAddress" : {

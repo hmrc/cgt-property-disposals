@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.name
 
-import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
+import play.api.libs.json.{Json, OFormat}
 
-final case class SubscriptionDetails(
-  name: Either[TrustName, IndividualName],
-  contactName: ContactName,
-  emailAddress: Email,
-  address: Address,
-  sapNumber: String
-)
-object SubscriptionDetails {
-  implicit val format: Format[SubscriptionDetails] = Json.format[SubscriptionDetails]
+final case class IndividualName(firstName: String, lastName: String)
+
+object IndividualName {
+  implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
 }

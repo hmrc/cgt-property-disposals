@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.bpr
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class Name(firstName: String, lastName: String)
+final case class BusinessPartnerRecordResponse(businessPartnerRecord: Option[BusinessPartnerRecord]) extends AnyVal
 
-object Name {
-  implicit val format: OFormat[Name] = Json.format[Name]
+object BusinessPartnerRecordResponse {
+
+  implicit val format: OFormat[BusinessPartnerRecordResponse] = Json.format[BusinessPartnerRecordResponse]
+
 }
