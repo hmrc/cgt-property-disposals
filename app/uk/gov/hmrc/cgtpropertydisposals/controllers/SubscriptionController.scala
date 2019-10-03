@@ -64,7 +64,7 @@ class SubscriptionController @Inject()(
         _ <- taxEnrolmentService
               .allocateEnrolmentToGroup(
                 TaxEnrolmentRequest(
-                  request.user.id,
+                  request.user.ggCredId,
                   request.id,
                   subscriptionResponse.cgtReferenceNumber,
                   subscriptionDetails.address,

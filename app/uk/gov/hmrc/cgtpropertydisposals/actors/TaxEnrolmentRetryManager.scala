@@ -20,37 +20,30 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, Props, Scheduler}
 import akka.pattern.pipe
-import com.typesafe.config.{Config, ConfigFactory}
-import net.ceedubs.ficus.Ficus._
-import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.{AttemptTaxEnrolmentAllocationToGroup, CallTaxEnrolmentService, RetryTaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRetryRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class TaxEnrolmentRetryManager(
+  minBackoff: FiniteDuration,
+  maxBackoff: FiniteDuration,
+  numberOfRetriesBeforeDoublingInitialWait: Int,
+  maxAllowableElapsedTime: FiniteDuration,
+  maxWaitTimeForRetryingRecoveredEnrolmentRequests: Int,
   taxEnrolmentConnector: TaxEnrolmentConnector,
   taxEnrolmentRetryRepository: TaxEnrolmentRetryRepository,
   scheduler: Scheduler
 ) extends Actor
     with Logging {
+
   import context.dispatcher
   implicit val hc: HeaderCarrier = HeaderCarrier()
-
-  val config: Config = ConfigFactory.load()
-
-  val minBackoff: FiniteDuration = config.as[FiniteDuration]("tax-enrolment-retry.min-backoff")
-  val maxBackoff: FiniteDuration = config.as[FiniteDuration]("tax-enrolment-retry.max-backoff")
-  val numberOfRetriesBeforeDoublingInitialWait: Int =
-    config.as[Int]("tax-enrolment-retry.number-of-retries-until-initial-wait-doubles")
-  val maxAllowableElapsedTime: FiniteDuration = config.as[FiniteDuration]("tax-enrolment-retry.max-elapsed-time")
-  val maxWaitTimeForSubmittingRecoveredEnrolmentRequests: Int =
-    config.as[Int]("tax-enrolment-retry.max-time-to-wait-after-recovery")
-
-  def is5xx(status: Int): Boolean = status >= 500 && status < 600
 
   override def preStart(): Unit = {
     super.preStart()
@@ -60,7 +53,7 @@ class TaxEnrolmentRetryManager(
         val rgen = new scala.util.Random
         enrolmentRequests.foreach { enrolmentRequest =>
           scheduler.scheduleOnce(
-            FiniteDuration(1 + rgen.nextInt(maxWaitTimeForSubmittingRecoveredEnrolmentRequests - 1), TimeUnit.SECONDS), // randomly stagger messages
+            FiniteDuration(1 + rgen.nextInt(maxWaitTimeForRetryingRecoveredEnrolmentRequests - 1), TimeUnit.SECONDS), // randomly stagger messages
             self,
             RetryTaxEnrolmentRequest(enrolmentRequest, 0, 0, 0)
           )
@@ -69,20 +62,34 @@ class TaxEnrolmentRetryManager(
   }
 
   override def receive: Receive = {
-    case request: AttemptTaxEnrolmentAllocationToGroup =>
-      taxEnrolmentRetryRepository.insert(request.taxEnrolmentRequest).value pipeTo sender
+    case request: QueueTaxEnrolmentRequest =>
+      taxEnrolmentRetryRepository.insert(request.taxEnrolmentRequest).value.map {
+        case Left(error) => {
+          logger.warn(s"Failed to queue tax enrolment request: $error")
+          Future.successful(QueueTaxEnrolmentRequestFailure) pipeTo sender()
+        }
+        case Right(writeResult) => {
+          if (writeResult) {
+            logger.info(s"Successfully queued tax enrolment request")
+            Future.successful(QueueTaxEnrolmentRequestSuccess) pipeTo sender()
+          } else {
+            logger.warn(s"Did not queue tax enrolment record with write result: $writeResult")
+            Future.successful(QueueTaxEnrolmentRequestFailure) pipeTo sender()
+          }
+        }
+      }
       self ! CallTaxEnrolmentService(request.taxEnrolmentRequest)
 
     case request: CallTaxEnrolmentService =>
       taxEnrolmentConnector.allocateEnrolmentToGroup(request.taxEnrolmentRequest).value.map {
         case Left(error) => {
-          logger.warn(s"Error calling tax enrolment service: $error- retrying...")
+          logger.warn(s"Error calling tax enrolment service: $error - retrying...")
           self ! RetryTaxEnrolmentRequest(request.taxEnrolmentRequest, 0, 0, 0)
         }
         case Right(httpResponse) => {
           httpResponse.status match {
             case 204 => {
-              taxEnrolmentRetryRepository.delete(request.taxEnrolmentRequest.userId).value.map {
+              taxEnrolmentRetryRepository.delete(request.taxEnrolmentRequest.ggCredId).value.map {
                 case Left(error) => {
                   logger.error(s"Could not delete tax enrolment record: $error")
                 }
@@ -104,7 +111,7 @@ class TaxEnrolmentRetryManager(
 
     case retry: RetryTaxEnrolmentRequest => {
       if (retry.currentElapsedTimeInSeconds >= maxAllowableElapsedTime.toSeconds) {
-        taxEnrolmentRetryRepository.updateStatusToFail(retry.taxEnrolmentRequest.userId).value.map {
+        taxEnrolmentRetryRepository.updateStatusToFail(retry.taxEnrolmentRequest.ggCredId).value.map {
           case Left(error) =>
             logger.error(s"Could not update status of tax enrolment request to fail $error")
           case Right(_) =>
@@ -140,6 +147,9 @@ class TaxEnrolmentRetryManager(
     val millis: Double    = (minMillis - maxMillis) * math.exp(-exponentialFactor * numberOfRetries.toDouble) + maxMillis
     millis.millis.min(maxBackoff)
   }
+
+  def is5xx(status: Int): Boolean = status >= 500 && status < 600
+
 }
 
 object TaxEnrolmentRetryManager {
@@ -151,17 +161,31 @@ object TaxEnrolmentRetryManager {
     currentElapsedTimeInSeconds: Long
   )
 
-  final case class AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)
+  final case class QueueTaxEnrolmentRequest(taxEnrolmentRequest: TaxEnrolmentRequest)
 
   final case class CallTaxEnrolmentService(taxEnrolmentRequest: TaxEnrolmentRequest)
 
+  sealed trait QueueTaxEnrolmentResponse
+  final case object QueueTaxEnrolmentRequestFailure extends QueueTaxEnrolmentResponse
+  final case object QueueTaxEnrolmentRequestSuccess extends QueueTaxEnrolmentResponse
+
   def props(
+    minBackoff: FiniteDuration,
+    maxBackoff: FiniteDuration,
+    numberOfRetriesBeforeDoublingInitialWait: Int,
+    maxAllowableElapsedTime: FiniteDuration,
+    maxWaitTimeForRetryingRecoveredEnrolmentRequests: Int,
     taxEnrolmentConnector: TaxEnrolmentConnector,
     taxEnrolmentRetryRepository: TaxEnrolmentRetryRepository,
     scheduler: Scheduler
   ): Props =
     Props(
       new TaxEnrolmentRetryManager(
+        minBackoff,
+        maxBackoff,
+        numberOfRetriesBeforeDoublingInitialWait,
+        maxAllowableElapsedTime,
+        maxWaitTimeForRetryingRecoveredEnrolmentRequests,
         taxEnrolmentConnector,
         taxEnrolmentRetryRepository,
         scheduler

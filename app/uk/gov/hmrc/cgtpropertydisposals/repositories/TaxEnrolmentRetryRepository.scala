@@ -34,7 +34,6 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultTaxEnrolmentRetryRepository])
 trait TaxEnrolmentRetryRepository {
   def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Boolean]
-  def exists(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
   def get(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
   def delete(userId: String): EitherT[Future, Error, Int]
   def getAllNonFailedEnrolmentRequests(): EitherT[Future, Error, List[TaxEnrolmentRequest]]
@@ -47,7 +46,7 @@ trait TaxEnrolmentRetryRepository {
 class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
 ) extends ReactiveRepository[TaxEnrolmentRequest, BSONObjectID](
-      collectionName = "tax-enrolment-retry",
+      collectionName = "tax-enrolment-requests",
       mongo          = mongo.mongoConnector.db,
       TaxEnrolmentRequest.format,
       ReactiveMongoFormats.objectIdFormats
@@ -56,8 +55,8 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
 
   override def indexes: Seq[Index] = Seq(
     Index(
-      key  = Seq("userId" → IndexType.Ascending),
-      name = Some("userIdIndex")
+      key  = Seq("ggCredId" → IndexType.Ascending),
+      name = Some("ggCredIdIndex")
     )
   )
 
@@ -74,10 +73,10 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
         }
     )
 
-  override def get(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
+  override def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
       collection
-        .find(Json.obj("userId" -> userId), None)
+        .find(Json.obj("ggCredId" -> ggCredId), None)
         .one[TaxEnrolmentRequest]
         .map { maybeEnrolmentRequest =>
           Right(maybeEnrolmentRequest)
@@ -87,23 +86,10 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
         }
     )
 
-  override def exists(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
-    EitherT[Future, Error, Option[TaxEnrolmentRequest]](
-      collection
-        .find(Json.obj("userId" -> userId, "status" -> "TaxEnrolmentFailed"), None)
-        .one[TaxEnrolmentRequest]
-        .map { maybeEnrolmentRequest =>
-          Right(maybeEnrolmentRequest)
-        }
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
-    )
-
-  override def delete(userId: String): EitherT[Future, Error, Int] =
+  override def delete(ggCredId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
       collection.delete
-        .one(Json.obj("userId" -> userId))
+        .one(Json.obj("ggCredId" -> ggCredId))
         .map { result: WriteResult =>
           Right(result.n)
         }
@@ -127,13 +113,13 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
     )
 
   override def updateStatusToFail(
-    userId: String
+    ggCredId: String
   ): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
       collection
         .findAndUpdate(
-          Json.obj("userId" -> userId),
-          Json.obj("$set"   -> Json.obj("status" -> "TaxEnrolmentFailed")),
+          Json.obj("ggCredId" -> ggCredId),
+          Json.obj("$set"     -> Json.obj("status" -> "TaxEnrolmentFailed")),
           true
         )
         .map(r => Right(r.result[TaxEnrolmentRequest]))

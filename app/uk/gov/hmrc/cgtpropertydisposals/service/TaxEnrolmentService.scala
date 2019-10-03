@@ -20,16 +20,18 @@ import akka.pattern.ask
 import akka.util.Timeout
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.AttemptTaxEnrolmentAllocationToGroup
+import configs.syntax._
+import play.api.Configuration
+import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.modules.TaxEnrolmentRetryProvider
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentDatabaseInsertResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
+
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
 trait TaxEnrolmentService {
   def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
@@ -39,6 +41,7 @@ trait TaxEnrolmentService {
 
 @Singleton
 class TaxEnrolmentServiceImpl @Inject()(
+  config: Configuration,
   taxEnrolmentRetryProvider: TaxEnrolmentRetryProvider
 ) extends TaxEnrolmentService
     with Logging {
@@ -46,31 +49,25 @@ class TaxEnrolmentServiceImpl @Inject()(
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] = {
-    implicit val timeout: Timeout = Timeout(5.seconds)
+
+    val akkaAskTimeout: FiniteDuration =
+      config.underlying.get[FiniteDuration]("tax-enrolment-retry.akka-ask-timeout").value
+
+    implicit val timeout: Timeout = Timeout(akkaAskTimeout)
 
     EitherT[Future, Error, Unit](
       taxEnrolmentRetryProvider.taxEnrolmentRetryManager
-        .ask(AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest))
-        .mapTo[TaxEnrolmentDatabaseInsertResponse]
-        .map[Either[Error, Unit]](
-          database =>
-            database.result match {
-              case Left(error) => {
-                logger.warn(s"Failed to insert tax enrolment record $taxEnrolmentRequest into database: $error")
-                Left(error)
-              }
-              case Right(writeResult) => {
-                if (writeResult) {
-                  logger.info(
-                    s"Successfully inserted tax enrolment record $taxEnrolmentRequest into database"
-                  )
-                  Right(())
-                } else {
-                  Left(Error("Failed to insert tax enrolment record into database"))
-                }
-              }
+        .ask(QueueTaxEnrolmentRequest(taxEnrolmentRequest))
+        .mapTo[QueueTaxEnrolmentResponse]
+        .map[Either[Error, Unit]] {
+          case QueueTaxEnrolmentRequestFailure => {
+            Left(Error(s"Failed to queue tax enrolment request $taxEnrolmentRequest"))
           }
-        )
+          case QueueTaxEnrolmentRequestSuccess => {
+            logger.info(s"Successfully queued tax enrolment request $taxEnrolmentRequest")
+            Right(())
+          }
+        }
         .recover {
           case e: Exception => {
             Left(
@@ -82,8 +79,4 @@ class TaxEnrolmentServiceImpl @Inject()(
         }
     )
   }
-}
-
-object TaxEnrolmentService {
-  final case class TaxEnrolmentDatabaseInsertResponse(result: Either[Error, Boolean])
 }

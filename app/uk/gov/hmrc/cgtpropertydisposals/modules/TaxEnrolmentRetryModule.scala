@@ -17,11 +17,17 @@
 package uk.gov.hmrc.cgtpropertydisposals.modules
 import akka.actor.{ActorRef, ActorSystem}
 import com.google.inject.{AbstractModule, Inject, Singleton}
+import com.typesafe.config.{Config, ConfigFactory}
+import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRetryRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import configs.syntax._
+import play.api.Configuration
+
+import scala.concurrent.duration.FiniteDuration
 
 class TaxEnrolmentRetryModule extends AbstractModule {
   override def configure(): Unit =
@@ -34,17 +40,31 @@ trait TaxEnrolmentRetryProvider {
 
 @Singleton
 class TaxEnrolmentRetryOrchestrator @Inject()(
-  servicesConfig: ServicesConfig,
+  config: Configuration,
   taxEnrolmentConnector: TaxEnrolmentConnector,
   taxEnrolmentRetryRepository: TaxEnrolmentRetryRepository,
   system: ActorSystem
 ) extends TaxEnrolmentRetryProvider
     with Logging {
 
+  val minBackoff: FiniteDuration = config.underlying.get[FiniteDuration]("tax-enrolment-retry.min-backoff").value
+  val maxBackoff: FiniteDuration = config.underlying.get[FiniteDuration]("tax-enrolment-retry.max-backoff").value
+  val numberOfRetriesBeforeDoublingInitialWait: Int =
+    config.underlying.get[Int]("tax-enrolment-retry.number-of-retries-until-initial-wait-doubles").value
+  val maxAllowableElapsedTime: FiniteDuration =
+    config.underlying.get[FiniteDuration]("tax-enrolment-retry.max-elapsed-time").value
+  val maxWaitTimeForRetryingRecoveredEnrolmentRequests: Int =
+    config.underlying.get[Int]("tax-enrolment-retry.max-time-to-wait-after-recovery").value
+
   val taxEnrolmentRetryManager: ActorRef = {
     logger.info("Starting Tax Enrolment Retry Manager")
     system.actorOf(
       TaxEnrolmentRetryManager.props(
+        minBackoff,
+        maxBackoff,
+        numberOfRetriesBeforeDoublingInitialWait,
+        maxAllowableElapsedTime,
+        maxWaitTimeForRetryingRecoveredEnrolmentRequests,
         taxEnrolmentConnector,
         taxEnrolmentRetryRepository,
         system.scheduler

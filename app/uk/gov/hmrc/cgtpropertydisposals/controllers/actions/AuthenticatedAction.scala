@@ -21,6 +21,7 @@ import java.time.LocalDateTime
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
 import play.api.mvc._
+import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, _}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -28,7 +29,7 @@ import uk.gov.hmrc.play.HeaderCarrierConverter
 
 import scala.concurrent.{ExecutionContext, Future}
 
-final case class AuthenticatedUser(id: String)
+final case class AuthenticatedUser(ggCredId: String)
 class AuthenticatedRequest[+A](
   val user: AuthenticatedUser,
   val timestamp: LocalDateTime,
@@ -52,7 +53,7 @@ class AuthenticateActionBuilder @Inject()(
   override def invokeBlock[A](request: Request[A], block: AuthenticatedRequest[A] => Future[Result]): Future[Result] = {
     val forbidden = Results.Forbidden("Forbidden")
     val carrier   = extractHeaders(request)
-    authorised()
+    authorised(AuthProviders(GovernmentGateway))
       .retrieve(v2.Retrievals.credentials) {
         case Some(credentials) =>
           val user = AuthenticatedUser(credentials.providerId)

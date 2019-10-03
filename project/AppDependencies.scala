@@ -8,7 +8,6 @@ object AppDependencies {
     "uk.gov.hmrc"       %% "bootstrap-play-26"        % "0.42.0",
     "org.typelevel"     %% "cats-core"                % "1.6.1",
     "org.julienrf"      %% "play-json-derived-codecs" % "3.3",
-    "com.iheart"        %% "ficus"                    % "1.1.3",
     "com.github.kxbmap" %% "configs"                  % "0.4.4"
   )
 

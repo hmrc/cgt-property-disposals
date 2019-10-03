@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.actors
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import cats.data.EitherT
@@ -23,16 +25,17 @@ import com.miguno.akka.testing.VirtualTime
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.{AttemptTaxEnrolmentAllocationToGroup, RetryTaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.{QueueTaxEnrolmentRequest, RetryTaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest.{TaxEnrolmentFailed, TaxEnrolmentInProgress}
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest.TaxEnrolmentFailed
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{DefaultTaxEnrolmentRetryRepository, MongoSupport, TaxEnrolmentRetryRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 class TaxEnrolmentRetryManagerSpec
     extends TestKit(ActorSystem())
@@ -49,11 +52,18 @@ class TaxEnrolmentRetryManagerSpec
   override def afterAll: Unit =
     TestKit.shutdownActorSystem(system)
 
-  val connector                  = mock[TaxEnrolmentConnector]
-  val mockRepo                   = mock[TaxEnrolmentRetryRepository]
-  val repository                 = new DefaultTaxEnrolmentRetryRepository(reactiveMongoComponent)
-  val time: VirtualTime          = new VirtualTime()
+  val connector         = mock[TaxEnrolmentConnector]
+  val mockRepo          = mock[TaxEnrolmentRetryRepository]
+  val repository        = new DefaultTaxEnrolmentRetryRepository(reactiveMongoComponent)
+  val time: VirtualTime = new VirtualTime()
+
   implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  val minBackoff: FiniteDuration                            = FiniteDuration(1, TimeUnit.SECONDS)
+  val maxBackoff: FiniteDuration                            = FiniteDuration(5, TimeUnit.SECONDS)
+  val numberOfRetriesBeforeDoublingInitialWait: Int         = 1
+  val maxAllowableElapsedTime: FiniteDuration               = FiniteDuration(30, TimeUnit.SECONDS)
+  val maxWaitTimeForRetryingRecoveredEnrolmentRequests: Int = 2
 
   def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(response: Either[Error, HttpResponse]) =
     (connector
@@ -91,45 +101,97 @@ class TaxEnrolmentRetryManagerSpec
 
     "recover all tax enrolments records from mongo on start up" in {
       await(repository.insert(taxEnrolmentRequest).value).isRight shouldBe true
-      system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
-      await(repository.get(taxEnrolmentRequest.userId).value).shouldBe(Right(Some(taxEnrolmentRequest)))
+      system.actorOf(
+        Props(
+          new TaxEnrolmentRetryManager(
+            minBackoff,
+            maxBackoff,
+            numberOfRetriesBeforeDoublingInitialWait,
+            maxAllowableElapsedTime,
+            maxWaitTimeForRetryingRecoveredEnrolmentRequests,
+            connector,
+            repository,
+            time.scheduler
+          )
+        )
+      )
+      await(repository.get(taxEnrolmentRequest.ggCredId).value).shouldBe(Right(Some(taxEnrolmentRequest)))
     }
 
     "remove the request from db if the tax enrolment request was successful" in {
       mockAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(204)))
 
-      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
+      val manager = system.actorOf(
+        Props(
+          new TaxEnrolmentRetryManager(
+            minBackoff,
+            maxBackoff,
+            numberOfRetriesBeforeDoublingInitialWait,
+            maxAllowableElapsedTime,
+            maxWaitTimeForRetryingRecoveredEnrolmentRequests,
+            connector,
+            repository,
+            time.scheduler
+          )
+        )
+      )
 
-      manager ! AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest)
+      manager ! QueueTaxEnrolmentRequest(taxEnrolmentRequest)
 
       Thread.sleep(1000) // wait for akka system to do its work
 
-      await(repository.get(taxEnrolmentRequest.userId).value).shouldBe(Right(None))
+      await(repository.get(taxEnrolmentRequest.ggCredId).value).shouldBe(Right(None))
     }
 
     "not remove the request from db if the response from the tax enrolment service is a 5xx" in {
       mockAllocateEnrolment(taxEnrolmentRequest)(Right(HttpResponse(500)))
 
-      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
+      val manager = system.actorOf(
+        Props(
+          new TaxEnrolmentRetryManager(
+            minBackoff,
+            maxBackoff,
+            numberOfRetriesBeforeDoublingInitialWait,
+            maxAllowableElapsedTime,
+            maxWaitTimeForRetryingRecoveredEnrolmentRequests,
+            connector,
+            repository,
+            time.scheduler
+          )
+        )
+      )
 
-      manager ! AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest)
+      manager ! QueueTaxEnrolmentRequest(taxEnrolmentRequest)
 
       Thread.sleep(1000) // wait for akka system to do its work
 
-      await(repository.get(taxEnrolmentRequest.userId).value)
+      await(repository.get(taxEnrolmentRequest.ggCredId).value)
         .shouldBe(Right(Some(taxEnrolmentRequest)))
     }
 
     "not remove the request from db if the response from the tax enrolment service is an exception" in {
       mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("Connection Timeout")))
 
-      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
+      val manager = system.actorOf(
+        Props(
+          new TaxEnrolmentRetryManager(
+            minBackoff,
+            maxBackoff,
+            numberOfRetriesBeforeDoublingInitialWait,
+            maxAllowableElapsedTime,
+            maxWaitTimeForRetryingRecoveredEnrolmentRequests,
+            connector,
+            repository,
+            time.scheduler
+          )
+        )
+      )
 
-      manager ! AttemptTaxEnrolmentAllocationToGroup(taxEnrolmentRequest)
+      manager ! QueueTaxEnrolmentRequest(taxEnrolmentRequest)
 
       Thread.sleep(1000) // wait for akka system to do its work
 
-      await(repository.get(taxEnrolmentRequest.userId).value)
+      await(repository.get(taxEnrolmentRequest.ggCredId).value)
         .shouldBe(Right(Some(taxEnrolmentRequest)))
     }
 
@@ -137,12 +199,26 @@ class TaxEnrolmentRetryManagerSpec
 
       await(repository.insert(taxEnrolmentRequest).value).isRight shouldBe true
 
-      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, repository, time.scheduler)))
+      val manager = system.actorOf(
+        Props(
+          new TaxEnrolmentRetryManager(
+            minBackoff,
+            maxBackoff,
+            numberOfRetriesBeforeDoublingInitialWait,
+            maxAllowableElapsedTime,
+            maxWaitTimeForRetryingRecoveredEnrolmentRequests,
+            connector,
+            repository,
+            time.scheduler
+          )
+        )
+      )
+
       manager ! RetryTaxEnrolmentRequest(taxEnrolmentRequest, 0, 0, 100000)
 
       Thread.sleep(1000) // wait for akka system to do its work
 
-      await(repository.get(taxEnrolmentRequest.userId).value)
+      await(repository.get(taxEnrolmentRequest.ggCredId).value)
         .shouldBe(Right(Some(taxEnrolmentRequest.copy(status = TaxEnrolmentFailed))))
     }
 
@@ -152,9 +228,22 @@ class TaxEnrolmentRetryManagerSpec
 
       mockUpdate("userId-1")(Left(Error("Exception")))
 
-      mockGet(taxEnrolmentRequest.userId)(Right(Some(taxEnrolmentRequest)))
+      mockGet(taxEnrolmentRequest.ggCredId)(Right(Some(taxEnrolmentRequest)))
 
-      val manager = system.actorOf(Props(new TaxEnrolmentRetryManager(connector, mockRepo, time.scheduler)))
+      val manager = system.actorOf(
+        Props(
+          new TaxEnrolmentRetryManager(
+            minBackoff,
+            maxBackoff,
+            numberOfRetriesBeforeDoublingInitialWait,
+            maxAllowableElapsedTime,
+            maxWaitTimeForRetryingRecoveredEnrolmentRequests,
+            connector,
+            repository,
+            time.scheduler
+          )
+        )
+      )
 
       await(repository.insert(taxEnrolmentRequest).value).isRight shouldBe true
 
@@ -162,7 +251,7 @@ class TaxEnrolmentRetryManagerSpec
 
       Thread.sleep(1000) // wait for akka system to do its work
 
-      await(mockRepo.get(taxEnrolmentRequest.userId).value)
+      await(mockRepo.get(taxEnrolmentRequest.ggCredId).value)
         .shouldBe(Right(Some(taxEnrolmentRequest)))
     }
 

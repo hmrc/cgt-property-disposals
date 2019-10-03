@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 import cats.data.EitherT
+import com.typesafe.config.{Config, ConfigFactory}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager.AttemptTaxEnrolmentAllocationToGroup
+import play.api.{Configuration, Environment, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Country, Error, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.modules.TaxEnrolmentRetryProvider
@@ -34,7 +34,9 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
   val mockMongoRepository: TaxEnrolmentRetryRepository = mock[TaxEnrolmentRetryRepository]
   val mockTaxEnrolmentManagerProvider                  = mock[TaxEnrolmentRetryProvider]
 
-  val service = new TaxEnrolmentServiceImpl(mockTaxEnrolmentManagerProvider)
+  val config = Configuration()
+
+  val service = new TaxEnrolmentServiceImpl(config, mockTaxEnrolmentManagerProvider)
 
   def mockAllocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, HttpResponse]

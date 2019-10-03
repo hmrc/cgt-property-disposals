@@ -17,14 +17,14 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
 import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.cgtpropertydisposals.TestSupport
+import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest.TaxEnrolmentFailed
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TaxEnrolmentRetryFailureRepositorySpec extends WordSpec with Matchers with MongoSupport with TestSupport {
+class TaxEnrolmentRetryFailureRepositorySpec extends WordSpec with Matchers with MongoSupport {
 
   val repository = new DefaultTaxEnrolmentRetryRepository(reactiveMongoComponent)
   val inProgressEnrolment =
