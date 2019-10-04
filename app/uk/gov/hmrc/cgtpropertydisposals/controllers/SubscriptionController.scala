@@ -65,7 +65,6 @@ class SubscriptionController @Inject()(
               .allocateEnrolmentToGroup(
                 TaxEnrolmentRequest(
                   request.user.ggCredId,
-                  request.id,
                   subscriptionResponse.cgtReferenceNumber,
                   subscriptionDetails.address,
                   timestamp = request.timestamp

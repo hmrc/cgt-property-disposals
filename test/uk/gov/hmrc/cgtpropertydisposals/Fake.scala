@@ -44,6 +44,6 @@ object Fake {
       override protected def executionContext: ExecutionContext = ExecutionContext.global
     }
 
-  val user: AuthenticatedUser = AuthenticatedUser("user-cred-id")
+  val user: AuthenticatedUser = AuthenticatedUser("ggCredId")
 
 }

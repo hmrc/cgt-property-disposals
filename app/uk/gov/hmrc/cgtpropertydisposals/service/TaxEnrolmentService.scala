@@ -16,21 +16,18 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
-import akka.pattern.ask
-import akka.util.Timeout
 import cats.data.EitherT
+import cats.instances.future._
+//import cats.implicits._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
-import play.api.Configuration
-import uk.gov.hmrc.cgtpropertydisposals.actors.TaxEnrolmentRetryManager._
+import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
-import uk.gov.hmrc.cgtpropertydisposals.modules.TaxEnrolmentRetryProvider
+import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
 trait TaxEnrolmentService {
@@ -41,42 +38,52 @@ trait TaxEnrolmentService {
 
 @Singleton
 class TaxEnrolmentServiceImpl @Inject()(
-  config: Configuration,
-  taxEnrolmentRetryProvider: TaxEnrolmentRetryProvider
+  taxEnrolmentConnector: TaxEnrolmentConnector,
+  taxEnrolmentRetryRepository: TaxEnrolmentRepository
 ) extends TaxEnrolmentService
     with Logging {
 
+  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] = {
 
-    val akkaAskTimeout: FiniteDuration =
-      config.underlying.get[FiniteDuration]("tax-enrolment-retry.akka-ask-timeout").value
+    val taxEnrolmentResponse: EitherT[Future, Error, Unit] = for {
+      httpResponse <- taxEnrolmentConnector
+                       .allocateEnrolmentToGroup(taxEnrolmentRequest)
+                       .leftMap(e => Error(s"Error calling tax enrolment service: $e"))
+      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse))
+    } yield result
 
-    implicit val timeout: Timeout = Timeout(akkaAskTimeout)
+    EitherT.liftF(
+      taxEnrolmentResponse.value.map {
+        case Left(error) => {
+          logger.warn(s"Failed to allocate enrolments due to error: $error. Inserting enrolment details in mongo.")
+          val dbResponse = for {
+            writeResult <- taxEnrolmentRetryRepository
+                            .insert(taxEnrolmentRequest)
+                            .leftMap(error => Error(s"Error inserting enrolment details into mongo: $error"))
+          } yield (writeResult)
 
-    EitherT[Future, Error, Unit](
-      taxEnrolmentRetryProvider.taxEnrolmentRetryManager
-        .ask(QueueTaxEnrolmentRequest(taxEnrolmentRequest))
-        .mapTo[QueueTaxEnrolmentResponse]
-        .map[Either[Error, Unit]] {
-          case QueueTaxEnrolmentRequestFailure => {
-            Left(Error(s"Failed to queue tax enrolment request $taxEnrolmentRequest"))
-          }
-          case QueueTaxEnrolmentRequestSuccess => {
-            logger.info(s"Successfully queued tax enrolment request $taxEnrolmentRequest")
-            Right(())
-          }
+          dbResponse.fold[Either[Error, Unit]](
+            error => Left(error),
+            writeResult =>
+              if (writeResult) {
+                Right(())
+              } else {
+                Left(Error("Failed to insert enrolment details into mongo"))
+            }
+          )
         }
-        .recover {
-          case e: Exception => {
-            Left(
-              Error(
-                s"Received an exception when sending message to call tax enrolment service $e"
-              )
-            )
-          }
-        }
+        case Right(enrolmentSuccess) => enrolmentSuccess
+      }
     )
   }
+
+  def handleTaxEnrolmentResponse(httpResponse: HttpResponse): Either[Error, Unit] =
+    httpResponse.status match {
+      case 204   => Right(())
+      case other => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
+    }
+
 }

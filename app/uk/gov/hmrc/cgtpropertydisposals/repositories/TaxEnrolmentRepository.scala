@@ -20,7 +20,6 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.Cursor.FailOnError
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
@@ -31,19 +30,15 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[DefaultTaxEnrolmentRetryRepository])
-trait TaxEnrolmentRetryRepository {
+@ImplementedBy(classOf[DefaultTaxEnrolmentRepository])
+trait TaxEnrolmentRepository {
+  def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
   def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Boolean]
-  def get(userId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
   def delete(userId: String): EitherT[Future, Error, Int]
-  def getAllNonFailedEnrolmentRequests(): EitherT[Future, Error, List[TaxEnrolmentRequest]]
-  def updateStatusToFail(
-    userId: String
-  ): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
 }
 
 @Singleton
-class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent)(
+class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
 ) extends ReactiveRepository[TaxEnrolmentRequest, BSONObjectID](
       collectionName = "tax-enrolment-requests",
@@ -51,7 +46,7 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
       TaxEnrolmentRequest.format,
       ReactiveMongoFormats.objectIdFormats
     )
-    with TaxEnrolmentRetryRepository {
+    with TaxEnrolmentRepository {
 
   override def indexes: Seq[Index] = Seq(
     Index(
@@ -93,36 +88,6 @@ class DefaultTaxEnrolmentRetryRepository @Inject()(mongo: ReactiveMongoComponent
         .map { result: WriteResult =>
           Right(result.n)
         }
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
-    )
-
-  override def getAllNonFailedEnrolmentRequests(): EitherT[Future, Error, List[TaxEnrolmentRequest]] =
-    EitherT[Future, Error, List[TaxEnrolmentRequest]](
-      collection
-        .find(Json.obj("status" -> "TaxEnrolmentInProgress"), None)
-        .cursor[TaxEnrolmentRequest]()
-        .collect(maxDocs = -1, FailOnError[List[TaxEnrolmentRequest]]())
-        .map { maybeEnrolmentRequest =>
-          Right(maybeEnrolmentRequest)
-        }
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
-    )
-
-  override def updateStatusToFail(
-    ggCredId: String
-  ): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
-    EitherT[Future, Error, Option[TaxEnrolmentRequest]](
-      collection
-        .findAndUpdate(
-          Json.obj("ggCredId" -> ggCredId),
-          Json.obj("$set"     -> Json.obj("status" -> "TaxEnrolmentFailed")),
-          true
-        )
-        .map(r => Right(r.result[TaxEnrolmentRequest]))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }
