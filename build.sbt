@@ -19,7 +19,6 @@ lazy val wartremoverSettings =
     wartremoverExcluded in (Compile, compile) ++=
       routes.in(Compile).value ++
         (baseDirectory.value ** "*.sc").get ++
-        (baseDirectory.value ** "TaxEnrolmentRetryManager.scala").get ++
         Seq(sourceManaged.value / "main" / "sbt-buildinfo" / "BuildInfo.scala"),
     wartremoverErrors in (Test, compile) --= Seq(Wart.NonUnitStatements, Wart.Null, Wart.PublicInference, Wart.Any)
   )

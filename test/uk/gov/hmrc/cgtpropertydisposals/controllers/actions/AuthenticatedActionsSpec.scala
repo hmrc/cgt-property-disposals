@@ -16,25 +16,24 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.actions
 
+import java.util.concurrent.TimeUnit
+
 import akka.util.Timeout
-import org.mockito.{MockitoSugar, _}
-import org.scalatest.concurrent.ScalaFutures
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.{FlatSpec, Matchers}
 import play.api.mvc.{BodyParsers, Results}
 import play.api.test.{FakeRequest, Helpers, NoMaterializer}
-import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
 import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, MissingBearerToken, SessionRecordNotFound}
+import uk.gov.hmrc.auth.core.authorise.Predicate
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
+import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class AuthenticatedActionsSpec
-    extends FlatSpec
-    with Matchers
-    with MockitoSugar
-    with ScalaFutures
-    with ArgumentMatchersSugar {
+class AuthenticatedActionsSpec extends FlatSpec with Matchers with MockFactory {
 
-  implicit val timeout: Timeout = Timeout(patienceConfig.timeout)
+  implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
@@ -46,46 +45,45 @@ class AuthenticatedActionsSpec
     executionContext
   )
 
+  def mockAuthorise()(response: Future[Option[Credentials]]) =
+    (authConnector
+      .authorise[Option[Credentials]](_: Predicate, _: Retrieval[Option[Credentials]])(
+        _: HeaderCarrier,
+        _: ExecutionContext
+      ))
+      .expects(*, *, *, *)
+      .returning(response)
+
   it should "authorized request" in {
-    when(authConnector.authorise[Option[Credentials]](*, *)(*, *)) thenReturn Future.successful(
-      Some(Credentials("cred-id", "provide-type"))
-    )
+    mockAuthorise()(Future.successful(Some(Credentials("ggCredId", "provider-type"))))
     val request  = FakeRequest("POST", "/")
     val response = builder.apply(_ => Results.Ok("ok")).apply(request)
     Helpers.status(response) shouldBe 200
   }
 
   it should "forbid when no active session is present" in {
-    when(authConnector.authorise[Option[Credentials]](*, *)(*, *)) thenReturn Future.failed(
-      SessionRecordNotFound()
-    )
+    mockAuthorise()(Future.failed(SessionRecordNotFound()))
     val request  = FakeRequest("POST", "/")
     val response = builder.apply(_ => Results.Ok("ok")).apply(request)
     Helpers.status(response) shouldBe 403
   }
 
   it should "forbid when bearer token is missing" in {
-    when(authConnector.authorise[Option[Credentials]](*, *)(*, *)) thenReturn Future.failed(
-      MissingBearerToken()
-    )
+    mockAuthorise()(Future.failed(MissingBearerToken()))
     val request  = FakeRequest("POST", "/")
     val response = builder.apply(_ => Results.Ok("ok")).apply(request)
     Helpers.status(response) shouldBe 403
   }
 
   it should "forbid when bearer token has expired" in {
-    when(authConnector.authorise[Option[Credentials]](*, *)(*, *)) thenReturn Future.failed(
-      BearerTokenExpired()
-    )
+    mockAuthorise()(Future.failed(BearerTokenExpired()))
     val request  = FakeRequest("POST", "/")
     val response = builder.apply(_ => Results.Ok("ok")).apply(request)
     Helpers.status(response) shouldBe 403
   }
 
   it should "return forbidden if credential is missing" in {
-    when(authConnector.authorise[Option[String]](*, *)(*, *)) thenReturn Future.successful(
-      None
-    )
+    mockAuthorise()(Future.successful(None))
     val request  = FakeRequest("POST", "/")
     val response = builder.apply(_ => Results.Ok("ok")).apply(request)
     Helpers.status(response) shouldBe 403

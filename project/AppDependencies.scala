@@ -19,10 +19,7 @@ object AppDependencies {
     "org.pegdown"                % "pegdown"                    % "1.6.0"          % "test, it",
     "uk.gov.hmrc"                %% "service-integration-test"  % "0.9.0-play-26"  % "test, it",
     "org.scalatestplus.play"     %% "scalatestplus-play"        % "3.1.2"          % "test, it",
-    "uk.gov.hmrc"                %% "reactivemongo-test"        % "4.15.0-play-26" % "test",
-    "org.mockito"                %% "mockito-scala"             % "1.1.4"          % "test",
-    "com.typesafe.akka"          %% "akka-testkit"              % "2.5.21"         % "test",
-    "com.miguno.akka"            %% "akka-mock-scheduler"       % "0.5.1"          % "test"
+    "uk.gov.hmrc"                %% "reactivemongo-test"        % "4.15.0-play-26" % "test"
   )
 
 }
