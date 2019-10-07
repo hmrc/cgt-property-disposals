@@ -68,28 +68,27 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
   "TaxEnrolment Service Implementation" when {
     "it receives a request to allocate an enrolment" must {
       "return an error" when {
+        "the http call comes back with a status other than 204 and the recording of the enrolment request fails" in {
+          mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonAddress)(Left(Error("Connection Error")))
+          mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress)(Right(HttpResponse(401)))
+          await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress).value).isLeft shouldBe true
+        }
+        "the http call comes back with a status other than 204 and the insert into mongo fails" in {
+          mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonAddress)(Right(false))
+          mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress)(Right(HttpResponse(401)))
+          await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress).value).isLeft shouldBe true
+        }
+        "the http call comes back with an exception and the insert into mongo fails" in {
+          mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress)(Left(Error("Connection error")))
+          await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress).value).isLeft shouldBe true
+        }
+      }
+      "return a tax enrolment created success response" when {
         "the http call comes back with a status other than 204" in {
           mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonAddress)(Right(true))
           mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress)(Right(HttpResponse(401)))
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress).value).isRight shouldBe true
         }
-        "the http call comes back with a status other than 204 and the recording of the enrolment request fails" in {
-          mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonAddress)(Left(Error("Connection Error")))
-          mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress)(Right(HttpResponse(401)))
-          await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress).value).isRight shouldBe true
-        }
-        "the http call comes back with a status other than no content and the insert into mongo fails" in {
-          mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonAddress)(Right(false))
-          mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress)(Right(HttpResponse(401)))
-          await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress).value).isRight shouldBe true
-        }
-        "the http call comes back with an exception and the insert into mongo fails" in {
-          mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonAddress)(Right(false))
-          mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress)(Left(Error("Connection error")))
-          await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress).value).isRight shouldBe true
-        }
-      }
-      "return a tax enrolment created success response" when {
         "the http call comes back with a status other than no content and the insert into mongo succeeds" in {
           mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonAddress)(Right(true))
           mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonAddress)(Right(HttpResponse(401)))

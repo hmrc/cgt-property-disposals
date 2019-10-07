@@ -43,42 +43,31 @@ class TaxEnrolmentServiceImpl @Inject()(
 ) extends TaxEnrolmentService
     with Logging {
 
-  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+//  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, Unit] = {
-
-    val taxEnrolmentResponse: EitherT[Future, Error, Unit] = for {
+  ): EitherT[Future, Error, Unit] =
+    for {
       httpResponse <- taxEnrolmentConnector
                        .allocateEnrolmentToGroup(taxEnrolmentRequest)
                        .leftMap(e => Error(s"Error calling tax enrolment service: $e"))
-      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse))
+      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] {
+                 (error: Error) =>
+                   logger
+                     .warn(s"Failed to allocate enrolments due to error: $error. Inserting enrolment details in mongo.")
+                   val dbResponse = for {
+                     writeResult <- taxEnrolmentRetryRepository
+                                     .insert(taxEnrolmentRequest)
+                                     .leftMap(error => Error(s"Error inserting enrolment details into mongo: $error"))
+                   } yield (writeResult)
+
+                   dbResponse
+                     .subflatMap { writeResult =>
+                       if (writeResult) Right(()) else Left(Error("Failed to insert enrolment details into mongo"))
+                     }
+                     .leftMap(error => error)
+               }
     } yield result
-
-    EitherT.liftF(
-      taxEnrolmentResponse.value.map {
-        case Left(error) => {
-          logger.warn(s"Failed to allocate enrolments due to error: $error. Inserting enrolment details in mongo.")
-          val dbResponse = for {
-            writeResult <- taxEnrolmentRetryRepository
-                            .insert(taxEnrolmentRequest)
-                            .leftMap(error => Error(s"Error inserting enrolment details into mongo: $error"))
-          } yield (writeResult)
-
-          dbResponse.fold[Either[Error, Unit]](
-            error => Left(error),
-            writeResult =>
-              if (writeResult) {
-                Right(())
-              } else {
-                Left(Error("Failed to insert enrolment details into mongo"))
-            }
-          )
-        }
-        case Right(enrolmentSuccess) => enrolmentSuccess
-      }
-    )
-  }
 
   def handleTaxEnrolmentResponse(httpResponse: HttpResponse): Either[Error, Unit] =
     httpResponse.status match {
