@@ -48,9 +48,6 @@ class AuthenticateActionBuilder @Inject()(
     with AuthorisedFunctions
     with BackendHeaderCarrierProvider {
 
-  private def extractHeaders(rh: RequestHeader): HeaderCarrier =
-    HeaderCarrierConverter.fromHeadersAndSessionAndRequest(rh.headers, Some(rh.session), Some(rh))
-
   override def invokeBlock[A](request: Request[A], block: AuthenticatedRequest[A] => Future[Result]): Future[Result] = {
     val forbidden = Results.Forbidden("Forbidden")
     val carrier   = hc(request)
