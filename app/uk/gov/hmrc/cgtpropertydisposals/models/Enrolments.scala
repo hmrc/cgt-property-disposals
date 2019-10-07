@@ -18,10 +18,10 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class EnrolmentRequest(verifiers: List[KeyValuePair], identifiers: List[KeyValuePair])
+final case class Enrolments(verifiers: List[KeyValuePair], identifiers: List[KeyValuePair])
 final case class KeyValuePair(key: String, value: String)
 
-object EnrolmentRequest {
-  implicit val keyValuePairFormat: OFormat[KeyValuePair]         = Json.format[KeyValuePair]
-  implicit val enrolmentRequestFormat: OFormat[EnrolmentRequest] = Json.format[EnrolmentRequest]
+object Enrolments {
+  implicit val keyValuePairFormat: OFormat[KeyValuePair]   = Json.format[KeyValuePair]
+  implicit val enrolmentRequestFormat: OFormat[Enrolments] = Json.format[Enrolments]
 }

@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers
 import com.google.inject.Inject
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.BusinessPartnerRecordRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -28,13 +29,14 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 class BusinessPartnerRecordController @Inject()(
-                                                 bprService: BusinessPartnerRecordService,
-                                                 cc: ControllerComponents
-                                               )(implicit ec: ExecutionContext)
-  extends BackendController(cc)
+  authenticate: AuthenticateActions,
+  bprService: BusinessPartnerRecordService,
+  cc: ControllerComponents
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
     with Logging {
 
-  def getBusinessPartnerRecord(): Action[JsValue] = Action(parse.json).async { implicit request =>
+  def getBusinessPartnerRecord(): Action[JsValue] = authenticate(parse.json).async { implicit request =>
     request.body
       .validate[BusinessPartnerRecordRequest]
       .fold(
@@ -56,5 +58,4 @@ class BusinessPartnerRecordController @Inject()(
         }
       )
   }
-
 }

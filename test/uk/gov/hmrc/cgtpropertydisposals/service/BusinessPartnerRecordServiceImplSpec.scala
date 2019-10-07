@@ -38,8 +38,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val nonIsoCountryCode = "XZ"
 
-  val config = Configuration(ConfigFactory.parseString(
-    s"""
+  val config = Configuration(ConfigFactory.parseString(s"""
       |des.non-iso-country-codes = ["$nonIsoCountryCode"]
       |""".stripMargin))
 
@@ -57,8 +56,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val (name, trustName) = sample[Name] -> sample[TrustName]
 
-
-
   "The BusinessPartnerRecordServiceImpl" when {
 
     "getting a business partner record" must {
@@ -69,7 +66,9 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
       def responseJson(addressBody: String, organisationName: Option[TrustName], individualName: Option[Name]) =
         Json.parse(s"""
            |{
-           |  ${individualName.map(n => s""""individual":{"firstName":"${n.firstName}","lastName":"${n.lastName}"},""").getOrElse("")}
+           |  ${individualName
+                        .map(n => s""""individual":{"firstName":"${n.firstName}","lastName":"${n.lastName}"},""")
+                        .getOrElse("")}
            |  "contactDetails" : {
            |    "emailAddress" : "email"
            |  },
@@ -172,7 +171,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           testError(Right(HttpResponse(200, Some(body))))
         }
 
-
       }
 
       "return a BPR response" when {
@@ -218,7 +216,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
 
-          val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
+          val expectedAddress =
+            NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Left(trustName))))
           )
@@ -242,7 +241,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
 
-          val expectedAddress = NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country(nonIsoCountryCode, None))
+          val expectedAddress =
+            NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country(nonIsoCountryCode, None))
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Left(trustName))))
           )
@@ -264,7 +264,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             BusinessPartnerRecordResponse(None)
           )
         }
-
 
       }
 

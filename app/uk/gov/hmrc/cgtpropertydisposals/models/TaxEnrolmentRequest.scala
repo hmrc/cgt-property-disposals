@@ -16,10 +16,17 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Json, OFormat}
+import java.time.LocalDateTime
 
-final case class Name(firstName: String, lastName: String)
+import play.api.libs.json._
 
-object Name {
-  implicit val format: OFormat[Name] = Json.format[Name]
+final case class TaxEnrolmentRequest(
+  ggCredId: String,
+  cgtReference: String,
+  address: Address,
+  timestamp: LocalDateTime = LocalDateTime.now()
+)
+
+object TaxEnrolmentRequest {
+  implicit val format: OFormat[TaxEnrolmentRequest] = Json.format[TaxEnrolmentRequest]
 }

@@ -61,10 +61,10 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
-
     "handling request to subscribe for individuals" must {
 
       val subscriptionDetails = SubscriptionDetails(
+        "id",
         Right(Name("name", "surname")),
         "email",
         UkAddress("line1", None, None, None, "postcode"),
@@ -115,6 +115,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     "handling request to subscribe for trusts" must {
 
       val subscriptionDetails = SubscriptionDetails(
+        "id",
         Left(TrustName("name")),
         "email",
         UkAddress("line1", None, None, None, "postcode"),

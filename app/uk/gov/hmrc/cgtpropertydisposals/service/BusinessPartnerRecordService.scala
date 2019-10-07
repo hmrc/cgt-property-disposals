@@ -27,8 +27,8 @@ import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
-import play.api.libs.json.{Json, Reads}
 import play.api.http.Status.{NOT_FOUND, OK}
+import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.Country.CountryCode
@@ -72,7 +72,7 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
           .parseJSON[DesBusinessPartnerRecord]()
           .flatMap(toBusinessPartnerRecord(_).map(bpr => BusinessPartnerRecordResponse(Some(bpr))))
           .leftMap(Error(_, identifiers: _*))
-      } else if(isNotFoundResponse(response)){
+      } else if (isNotFoundResponse(response)) {
         Right(BusinessPartnerRecordResponse(None))
       } else {
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
@@ -82,7 +82,7 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
   val correlationIdHeaderKey = "CorrelationId"
 
   def isNotFoundResponse(response: HttpResponse): Boolean =
-  // check that a 404 response has actually come from DES by inspecting the body
+    // check that a 404 response has actually come from DES by inspecting the body
     response.status === NOT_FOUND && response.parseJSON[DesErrorResponse]().map(_.code).exists(_ === "NOT_FOUND")
 
   def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {

@@ -22,9 +22,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Country.{CountryCode, CountryName
 import scala.io.Source
 
 final case class Country(
-                          code: CountryCode,
-                          name: Option[CountryName]
-                        )
+  code: CountryCode,
+  name: Option[CountryName]
+)
 
 object Country {
 
@@ -41,7 +41,10 @@ object Country {
     try {
       val jsonString = source.getLines().toList.mkString("")
       val countries =
-        Json.parse(jsonString).validate[List[InternalCountry]].fold(e => sys.error(s"could not parse countries.json file: $e"), identity)
+        Json
+          .parse(jsonString)
+          .validate[List[InternalCountry]]
+          .fold(e => sys.error(s"could not parse countries.json file: $e"), identity)
 
       countries.map(c => c.code -> c.name).toMap
     } finally {

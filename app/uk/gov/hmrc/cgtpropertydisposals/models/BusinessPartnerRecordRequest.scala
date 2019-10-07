@@ -25,9 +25,9 @@ sealed trait BusinessPartnerRecordRequest extends Product with Serializable
 object BusinessPartnerRecordRequest {
 
   final case class IndividualBusinessPartnerRecordRequest(
-                                                           id: Either[SAUTR, NINO],
-                                                           nameMatch: Option[Name]
-                                                         ) extends BusinessPartnerRecordRequest
+    id: Either[SAUTR, NINO],
+    nameMatch: Option[Name]
+  ) extends BusinessPartnerRecordRequest
 
   final case class TrustBusinessPartnerRecordRequest(id: SAUTR) extends BusinessPartnerRecordRequest
 
@@ -36,14 +36,14 @@ object BusinessPartnerRecordRequest {
 
   implicit class BusinessPartnerRecordRequestOps(val r: BusinessPartnerRecordRequest) extends AnyVal {
 
-    def fold[A](ifTrust: TrustBusinessPartnerRecordRequest => A,
-                ifIndividual: IndividualBusinessPartnerRecordRequest => A
-                ): A = r match {
-      case t: TrustBusinessPartnerRecordRequest => ifTrust(t)
+    def fold[A](
+      ifTrust: TrustBusinessPartnerRecordRequest => A,
+      ifIndividual: IndividualBusinessPartnerRecordRequest => A): A = r match {
+      case t: TrustBusinessPartnerRecordRequest      => ifTrust(t)
       case i: IndividualBusinessPartnerRecordRequest => ifIndividual(i)
     }
 
-    def id: Either[SAUTR,NINO] = fold(t => Left(t.id), _.id)
+    def id: Either[SAUTR, NINO] = fold(t => Left(t.id), _.id)
 
   }
 

@@ -18,60 +18,55 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
 import cats.instances.future._
+//import cats.implicits._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.http.Status._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, EnrolmentRequest, Error, KeyValuePair, SubscriptionDetails}
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService.TaxEnrolmentResponse.TaxEnrolmentCreated
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRepository
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
 trait TaxEnrolmentService {
-  def allocateEnrolmentToGroup(cgtReference: String, subscriptionDetails: SubscriptionDetails)(
+  def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, TaxEnrolmentResponse]
-}
-
-object TaxEnrolmentService {
-
-  sealed trait TaxEnrolmentResponse
-
-  object TaxEnrolmentResponse {
-    case object TaxEnrolmentCreated extends TaxEnrolmentResponse
-  }
-
+  ): EitherT[Future, Error, Unit]
 }
 
 @Singleton
-class TaxEnrolmentServiceImpl @Inject()(connector: TaxEnrolmentConnector) extends TaxEnrolmentService {
+class TaxEnrolmentServiceImpl @Inject()(
+  taxEnrolmentConnector: TaxEnrolmentConnector,
+  taxEnrolmentRetryRepository: TaxEnrolmentRepository
+) extends TaxEnrolmentService
+    with Logging {
 
-  override def allocateEnrolmentToGroup(cgtReference: String, subscriptionDetails: SubscriptionDetails)(
+  override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, TaxEnrolmentResponse] = {
+  ): EitherT[Future, Error, Unit] =
+    for {
+      httpResponse <- taxEnrolmentConnector
+                       .allocateEnrolmentToGroup(taxEnrolmentRequest)
+                       .leftMap(e => Error(s"Error calling tax enrolment service: $e"))
+      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] {
+                 (error: Error) =>
+                   logger
+                     .warn(s"Failed to allocate enrolments due to error: $error. Inserting enrolment details in mongo.")
+                   taxEnrolmentRetryRepository
+                     .insert(taxEnrolmentRequest)
+                     .leftMap(error => Error(s"Error inserting enrolment details into mongo: $error"))
+                     .subflatMap { writeResult =>
+                       if (writeResult) Right(()) else Left(Error("Failed to insert enrolment details into mongo"))
+                     }
+               }
+    } yield result
 
-    val enrolmentRequest = subscriptionDetails.address match {
-      case Address.UkAddress(line1, line2, line3, line4, postcode) =>
-        EnrolmentRequest(List(KeyValuePair("Postcode", postcode)), List(KeyValuePair("CGTPDRef", cgtReference)))
-      case Address.NonUkAddress(line1, line2, line3, line4, maybePostcode, countryCode) =>
-        EnrolmentRequest(List(KeyValuePair("CountryCode", countryCode.code)), List(KeyValuePair("CGTPDRef", cgtReference)))
+  def handleTaxEnrolmentResponse(httpResponse: HttpResponse): Either[Error, Unit] =
+    httpResponse.status match {
+      case 204   => Right(())
+      case other => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
 
-    connector
-      .allocateEnrolmentToGroup(cgtReference, enrolmentRequest)
-      .subflatMap { response =>
-        response.status match {
-          case NO_CONTENT =>
-            Right(TaxEnrolmentCreated)
-          case UNAUTHORIZED =>
-            Left(Error("Unauthorized"))
-          case BAD_REQUEST =>
-            Left(Error("Bad request"))
-          case other => Left(Error(s"Received unexpected http status in response from tax-enrolment service"))
-        }
-      }
-  }
 }

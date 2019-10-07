@@ -20,13 +20,12 @@ import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
 final case class SubscriptionDetails(
-                                      contactName: Either[TrustName,Name],
-                                      emailAddress: String,
-                                      address: Address,
-                                      sapNumber: String
-                                    )
+  userId: String,
+  contactName: Either[TrustName, Name],
+  emailAddress: String,
+  address: Address,
+  sapNumber: String
+)
 object SubscriptionDetails {
-
-  implicit val format: Format[SubscriptionDetails] = Json.format
-
+  implicit val format: Format[SubscriptionDetails] = Json.format[SubscriptionDetails]
 }

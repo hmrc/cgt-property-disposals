@@ -16,15 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals
 
-import org.scalacheck.ScalacheckShapeless._
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.Arbitrary
 
 import scala.reflect._
 
 package object models {
 
-
   def sample[A: ClassTag](implicit arb: Arbitrary[A]): A =
-    arb.arbitrary.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
+    arb.arbitrary.sample
+      .getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
 
 }

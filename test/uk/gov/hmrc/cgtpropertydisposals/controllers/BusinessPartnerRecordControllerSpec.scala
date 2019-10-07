@@ -16,18 +16,24 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
+import java.time.LocalDateTime
+
 import akka.stream.Materializer
 import cats.data.EitherT
 import org.scalacheck.ScalacheckShapeless._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, JsValue, Json}
-import play.api.test.FakeRequest
+import play.api.mvc.Headers
 import play.api.test.Helpers._
+import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.cgtpropertydisposals.Fake
+import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse, Error, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordService
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class BusinessPartnerRecordControllerSpec extends ControllerSpec {
@@ -35,6 +41,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
   val bprService = mock[BusinessPartnerRecordService]
 
   override val overrideBindings: List[GuiceableModule] = List(bind[BusinessPartnerRecordService].toInstance(bprService))
+  val headerCarrier                                    = HeaderCarrier()
 
   def mockBprService(expectedBprRequest: BusinessPartnerRecordRequest)(
     result: Either[Error, BusinessPartnerRecordResponse]
@@ -44,11 +51,23 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
       .expects(expectedBprRequest, *)
       .returning(EitherT(Future.successful(result)))
 
-  lazy val controller = instanceOf[BusinessPartnerRecordController]
-
   implicit lazy val mat: Materializer = fakeApplication.materializer
 
-  def fakeRequestWithJsonBody(body: JsValue) = FakeRequest().withHeaders(CONTENT_TYPE -> JSON).withBody(body)
+  val request =
+    new AuthenticatedRequest(
+      Fake.user,
+      LocalDateTime.now(),
+      headerCarrier,
+      FakeRequest()
+    )
+
+  def fakeRequestWithJsonBody(body: JsValue) = request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
+
+  val controller = new BusinessPartnerRecordController(
+    authenticate = Fake.login(Fake.user, LocalDateTime.of(2019, 9, 24, 15, 47, 20)),
+    bprService   = bprService,
+    cc           = Helpers.stubControllerComponents()
+  )
 
   "BusinessPartnerRecordController" when {
 
@@ -59,17 +78,17 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
     "handling requests to get BPR's" must {
 
       "return a BPR response if one is returned" in {
+
         List(
           BusinessPartnerRecordResponse(Some(bpr)),
           BusinessPartnerRecordResponse(None)
-        ).foreach{ bprResponse =>
+        ).foreach { bprResponse =>
           mockBprService(bprRequest)(Right(bprResponse))
 
           val result = controller.getBusinessPartnerRecord()(fakeRequestWithJsonBody(Json.toJson(bprRequest)))
           status(result)        shouldBe OK
           contentAsJson(result) shouldBe Json.toJson(bprResponse)
         }
-
       }
 
       "return an error" when {
@@ -82,6 +101,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
             mockBprService(bprRequest)(Left(e))
 
             val result = controller.getBusinessPartnerRecord()(fakeRequestWithJsonBody(Json.toJson(bprRequest)))
+
             status(result) shouldBe INTERNAL_SERVER_ERROR
           }
 
@@ -91,14 +111,8 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
           val result = controller.getBusinessPartnerRecord()(fakeRequestWithJsonBody(JsString("hello")))
           status(result) shouldBe BAD_REQUEST
         }
-
-
       }
 
-
-
     }
-
   }
-
 }

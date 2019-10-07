@@ -37,5 +37,4 @@ object NINO {
 
   implicit val format: OFormat[NINO] = Json.format[NINO]
 
-
 }

@@ -36,21 +36,21 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
   val config = Configuration(
     ConfigFactory.parseString(
       s"""
-      |microservice {
-      |  services {
-      |      business-partner-record {
-      |      protocol = http
-      |      host     = host
-      |      port     = 123
-      |    }
-      |  }
-      |}
-      |
-      |des {
-      |  bearer-token = $desBearerToken
-      |  environment  = $desEnvironment
-      |}
-      |""".stripMargin
+         |microservice {
+         |  services {
+         |      business-partner-record {
+         |      protocol = http
+         |      host     = host
+         |      port     = 123
+         |    }
+         |  }
+         |}
+         |
+         |des {
+         |  bearer-token = $desBearerToken
+         |  environment  = $desEnvironment
+         |}
+         |""".stripMargin
     )
   )
 
@@ -70,14 +70,15 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         IndividualBusinessPartnerRecordRequest(id, if (requiresNameMatch) Some(name) else None)
 
       def expectedIndividualBody(requiresNameMatch: Boolean) = {
-        val individualJsonString = if(requiresNameMatch)
-          """,
+        val individualJsonString =
+          if (requiresNameMatch)
+            """,
             |  "individual" : {
             |     "firstName" : "forename",
             |     "lastName" : "surname"
             |    }
             |""".stripMargin
-        else ""
+          else ""
 
         Json.parse(s"""
                       | {
@@ -165,12 +166,12 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         val bprRequest = TrustBusinessPartnerRecordRequest(sautr)
 
         val expectedBody = Json.parse(s"""
-                                            | {
-                                            |   "regime" : "HMRC-CGT-PD",
-                                            |   "requiresNameMatch" : false,
-                                            |   "isAnIndividual" : false
-                                            | }
-                                            |""".stripMargin)
+                                         | {
+                                         |   "regime" : "HMRC-CGT-PD",
+                                         |   "requiresNameMatch" : false,
+                                         |   "isAnIndividual" : false
+                                         | }
+                                         |""".stripMargin)
 
         "do a post http call and return the result" in {
           List(

@@ -51,11 +51,10 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
 
   val baseUrl: String = config.baseUrl("business-partner-record")
 
-  def url(id: Either[SAUTR,NINO]): String = {
+  def url(id: Either[SAUTR, NINO]): String = {
     val suffix = id.fold(s => s"/sautr/${s.value}", n => s"/nino/${n.value}")
     s"$baseUrl/registration/individual$suffix"
   }
-
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
@@ -64,7 +63,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
       regime            = "HMRC-CGT-PD",
       requiresNameMatch = bprRequest.fold(_ => false, _.nameMatch.isDefined),
       isAnIndividual    = bprRequest.fold(_ => false, _ => true),
-      individual        = bprRequest.fold(
+      individual = bprRequest.fold(
         _ => None,
         _.nameMatch.map(name => RegisterIndividual(name.firstName, name.lastName))
       )
@@ -83,16 +82,16 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
         }
     )
   }
-
 }
 
 object BusinessPartnerRecordConnectorImpl {
 
-  private final case class RegisterDetails(regime: String,
-                                           requiresNameMatch: Boolean,
-                                           isAnIndividual: Boolean,
-                                           individual: Option[RegisterIndividual]
-                                          )
+  private final case class RegisterDetails(
+    regime: String,
+    requiresNameMatch: Boolean,
+    isAnIndividual: Boolean,
+    individual: Option[RegisterIndividual]
+  )
 
   private final case class RegisterIndividual(firstName: String, lastName: String)
 
