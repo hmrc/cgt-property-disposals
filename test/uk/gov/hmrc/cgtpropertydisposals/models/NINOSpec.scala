@@ -17,13 +17,14 @@
 package uk.gov.hmrc.cgtpropertydisposals.models
 
 import org.scalatest.{Matchers, WordSpec}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.NINO
 
 class NINOSpec extends WordSpec with Matchers {
 
   "NINO" must {
 
     "have a PathBindable instance" in {
-      import uk.gov.hmrc.cgtpropertydisposals.models.NINO.binder
+      import uk.gov.hmrc.cgtpropertydisposals.models.ids.NINO.binder
 
       binder.bind("key", "value")         shouldBe Right(NINO("value"))
       binder.unbind("key", NINO("value")) shouldBe "value"

@@ -25,8 +25,11 @@ import play.api.Configuration
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse, Country, Error, Name, TrustName, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, address, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,16 +57,19 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val bprRequest = sample[BusinessPartnerRecordRequest]
 
-  val (name, trustName) = sample[Name] -> sample[TrustName]
+  val (name, trustName) = sample[IndividualName] -> sample[TrustName]
 
   "The BusinessPartnerRecordServiceImpl" when {
 
     "getting a business partner record" must {
 
-      def expectedBpr(address: Address, name: Either[TrustName, Name]) =
+      def expectedBpr(address: Address, name: Either[TrustName, IndividualName]) =
         BusinessPartnerRecord(Some("email"), address, "1234567890", name)
 
-      def responseJson(addressBody: String, organisationName: Option[TrustName], individualName: Option[Name]) =
+      def responseJson(
+        addressBody: String,
+        organisationName: Option[TrustName],
+        individualName: Option[IndividualName]) =
         Json.parse(s"""
            |{
            |  ${individualName

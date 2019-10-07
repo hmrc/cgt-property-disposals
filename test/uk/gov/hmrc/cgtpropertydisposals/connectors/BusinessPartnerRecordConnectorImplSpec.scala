@@ -22,8 +22,9 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.BusinessPartnerRecordRequest.{IndividualBusinessPartnerRecordRequest, TrustBusinessPartnerRecordRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.{NINO, Name, SAUTR}
+import uk.gov.hmrc.cgtpropertydisposals.models.bpr.BusinessPartnerRecordRequest.{IndividualBusinessPartnerRecordRequest, TrustBusinessPartnerRecordRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -64,7 +65,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
       implicit val hc: HeaderCarrier = HeaderCarrier()
       val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
-      val name = Name("forename", "surname")
+      val name = IndividualName("forename", "surname")
 
       def individualBprRequest(id: Either[SAUTR, NINO], requiresNameMatch: Boolean) =
         IndividualBusinessPartnerRecordRequest(id, if (requiresNameMatch) Some(name) else None)

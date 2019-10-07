@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.bpr
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
 
 sealed trait BusinessPartnerRecordRequest extends Product with Serializable
 
@@ -26,7 +28,7 @@ object BusinessPartnerRecordRequest {
 
   final case class IndividualBusinessPartnerRecordRequest(
     id: Either[SAUTR, NINO],
-    nameMatch: Option[Name]
+    nameMatch: Option[IndividualName]
   ) extends BusinessPartnerRecordRequest
 
   final case class TrustBusinessPartnerRecordRequest(id: SAUTR) extends BusinessPartnerRecordRequest

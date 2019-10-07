@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.name
 
 import play.api.libs.json.{Format, Json}
 
-final case class SAUTR(value: String) extends AnyVal
+final case class TrustName(value: String) extends AnyVal
 
-object SAUTR {
+object TrustName {
 
-  implicit val format: Format[SAUTR] = Json.format[SAUTR]
+  implicit val format: Format[TrustName] = Json.format[TrustName]
 
 }

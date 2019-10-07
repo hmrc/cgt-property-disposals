@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.name
 
-import play.api.libs.json.{Format, Json, Reads}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format
 
-final case class TrustName(value: String) extends AnyVal
+final case class ContactName(value: String) extends AnyVal
 
-object TrustName {
+object ContactName {
 
-  implicit val format: Format[TrustName] = Json.format[TrustName]
+  implicit val format: Format[ContactName] =
+    implicitly[Format[String]].inmap(ContactName(_), _.value)
 
 }

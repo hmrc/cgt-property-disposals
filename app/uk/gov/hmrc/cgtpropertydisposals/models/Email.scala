@@ -16,18 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format
 
-final case class SubscriptionDetails(
-  name: Either[TrustName, IndividualName],
-  contactName: ContactName,
-  emailAddress: Email,
-  address: Address,
-  sapNumber: String
-)
-object SubscriptionDetails {
-  implicit val format: Format[SubscriptionDetails] = Json.format[SubscriptionDetails]
+final case class Email(value: String) extends AnyVal
+
+object Email {
+
+  implicit val format: Format[Email] =
+    implicitly[Format[String]].inmap(Email(_), _.value)
+
 }

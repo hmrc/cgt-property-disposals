@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Enrolments, Error, KeyValuePair, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.{Enrolments, Error, KeyValuePair, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig

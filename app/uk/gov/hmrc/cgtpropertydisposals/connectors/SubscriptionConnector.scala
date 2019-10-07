@@ -37,7 +37,8 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsString, JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnectorImpl.{SubscriptionRequest, TypeOfPerson}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
-import uk.gov.hmrc.cgtpropertydisposals.models.{Address, Error, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -66,9 +67,10 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
     subscriptionDetails: SubscriptionDetails
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
     val subscriptionRequest = SubscriptionRequest(
-      subscriptionDetails.contactName.fold[TypeOfPerson](_ => TypeOfPerson.Trustee, _ => TypeOfPerson.Individual),
-      subscriptionDetails.contactName.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
-      subscriptionDetails.emailAddress,
+      subscriptionDetails.name.fold[TypeOfPerson](_ => TypeOfPerson.Trustee, _ => TypeOfPerson.Individual),
+      subscriptionDetails.name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
+      subscriptionDetails.contactName.value,
+      subscriptionDetails.emailAddress.value,
       subscriptionDetails.address,
       subscriptionDetails.sapNumber
     )
@@ -104,6 +106,7 @@ object SubscriptionConnectorImpl {
   }
   final case class SubscriptionRequest(
     typeOfPerson: TypeOfPerson,
+    name: String,
     contactName: String,
     emailAddress: String,
     address: Address,

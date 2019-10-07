@@ -21,6 +21,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models._
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 

@@ -19,10 +19,10 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories
 import java.time.LocalDateTime
 
 import org.scalacheck.ScalacheckShapeless._
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.{TaxEnrolmentRequest, sample}
 
 import scala.concurrent.ExecutionContext.Implicits.global
