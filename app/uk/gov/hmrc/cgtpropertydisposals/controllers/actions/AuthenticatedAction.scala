@@ -26,7 +26,7 @@ import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, _}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.HeaderCarrierConverter
-
+import uk.gov.hmrc.play.bootstrap.controller.BackendHeaderCarrierProvider
 import scala.concurrent.{ExecutionContext, Future}
 
 final case class AuthenticatedUser(ggCredId: String)
@@ -45,14 +45,15 @@ class AuthenticateActionBuilder @Inject()(
   val parser: BodyParsers.Default,
   val executionContext: ExecutionContext
 ) extends AuthenticateActions
-    with AuthorisedFunctions {
+    with AuthorisedFunctions
+    with BackendHeaderCarrierProvider {
 
   private def extractHeaders(rh: RequestHeader): HeaderCarrier =
     HeaderCarrierConverter.fromHeadersAndSessionAndRequest(rh.headers, Some(rh.session), Some(rh))
 
   override def invokeBlock[A](request: Request[A], block: AuthenticatedRequest[A] => Future[Result]): Future[Result] = {
     val forbidden = Results.Forbidden("Forbidden")
-    val carrier   = extractHeaders(request)
+    val carrier   = hc(request)
     authorised(AuthProviders(GovernmentGateway))
       .retrieve(v2.Retrievals.credentials) {
         case Some(credentials) =>
