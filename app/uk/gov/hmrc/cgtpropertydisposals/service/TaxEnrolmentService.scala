@@ -43,7 +43,6 @@ class TaxEnrolmentServiceImpl @Inject()(
 ) extends TaxEnrolmentService
     with Logging {
 
-//  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
@@ -55,17 +54,12 @@ class TaxEnrolmentServiceImpl @Inject()(
                  (error: Error) =>
                    logger
                      .warn(s"Failed to allocate enrolments due to error: $error. Inserting enrolment details in mongo.")
-                   val dbResponse = for {
-                     writeResult <- taxEnrolmentRetryRepository
-                                     .insert(taxEnrolmentRequest)
-                                     .leftMap(error => Error(s"Error inserting enrolment details into mongo: $error"))
-                   } yield (writeResult)
-
-                   dbResponse
+                   taxEnrolmentRetryRepository
+                     .insert(taxEnrolmentRequest)
+                     .leftMap(error => Error(s"Error inserting enrolment details into mongo: $error"))
                      .subflatMap { writeResult =>
                        if (writeResult) Right(()) else Left(Error("Failed to insert enrolment details into mongo"))
                      }
-                     .leftMap(error => error)
                }
     } yield result
 
