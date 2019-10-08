@@ -83,9 +83,9 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(taxEnrolmentRequest, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
+  def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Boolean]) =
     (mockTaxEnrolmentService
-      .hasCgtEnrolment(_: String)(_: HeaderCarrier))
+      .hasCgtSubscription(_: String)(_: HeaderCarrier))
       .expects(ggCredId, *)
       .returning(EitherT(Future.successful(response)))
 
@@ -115,8 +115,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             headerCarrier,
             FakeRequest().withJsonBody(JsString("hi"))
           )
-        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
-        val result = controller.checkIfCgtEnrolmentExists()(request)
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(true))
+        val result = controller.checkIfUserHasASubscription()(request)
         status(result) shouldBe OK
       }
 
@@ -128,8 +128,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             headerCarrier,
             FakeRequest().withJsonBody(JsString("hi"))
           )
-        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(None))
-        val result = controller.checkIfCgtEnrolmentExists()(request)
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(false))
+        val result = controller.checkIfUserHasASubscription()(request)
         status(result) shouldBe NO_CONTENT
       }
 
@@ -142,7 +142,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Left(Error("Some back end error")))
-        val result = controller.checkIfCgtEnrolmentExists()(request)
+        val result = controller.checkIfUserHasASubscription()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 

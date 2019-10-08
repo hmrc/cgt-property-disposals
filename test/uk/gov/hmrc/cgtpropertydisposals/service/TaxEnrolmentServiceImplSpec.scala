@@ -86,28 +86,31 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
     "it receives a request to check if a user has a CGT enrolment" must {
       "return an error" when {
-        "there is mongo exception occurs" in {
+        "there is a mongo exception" in {
           mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Connection error")))
-          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
         }
-        "there does not exist an enrolment in mongo" in {
+      }
+
+      "return a user's subscription status" when {
+        "there does not exist a stored enrolment request" in {
           mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
-          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(false)
         }
-        "there exists a tax enrolment request to retry but the tax enrolment retry fails again" in {
+        "there does exist a stored enrolment request but the enrolment call fails again" in {
           inSequence {
             mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection error")))
           }
-          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(true)
         }
-        "there exists a tax enrolment request to retry and the tax enrolment succeeds but the delete fails" in {
+        "there does exist a stored enrolment request and the enrolment call succeeds but the deleting of the record fails" in {
           inSequence {
             mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
             mockDelete(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Database error")))
           }
-          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(true)
         }
       }
       "return true" when {
@@ -117,7 +120,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
             mockDelete(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(1))
           }
-          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isRight shouldBe true
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isRight shouldBe true
         }
       }
     }

@@ -34,7 +34,7 @@ trait TaxEnrolmentService {
   def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
-  def hasCgtEnrolment(ggCredId: String)(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
+  def hasCgtSubscription(ggCredId: String)(implicit hc: HeaderCarrier): EitherT[Future, Error, Boolean]
 }
 
 @Singleton
@@ -63,13 +63,13 @@ class TaxEnrolmentServiceImpl @Inject()(
       result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
                  logger
                    .warn(
-                     s"Failed to allocate enrolments due to error: $error; will inserting enrolment details in mongo."
+                     s"Failed to allocate enrolments due to error: $error; will store enrolment details"
                    )
                  taxEnrolmentRepository
                    .insert(taxEnrolmentRequest)
-                   .leftMap(error => Error(s"Could not insert enrolment details into mongo: $error"))
+                   .leftMap(error => Error(s"Could not store enrolment details: $error"))
                    .subflatMap { writeResult =>
-                     if (writeResult) Right(()) else Left(Error("Failed to insert enrolment details into mongo"))
+                     if (writeResult) Right(()) else Left(Error("Failed to store enrolment details"))
                    }
                }
     } yield result
@@ -80,21 +80,31 @@ class TaxEnrolmentServiceImpl @Inject()(
       case other => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
 
-  override def hasCgtEnrolment(
+  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+  def handleDatabaseResult(
+    maybeTaxEnrolmentRequest: Option[TaxEnrolmentRequest]
+  )(implicit hc: HeaderCarrier): Future[Boolean] =
+    maybeTaxEnrolmentRequest match {
+      case Some(enrolmentRequest) =>
+        for {
+          result <- EitherT.liftF(makeTaxEnrolmentCall(enrolmentRequest)) // attempt enrolment
+          _      <- EitherT.fromEither(handleTaxEnrolmentResponse(result)) // evaluate enrolment result
+          _      <- taxEnrolmentRepository.delete(enrolmentRequest.ggCredId) // delete record if enrolment was successful
+        } yield ()
+        Future.successful(true) // always return true regardless of whether the tax enrolment call/delete succeeded or not
+      case None => Future.successful(false)
+    }
+
+  override def hasCgtSubscription(
     ggCredId: String
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Boolean] =
     for {
       maybeEnrolmentRequest <- taxEnrolmentRepository
                                 .get(ggCredId)
-                                .leftMap(error => Error(s"Could not check existence of enrolment in mongo: $error"))
-      taxEnrolmentRequest <- EitherT
-                              .fromOption[Future](maybeEnrolmentRequest, Error("No enrolment request found in mongo"))
-      httpResponse <- EitherT.liftF(makeTaxEnrolmentCall(taxEnrolmentRequest))
-      _ <- EitherT
-            .fromEither[Future](handleTaxEnrolmentResponse(httpResponse))
-            .leftMap(error => Error(s"Could not allocate enrolment: $error"))
-      _ <- taxEnrolmentRepository
-            .delete(ggCredId)
-    } yield maybeEnrolmentRequest
+                                .leftMap(
+                                  error => Error(s"Could not check database to determine subscription status: $error")
+                                )
+      result <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
+    } yield result
 
 }
