@@ -18,12 +18,12 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
 import cats.instances.future._
-import uk.gov.hmrc.cgtpropertydisposals.models.TaxEnrolmentRequest
+import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.api.libs.json.JsString
+import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -49,7 +49,10 @@ class TaxEnrolmentServiceImpl @Inject()(
     for {
       httpResponse <- taxEnrolmentConnector
                        .allocateEnrolmentToGroup(taxEnrolmentRequest)
-                       .leftMap(e => Error(s"Error calling tax enrolment service: $e"))
+                       .leftFlatMap[HttpResponse, Error](
+                         // allow the tax enrolment call failure to be captured in mongo
+                         e => EitherT.fromEither[Future](Right(HttpResponse(999, Some(JsString(e.toString)))))
+                       )
       result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] {
                  (error: Error) =>
                    logger
