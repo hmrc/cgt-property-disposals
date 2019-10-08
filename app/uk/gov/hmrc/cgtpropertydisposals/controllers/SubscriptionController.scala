@@ -86,6 +86,19 @@ class SubscriptionController @Inject()(
       }
     )
   }
+
+  def checkIfCgtEnrolmentExists(): Action[AnyContent] = authenticate.async { implicit request =>
+    taxEnrolmentService.hasCgtEnrolment(request.user.ggCredId).value.map {
+      case Left(error) =>
+        logger.warn(s"Error checking existence of enrolment request: $error")
+        InternalServerError
+      case Right(maybeEnrolmentRequest) =>
+        maybeEnrolmentRequest match {
+          case Some(_) => Ok // user has subscribed but enrolment has not succeeded
+          case None    => NoContent // user has no enrolment request pending
+        }
+    }
+  }
 }
 
 object SubscriptionController {

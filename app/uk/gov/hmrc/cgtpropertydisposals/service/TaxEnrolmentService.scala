@@ -34,35 +34,41 @@ trait TaxEnrolmentService {
   def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
+  def hasCgtEnrolment(ggCredId: String)(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
 }
 
 @Singleton
 class TaxEnrolmentServiceImpl @Inject()(
   taxEnrolmentConnector: TaxEnrolmentConnector,
-  taxEnrolmentRetryRepository: TaxEnrolmentRepository
+  taxEnrolmentRepository: TaxEnrolmentRepository
 ) extends TaxEnrolmentService
     with Logging {
+
+  def makeTaxEnrolmentCall(
+    taxEnrolmentRequest: TaxEnrolmentRequest
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] =
+    taxEnrolmentConnector
+      .allocateEnrolmentToGroup(taxEnrolmentRequest)
+      .leftFlatMap[HttpResponse, Error](
+        error => EitherT.fromEither[Future](Right(HttpResponse(999, Some(JsString(error.toString)))))
+      )
 
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
     for {
-      httpResponse <- taxEnrolmentConnector
-                       .allocateEnrolmentToGroup(taxEnrolmentRequest)
-                       .leftFlatMap[HttpResponse, Error](
-                         // allow the tax enrolment call failure to be captured in mongo
-                         e => EitherT.fromEither[Future](Right(HttpResponse(999, Some(JsString(e.toString)))))
-                       )
-      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] {
-                 (error: Error) =>
-                   logger
-                     .warn(s"Failed to allocate enrolments due to error: $error. Inserting enrolment details in mongo.")
-                   taxEnrolmentRetryRepository
-                     .insert(taxEnrolmentRequest)
-                     .leftMap(error => Error(s"Error inserting enrolment details into mongo: $error"))
-                     .subflatMap { writeResult =>
-                       if (writeResult) Right(()) else Left(Error("Failed to insert enrolment details into mongo"))
-                     }
+      httpResponse <- makeTaxEnrolmentCall(taxEnrolmentRequest)
+      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
+                 logger
+                   .warn(
+                     s"Failed to allocate enrolments due to error: $error; will inserting enrolment details in mongo."
+                   )
+                 taxEnrolmentRepository
+                   .insert(taxEnrolmentRequest)
+                   .leftMap(error => Error(s"Could not insert enrolment details into mongo: $error"))
+                   .subflatMap { writeResult =>
+                     if (writeResult) Right(()) else Left(Error("Failed to insert enrolment details into mongo"))
+                   }
                }
     } yield result
 
@@ -71,5 +77,23 @@ class TaxEnrolmentServiceImpl @Inject()(
       case 204   => Right(())
       case other => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
+
+  override def hasCgtEnrolment(
+    ggCredId: String
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
+    for {
+      maybeEnrolmentRequest <- taxEnrolmentRepository
+                                .get(ggCredId)
+                                .leftMap(error => Error(s"Could not check existence of enrolment in mongo: $error"))
+      taxEnrolmentRequest <- EitherT
+                              .fromOption[Future](maybeEnrolmentRequest, Error("No enrolment request found in mongo"))
+      httpResponse <- makeTaxEnrolmentCall(taxEnrolmentRequest)
+      _ <- EitherT
+            .fromEither[Future](handleTaxEnrolmentResponse(httpResponse))
+            .leftMap(error => Error(s"Could not allocate enrolment: $error"))
+      _ <- taxEnrolmentRepository
+            .delete(ggCredId)
+            .leftMap(error => Error(s"Could not delete enrolment request in mongo: $error"))
+    } yield maybeEnrolmentRequest
 
 }

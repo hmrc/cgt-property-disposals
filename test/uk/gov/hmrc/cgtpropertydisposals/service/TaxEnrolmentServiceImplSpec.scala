@@ -34,7 +34,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   val service = new TaxEnrolmentServiceImpl(mockConnector, mockRepository)
 
-  def mockAllocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
+  def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, HttpResponse]
   ) =
     (mockConnector
@@ -42,7 +42,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(taxEnrolmentRequest, *)
       .returning(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
-  def mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequest: TaxEnrolmentRequest)(
+  def mockInsert(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Boolean]
   ) =
     (mockRepository
@@ -50,63 +50,119 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(taxEnrolmentRequest)
       .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
 
+  def mockGet(ggCredId: String)(
+    response: Either[Error, Option[TaxEnrolmentRequest]]
+  ) =
+    (mockRepository
+      .get(_: String))
+      .expects(ggCredId)
+      .returning(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
+
+  def mockDelete(ggCredId: String)(
+    response: Either[Error, Int]
+  ) =
+    (mockRepository
+      .delete(_: String))
+      .expects(ggCredId)
+      .returning(EitherT[Future, Error, Int](Future.successful(response)))
+
   val (nonUkCountry, nonUkCountryCode) = Country("HK", Some("Hong Kong")) -> "HK"
   implicit val hc: HeaderCarrier       = HeaderCarrier()
   val cgtReference                     = "XACGTP123456789"
 
   val taxEnrolmentRequestWithNonUkAddress = TaxEnrolmentRequest(
-    "userId-1",
+    "ggCredId",
     cgtReference,
     Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), nonUkCountry)
   )
 
   val taxEnrolmentRequestWithUkAddress = TaxEnrolmentRequest(
-    "userId-1",
+    "ggCredId",
     cgtReference,
     Address.UkAddress("line1", None, None, None, "OK11KO")
   )
 
   "TaxEnrolment Service Implementation" when {
+
+    "it receives a request to check if a user has a CGT enrolment" must {
+      "return an error" when {
+        "there is mongo exception occurs" in {
+          mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Connection error")))
+          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+        }
+        "there does not exist an enrolment in mongo" in {
+          mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
+          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+        }
+        "there exists a tax enrolment request to retry but the tax enrolment retry fails again" in {
+          inSequence {
+            mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection error")))
+          }
+          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+        }
+        "there exists a tax enrolment request to retry and the tax enrolment succeeds but the delete fails" in {
+          inSequence {
+            mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
+            mockDelete(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Database error")))
+          }
+          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+        }
+      }
+      "return true" when {
+        "an enrolment record exists, the tax enrolment call is made successfully, and the delete occurred correctly" in {
+          inSequence {
+            mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
+            mockDelete(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(1))
+          }
+          await(service.hasCgtEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isRight shouldBe true
+        }
+      }
+    }
+
     "it receives a request to allocate an enrolment" must {
+
       "return an error" when {
         "the http call comes back with a status other than 204 and the recording of the enrolment request fails" in {
           inSequence {
-            mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
           }
-
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isLeft shouldBe true
         }
         "the http call comes back with a status other than 204 and the insert into mongo fails" in {
           inSequence {
-            mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonUkAddress)(Right(false))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(false))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isLeft shouldBe true
         }
         "the http call comes back with an exception and the insert into mongo fails" in {
           inSequence {
-            mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection error")))
-            mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection error")))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isLeft shouldBe true
         }
       }
+
       "return a tax enrolment created success response" when {
         "the http call comes back with a status other than 204" in {
           inSequence {
-            mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonUkAddress)(Right(true))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(true))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
         }
         "the http call comes back with a status other than no content and the insert into mongo succeeds" in {
           inSequence {
-            mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonUkAddress)(Right(true))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(true))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
@@ -114,19 +170,19 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         "the http call fails and the insert into mongo succeeds" in {
           inSequence {
-            mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress)(Left(Error("uh oh")))
-            mockInsertTaxEnrolmentRequestToMongoDB(taxEnrolmentRequestWithNonUkAddress)(Right(true))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("uh oh")))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(true))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
         }
 
         "the http call comes back with a status of no content and the address is a UK address with a postcode" in {
-          mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithUkAddress)(Right(HttpResponse(204)))
+          mockAllocateEnrolment(taxEnrolmentRequestWithUkAddress)(Right(HttpResponse(204)))
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithUkAddress).value).isRight shouldBe true
         }
         "the http call comes back with a status of no content and the address is a Non-UK address with a country code" in {
-          mockAllocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
+          mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
         }
       }

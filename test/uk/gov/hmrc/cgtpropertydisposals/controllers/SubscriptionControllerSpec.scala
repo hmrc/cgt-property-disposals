@@ -46,6 +46,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionDetails._
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -74,13 +75,27 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(expectedSubscriptionDetails, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockAllocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
+  def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
     (mockTaxEnrolmentService
       .allocateEnrolmentToGroup(_: TaxEnrolmentRequest)(_: HeaderCarrier))
       .expects(taxEnrolmentRequest, *)
       .returning(EitherT(Future.successful(response)))
+
+  def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
+    (mockTaxEnrolmentService
+      .hasCgtEnrolment(_: String)(_: HeaderCarrier))
+      .expects(ggCredId, *)
+      .returning(EitherT(Future.successful(response)))
+
+  val (nonUkCountry, nonUkCountryCode) = Country("HK", Some("Hong Kong")) -> "HK"
+
+  val taxEnrolmentRequestWithNonUkAddress = TaxEnrolmentRequest(
+    "ggCredId",
+    "XACGTP123456789",
+    Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), nonUkCountry)
+  )
 
   "The SubscriptionController" when {
     val controller = new SubscriptionController(
@@ -89,6 +104,50 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       taxEnrolmentService = mockTaxEnrolmentService,
       cc                  = Helpers.stubControllerComponents()
     )
+
+    "handling requests to check if a user has subscribed already" must {
+
+      "return a 200 OK response if the user has subscribed" in {
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest().withJsonBody(JsString("hi"))
+          )
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
+        val result = controller.checkIfCgtEnrolmentExists()(request)
+        status(result) shouldBe OK
+      }
+
+      "return a No Content response if the user has no enrolment request" in {
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest().withJsonBody(JsString("hi"))
+          )
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(None))
+        val result = controller.checkIfCgtEnrolmentExists()(request)
+        status(result) shouldBe NO_CONTENT
+      }
+
+      "return a internal server error response if a back end error occurred" in {
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest().withJsonBody(JsString("hi"))
+          )
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Left(Error("Some back end error")))
+        val result = controller.checkIfCgtEnrolmentExists()(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
+    }
+
     "handling requests to subscribe" must {
 
       implicit lazy val mat: Materializer = fakeApplication.materializer
@@ -158,7 +217,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             )
 
             mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
-            mockAllocateEnrolmentToGroup(taxEnrolmentRequest)(Right(()))
+            mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
 
             val request =
               new AuthenticatedRequest(
@@ -189,7 +248,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           )
 
           mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
-          mockAllocateEnrolmentToGroup(taxEnrolmentRequest)(
+          mockAllocateEnrolment(taxEnrolmentRequest)(
             Left(Error("Failed to allocate tax enrolment"))
           )
 

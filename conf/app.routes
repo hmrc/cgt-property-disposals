@@ -1,2 +1,3 @@
 POST     /business-partner-record             uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.getBusinessPartnerRecord()
 POST     /subscribe                           uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.subscribe()
+GET      /check-enrolment-status              uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.checkIfCgtEnrolmentExists()
