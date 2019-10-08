@@ -46,18 +46,20 @@ class TaxEnrolmentServiceImpl @Inject()(
 
   def makeTaxEnrolmentCall(
     taxEnrolmentRequest: TaxEnrolmentRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] =
+  )(implicit hc: HeaderCarrier): Future[HttpResponse] =
     taxEnrolmentConnector
       .allocateEnrolmentToGroup(taxEnrolmentRequest)
-      .leftFlatMap[HttpResponse, Error](
-        error => EitherT.fromEither[Future](Right(HttpResponse(999, Some(JsString(error.toString)))))
-      )
+      .value
+      .map {
+        case Left(error)         => HttpResponse(999, Some(JsString(error.toString)))
+        case Right(httpResponse) => httpResponse
+      }
 
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
     for {
-      httpResponse <- makeTaxEnrolmentCall(taxEnrolmentRequest)
+      httpResponse <- EitherT.liftF(makeTaxEnrolmentCall(taxEnrolmentRequest))
       result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
                  logger
                    .warn(
@@ -87,13 +89,12 @@ class TaxEnrolmentServiceImpl @Inject()(
                                 .leftMap(error => Error(s"Could not check existence of enrolment in mongo: $error"))
       taxEnrolmentRequest <- EitherT
                               .fromOption[Future](maybeEnrolmentRequest, Error("No enrolment request found in mongo"))
-      httpResponse <- makeTaxEnrolmentCall(taxEnrolmentRequest)
+      httpResponse <- EitherT.liftF(makeTaxEnrolmentCall(taxEnrolmentRequest))
       _ <- EitherT
             .fromEither[Future](handleTaxEnrolmentResponse(httpResponse))
             .leftMap(error => Error(s"Could not allocate enrolment: $error"))
       _ <- taxEnrolmentRepository
             .delete(ggCredId)
-            .leftMap(error => Error(s"Could not delete enrolment request in mongo: $error"))
     } yield maybeEnrolmentRequest
 
 }
