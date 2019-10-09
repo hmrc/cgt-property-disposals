@@ -92,8 +92,8 @@ class SubscriptionController @Inject()(
       case Left(error) =>
         logger.warn(s"Error checking existence of enrolment request: $error")
         InternalServerError
-      case Right(hasSubscriptionResult) =>
-        if (hasSubscriptionResult) Ok else NoContent
+      case Right(userHasSubscription) =>
+        if (userHasSubscription) Ok else NoContent
     }
   }
 }
