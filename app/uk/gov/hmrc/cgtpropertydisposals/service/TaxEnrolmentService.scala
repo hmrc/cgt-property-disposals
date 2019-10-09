@@ -83,16 +83,16 @@ class TaxEnrolmentServiceImpl @Inject()(
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   def handleDatabaseResult(
     maybeTaxEnrolmentRequest: Option[TaxEnrolmentRequest]
-  )(implicit hc: HeaderCarrier): Future[Boolean] =
+  )(implicit hc: HeaderCarrier): Future[Unit] =
     maybeTaxEnrolmentRequest match {
       case Some(enrolmentRequest) =>
-        for {
+        val result = for {
           result <- EitherT.liftF(makeTaxEnrolmentCall(enrolmentRequest)) // attempt enrolment
           _      <- EitherT.fromEither(handleTaxEnrolmentResponse(result)) // evaluate enrolment result
           _      <- taxEnrolmentRepository.delete(enrolmentRequest.ggCredId) // delete record if enrolment was successful
         } yield ()
-        Future.successful(true) // always return true regardless of whether the tax enrolment call/delete succeeded or not
-      case None => Future.successful(false)
+        result.leftMap(error => logger.warn(s"Error when retrying allocation of enrolments: $error")).merge
+      case None => Future.successful(())
     }
 
   override def hasCgtSubscription(
@@ -105,6 +105,6 @@ class TaxEnrolmentServiceImpl @Inject()(
                                   error => Error(s"Could not check database to determine subscription status: $error")
                                 )
       result <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
-    } yield result
+    } yield maybeEnrolmentRequest.fold(false)(_ => true)
 
 }
