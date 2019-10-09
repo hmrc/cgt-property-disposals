@@ -34,35 +34,43 @@ trait TaxEnrolmentService {
   def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
+  def hasCgtSubscription(ggCredId: String)(implicit hc: HeaderCarrier): EitherT[Future, Error, Boolean]
 }
 
 @Singleton
 class TaxEnrolmentServiceImpl @Inject()(
   taxEnrolmentConnector: TaxEnrolmentConnector,
-  taxEnrolmentRetryRepository: TaxEnrolmentRepository
+  taxEnrolmentRepository: TaxEnrolmentRepository
 ) extends TaxEnrolmentService
     with Logging {
+
+  def makeTaxEnrolmentCall(
+    taxEnrolmentRequest: TaxEnrolmentRequest
+  )(implicit hc: HeaderCarrier): Future[HttpResponse] =
+    taxEnrolmentConnector
+      .allocateEnrolmentToGroup(taxEnrolmentRequest)
+      .value
+      .map {
+        case Left(error)         => HttpResponse(999, Some(JsString(error.toString)))
+        case Right(httpResponse) => httpResponse
+      }
 
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
     for {
-      httpResponse <- taxEnrolmentConnector
-                       .allocateEnrolmentToGroup(taxEnrolmentRequest)
-                       .leftFlatMap[HttpResponse, Error](
-                         // allow the tax enrolment call failure to be captured in mongo
-                         e => EitherT.fromEither[Future](Right(HttpResponse(999, Some(JsString(e.toString)))))
-                       )
-      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] {
-                 (error: Error) =>
-                   logger
-                     .warn(s"Failed to allocate enrolments due to error: $error. Inserting enrolment details in mongo.")
-                   taxEnrolmentRetryRepository
-                     .insert(taxEnrolmentRequest)
-                     .leftMap(error => Error(s"Error inserting enrolment details into mongo: $error"))
-                     .subflatMap { writeResult =>
-                       if (writeResult) Right(()) else Left(Error("Failed to insert enrolment details into mongo"))
-                     }
+      httpResponse <- EitherT.liftF(makeTaxEnrolmentCall(taxEnrolmentRequest))
+      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
+                 logger
+                   .warn(
+                     s"Failed to allocate enrolments due to error: $error; will store enrolment details"
+                   )
+                 taxEnrolmentRepository
+                   .insert(taxEnrolmentRequest)
+                   .leftMap(error => Error(s"Could not store enrolment details: $error"))
+                   .subflatMap { writeResult =>
+                     if (writeResult) Right(()) else Left(Error("Failed to store enrolment details"))
+                   }
                }
     } yield result
 
@@ -71,5 +79,32 @@ class TaxEnrolmentServiceImpl @Inject()(
       case 204   => Right(())
       case other => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
+
+  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+  def handleDatabaseResult(
+    maybeTaxEnrolmentRequest: Option[TaxEnrolmentRequest]
+  )(implicit hc: HeaderCarrier): Future[Unit] =
+    maybeTaxEnrolmentRequest match {
+      case Some(enrolmentRequest) =>
+        val result = for {
+          result <- EitherT.liftF(makeTaxEnrolmentCall(enrolmentRequest)) // attempt enrolment
+          _      <- EitherT.fromEither(handleTaxEnrolmentResponse(result)) // evaluate enrolment result
+          _      <- taxEnrolmentRepository.delete(enrolmentRequest.ggCredId) // delete record if enrolment was successful
+        } yield ()
+        result.leftMap(error => logger.warn(s"Error when retrying allocation of enrolments: $error")).merge
+      case None => Future.successful(())
+    }
+
+  override def hasCgtSubscription(
+    ggCredId: String
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Boolean] =
+    for {
+      maybeEnrolmentRequest <- taxEnrolmentRepository
+                                .get(ggCredId)
+                                .leftMap(
+                                  error => Error(s"Could not check database to determine subscription status: $error")
+                                )
+      result <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
+    } yield maybeEnrolmentRequest.fold(false)(_ => true)
 
 }
