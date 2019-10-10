@@ -83,9 +83,9 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
         Json.parse(s"""
                       | {
-                      |   "regime" : "HMRC-CGT-PD",
+                      |   "regime" : "CGT",
                       |   "requiresNameMatch" : $requiresNameMatch,
-                      |   "isAnIndividual" : true$individualJsonString
+                      |   "isAnAgent" : false$individualJsonString
                       | }
                       |""".stripMargin)
       }
@@ -137,7 +137,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
               mockPost(
-                s"http://host:123/registration/individual/sautr/${sautr.value}",
+                s"http://host:123/registration/individual/utr/${sautr.value}",
                 expectedHeaders,
                 expectedIndividualBody(true)
               )(
@@ -153,7 +153,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
         "return an error when the future fails" in {
           mockPost(
-            s"http://host:123/registration/individual/sautr/${sautr.value}",
+            s"http://host:123/registration/individual/utr/${sautr.value}",
             expectedHeaders,
             expectedIndividualBody(false)
           )(None)
@@ -168,9 +168,9 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
         val expectedBody = Json.parse(s"""
                                          | {
-                                         |   "regime" : "HMRC-CGT-PD",
+                                         |   "regime" : "CGT",
                                          |   "requiresNameMatch" : false,
-                                         |   "isAnIndividual" : false
+                                         |   "isAnAgent" : false
                                          | }
                                          |""".stripMargin)
 
@@ -181,7 +181,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
             HttpResponse(500)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(s"http://host:123/registration/individual/sautr/${sautr.value}", expectedHeaders, expectedBody)(
+              mockPost(s"http://host:123/registration/organisation/utr/${sautr.value}", expectedHeaders, expectedBody)(
                 Some(httpResponse)
               )
 
@@ -191,7 +191,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         }
 
         "return an error when the future fails" in {
-          mockPost(s"http://host:123/registration/individual/sautr/${sautr.value}", expectedHeaders, expectedBody)(None)
+          mockPost(s"http://host:123/registration/organisation/utr/${sautr.value}", expectedHeaders, expectedBody)(None)
 
           await(connector.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
