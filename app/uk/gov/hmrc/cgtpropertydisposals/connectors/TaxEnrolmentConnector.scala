@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient.HttpClientOps
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.{Enrolments, Error, KeyValuePair, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -69,7 +68,7 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
 
     EitherT[Future, Error, HttpResponse](
       http
-        .put[Enrolments](enrolmentUrl, enrolmentRequest)
+        .PUT[Enrolments, HttpResponse](enrolmentUrl, enrolmentRequest)
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
