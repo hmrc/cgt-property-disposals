@@ -46,6 +46,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionDetails._
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
@@ -83,7 +84,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(taxEnrolmentRequest, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Boolean]) =
+  def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
     (mockTaxEnrolmentService
       .hasCgtSubscription(_: String)(_: HeaderCarrier))
       .expects(ggCredId, *)
@@ -115,8 +116,9 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             headerCarrier,
             FakeRequest().withJsonBody(JsString("hi"))
           )
-        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(true))
-        val result = controller.checkIfUserHasASubscription()(request)
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(
+          Right(Some(TaxEnrolmentRequest("ggCredId", "", UkAddress("line1", None, None, None, "")))))
+        val result = controller.checkSubscriptionStatus()(request)
         status(result) shouldBe OK
       }
 
@@ -128,8 +130,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             headerCarrier,
             FakeRequest().withJsonBody(JsString("hi"))
           )
-        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(false))
-        val result = controller.checkIfUserHasASubscription()(request)
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(None))
+        val result = controller.checkSubscriptionStatus()(request)
         status(result) shouldBe NO_CONTENT
       }
 
@@ -142,7 +144,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Left(Error("Some back end error")))
-        val result = controller.checkIfUserHasASubscription()(request)
+        val result = controller.checkSubscriptionStatus()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
