@@ -79,7 +79,9 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
            |    "emailAddress" : "email"
            |  },
            |  "sapNumber" : "1234567890",
-           |  ${organisationName.map(trustName => s""""organisation":{"name":"${trustName.value}"},""").getOrElse("")}
+           |  ${organisationName
+                        .map(trustName => s""""organisation":{"organisationName":"${trustName.value}"},""")
+                        .getOrElse("")}
            |  $addressBody
            |}
            |""".stripMargin)

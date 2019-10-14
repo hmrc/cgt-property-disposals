@@ -16,16 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
-import java.time.LocalDate
-
 import cats.data.EitherT
-import cats.syntax.either._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, OFormat, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.bpr.BusinessPartnerRecordRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -53,18 +49,19 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
 
   val baseUrl: String = config.baseUrl("business-partner-record")
 
-  def url(id: Either[SAUTR, NINO]): String = {
-    val suffix = id.fold(s => s"/sautr/${s.value}", n => s"/nino/${n.value}")
-    s"$baseUrl/registration/individual$suffix"
+  def url(bprRequest: BusinessPartnerRecordRequest): String = {
+    val entityType = bprRequest.fold(_ => "organisation", _ => "individual")
+    val suffix     = bprRequest.id.fold(s => s"utr/${s.value}", n => s"nino/${n.value}")
+    s"$baseUrl/registration/$entityType/$suffix"
   }
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
     val registerDetails = RegisterDetails(
-      regime            = "HMRC-CGT-PD",
+      regime            = "CGT",
       requiresNameMatch = bprRequest.fold(_ => false, _.nameMatch.isDefined),
-      isAnIndividual    = bprRequest.fold(_ => false, _ => true),
+      isAnAgent         = false,
       individual = bprRequest.fold(
         _ => None,
         _.nameMatch.map(name => RegisterIndividual(name.firstName, name.lastName))
@@ -73,7 +70,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
 
     EitherT[Future, Error, HttpResponse](
       http
-        .post(url(bprRequest.id), Json.toJson(registerDetails), headers)(
+        .post(url(bprRequest), Json.toJson(registerDetails), headers)(
           implicitly[Writes[JsValue]],
           hc.copy(authorization = None),
           ec
@@ -91,7 +88,7 @@ object BusinessPartnerRecordConnectorImpl {
   private final case class RegisterDetails(
     regime: String,
     requiresNameMatch: Boolean,
-    isAnIndividual: Boolean,
+    isAnAgent: Boolean,
     individual: Option[RegisterIndividual]
   )
 
