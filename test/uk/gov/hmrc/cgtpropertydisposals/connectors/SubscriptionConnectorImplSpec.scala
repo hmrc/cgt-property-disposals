@@ -24,7 +24,7 @@ import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SubscriptionDetails, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SapNumber, SubscriptionDetails, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -69,7 +69,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         ContactName("contact"),
         Email("email"),
         UkAddress("line1", None, None, None, "postcode"),
-        "sap"
+        SapNumber("sap")
       )
 
       val expectedRequest = Json.parse(
@@ -121,7 +121,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         ContactName("contact"),
         Email("email"),
         UkAddress("line1", None, None, None, "postcode"),
-        "sap"
+        SapNumber("sap")
       )
 
       val expectedRequest = Json.parse(

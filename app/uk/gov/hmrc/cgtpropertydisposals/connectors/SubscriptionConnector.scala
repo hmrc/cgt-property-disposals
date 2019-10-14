@@ -72,7 +72,7 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
       subscriptionDetails.contactName.value,
       subscriptionDetails.emailAddress.value,
       subscriptionDetails.address,
-      subscriptionDetails.sapNumber
+      subscriptionDetails.sapNumber.value
     )
 
     EitherT[Future, Error, HttpResponse](

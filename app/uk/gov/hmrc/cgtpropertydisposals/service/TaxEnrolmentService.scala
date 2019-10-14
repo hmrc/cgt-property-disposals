@@ -68,9 +68,6 @@ class TaxEnrolmentServiceImpl @Inject()(
                  taxEnrolmentRepository
                    .insert(taxEnrolmentRequest)
                    .leftMap(error => Error(s"Could not store enrolment details: $error"))
-                   .subflatMap { writeResult =>
-                     if (writeResult) Right(()) else Left(Error("Failed to store enrolment details"))
-                   }
                }
     } yield result
 
@@ -104,7 +101,7 @@ class TaxEnrolmentServiceImpl @Inject()(
                                 .leftMap(
                                   error => Error(s"Could not check database to determine subscription status: $error")
                                 )
-      result <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
-    } yield maybeEnrolmentRequest.fold(false)(_ => true)
+      _ <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
+    } yield maybeEnrolmentRequest.nonEmpty
 
 }
