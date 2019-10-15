@@ -22,7 +22,8 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SubscriptionDetails, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -68,24 +69,37 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         Right(IndividualName("name", "surname")),
         ContactName("contact"),
         Email("email"),
-        UkAddress("line1", None, None, None, "postcode"),
+        UkAddress("line1", Some("line2"), Some("town"), Some("county"), "postcode"),
         "sap"
       )
 
       val expectedRequest = Json.parse(
         """
           |{
-          |  "typeOfPerson" : "1",
-          |  "name"  : "name surname",
-          |  "contactName" : "contact",
-          |  "emailAddress" : "email",
-          |  "address"      : {
-          |    "UkAddress" : {
-          |        "line1" : "line1",
-          |        "postcode" : "postcode"
-          |      }
+          |  "regime": "CGT",
+          |  "identity": {
+          |    "idType": "sapNumber",
+          |    "idValue": "sap"
           |  },
-          |  "sapNumber"    : "sap"
+          |  "subscriptionDetails": {
+          |    "typeOfPersonDetails": {
+          |      "typeOfPerson": "Individual",
+          |      "firstName": "name",
+          |      "lastName": "surname"
+          |    },
+          |    "addressDetails": {
+          |      "addressLine1": "line1",
+          |      "addressLine2": "line2",
+          |      "addressLine3": "town",
+          |      "addressLine4": "county",
+          |      "postalCode": "postcode",
+          |      "countryCode": "GB"
+          |    },
+          |    "contactDetails": {
+          |      "contactName": "contact",
+          |      "emailAddress": "email"
+          |    }
+          |  }
           |}
           |""".stripMargin
       )
@@ -97,7 +111,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(
+            mockPost(s"http://host:123/subscriptions/create/CGT", expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -107,7 +121,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(None)
+        mockPost(s"http://host:123/subscriptions/create/CGT", expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }
@@ -120,24 +134,42 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         Left(TrustName("name")),
         ContactName("contact"),
         Email("email"),
-        UkAddress("line1", None, None, None, "postcode"),
+        NonUkAddress(
+          "line1",
+          Some("line2"),
+          Some("line3"),
+          Some("line4"),
+          Some("postcode"),
+          Country("HK", Some("Hong Kong"))),
         "sap"
       )
 
       val expectedRequest = Json.parse(
         """
           |{
-          |  "typeOfPerson" : "2",
-          |  "name"  : "name",
-          |  "contactName" : "contact",
-          |  "emailAddress" : "email",
-          |  "address"      : {
-          |    "UkAddress" : {
-          |        "line1" : "line1",
-          |        "postcode" : "postcode"
-          |      }
+          |  "regime": "CGT",
+          |  "identity": {
+          |    "idType": "sapNumber",
+          |    "idValue": "sap"
           |  },
-          |  "sapNumber"    : "sap"
+          |  "subscriptionDetails": {
+          |    "typeOfPersonDetails": {
+          |      "typeOfPerson": "Trustee",
+          |      "organisationName": "name"
+          |    },
+          |    "addressDetails": {
+          |      "addressLine1": "line1",
+          |      "addressLine2": "line2",
+          |      "addressLine3": "line3",
+          |      "addressLine4": "line4",
+          |      "postalCode": "postcode",
+          |      "countryCode": "HK"
+          |    },
+          |    "contactDetails": {
+          |      "contactName": "contact",
+          |      "emailAddress": "email"
+          |    }
+          |  }
           |}
           |""".stripMargin
       )
@@ -149,7 +181,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(
+            mockPost(s"http://host:123/subscriptions/create/CGT", expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -159,7 +191,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(None)
+        mockPost(s"http://host:123/subscriptions/create/CGT", expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }

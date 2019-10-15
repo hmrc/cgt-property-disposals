@@ -34,8 +34,9 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsString, JsValue, Json, Writes}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnectorImpl.{SubscriptionRequest, TypeOfPerson}
+import play.api.libs.json.{JsValue, Json, Writes}
+import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnectorImpl.DesSubscriptionRequest
+import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnectorImpl.TypeOfPersonDetails.{Individual, Trustee}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails}
@@ -61,19 +62,12 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
 
   val baseUrl: String = config.baseUrl("subscription")
 
-  val url: String = s"$baseUrl/subscribe"
+  val url: String = s"$baseUrl/subscriptions/create/CGT"
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
-    val subscriptionRequest = SubscriptionRequest(
-      subscriptionDetails.name.fold[TypeOfPerson](_ => TypeOfPerson.Trustee, _ => TypeOfPerson.Individual),
-      subscriptionDetails.name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
-      subscriptionDetails.contactName.value,
-      subscriptionDetails.emailAddress.value,
-      subscriptionDetails.address,
-      subscriptionDetails.sapNumber
-    )
+    val subscriptionRequest = DesSubscriptionRequest(subscriptionDetails)
 
     EitherT[Future, Error, HttpResponse](
       http
@@ -91,28 +85,81 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
 
 object SubscriptionConnectorImpl {
 
-  sealed trait TypeOfPerson { val value: Int }
+  final case class Identity(idType: String, idValue: String)
 
-  object TypeOfPerson {
+  sealed trait TypeOfPersonDetails extends Product with Serializable
 
-    final case object Individual extends TypeOfPerson {
-      val value = 1
-    }
+  object TypeOfPersonDetails {
 
-    final case object Trustee extends TypeOfPerson {
-      val value = 2
+    final case class Individual(firstName: String, lastName: String, typeOfPerson: String = "Individual")
+        extends TypeOfPersonDetails
+
+    final case class Trustee(organisationName: String, typeOfPerson: String = "Trustee") extends TypeOfPersonDetails
+
+    implicit val typeOfPersonWrites: Writes[TypeOfPersonDetails] = Writes {
+      case i: Individual => Json.writes[Individual].writes(i)
+      case t: Trustee    => Json.writes[Trustee].writes(t)
     }
 
   }
-  final case class SubscriptionRequest(
-    typeOfPerson: TypeOfPerson,
-    name: String,
-    contactName: String,
-    emailAddress: String,
-    address: Address,
-    sapNumber: String
+
+  final case class AddressDetails(
+    addressLine1: String,
+    addressLine2: Option[String],
+    addressLine3: Option[String],
+    addressLine4: Option[String],
+    postalCode: Option[String],
+    countryCode: String
   )
 
-  implicit val typeOfPersonWrites: Writes[TypeOfPerson]               = Writes(p => JsString(p.value.toString))
-  implicit val subscriptionRequestWrites: Writes[SubscriptionRequest] = Json.writes[SubscriptionRequest]
+  final case class ContactDetails(
+    contactName: String,
+    emailAddress: String
+  )
+
+  final case class DesSubscriptionDetails(
+    typeOfPersonDetails: TypeOfPersonDetails,
+    addressDetails: AddressDetails,
+    contactDetails: ContactDetails
+  )
+
+  final case class DesSubscriptionRequest(
+    regime: String,
+    identity: Identity,
+    subscriptionDetails: DesSubscriptionDetails
+  )
+
+  object DesSubscriptionRequest {
+
+    def apply(s: SubscriptionDetails): DesSubscriptionRequest = {
+      val typeOfPersonDetails = s.name.fold(
+        trustName => TypeOfPersonDetails.Trustee(trustName.value),
+        individualName => TypeOfPersonDetails.Individual(individualName.firstName, individualName.lastName)
+      )
+
+      val addressDetails = s.address match {
+        case ukAddress @ Address.UkAddress(line1, line2, town, county, postcode) =>
+          AddressDetails(line1, line2, town, county, Some(postcode), ukAddress.countryCode)
+        case Address.NonUkAddress(line1, line2, line3, line4, postcode, country) =>
+          AddressDetails(line1, line2, line3, line4, postcode, country.code)
+      }
+
+      DesSubscriptionRequest(
+        "CGT",
+        Identity("sapNumber", s.sapNumber),
+        DesSubscriptionDetails(
+          typeOfPersonDetails,
+          addressDetails,
+          ContactDetails(s.contactName.value, s.emailAddress.value)
+        )
+      )
+    }
+
+  }
+
+  implicit val identityWrites: Writes[Identity]                             = Json.writes[Identity]
+  implicit val addressDetailsWrites: Writes[AddressDetails]                 = Json.writes[AddressDetails]
+  implicit val contactDetailsWrites: Writes[ContactDetails]                 = Json.writes[ContactDetails]
+  implicit val desSubscriptionDetailsWrites: Writes[DesSubscriptionDetails] = Json.writes[DesSubscriptionDetails]
+  implicit val subscriptionRequestWrites: Writes[DesSubscriptionRequest]    = Json.writes[DesSubscriptionRequest]
 }
