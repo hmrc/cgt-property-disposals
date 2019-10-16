@@ -66,6 +66,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
 
     "handling request to subscribe for individuals" must {
 
+      val expectedUrl = "http://host:123/registration/02.00.00/individual"
       val registrationDetails = RegistrationDetails(
         IndividualName("name", "surname"),
         Email("email"),
@@ -101,7 +102,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(s"http://host:123/registration/02.00.00/individual", expectedHeaders, expectedRequest)(
+            mockPost(expectedUrl, expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -111,7 +112,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/registration/02.00.00/individual", expectedHeaders, expectedRequest)(None)
+        mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
 
         await(connector.registerWithoutId(registrationDetails).value).isLeft shouldBe true
       }

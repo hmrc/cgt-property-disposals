@@ -61,6 +61,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedUrl                = "http://host:123/subscribe"
 
     "handling request to subscribe for individuals" must {
 
@@ -97,7 +98,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(
+            mockPost(expectedUrl, expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -107,7 +108,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(None)
+        mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }
@@ -149,7 +150,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(
+            mockPost(expectedUrl, expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -159,7 +160,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/subscribe", expectedHeaders, expectedRequest)(None)
+        mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }

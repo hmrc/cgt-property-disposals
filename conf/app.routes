@@ -1,4 +1,4 @@
 POST     /business-partner-record             uk.gov.hmrc.cgtpropertydisposals.controllers.BusinessPartnerRecordController.getBusinessPartnerRecord()
 POST     /subscribe                           uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.subscribe()
 POST     /register-without-id-and-subscribe   uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.registerWithoutIdAndSubscribe()
-GET      /check-subscription-status           uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.checkIfUserHasASubscription()
+GET      /check-subscription-status           uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.checkSubscriptionStatus()
