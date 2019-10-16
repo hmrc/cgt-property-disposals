@@ -25,7 +25,7 @@ import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SubscriptionDetails, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SapNumber, SubscriptionDetails, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -62,6 +62,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedUrl                = "http://host:123/subscriptions/create/CGT"
 
     "handling request to subscribe for individuals" must {
 
@@ -70,7 +71,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         ContactName("contact"),
         Email("email"),
         UkAddress("line1", Some("line2"), Some("town"), Some("county"), "postcode"),
-        "sap"
+        SapNumber("sap")
       )
 
       val expectedRequest = Json.parse(
@@ -111,7 +112,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(s"http://host:123/subscriptions/create/CGT", expectedHeaders, expectedRequest)(
+            mockPost(expectedUrl, expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -121,7 +122,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/subscriptions/create/CGT", expectedHeaders, expectedRequest)(None)
+        mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }
@@ -141,7 +142,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           Some("line4"),
           Some("postcode"),
           Country("HK", Some("Hong Kong"))),
-        "sap"
+        SapNumber("sap")
       )
 
       val expectedRequest = Json.parse(
@@ -181,7 +182,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(s"http://host:123/subscriptions/create/CGT", expectedHeaders, expectedRequest)(
+            mockPost(expectedUrl, expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -191,7 +192,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(s"http://host:123/subscriptions/create/CGT", expectedHeaders, expectedRequest)(None)
+        mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }

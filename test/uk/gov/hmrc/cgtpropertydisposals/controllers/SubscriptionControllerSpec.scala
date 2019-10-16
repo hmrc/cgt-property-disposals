@@ -34,21 +34,23 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers
 
 import java.time.LocalDateTime
 
-import akka.stream.Materializer
 import cats.data.EitherT
+import cats.instances.future._
 import org.scalacheck.ScalacheckShapeless._
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.{JsString, JsValue, Json}
+import play.api.mvc.{AnyContent, Result}
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
-import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
+import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionDetails._
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest, sample}
-import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest, sample}
+import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -56,15 +58,20 @@ import scala.concurrent.Future
 
 class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
 
-  val mockSubscriptionService = mock[SubscriptionService]
-  val mockTaxEnrolmentService = mock[TaxEnrolmentService]
+  val mockSubscriptionService      = mock[SubscriptionService]
+  val mockTaxEnrolmentService      = mock[TaxEnrolmentService]
+  val mockRegisterWithoutIdService = mock[RegisterWithoutIdService]
 
   val headerCarrier = HeaderCarrier()
 
+  val fixedTimestamp = LocalDateTime.of(2019, 9, 24, 15, 47, 20)
+
   override val overrideBindings: List[GuiceableModule] =
     List(
+      bind[AuthenticateActions].toInstance(Fake.login(Fake.user, fixedTimestamp)),
       bind[SubscriptionService].toInstance(mockSubscriptionService),
-      bind[TaxEnrolmentService].toInstance(mockTaxEnrolmentService)
+      bind[TaxEnrolmentService].toInstance(mockTaxEnrolmentService),
+      bind[RegisterWithoutIdService].toInstance(mockRegisterWithoutIdService)
     )
 
   lazy val controller = instanceOf[SubscriptionController]
@@ -83,11 +90,17 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(taxEnrolmentRequest, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Boolean]) =
+  def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
     (mockTaxEnrolmentService
       .hasCgtSubscription(_: String)(_: HeaderCarrier))
       .expects(ggCredId, *)
       .returning(EitherT(Future.successful(response)))
+
+  def mockRegisterWithoutId(registrationDetails: RegistrationDetails)(response: Either[Error, SapNumber]): Unit =
+    (mockRegisterWithoutIdService
+      .registerWithoutId(_: RegistrationDetails)(_: HeaderCarrier))
+      .expects(registrationDetails, *)
+      .returning(EitherT.fromEither(response))
 
   val (nonUkCountry, nonUkCountryCode) = Country("HK", Some("Hong Kong")) -> "HK"
 
@@ -98,12 +111,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
   )
 
   "The SubscriptionController" when {
-    val controller = new SubscriptionController(
-      authenticate        = Fake.login(Fake.user, LocalDateTime.of(2019, 9, 24, 15, 47, 20)),
-      subscriptionService = mockSubscriptionService,
-      taxEnrolmentService = mockTaxEnrolmentService,
-      cc                  = Helpers.stubControllerComponents()
-    )
 
     "handling requests to check if a user has subscribed already" must {
 
@@ -115,9 +122,11 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             headerCarrier,
             FakeRequest().withJsonBody(JsString("hi"))
           )
-        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(true))
-        val result = controller.checkIfUserHasASubscription()(request)
-        status(result) shouldBe OK
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(
+          Right(Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, "")))))
+        val result = controller.checkSubscriptionStatus()(request)
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.obj("value" -> JsString("cgt-reference"))
       }
 
       "return a No Content response if the user has no enrolment request" in {
@@ -128,8 +137,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             headerCarrier,
             FakeRequest().withJsonBody(JsString("hi"))
           )
-        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(false))
-        val result = controller.checkIfUserHasASubscription()(request)
+        mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(None))
+        val result = controller.checkSubscriptionStatus()(request)
         status(result) shouldBe NO_CONTENT
       }
 
@@ -142,7 +151,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Left(Error("Some back end error")))
-        val result = controller.checkIfUserHasASubscription()(request)
+        val result = controller.checkSubscriptionStatus()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
@@ -150,31 +159,30 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
     "handling requests to subscribe" must {
 
-      implicit lazy val mat: Materializer = fakeApplication.materializer
+      def performAction(requestBody: Option[JsValue]): Future[Result] =
+        controller.subscribe()(
+          requestBody.fold[FakeRequest[AnyContent]](FakeRequest())(json => FakeRequest().withJsonBody(json))
+        )
+
+      val subscriptionDetails     = sample[SubscriptionDetails]
+      val subscriptionDetailsJson = Json.toJson(subscriptionDetails)
+      val subscriptionResponse    = sample[SubscriptionResponse]
+      val taxEnrolmentRequest = TaxEnrolmentRequest(
+        Fake.user.ggCredId,
+        subscriptionResponse.cgtReferenceNumber,
+        subscriptionDetails.address,
+        fixedTimestamp
+      )
 
       "return a bad request" when {
 
         "there is no JSON body in the request" in {
-          val request =
-            new AuthenticatedRequest(
-              Fake.user,
-              LocalDateTime.now(),
-              headerCarrier,
-              FakeRequest().withJsonBody(JsString("hi"))
-            )
-          val result = controller.subscribe()(request)
+          val result = performAction(None)
           status(result) shouldBe BAD_REQUEST
         }
 
         "the JSON body cannot be parsed in the request" in {
-          val request =
-            new AuthenticatedRequest(
-              Fake.user,
-              LocalDateTime.now(),
-              headerCarrier,
-              FakeRequest().withJsonBody(JsString("hi"))
-            )
-          val result = controller.subscribe.apply(request)
+          val result = performAction(Some(JsString("Hi")))
           status(result) shouldBe BAD_REQUEST
         }
 
@@ -183,19 +191,21 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       "return an internal server error" when {
 
         "there is a problem while trying to subscribe" in {
-          val subscriptionDetails     = sample[SubscriptionDetails]
-          val subscriptionDetailsJson = Json.toJson(subscriptionDetails)
-
           mockSubscribe(subscriptionDetails)(Left(Error("oh no!")))
-          val request =
-            new AuthenticatedRequest(
-              Fake.user,
-              LocalDateTime.now(),
-              headerCarrier,
-              FakeRequest().withJsonBody(subscriptionDetailsJson)
-            )
 
-          val result = controller.subscribe()(request)
+          val result = performAction(Some(subscriptionDetailsJson))
+          status(result) shouldBe INTERNAL_SERVER_ERROR
+        }
+
+        "subscription is not successful if the tax enrolment service returns an error" in {
+          inSequence {
+            mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
+            mockAllocateEnrolment(taxEnrolmentRequest)(
+              Left(Error("Failed to allocate tax enrolment"))
+            )
+          }
+
+          val result = performAction(Some(subscriptionDetailsJson))
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
 
@@ -204,66 +214,104 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       "return the subscription response" when {
 
         "subscription is successful" in {
-          forAll { subscriptionDetails: SubscriptionDetails =>
-            val subscriptionResponse = SubscriptionResponse("number")
-
-            val fixedTimestamp = LocalDateTime.of(2019, 9, 24, 15, 47, 20)
-            val cgtReference   = "number"
-            val taxEnrolmentRequest = TaxEnrolmentRequest(
-              "ggCredId",
-              cgtReference,
-              subscriptionDetails.address,
-              timestamp = fixedTimestamp
-            )
-
+          inSequence {
             mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
             mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
-
-            val request =
-              new AuthenticatedRequest(
-                Fake.user,
-                fixedTimestamp,
-                headerCarrier,
-                FakeRequest().withJsonBody(Json.toJson(subscriptionDetails))
-              )
-
-            val result = controller.subscribe()(request)
-            status(result)        shouldBe OK
-            contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
           }
+
+          val result = performAction(Some(subscriptionDetailsJson))
+          status(result)        shouldBe OK
+          contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
+        }
+      }
+    }
+
+    "handling requests to register without id and subscribe" must {
+
+      def performAction(requestBody: Option[JsValue]): Future[Result] =
+        controller.registerWithoutIdAndSubscribe()(
+          requestBody.fold[FakeRequest[AnyContent]](FakeRequest())(json => FakeRequest().withJsonBody(json))
+        )
+
+      val registrationDetails     = sample[RegistrationDetails]
+      val registrationDetailsJson = Json.toJson(registrationDetails)
+      val sapNumber               = sample[SapNumber]
+      val subscriptionDetails     = SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber)
+      val subscriptionResponse    = sample[SubscriptionResponse]
+      val taxEnrolmentRequest = TaxEnrolmentRequest(
+        Fake.user.ggCredId,
+        subscriptionResponse.cgtReferenceNumber,
+        subscriptionDetails.address,
+        fixedTimestamp
+      )
+
+      "return a bad request" when {
+
+        "there is no JSON body in the request" in {
+          val result = performAction(None)
+          status(result) shouldBe BAD_REQUEST
+        }
+
+        "the JSON body cannot be parsed in the request" in {
+          val result = performAction(Some(JsString("hi")))
+          status(result) shouldBe BAD_REQUEST
+        }
+
+      }
+
+      "return an internal server error" when {
+
+        "there is a problem while trying to register without id" in {
+          mockRegisterWithoutId(registrationDetails)(Left(Error("")))
+
+          val result = performAction(Some(registrationDetailsJson))
+          status(result) shouldBe INTERNAL_SERVER_ERROR
+        }
+
+        "there is a problem while trying to subscribe" in {
+          inSequence {
+            mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
+            mockSubscribe(SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))(
+              Left(Error("oh no!"))
+            )
+          }
+
+          val result = performAction(Some(registrationDetailsJson))
+          status(result) shouldBe INTERNAL_SERVER_ERROR
+        }
+
+      }
+
+      "return the subscription response" when {
+
+        "subscription is successful" in {
+          inSequence {
+            mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
+            mockSubscribe(SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))(
+              Right(subscriptionResponse)
+            )
+            mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
+          }
+
+          val result = performAction(Some(registrationDetailsJson))
+          status(result)        shouldBe OK
+          contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
         }
       }
 
       "subscription is not successful if the tax enrolment service returns an error" in {
-        forAll { subscriptionDetails: SubscriptionDetails =>
-          val subscriptionResponse = SubscriptionResponse("number")
-
-          val fixedTimestamp = LocalDateTime.of(2019, 9, 24, 15, 47, 20)
-          val cgtReference   = "number"
-          val taxEnrolmentRequest = TaxEnrolmentRequest(
-            "ggCredId",
-            cgtReference,
-            subscriptionDetails.address,
-            timestamp = fixedTimestamp
+        inSequence {
+          mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
+          mockSubscribe(SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))(
+            Right(subscriptionResponse)
           )
-
-          mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
-          mockAllocateEnrolment(taxEnrolmentRequest)(
-            Left(Error("Failed to allocate tax enrolment"))
-          )
-
-          val request =
-            new AuthenticatedRequest(
-              Fake.user,
-              fixedTimestamp,
-              headerCarrier,
-              FakeRequest().withJsonBody(Json.toJson(subscriptionDetails))
-            )
-
-          val result = controller.subscribe()(request)
-          status(result) shouldBe INTERNAL_SERVER_ERROR
+          mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("")))
         }
+
+        val result = performAction(Some(registrationDetailsJson))
+        status(result) shouldBe INTERNAL_SERVER_ERROR
       }
     }
+
   }
 }

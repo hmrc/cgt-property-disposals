@@ -26,8 +26,18 @@ final case class SubscriptionDetails(
   contactName: ContactName,
   emailAddress: Email,
   address: Address,
-  sapNumber: String
+  sapNumber: SapNumber
 )
 object SubscriptionDetails {
   implicit val format: Format[SubscriptionDetails] = Json.format[SubscriptionDetails]
+
+  def fromRegistrationDetails(registrationDetails: RegistrationDetails, sapNumber: SapNumber): SubscriptionDetails =
+    SubscriptionDetails(
+      Right(registrationDetails.name),
+      ContactName(s"${registrationDetails.name.firstName} ${registrationDetails.name.lastName}"),
+      registrationDetails.emailAddress,
+      registrationDetails.address,
+      sapNumber
+    )
+
 }

@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.ids
+package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format
 
-final case class NINO(value: String) extends AnyVal
+final case class SapNumber(value: String) extends AnyVal
 
-object NINO {
+object SapNumber {
 
-  implicit val format: OFormat[NINO] = Json.format[NINO]
+  implicit val format: Format[SapNumber] =
+    implicitly[Format[String]].inmap(SapNumber(_), _.value)
 
 }

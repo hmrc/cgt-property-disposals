@@ -33,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultTaxEnrolmentRepository])
 trait TaxEnrolmentRepository {
   def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
-  def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Boolean]
+  def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit]
   def delete(userId: String): EitherT[Future, Error, Int]
 }
 
@@ -55,16 +55,21 @@ class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
     )
   )
 
-  override def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Boolean] =
-    EitherT[Future, Error, Boolean](
+  override def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit] =
+    EitherT[Future, Error, Unit](
       collection.insert
         .one[TaxEnrolmentRequest](cgtEnrolmentRequest)
-        .map { result: WriteResult =>
-          Right(result.ok)
+        .map[Either[Error, Unit]] { result: WriteResult =>
+          if (result.ok)
+            Right(())
+          else
+            Left(
+              Error(
+                s"Could not insert enrolment request into database: got write errors :${result.writeErrors}"
+              ))
         }
         .recover {
-          case exception =>
-            Left(Error(exception.getMessage))
+          case exception => Left(Error(exception))
         }
     )
 

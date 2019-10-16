@@ -38,13 +38,13 @@ class TaxEnrolmentRepositorySpec extends WordSpec with Matchers with MongoSuppor
   "The Tax Enrolment Retry repository" when {
     "inserting" should {
       "create a new tax enrolment record" in {
-        await(repository.insert(taxEnrolmentRequest).value) shouldBe Right(true)
+        await(repository.insert(taxEnrolmentRequest).value) shouldBe Right(())
       }
     }
 
     "getting" should {
       "retrieve an existing record" in {
-        await(repository.insert(taxEnrolmentRequest).value)       shouldBe Right(true)
+        await(repository.insert(taxEnrolmentRequest).value)       shouldBe Right(())
         await(repository.get(taxEnrolmentRequest.ggCredId).value) shouldBe (Right(Some(taxEnrolmentRequest)))
       }
       "return none if the record does not exist" in {

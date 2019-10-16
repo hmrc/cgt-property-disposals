@@ -20,13 +20,14 @@ import cats.data.EitherT
 import cats.instances.future._
 import cats.syntax.either._
 import com.google.inject.Inject
-import play.api.libs.json.Json
+import play.api.libs.json.{JsString, Json, Reads}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
-import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest}
-import uk.gov.hmrc.cgtpropertydisposals.service.{SubscriptionService, TaxEnrolmentService}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -37,6 +38,7 @@ class SubscriptionController @Inject()(
   authenticate: AuthenticateActions,
   subscriptionService: SubscriptionService,
   taxEnrolmentService: TaxEnrolmentService,
+  registerWithoutIdService: RegisterWithoutIdService,
   cc: ControllerComponents
 )(
   implicit ec: ExecutionContext
@@ -46,31 +48,9 @@ class SubscriptionController @Inject()(
   def subscribe(): Action[AnyContent] = authenticate.async { implicit request =>
     val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
       for {
-        json <- EitherT.fromEither[Future](
-                 Either.fromOption(request.body.asJson, RequestValidationError("No JSON body found in request"))
-               )
-        subscriptionDetails <- EitherT.fromEither[Future](
-                                json
-                                  .validate[SubscriptionDetails]
-                                  .asEither
-                                  .leftMap(
-                                    e =>
-                                      RequestValidationError(s"Could not parse JSON body as subscription request: $e")
-                                  )
-                              )
-        subscriptionResponse <- subscriptionService
-                                 .subscribe(subscriptionDetails)
-                                 .leftMap[SubscriptionError](BackendError(_))
-        _ <- taxEnrolmentService
-              .allocateEnrolmentToGroup(
-                TaxEnrolmentRequest(
-                  request.user.ggCredId,
-                  subscriptionResponse.cgtReferenceNumber,
-                  subscriptionDetails.address,
-                  timestamp = request.timestamp
-                )
-              )
-              .leftMap[SubscriptionError](BackendError(_))
+        subscriptionDetails <- EitherT.fromEither[Future](extractRequest[SubscriptionDetails](request))
+        subscriptionResponse <- subscribeAndEnrol(subscriptionDetails)
+                                 .leftMap[SubscriptionError](BackendError)
       } yield subscriptionResponse
 
     result.fold(
@@ -87,15 +67,73 @@ class SubscriptionController @Inject()(
     )
   }
 
-  def checkIfUserHasASubscription(): Action[AnyContent] = authenticate.async { implicit request =>
+  def registerWithoutIdAndSubscribe(): Action[AnyContent] = authenticate.async { implicit request =>
+    val result = for {
+      registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))
+      sapNumber <- registerWithoutIdService
+                    .registerWithoutId(registrationDetails)
+                    .leftMap(BackendError)
+      subscriptionResponse <- subscribeAndEnrol(
+                               SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))
+                               .leftMap[SubscriptionError](BackendError)
+    } yield subscriptionResponse
+
+    result.fold(
+      {
+        case RequestValidationError(msg) =>
+          logger.warn(s"Error in request to register without id and subscribe: $msg")
+          BadRequest
+        case BackendError(e) =>
+          logger.warn("Error while trying to register without id and subscribe:", e)
+          InternalServerError
+      }, { r =>
+        Ok(Json.toJson(r))
+      }
+    )
+  }
+
+  def checkSubscriptionStatus(): Action[AnyContent] = authenticate.async { implicit request =>
     taxEnrolmentService.hasCgtSubscription(request.user.ggCredId).value.map {
       case Left(error) =>
         logger.warn(s"Error checking existence of enrolment request: $error")
         InternalServerError
-      case Right(userHasSubscription) =>
-        if (userHasSubscription) Ok else NoContent
+      case Right(maybeEnrolmentRequest) =>
+        maybeEnrolmentRequest match {
+          case Some(enrolmentRequest) => Ok(Json.obj("value" -> JsString(enrolmentRequest.cgtReference)))
+          case None                   => NoContent
+        }
     }
   }
+
+  private def extractRequest[R: Reads](request: AuthenticatedRequest[AnyContent]): Either[SubscriptionError, R] =
+    Either
+      .fromOption(request.body.asJson, RequestValidationError("No JSON body found in request"))
+      .flatMap(
+        _.validate[R].asEither
+          .leftMap(
+            e =>
+              RequestValidationError(
+                s"Could not parse JSON body as register and subscribe request: $e"
+            )
+          )
+      )
+
+  private def subscribeAndEnrol(
+    subscriptionDetails: SubscriptionDetails
+  )(implicit request: AuthenticatedRequest[_]): EitherT[Future, Error, SubscriptionResponse] =
+    for {
+      subscriptionResponse <- subscriptionService
+                               .subscribe(subscriptionDetails)
+      _ <- taxEnrolmentService
+            .allocateEnrolmentToGroup(
+              TaxEnrolmentRequest(
+                request.user.ggCredId,
+                subscriptionResponse.cgtReferenceNumber,
+                subscriptionDetails.address,
+                timestamp = request.timestamp
+              )
+            )
+    } yield subscriptionResponse
 }
 
 object SubscriptionController {

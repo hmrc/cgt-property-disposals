@@ -146,7 +146,7 @@ object SubscriptionConnectorImpl {
 
       DesSubscriptionRequest(
         "CGT",
-        Identity("sapNumber", s.sapNumber),
+        Identity("sapNumber", s.sapNumber.value),
         DesSubscriptionDetails(
           typeOfPersonDetails,
           addressDetails,
