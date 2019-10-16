@@ -20,7 +20,7 @@ import cats.data.EitherT
 import cats.instances.future._
 import cats.syntax.either._
 import com.google.inject.Inject
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json.{JsString, Json, Reads}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
@@ -92,13 +92,16 @@ class SubscriptionController @Inject()(
     )
   }
 
-  def checkIfUserHasASubscription(): Action[AnyContent] = authenticate.async { implicit request =>
+  def checkSubscriptionStatus(): Action[AnyContent] = authenticate.async { implicit request =>
     taxEnrolmentService.hasCgtSubscription(request.user.ggCredId).value.map {
       case Left(error) =>
         logger.warn(s"Error checking existence of enrolment request: $error")
         InternalServerError
-      case Right(userHasSubscription) =>
-        if (userHasSubscription) Ok else NoContent
+      case Right(maybeEnrolmentRequest) =>
+        maybeEnrolmentRequest match {
+          case Some(enrolmentRequest) => Ok(Json.obj("value" -> JsString(enrolmentRequest.cgtReference)))
+          case None                   => NoContent
+        }
     }
   }
 

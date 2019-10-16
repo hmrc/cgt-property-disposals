@@ -34,7 +34,8 @@ trait TaxEnrolmentService {
   def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
-  def hasCgtSubscription(ggCredId: String)(implicit hc: HeaderCarrier): EitherT[Future, Error, Boolean]
+  def hasCgtSubscription(ggCredId: String)(
+    implicit hc: HeaderCarrier): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
 }
 
 @Singleton
@@ -94,14 +95,14 @@ class TaxEnrolmentServiceImpl @Inject()(
 
   override def hasCgtSubscription(
     ggCredId: String
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Boolean] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     for {
       maybeEnrolmentRequest <- taxEnrolmentRepository
                                 .get(ggCredId)
                                 .leftMap(
                                   error => Error(s"Could not check database to determine subscription status: $error")
                                 )
-      _ <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
-    } yield maybeEnrolmentRequest.nonEmpty
+      result <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
+    } yield maybeEnrolmentRequest
 
 }

@@ -20,6 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.NonUkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRepository
@@ -95,14 +96,15 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       "return a user's subscription status" when {
         "there does not exist a stored enrolment request" in {
           mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
-          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(false)
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(None)
         }
         "there does exist a stored enrolment request but the enrolment call fails again" in {
           inSequence {
             mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection error")))
           }
-          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(true)
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(
+            Some(taxEnrolmentRequestWithNonUkAddress))
         }
         "there does exist a stored enrolment request and the enrolment call succeeds but the deleting of the record fails" in {
           inSequence {
@@ -110,7 +112,8 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
             mockDelete(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Database error")))
           }
-          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(true)
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(
+            Some(taxEnrolmentRequestWithNonUkAddress))
         }
       }
       "return true" when {
