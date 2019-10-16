@@ -117,9 +117,10 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(
-          Right(Some(TaxEnrolmentRequest("ggCredId", "", UkAddress("line1", None, None, None, "")))))
+          Right(Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, "")))))
         val result = controller.checkSubscriptionStatus()(request)
-        status(result) shouldBe OK
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.obj("value" -> JsString("cgt-reference"))
       }
 
       "return a No Content response if the user has no enrolment request" in {
