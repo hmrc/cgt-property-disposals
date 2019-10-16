@@ -44,12 +44,12 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .returning(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
   def mockInsert(taxEnrolmentRequest: TaxEnrolmentRequest)(
-    response: Either[Error, Boolean]
+    response: Either[Error, Unit]
   ) =
     (mockRepository
       .insert(_: TaxEnrolmentRequest))
       .expects(taxEnrolmentRequest)
-      .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
+      .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
   def mockGet(ggCredId: String)(
     response: Either[Error, Option[TaxEnrolmentRequest]]
@@ -138,14 +138,6 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           }
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isLeft shouldBe true
         }
-        "the http call comes back with a status other than 204 and the insert into mongo fails" in {
-          inSequence {
-            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(false))
-          }
-
-          await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isLeft shouldBe true
-        }
         "the http call comes back with an exception and the insert into mongo fails" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection error")))
@@ -160,7 +152,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status other than 204" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(true))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(()))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
@@ -168,7 +160,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status other than no content and the insert into mongo succeeds" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(true))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(()))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
@@ -177,7 +169,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call fails and the insert into mongo succeeds" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("uh oh")))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(true))
+            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(()))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true

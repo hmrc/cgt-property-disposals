@@ -69,9 +69,6 @@ class TaxEnrolmentServiceImpl @Inject()(
                  taxEnrolmentRepository
                    .insert(taxEnrolmentRequest)
                    .leftMap(error => Error(s"Could not store enrolment details: $error"))
-                   .subflatMap { writeResult =>
-                     if (writeResult) Right(()) else Left(Error("Failed to store enrolment details"))
-                   }
                }
     } yield result
 

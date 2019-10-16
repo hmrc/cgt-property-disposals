@@ -16,20 +16,15 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.NINO
+import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
 
-class NINOSpec extends WordSpec with Matchers {
-
-  "NINO" must {
-
-    "have a PathBindable instance" in {
-      import uk.gov.hmrc.cgtpropertydisposals.models.ids.NINO.binder
-
-      binder.bind("key", "value")         shouldBe Right(NINO("value"))
-      binder.unbind("key", NINO("value")) shouldBe "value"
-    }
-
-  }
-
+final case class RegistrationDetails(
+  name: IndividualName,
+  emailAddress: Email,
+  address: Address
+)
+object RegistrationDetails {
+  implicit val format: Format[RegistrationDetails] = Json.format[RegistrationDetails]
 }
