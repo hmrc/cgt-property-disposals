@@ -97,7 +97,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector)(implic
         a.addressLine2,
         a.addressLine3,
         a.addressLine4,
-        a.postalCode
+        a.postalCode.getOrElse("")
       )
     } else {
       NonUkAddress(
@@ -105,7 +105,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector)(implic
         a.addressLine2,
         a.addressLine3,
         a.addressLine4,
-        if (a.postalCode === "") None else Some(a.postalCode),
+        if (a.postalCode.contains("")) None else a.postalCode,
         Country(a.countryCode, Country.countryCodeToCountryName.get(a.countryCode))
       )
     }

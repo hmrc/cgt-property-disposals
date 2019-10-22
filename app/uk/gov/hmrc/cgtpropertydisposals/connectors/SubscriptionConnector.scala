@@ -50,7 +50,8 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
 
   val baseUrl: String = config.baseUrl("subscription")
 
-  val subscribeUrl: String = s"$baseUrl/subscriptions/create/CGT"
+  val subscribeUrl: String           = s"$baseUrl/subscriptions/create/CGT"
+  val subscriptionDisplayUrl: String = s"$baseUrl/subscriptions"
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
@@ -77,7 +78,7 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
 
     EitherT[Future, Error, HttpResponse](
       http
-        .get(baseUrl + "/subscriptions", queryParameters, headers)
+        .get(subscriptionDisplayUrl, queryParameters, headers)
         .map(Right(_))
         .recover {
           case e => Left(Error(e))

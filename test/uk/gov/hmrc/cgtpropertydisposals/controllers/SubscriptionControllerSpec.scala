@@ -161,7 +161,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             |        "value": "XDCGT123456789"
             |    },
             |    "telephoneNumber": "+44191919191919",
-            |    "registrationWithId": true
+            |    "registeredWithId": true
             |}
             |""".stripMargin
 

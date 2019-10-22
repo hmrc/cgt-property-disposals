@@ -27,7 +27,7 @@ final case class SubscriptionDisplayResponse(
   contactName: ContactName,
   cgtReference: CgtReference,
   telephoneNumber: Option[TelephoneNumber],
-  registrationWithId: Boolean
+  registeredWithId: Boolean
 )
 
 object SubscriptionDisplayResponse {
