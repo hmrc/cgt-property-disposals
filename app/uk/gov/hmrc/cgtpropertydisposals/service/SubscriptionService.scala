@@ -104,12 +104,15 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
       desSubscriptionDisplayDetails.subscriptionDetails.trustee
     )
 
-    (addressValidation, nameValidation)
+    val emailValidation: Validation[Email] =
+      Email.emailValidation(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress)
+
+    (addressValidation, nameValidation, emailValidation)
       .mapN {
-        case (address, name) =>
+        case (address, name, email) =>
           SubscribedDetails(
             name,
-            desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress.map(e => Email(e)),
+            email,
             address,
             ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
             cgtReference,

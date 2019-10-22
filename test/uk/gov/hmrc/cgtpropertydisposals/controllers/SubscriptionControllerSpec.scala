@@ -134,7 +134,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           Right(
             SubscribedDetails(
               Right(IndividualName("Stephen", "Wood")),
-              Some(Email("stephen@abc.co.uk")),
+              Email("stephen@abc.co.uk"),
               UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
               ContactName("Stephen Wood"),
               CgtReference("XDCGT123456789"),

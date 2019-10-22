@@ -115,7 +115,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         val subscriptionDisplayResponse = SubscribedDetails(
           Left(TrustName("ABC Trust")),
-          Some(Email("stephen@abc.co.uk")),
+          Email("stephen@abc.co.uk"),
           NonUkAddress("101 Kiwi Street", None, None, Some("Christchurch"), None, Country("NZ", Some("New Zealand"))),
           ContactName("Stephen Wood"),
           cgtReference,
@@ -157,7 +157,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         val subscriptionDisplayResponse = SubscribedDetails(
           Left(TrustName("ABC Trust")),
-          Some(Email("stephen@abc.co.uk")),
+          Email("stephen@abc.co.uk"),
           NonUkAddress(
             "101 Kiwi Street",
             None,
@@ -209,7 +209,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         val subscriptionDisplayResponse = SubscribedDetails(
           Right(IndividualName("Luke", "Bishop")),
-          Some(Email("stephen@abc.co.uk")),
+          Email("stephen@abc.co.uk"),
           UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
           ContactName("Stephen Wood"),
           cgtReference,

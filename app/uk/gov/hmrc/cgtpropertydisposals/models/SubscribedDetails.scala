@@ -17,14 +17,14 @@
 package uk.gov.hmrc.cgtpropertydisposals.models
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
 final case class SubscribedDetails(
   name: Either[TrustName, IndividualName],
-  emailAddress: Option[Email],
+  emailAddress: Email,
   address: Address,
   contactName: ContactName,
   cgtReference: CgtReference,
