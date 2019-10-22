@@ -105,8 +105,8 @@ class SubscriptionController @Inject()(
     }
   }
 
-  def getSubscription(cgtReference: String): Action[AnyContent] = authenticate.async { implicit request =>
-    subscriptionService.getSubscription(CgtReference(cgtReference)).value.map {
+  def getSubscription(cgtReference: CgtReference): Action[AnyContent] = authenticate.async { implicit request =>
+    subscriptionService.getSubscription(cgtReference).value.map {
       case Left(error) =>
         logger.warn(s"Error getting subscription details: $error")
         InternalServerError

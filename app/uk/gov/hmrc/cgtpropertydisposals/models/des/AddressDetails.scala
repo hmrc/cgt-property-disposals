@@ -23,7 +23,7 @@ final case class AddressDetails(
   addressLine2: Option[String],
   addressLine3: Option[String],
   addressLine4: Option[String],
-  postalCode: String, // TODO: This is a non-optional data point in the DES schema. Discuss
+  postalCode: String,
   countryCode: String
 )
 

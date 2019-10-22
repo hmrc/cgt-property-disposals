@@ -17,9 +17,23 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.ids
 
 import play.api.libs.json.{Json, OFormat}
+import play.api.mvc.PathBindable
+import cats.syntax.either._
 
 final case class CgtReference(value: String) extends AnyVal
 
 object CgtReference {
+
+  implicit val binder: PathBindable[CgtReference] =
+    new PathBindable[CgtReference] {
+      val stringBinder: PathBindable[String] = implicitly[PathBindable[String]]
+
+      override def bind(key: String, value: String): Either[String, CgtReference] =
+        stringBinder.bind(key, value).map(CgtReference.apply)
+
+      override def unbind(key: String, value: CgtReference): String =
+        stringBinder.unbind(key, value.value)
+    }
+
   implicit val format: OFormat[CgtReference] = Json.format[CgtReference]
 }

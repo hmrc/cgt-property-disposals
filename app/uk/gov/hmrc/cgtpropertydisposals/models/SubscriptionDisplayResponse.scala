@@ -22,7 +22,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 
 final case class SubscriptionDisplayResponse(
-  emailAddress: Option[Email], //TODO: DES have this as an optional field. Discuss.
+  emailAddress: Option[Email],
   address: Address,
   contactName: ContactName,
   cgtReference: CgtReference,

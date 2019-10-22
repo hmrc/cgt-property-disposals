@@ -165,7 +165,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             |}
             |""".stripMargin
 
-        val result = controller.getSubscription("XDCGT123456789")(request)
+        val result = controller.getSubscription(CgtReference("XDCGT123456789"))(request)
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.parse(expectedResponse)
       }
@@ -182,7 +182,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
           mockGetSubscription(CgtReference("XDCGT123456789"))(Left(Error("Could not get subscription details")))
 
-          val result = controller.getSubscription("XDCGT123456789")(request)
+          val result = controller.getSubscription(CgtReference("XDCGT123456789"))(request)
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
       }
