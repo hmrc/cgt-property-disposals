@@ -16,23 +16,21 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
-import cats.data.Validated.{Invalid, Valid}
-import cats.data.{EitherT, NonEmptyList, ValidatedNel}
+import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
-import cats.instances.string._
+import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, Individual, Trustee}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscriptionDetails, SubscriptionDisplayResponse, SubscriptionResponse, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
 import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.DesSubscriptionDisplayDetails
@@ -97,41 +95,31 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
     val desNonIsoCountryCodes: List[CountryCode] =
       config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
-    val a = desSubscriptionDisplayDetails.subscriptionDetails.addressDetails
+    val addressValidation: Validation[Address] = AddressDetails.fromDesAddressDetails(
+      desSubscriptionDisplayDetails.subscriptionDetails.addressDetails
+    )(desNonIsoCountryCodes)
 
-    val addressValidation: Validation[Address] = {
-      if (a.countryCode === "GB") {
-        a.postalCode.fold[ValidatedNel[String, Address]](
-          Invalid(NonEmptyList.one("Could not find postcode for UK address"))
-        )(p => Valid(UkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, p)))
-      } else {
-        val country = Country.countryCodeToCountryName.get(a.countryCode) match {
-          case Some(countryName)                                     => Some(Country(a.countryCode, Some(countryName)))
-          case None if desNonIsoCountryCodes.contains(a.countryCode) => Some(Country(a.countryCode, None))
-          case None                                                  => None
-        }
+    val nameValidation: Validation[Either[TrustName, IndividualName]] = Name.nameValidation(
+      desSubscriptionDisplayDetails.subscriptionDetails.individual,
+      desSubscriptionDisplayDetails.subscriptionDetails.trustee
+    )
 
-        country.fold[ValidatedNel[String, Address]](
-          Invalid(NonEmptyList.one(s"Received unknown country code: ${a.countryCode}"))
-        )(c => Valid(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, c)))
-      }
-    }
-
-    (addressValidation)
-      .map { address =>
-        SubscriptionDisplayResponse(
-          desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress.flatMap(e => Some(Email(e))),
-          address,
-          ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
-          cgtReference,
-          desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber
-            .flatMap(t => Some(TelephoneNumber(t))),
-          desSubscriptionDisplayDetails.subscriptionDetails.isRegisteredWithId
-        )
+    (addressValidation, nameValidation)
+      .mapN {
+        case (address, name) =>
+          SubscriptionDisplayResponse(
+            name,
+            desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress.flatMap(e => Some(Email(e))),
+            address,
+            ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
+            cgtReference,
+            desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber
+              .flatMap(t => Some(TelephoneNumber(t))),
+            desSubscriptionDisplayDetails.subscriptionDetails.isRegisteredWithId
+          )
       }
       .toEither
       .leftMap(errors => s"Could not read DES response: ${errors.toList.mkString("; ")}")
-
   }
 
 }

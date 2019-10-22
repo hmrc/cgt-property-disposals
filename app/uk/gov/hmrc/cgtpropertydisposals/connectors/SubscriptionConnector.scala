@@ -50,8 +50,9 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
 
   val baseUrl: String = config.baseUrl("subscription")
 
-  val subscribeUrl: String           = s"$baseUrl/subscriptions/create/CGT"
-  val subscriptionDisplayUrl: String = s"$baseUrl/subscriptions"
+  val subscribeUrl: String = s"$baseUrl/subscriptions/create/CGT"
+  def subscriptionDisplayUrl(cgtReference: CgtReference): String =
+    s"$baseUrl/subscriptions/CGT/ZCGT/${cgtReference.value}"
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
@@ -72,19 +73,15 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
 
   override def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, HttpResponse] = {
-
-    val queryParameters = Map("regime" -> "CGT", "id" -> cgtReference.value)
-
+  ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .get(subscriptionDisplayUrl, queryParameters, headers)
+        .get(subscriptionDisplayUrl(cgtReference), Map.empty, headers)
         .map(Right(_))
         .recover {
           case e => Left(Error(e))
         }
     )
-  }
 
 }
 

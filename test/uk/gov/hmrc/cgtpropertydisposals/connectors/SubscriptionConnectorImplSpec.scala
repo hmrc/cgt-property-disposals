@@ -61,10 +61,11 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
   "SubscriptionConnectorImpl" when {
 
-    implicit val hc: HeaderCarrier     = HeaderCarrier()
-    val expectedHeaders                = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-    val expectedSubscriptionUrl        = "http://host:123/subscriptions/create/CGT"
-    val expectedSubscriptionDisplayUrl = "http://host:123/subscriptions"
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedSubscriptionUrl    = "http://host:123/subscriptions/create/CGT"
+    def expectedSubscriptionDisplayUrl(cgtReference: CgtReference) =
+      s"http://host:123/subscriptions/CGT/ZCGT/${cgtReference.value}"
 
     "handling request to get subscription display details" must {
 
@@ -107,8 +108,8 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
-              expectedSubscriptionDisplayUrl,
-              Map("regime" -> "CGT", "id" -> cgtReference.value),
+              expectedSubscriptionDisplayUrl(cgtReference),
+              Map.empty,
               expectedHeaders
             )(
               Some(httpResponse)
@@ -120,7 +121,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockGet(expectedSubscriptionDisplayUrl, Map("regime" -> "CGT", "id" -> cgtReference.value), expectedHeaders)(
+        mockGet(expectedSubscriptionDisplayUrl(cgtReference), Map.empty, expectedHeaders)(
           None
         )
 

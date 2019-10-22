@@ -27,10 +27,11 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscriptionDetails, SubscriptionDisplayResponse, SubscriptionResponse, TelephoneNumber, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import org.scalacheck.ScalacheckShapeless._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -113,6 +114,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |""".stripMargin
 
         val subscriptionDisplayResponse = SubscriptionDisplayResponse(
+          Left(TrustName("ABC Trust")),
           Some(Email("stephen@abc.co.uk")),
           NonUkAddress("101 Kiwi Street", None, None, Some("Christchurch"), None, Country("NZ", Some("New Zealand"))),
           ContactName("Stephen Wood"),
@@ -154,6 +156,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |""".stripMargin
 
         val subscriptionDisplayResponse = SubscriptionDisplayResponse(
+          Left(TrustName("ABC Trust")),
           Some(Email("stephen@abc.co.uk")),
           NonUkAddress(
             "101 Kiwi Street",
@@ -205,6 +208,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |""".stripMargin
 
         val subscriptionDisplayResponse = SubscriptionDisplayResponse(
+          Right(IndividualName("Luke", "Bishop")),
           Some(Email("stephen@abc.co.uk")),
           UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
           ContactName("Stephen Wood"),

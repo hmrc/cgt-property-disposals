@@ -19,9 +19,11 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
 final case class SubscriptionDisplayResponse(
+  name: Either[TrustName, IndividualName],
   emailAddress: Option[Email],
   address: Address,
   contactName: ContactName,
