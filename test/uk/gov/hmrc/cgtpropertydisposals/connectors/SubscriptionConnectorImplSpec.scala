@@ -24,8 +24,9 @@ import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SapNumber, SubscriptionDetails, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SapNumber, SubscriptionDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -62,7 +63,72 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-    val expectedUrl                = "http://host:123/subscriptions/create/CGT"
+    val expectedSubscriptionUrl    = "http://host:123/subscriptions/create/CGT"
+    def expectedSubscriptionDisplayUrl(cgtReference: CgtReference) =
+      s"http://host:123/subscriptions/CGT/ZCGT/${cgtReference.value}"
+
+    "handling request to get subscription display details" must {
+
+      val cgtReference = CgtReference("XFCGT123456789")
+
+      val expectedResponse =
+        """
+          |{
+          |    "regime": "CGT",
+          |    "subscriptionDetails": {
+          |        "individual": {
+          |            "typeOfPerson": "Individual",
+          |            "firstName": "Luke",
+          |            "lastName": "Bishop"
+          |        },
+          |        "isRegisteredWithId": true,
+          |        "addressDetails": {
+          |            "addressLine1": "100 Sutton Street",
+          |            "addressLine2": "Wokingham",
+          |            "addressLine3": "Surrey",
+          |            "addressLine4": "London",
+          |            "postalCode": "DH14EJ",
+          |            "countryCode": "GB"
+          |        },
+          |        "contactDetails": {
+          |            "contactName": "Stephen Wood",
+          |            "phoneNumber": "(+013)32752856",
+          |            "mobileNumber": "(+44)7782565326",
+          |            "faxNumber": "01332754256",
+          |            "emailAddress": "stephen@abc.co.uk"
+          |        }
+          |    }
+          |}
+          |""".stripMargin
+
+      "do a get http call and return the result" in {
+        List(
+          HttpResponse(200, Some(Json.parse(expectedResponse))),
+          HttpResponse(500)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+            mockGet(
+              expectedSubscriptionDisplayUrl(cgtReference),
+              Map.empty,
+              expectedHeaders
+            )(
+              Some(httpResponse)
+            )
+
+            await(connector.getSubscription(cgtReference).value) shouldBe Right(httpResponse)
+          }
+        }
+      }
+
+      "return an error when the future fails" in {
+        mockGet(expectedSubscriptionDisplayUrl(cgtReference), Map.empty, expectedHeaders)(
+          None
+        )
+
+        await(connector.getSubscription(cgtReference).value).isLeft shouldBe true
+      }
+
+    }
 
     "handling request to subscribe for individuals" must {
 
@@ -112,7 +178,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(expectedUrl, expectedHeaders, expectedRequest)(
+            mockPost(expectedSubscriptionUrl, expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -122,7 +188,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
+        mockPost(expectedSubscriptionUrl, expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }
@@ -141,7 +207,8 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           Some("line3"),
           Some("line4"),
           Some("postcode"),
-          Country("HK", Some("Hong Kong"))),
+          Country("HK", Some("Hong Kong"))
+        ),
         SapNumber("sap")
       )
 
@@ -182,7 +249,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(expectedUrl, expectedHeaders, expectedRequest)(
+            mockPost(expectedSubscriptionUrl, expectedHeaders, expectedRequest)(
               Some(httpResponse)
             )
 
@@ -192,7 +259,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
+        mockPost(expectedSubscriptionUrl, expectedHeaders, expectedRequest)(None)
 
         await(connector.subscribe(subscriptionDetails).value).isLeft shouldBe true
       }

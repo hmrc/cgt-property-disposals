@@ -15,7 +15,6 @@
  */
 
 package uk.gov.hmrc.cgtpropertydisposals.service
-
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{EitherT, NonEmptyList, ValidatedNel}
 import cats.instances.future._
@@ -31,10 +30,10 @@ import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, Validation}
@@ -91,23 +90,7 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
   def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
     val a = d.address
 
-    val addressValidation: Validation[Address] = {
-      if (a.countryCode === "GB") {
-        a.postalCode.fold[ValidatedNel[String, Address]](
-          Invalid(NonEmptyList.one("Could not find postcode for UK address"))
-        )(p => Valid(UkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, p)))
-      } else {
-        val country = Country.countryCodeToCountryName.get(a.countryCode) match {
-          case Some(countryName)                                     => Some(Country(a.countryCode, Some(countryName)))
-          case None if desNonIsoCountryCodes.contains(a.countryCode) => Some(Country(a.countryCode, None))
-          case None                                                  => None
-        }
-
-        country.fold[ValidatedNel[String, Address]](
-          Invalid(NonEmptyList.one(s"Received unknown country code: ${a.countryCode}"))
-        )(c => Valid(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, c)))
-      }
-    }
+    val addressValidation: Validation[Address] = AddressDetails.fromDesAddressDetails(a)(desNonIsoCountryCodes)
 
     val nameValidation: Validation[Either[TrustName, IndividualName]] =
       d.individual -> d.organisation match {
@@ -142,7 +125,7 @@ object BusinessPartnerRecordServiceImpl {
   type Validation[A] = ValidatedNel[String, A]
 
   final case class DesBusinessPartnerRecord(
-    address: DesAddress,
+    address: AddressDetails,
     contactDetails: DesContactDetails,
     sapNumber: String,
     organisation: Option[DesOrganisation],
@@ -151,15 +134,6 @@ object BusinessPartnerRecordServiceImpl {
 
   object DesBusinessPartnerRecord {
     final case class DesOrganisation(organisationName: String)
-
-    final case class DesAddress(
-      addressLine1: String,
-      addressLine2: Option[String],
-      addressLine3: Option[String],
-      addressLine4: Option[String],
-      postalCode: Option[String],
-      countryCode: String
-    )
 
     final case class DesIndividual(
       firstName: String,
@@ -171,7 +145,6 @@ object BusinessPartnerRecordServiceImpl {
     final case class DesErrorResponse(code: String, reason: String)
 
     implicit val organisationReads: Reads[DesOrganisation]     = Json.reads
-    implicit val addressReads: Reads[DesAddress]               = Json.reads
     implicit val individualReads: Reads[DesIndividual]         = Json.reads
     implicit val contactDetailsReads: Reads[DesContactDetails] = Json.reads
     implicit val bprReads: Reads[DesBusinessPartnerRecord]     = Json.reads

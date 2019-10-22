@@ -33,6 +33,13 @@ object HttpClient {
 
   implicit class HttpClientOps(val http: uk.gov.hmrc.play.bootstrap.http.HttpClient) extends AnyVal {
 
+    def get(
+      url: String,
+      queryParams: Map[String, String] = Map.empty[String, String],
+      headers: Map[String, String]     = Map.empty[String, String]
+    )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] =
+      http.GET(url, queryParams.toSeq)(rawHttpReads, hc.withExtraHeaders(headers.toSeq: _*), ec)
+
     def post[A](
       url: String,
       body: A,

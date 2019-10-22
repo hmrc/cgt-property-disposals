@@ -25,8 +25,8 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
@@ -74,8 +74,8 @@ class SubscriptionController @Inject()(
                     .registerWithoutId(registrationDetails)
                     .leftMap(BackendError)
       subscriptionResponse <- subscribeAndEnrol(
-                               SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))
-                               .leftMap[SubscriptionError](BackendError)
+                               SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber)
+                             ).leftMap[SubscriptionError](BackendError)
     } yield subscriptionResponse
 
     result.fold(
@@ -102,6 +102,15 @@ class SubscriptionController @Inject()(
           case Some(enrolmentRequest) => Ok(Json.obj("value" -> JsString(enrolmentRequest.cgtReference)))
           case None                   => NoContent
         }
+    }
+  }
+
+  def getSubscription(cgtReference: CgtReference): Action[AnyContent] = authenticate.async { implicit request =>
+    subscriptionService.getSubscription(cgtReference).value.map {
+      case Left(error) =>
+        logger.warn(s"Error getting subscription details: $error")
+        InternalServerError
+      case Right(subscribedDetails) => Ok(Json.toJson(subscribedDetails))
     }
   }
 

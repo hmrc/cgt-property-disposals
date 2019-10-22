@@ -49,7 +49,9 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionDetails._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, SapNumber, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest, TelephoneNumber, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -82,6 +84,12 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(expectedSubscriptionDetails, *)
       .returning(EitherT(Future.successful(response)))
 
+  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, SubscribedDetails]): Unit =
+    (mockSubscriptionService
+      .getSubscription(_: CgtReference)(_: HeaderCarrier))
+      .expects(cgtReference, *)
+      .returning(EitherT.fromEither(response))
+
   def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
@@ -112,6 +120,76 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
   "The SubscriptionController" when {
 
+    "handling request to get subscription details" must {
+
+      "return a 200 OK response if the a subscription exists" in {
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest()
+          )
+        mockGetSubscription(CgtReference("XDCGT123456789"))(
+          Right(
+            SubscribedDetails(
+              Right(IndividualName("Stephen", "Wood")),
+              Email("stephen@abc.co.uk"),
+              UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
+              ContactName("Stephen Wood"),
+              CgtReference("XDCGT123456789"),
+              Some(TelephoneNumber("+44191919191919")),
+              true
+            ))
+        )
+
+        val expectedResponse =
+          """
+            |{
+            |    "name" : {"r":{"firstName":"Stephen","lastName":"Wood"}},
+            |    "emailAddress": "stephen@abc.co.uk",
+            |    "address": {
+            |        "UkAddress": {
+            |            "postcode": "DH14EJ",
+            |            "line1": "100 Sutton Street",
+            |            "line2": "Wokingham",
+            |            "town": "Surrey",
+            |            "county": "London",
+            |            "postcode": "DH14EJ"
+            |        }
+            |    },
+            |    "contactName": "Stephen Wood",
+            |    "cgtReference": {
+            |        "value": "XDCGT123456789"
+            |    },
+            |    "telephoneNumber": "+44191919191919",
+            |    "registeredWithId": true
+            |}
+            |""".stripMargin
+
+        val result = controller.getSubscription(CgtReference("XDCGT123456789"))(request)
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.parse(expectedResponse)
+      }
+
+      "return an internal server error" when {
+        "there is a problem while trying to get the subscription display details" in {
+          val request =
+            new AuthenticatedRequest(
+              Fake.user,
+              LocalDateTime.now(),
+              headerCarrier,
+              FakeRequest()
+            )
+
+          mockGetSubscription(CgtReference("XDCGT123456789"))(Left(Error("Could not get subscription details")))
+
+          val result = controller.getSubscription(CgtReference("XDCGT123456789"))(request)
+          status(result) shouldBe INTERNAL_SERVER_ERROR
+        }
+      }
+    }
+
     "handling requests to check if a user has subscribed already" must {
 
       "return a 200 OK response if the user has subscribed" in {
@@ -123,7 +201,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(
-          Right(Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, "")))))
+          Right(Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, ""))))
+        )
         val result = controller.checkSubscriptionStatus()(request)
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.obj("value" -> JsString("cgt-reference"))
