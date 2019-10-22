@@ -17,19 +17,20 @@
 package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
+import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscriptionDetails, SubscriptionDisplayResponse, SubscriptionResponse, TelephoneNumber, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import org.scalacheck.ScalacheckShapeless._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
-import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -37,7 +38,17 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   val mockConnector = mock[SubscriptionConnector]
 
-  val service = new SubscriptionServiceImpl(mockConnector)
+  val nonIsoCountryCode = "XZ"
+
+  val config = Configuration(
+    ConfigFactory.parseString(
+      s"""
+        |des.non-iso-country-codes = ["$nonIsoCountryCode"]
+        |""".stripMargin
+    )
+  )
+
+  val service = new SubscriptionServiceImpl(mockConnector, config)
 
   def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(response: Either[Error, HttpResponse]) =
     (mockConnector
@@ -88,7 +99,6 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |        "addressDetails": {
             |            "addressLine1": "101 Kiwi Street",
             |            "addressLine4": "Christchurch",
-            |            "postalCode": "",
             |            "countryCode": "NZ"
             |        },
             |        "contactDetails": {
@@ -151,7 +161,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             None,
             Some("Christchurch"),
             Some("C11"),
-            Country("NZ", Some("New Zealand"))),
+            Country("NZ", Some("New Zealand"))
+          ),
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),

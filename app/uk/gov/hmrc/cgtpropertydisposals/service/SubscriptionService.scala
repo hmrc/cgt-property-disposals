@@ -16,22 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
-import cats.data.EitherT
+import cats.data.Validated.{Invalid, Valid}
+import cats.data.{EitherT, NonEmptyList, ValidatedNel}
 import cats.instances.future._
 import cats.instances.int._
 import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.eq._
-import configs.syntax._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import configs.syntax._
+import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, Individual, Trustee}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscriptionDetails, SubscriptionDisplayResponse, SubscriptionResponse, TelephoneNumber}
+import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
 import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.DesSubscriptionDisplayDetails
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -51,8 +54,9 @@ trait SubscriptionService {
 }
 
 @Singleton
-class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector)(implicit ec: ExecutionContext)
-    extends SubscriptionService {
+class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config: Configuration)(
+  implicit ec: ExecutionContext
+) extends SubscriptionService {
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
@@ -78,7 +82,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector)(implic
       if (response.status === 200)
         response
           .parseJSON[DesSubscriptionDisplayDetails]()
-          .map(toSubscriptionDisplayRecord(_, cgtReference))
+          .flatMap(toSubscriptionDisplayRecord(_, cgtReference))
           .leftMap(Error(_, identifiers: _*))
       else {
         Left(Error(s"call to subscription display api came back with status ${response.status}"))
@@ -88,37 +92,45 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector)(implic
   def toSubscriptionDisplayRecord(
     desSubscriptionDisplayDetails: DesSubscriptionDisplayDetails,
     cgtReference: CgtReference
-  ): SubscriptionDisplayResponse = {
+  ): Either[String, SubscriptionDisplayResponse] = {
+
+    val desNonIsoCountryCodes: List[CountryCode] =
+      config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
+
     val a = desSubscriptionDisplayDetails.subscriptionDetails.addressDetails
 
-    val address: Address = if (a.countryCode === "GB") {
-      UkAddress(
-        a.addressLine1,
-        a.addressLine2,
-        a.addressLine3,
-        a.addressLine4,
-        a.postalCode.getOrElse("")
-      )
-    } else {
-      NonUkAddress(
-        a.addressLine1,
-        a.addressLine2,
-        a.addressLine3,
-        a.addressLine4,
-        if (a.postalCode.contains("")) None else a.postalCode,
-        Country(a.countryCode, Country.countryCodeToCountryName.get(a.countryCode))
-      )
+    val addressValidation: Validation[Address] = {
+      if (a.countryCode === "GB") {
+        a.postalCode.fold[ValidatedNel[String, Address]](
+          Invalid(NonEmptyList.one("Could not find postcode for UK address"))
+        )(p => Valid(UkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, p)))
+      } else {
+        val country = Country.countryCodeToCountryName.get(a.countryCode) match {
+          case Some(countryName)                                     => Some(Country(a.countryCode, Some(countryName)))
+          case None if desNonIsoCountryCodes.contains(a.countryCode) => Some(Country(a.countryCode, None))
+          case None                                                  => None
+        }
+
+        country.fold[ValidatedNel[String, Address]](
+          Invalid(NonEmptyList.one(s"Received unknown country code: ${a.countryCode}"))
+        )(c => Valid(NonUkAddress(a.addressLine1, a.addressLine2, a.addressLine3, a.addressLine4, a.postalCode, c)))
+      }
     }
 
-    SubscriptionDisplayResponse(
-      desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress.flatMap(e => Some(Email(e))),
-      address,
-      ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
-      cgtReference,
-      desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber
-        .flatMap(t => Some(TelephoneNumber(t))),
-      desSubscriptionDisplayDetails.subscriptionDetails.isRegisteredWithId
-    )
+    (addressValidation)
+      .map { address =>
+        SubscriptionDisplayResponse(
+          desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress.flatMap(e => Some(Email(e))),
+          address,
+          ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
+          cgtReference,
+          desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber
+            .flatMap(t => Some(TelephoneNumber(t))),
+          desSubscriptionDisplayDetails.subscriptionDetails.isRegisteredWithId
+        )
+      }
+      .toEither
+      .leftMap(errors => s"Could not read DES response: ${errors.toList.mkString("; ")}")
 
   }
 
