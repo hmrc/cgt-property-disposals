@@ -51,7 +51,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, SapNumber, SubscriptionDetails, SubscriptionDisplayResponse, SubscriptionResponse, TaxEnrolmentRequest, TelephoneNumber, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, SapNumber, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest, TelephoneNumber, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -84,7 +84,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(expectedSubscriptionDetails, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, SubscriptionDisplayResponse]): Unit =
+  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, SubscribedDetails]): Unit =
     (mockSubscriptionService
       .getSubscription(_: CgtReference)(_: HeaderCarrier))
       .expects(cgtReference, *)
@@ -132,7 +132,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           )
         mockGetSubscription(CgtReference("XDCGT123456789"))(
           Right(
-            SubscriptionDisplayResponse(
+            SubscribedDetails(
               Right(IndividualName("Stephen", "Wood")),
               Some(Email("stephen@abc.co.uk")),
               UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),

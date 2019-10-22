@@ -28,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, Uk
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscriptionDetails, SubscriptionDisplayResponse, SubscriptionResponse, TelephoneNumber, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, TelephoneNumber, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import org.scalacheck.ScalacheckShapeless._
 
@@ -113,7 +113,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = SubscriptionDisplayResponse(
+        val subscriptionDisplayResponse = SubscribedDetails(
           Left(TrustName("ABC Trust")),
           Some(Email("stephen@abc.co.uk")),
           NonUkAddress("101 Kiwi Street", None, None, Some("Christchurch"), None, Country("NZ", Some("New Zealand"))),
@@ -155,7 +155,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = SubscriptionDisplayResponse(
+        val subscriptionDisplayResponse = SubscribedDetails(
           Left(TrustName("ABC Trust")),
           Some(Email("stephen@abc.co.uk")),
           NonUkAddress(
@@ -207,7 +207,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = SubscriptionDisplayResponse(
+        val subscriptionDisplayResponse = SubscribedDetails(
           Right(IndividualName("Luke", "Bishop")),
           Some(Email("stephen@abc.co.uk")),
           UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),

@@ -22,7 +22,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
-final case class SubscriptionDisplayResponse(
+final case class SubscribedDetails(
   name: Either[TrustName, IndividualName],
   emailAddress: Option[Email],
   address: Address,
@@ -32,6 +32,6 @@ final case class SubscriptionDisplayResponse(
   registeredWithId: Boolean
 )
 
-object SubscriptionDisplayResponse {
-  implicit val format: OFormat[SubscriptionDisplayResponse] = Json.format[SubscriptionDisplayResponse]
+object SubscribedDetails {
+  implicit val format: OFormat[SubscribedDetails] = Json.format[SubscribedDetails]
 }

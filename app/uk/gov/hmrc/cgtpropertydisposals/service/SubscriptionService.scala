@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, Individual, Trustee}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscriptionDetails, SubscriptionDisplayResponse, SubscriptionResponse, TelephoneNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
 import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.DesSubscriptionDisplayDetails
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
@@ -48,7 +48,7 @@ trait SubscriptionService {
 
   def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, SubscriptionDisplayResponse]
+  ): EitherT[Future, Error, SubscribedDetails]
 }
 
 @Singleton
@@ -69,7 +69,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
 
   override def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, SubscriptionDisplayResponse] =
+  ): EitherT[Future, Error, SubscribedDetails] =
     connector.getSubscription(cgtReference).subflatMap { response =>
       lazy val identifiers =
         List(
@@ -90,7 +90,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
   def toSubscriptionDisplayRecord(
     desSubscriptionDisplayDetails: DesSubscriptionDisplayDetails,
     cgtReference: CgtReference
-  ): Either[String, SubscriptionDisplayResponse] = {
+  ): Either[String, SubscribedDetails] = {
 
     val desNonIsoCountryCodes: List[CountryCode] =
       config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
@@ -107,14 +107,14 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
     (addressValidation, nameValidation)
       .mapN {
         case (address, name) =>
-          SubscriptionDisplayResponse(
+          SubscribedDetails(
             name,
-            desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress.flatMap(e => Some(Email(e))),
+            desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress.map(e => Email(e)),
             address,
             ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
             cgtReference,
             desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber
-              .flatMap(t => Some(TelephoneNumber(t))),
+              .map(t => TelephoneNumber(t)),
             desSubscriptionDisplayDetails.subscriptionDetails.isRegisteredWithId
           )
       }
