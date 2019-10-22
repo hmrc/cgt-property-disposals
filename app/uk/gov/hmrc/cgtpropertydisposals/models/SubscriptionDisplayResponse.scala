@@ -17,21 +17,19 @@
 package uk.gov.hmrc.cgtpropertydisposals.models
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 
-final case class SubscribedDetails(
-  name: Either[TrustName, IndividualName],
-  emailAddress: Email,
+final case class SubscriptionDisplayResponse(
+  emailAddress: Option[Email], //TODO: DES have this as an optional field. Discuss.
   address: Address,
   contactName: ContactName,
   cgtReference: CgtReference,
   telephoneNumber: Option[TelephoneNumber],
-  registeredWithId: Boolean
+  registrationWithId: Boolean
 )
 
-object SubscribedDetails {
-  implicit val format: OFormat[SubscribedDetails] = Json.format[SubscribedDetails]
+object SubscriptionDisplayResponse {
+  implicit val format: OFormat[SubscriptionDisplayResponse] = Json.format[SubscriptionDisplayResponse]
 }

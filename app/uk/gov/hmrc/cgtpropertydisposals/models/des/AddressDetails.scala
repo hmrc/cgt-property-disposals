@@ -16,17 +16,17 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{Json, OFormat}
 
 final case class AddressDetails(
   addressLine1: String,
   addressLine2: Option[String],
   addressLine3: Option[String],
   addressLine4: Option[String],
-  postalCode: Option[String],
+  postalCode: String, // TODO: This is a non-optional data point in the DES schema. Discuss
   countryCode: String
 )
 
 object AddressDetails {
-  implicit val addressDetailsWrites: Writes[AddressDetails] = Json.writes[AddressDetails]
+  implicit val format: OFormat[AddressDetails] = Json.format[AddressDetails]
 }

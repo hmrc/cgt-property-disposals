@@ -22,12 +22,4 @@ final case class CgtReference(value: String) extends AnyVal
 
 object CgtReference {
   implicit val format: OFormat[CgtReference] = Json.format[CgtReference]
-
-  def isValidCgtReference(cgtReference: String): Boolean = {
-    val pattern = "^(X[A-Z]CGTP[0-9]{9})$".r
-    pattern.findFirstIn(cgtReference) match {
-      case Some(_) => true
-      case None    => false
-    }
-  }
 }

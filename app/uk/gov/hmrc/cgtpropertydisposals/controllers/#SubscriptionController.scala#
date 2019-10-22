@@ -67,6 +67,7 @@ class SubscriptionController @Inject()(
     )
   }
 
+
   def registerWithoutIdAndSubscribe(): Action[AnyContent] = authenticate.async { implicit request =>
     val result = for {
       registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))

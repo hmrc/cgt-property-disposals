@@ -16,13 +16,16 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{Json, OFormat}
 
 final case class ContactDetails(
   contactName: String,
-  emailAddress: String
+  phoneNumber: Option[String],
+  mobileNumber: Option[String],
+  faxNumber: Option[String],
+  emailAddress: Option[String]
 )
 
 object ContactDetails {
-  implicit val contactDetailsWrites: Writes[ContactDetails] = Json.writes[ContactDetails]
+  implicit val format: OFormat[ContactDetails] = Json.format[ContactDetails]
 }

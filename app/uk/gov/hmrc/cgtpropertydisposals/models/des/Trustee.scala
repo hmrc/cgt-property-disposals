@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{Json, OFormat}
 
-final case class Identity(idType: String, idValue: String)
+final case class Trustee(typeOfPerson: String, organisationName: String)
 
-object Identity {
-  implicit val identityWrites: Writes[Identity] = Json.writes[Identity]
+object Trustee {
+  implicit val format: OFormat[Trustee] = Json.format[Trustee]
 }

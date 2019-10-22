@@ -22,6 +22,5 @@ import play.api.libs.json.Format
 final case class TelephoneNumber(value: String) extends AnyVal
 
 object TelephoneNumber {
-  implicit val format: Format[TelephoneNumber] =
-    implicitly[Format[String]].inmap(TelephoneNumber(_), _.value)
+  implicit val format: Format[TelephoneNumber] = implicitly[Format[String]].inmap(TelephoneNumber(_), _.value)
 }

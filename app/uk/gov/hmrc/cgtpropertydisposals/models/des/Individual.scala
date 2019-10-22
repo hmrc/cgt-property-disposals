@@ -16,14 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{Json, OFormat}
 
-final case class DesSubscriptionDetails(
-  typeOfPersonDetails: TypeOfPersonDetails,
-  addressDetails: AddressDetails,
-  contactDetails: ContactDetails
-)
+final case class Individual(typeOfPerson: String, firstName: String, lastName: String)
 
-object DesSubscriptionDetails {
-  implicit val desSubscriptionDetailsWrites: Writes[DesSubscriptionDetails] = Json.writes[DesSubscriptionDetails]
+object Individual {
+  implicit val format: OFormat[Individual] = Json.format[Individual]
 }
