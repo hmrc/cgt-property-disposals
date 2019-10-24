@@ -76,7 +76,10 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .get(subscriptionDisplayUrl(cgtReference), Map.empty, headers)
+        .get(subscriptionDisplayUrl(cgtReference), Map.empty, headers)(
+          hc.copy(authorization = None),
+          ec
+        )
         .map(Right(_))
         .recover {
           case e => Left(Error(e))
