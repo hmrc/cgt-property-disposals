@@ -81,6 +81,7 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
     EitherT[Future, Error, HttpResponse](
       http
         .get(subscriptionDisplayUrl(cgtReference), Map.empty, headers)(
+<<<<<<< HEAD
           hc.copy(authorization = None), //FIXME: remove when DES APIs are dropped to IST0
           ec
         )
