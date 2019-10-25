@@ -22,8 +22,9 @@ import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnectorImpl.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesSubscriptionUpdateRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionUpdateRequest}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -41,6 +42,9 @@ trait SubscriptionConnector {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
+  def updateSubscription(cgtReference: CgtReference, subscriptionUpdateRequest: SubscriptionUpdateRequest)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse]
 }
 
 @Singleton
@@ -63,7 +67,7 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
       http
         .post(subscribeUrl, Json.toJson(subscriptionRequest), headers)(
           implicitly[Writes[JsValue]],
-          hc.copy(authorization = None),
+          hc.copy(authorization = None), //FIXME: remove when DES APIs are dropped to IST0
           ec
         )
         .map(Right(_))
@@ -76,7 +80,26 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .get(subscriptionDisplayUrl(cgtReference), Map.empty, headers)
+        .get(subscriptionDisplayUrl(cgtReference), Map.empty, headers)(
+          hc.copy(authorization = None), //FIXME: remove when DES APIs are dropped to IST0
+          ec
+        )
+        .map(Right(_))
+        .recover {
+          case e => Left(Error(e))
+        }
+    )
+
+  override def updateSubscription(cgtReference: CgtReference, subscriptionUpdateRequest: SubscriptionUpdateRequest)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse] =
+    EitherT[Future, Error, HttpResponse](
+      http
+        .put(subscriptionDisplayUrl(cgtReference), DesSubscriptionUpdateRequest(subscriptionUpdateRequest), headers)(
+          implicitly[Writes[DesSubscriptionUpdateRequest]],
+          hc.copy(authorization = None), //FIXME: remove when DES APIs are dropped to IST0
+          ec
+        )
         .map(Right(_))
         .recover {
           case e => Left(Error(e))
@@ -104,15 +127,6 @@ object SubscriptionConnectorImpl {
     }
 
   }
-
-  final case class AddressDetails(
-    addressLine1: String,
-    addressLine2: Option[String],
-    addressLine3: Option[String],
-    addressLine4: Option[String],
-    postalCode: Option[String],
-    countryCode: String
-  )
 
   final case class ContactDetails(
     contactName: String,
@@ -160,7 +174,6 @@ object SubscriptionConnectorImpl {
   }
 
   implicit val identityWrites: Writes[Identity]                             = Json.writes[Identity]
-  implicit val addressDetailsWrites: Writes[AddressDetails]                 = Json.writes[AddressDetails]
   implicit val contactDetailsWrites: Writes[ContactDetails]                 = Json.writes[ContactDetails]
   implicit val desSubscriptionDetailsWrites: Writes[DesSubscriptionDetails] = Json.writes[DesSubscriptionDetails]
   implicit val subscriptionRequestWrites: Writes[DesSubscriptionRequest]    = Json.writes[DesSubscriptionRequest]

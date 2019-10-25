@@ -22,11 +22,14 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
+import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{ContactDetails, DesSubscriptionUpdateRequest, Individual}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, SapNumber, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models._
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest.DesSubscriptionUpdateDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -66,6 +69,78 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     val expectedSubscriptionUrl    = "http://host:123/subscriptions/create/CGT"
     def expectedSubscriptionDisplayUrl(cgtReference: CgtReference) =
       s"http://host:123/subscriptions/CGT/ZCGT/${cgtReference.value}"
+
+    "handling request to update subscription details" must {
+      val cgtReference = CgtReference("XFCGT123456789")
+
+      val expectedRequest = SubscriptionUpdateRequest(
+        regime = "CGT",
+        subscriptionDetails = SubscriptionUpdateDetails(
+          Right(Individual("Individual", "Stephen", "Wood")),
+          UkAddress(
+            "100 Sutton Street",
+            Some("Wokingham"),
+            Some("Surrey"),
+            Some("London"),
+            "DH14EJ"
+          ),
+          ContactDetails(
+            "Stephen Wood",
+            Some("(+013)32752856"),
+            Some("(+013)32752856"),
+            Some("(+013)32752856"),
+            Some("stephen@abc.co.uk")
+          )
+        )
+      )
+
+      val expectedDesSubUpdateRequest = DesSubscriptionUpdateRequest(
+        expectedRequest.regime,
+        DesSubscriptionUpdateDetails(
+          expectedRequest.subscriptionDetails.typeOfPersonDetails,
+          Address.toAddressDetails(expectedRequest.subscriptionDetails.addressDetails),
+          expectedRequest.subscriptionDetails.contactDetails
+        )
+      )
+
+      val expectedResponse =
+        """
+          |{
+          |    "regime": "CGT",
+          |    "processingDate" : "2015-12-17T09:30:47Z",
+          |    "formBundleNumber": "012345678901",
+          |    "cgtReferenceNumber": "XXCGTP123456789",
+          |    "countryCode": "GB",
+          |    "postalCode" : "TF34NT"
+          |}
+          |""".stripMargin
+
+      "do a put http call and return the result" in {
+        List(
+          HttpResponse(200, Some(Json.parse(expectedResponse))),
+          HttpResponse(500)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+            mockPut(
+              expectedSubscriptionDisplayUrl(cgtReference),
+              expectedDesSubUpdateRequest
+            )(
+              Some(httpResponse)
+            )
+
+            await(connector.updateSubscription(cgtReference, expectedRequest).value) shouldBe Right(httpResponse)
+          }
+        }
+      }
+
+      "return an error when the future fails" in {
+
+        mockPut(expectedSubscriptionDisplayUrl(cgtReference), expectedDesSubUpdateRequest)(
+          None
+        )
+        await(connector.updateSubscription(cgtReference, expectedRequest).value).isLeft shouldBe true
+      }
+    }
 
     "handling request to get subscription display details" must {
 

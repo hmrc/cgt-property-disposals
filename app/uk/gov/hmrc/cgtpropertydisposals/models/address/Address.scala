@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.address
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 
 sealed trait Address
 
@@ -46,5 +47,13 @@ object Address {
   // the case class inside a JsObject with case class type name as the key
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[Address] = derived.oformat
+
+  def toAddressDetails(address: Address): AddressDetails =
+    address match {
+      case UkAddress(line1, line2, town, county, postcode) =>
+        AddressDetails(line1, line2, town, county, Some(postcode), "GB")
+      case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
+        AddressDetails(line1, line2, line3, line4, postcode, country.code)
+    }
 
 }

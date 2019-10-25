@@ -47,11 +47,13 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionDetails._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{ContactDetails, Trustee}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, SapNumber, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest, TelephoneNumber, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, SapNumber, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TaxEnrolmentRequest, TelephoneNumber, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -90,6 +92,14 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(cgtReference, *)
       .returning(EitherT.fromEither(response))
 
+  def mockUpdateSubscription(cgtReference: CgtReference, subscriptionUpdateRequest: SubscriptionUpdateRequest)(
+    response: Either[Error, SubscriptionUpdateResponse]
+  ): Unit =
+    (mockSubscriptionService
+      .updateSubscription(_: CgtReference, _: SubscriptionUpdateRequest)(_: HeaderCarrier))
+      .expects(cgtReference, subscriptionUpdateRequest, *)
+      .returning(EitherT.fromEither(response))
+
   def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
@@ -120,6 +130,202 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
   "The SubscriptionController" when {
 
+    "handling request to update subscription details" must {
+
+      "return a bad request response if the request body is corrupt" in {
+
+        val corruptRequestBody =
+          """
+            |{
+            |   "bad-field":"bad-value"
+            |}
+            |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest().withJsonBody(Json.parse(corruptRequestBody))
+          )
+
+        val result = controller.updateSubscription(CgtReference("XDCGT123456789"))(request)
+        status(result) shouldBe BAD_REQUEST
+
+      }
+
+      "return a 500 internal error response if there is a backend error" in {
+
+        val subscriptionUpdateRequestBody =
+          """
+            |{
+            |   "regime":"CGT",
+            |   "subscriptionDetails":{
+            |      "typeOfPersonDetails":{
+            |         "l":{
+            |            "typeOfPerson":"Trustee",
+            |            "organisationName":"ABC Trust"
+            |         }
+            |      },
+            |      "addressDetails":{
+            |         "NonUkAddress":{
+            |            "line1":"101 Kiwi Street",
+            |            "country":{
+            |               "code":"NZ"
+            |            }
+            |         }
+            |      },
+            |      "contactDetails":{
+            |         "contactName":"Stephen Wood",
+            |         "phoneNumber":"(+013)32752856",
+            |         "mobileNumber":"(+44)7782565326",
+            |         "faxNumber":"01332754256",
+            |         "emailAddress":"stephen@abc.co.uk"
+            |      }
+            |   }
+            |}
+            |""".stripMargin
+
+        val subscriptionUpdateRequest = SubscriptionUpdateRequest(
+          "CGT",
+          SubscriptionUpdateDetails(
+            Left(Trustee("Trustee", "ABC Trust")),
+            NonUkAddress(
+              "101 Kiwi Street",
+              None,
+              None,
+              None,
+              None,
+              Country("NZ", None)
+            ),
+            ContactDetails(
+              "Stephen Wood",
+              Some("(+013)32752856"),
+              Some("(+44)7782565326"),
+              Some("01332754256"),
+              Some("stephen@abc.co.uk")
+            )
+          )
+        )
+
+        val expectedSubscriptionUpdateResponse =
+          """
+            |{
+            |    "regime": "CGT",
+            |    "processingDate" : "2015-12-17T09:30:47",
+            |    "formBundleNumber": "012345678901",
+            |    "cgtReferenceNumber": "XXCGTP123456789",
+            |    "countryCode": "GB",
+            |    "postalCode" : "TF34NT"
+            |}
+            |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest().withJsonBody(Json.parse(subscriptionUpdateRequestBody))
+          )
+
+        mockUpdateSubscription(CgtReference("XDCGT123456789"), subscriptionUpdateRequest)(Left(Error("Des error")))
+
+        val result = controller.updateSubscription(CgtReference("XDCGT123456789"))(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
+      "return a 200 OK response if the subscription is updated" in {
+
+        val subscriptionUpdateRequestBody =
+          """
+            |{
+            |   "regime":"CGT",
+            |   "subscriptionDetails":{
+            |      "typeOfPersonDetails":{
+            |         "l":{
+            |            "typeOfPerson":"Trustee",
+            |            "organisationName":"ABC Trust"
+            |         }
+            |      },
+            |      "addressDetails":{
+            |         "NonUkAddress":{
+            |            "line1":"101 Kiwi Street",
+            |            "country":{
+            |               "code":"NZ"
+            |            }
+            |         }
+            |      },
+            |      "contactDetails":{
+            |         "contactName":"Stephen Wood",
+            |         "phoneNumber":"(+013)32752856",
+            |         "mobileNumber":"(+44)7782565326",
+            |         "faxNumber":"01332754256",
+            |         "emailAddress":"stephen@abc.co.uk"
+            |      }
+            |   }
+            |}
+            |""".stripMargin
+
+        val subscriptionUpdateRequest = SubscriptionUpdateRequest(
+          "CGT",
+          SubscriptionUpdateDetails(
+            Left(Trustee("Trustee", "ABC Trust")),
+            NonUkAddress(
+              "101 Kiwi Street",
+              None,
+              None,
+              None,
+              None,
+              Country("NZ", None)
+            ),
+            ContactDetails(
+              "Stephen Wood",
+              Some("(+013)32752856"),
+              Some("(+44)7782565326"),
+              Some("01332754256"),
+              Some("stephen@abc.co.uk")
+            )
+          )
+        )
+
+        val expectedSubscriptionUpdateResponse =
+          """
+            |{
+            |    "regime": "CGT",
+            |    "processingDate" : "2015-12-17T09:30:47",
+            |    "formBundleNumber": "012345678901",
+            |    "cgtReferenceNumber": "XXCGTP123456789",
+            |    "countryCode": "GB",
+            |    "postalCode" : "TF34NT"
+            |}
+            |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest().withJsonBody(Json.parse(subscriptionUpdateRequestBody))
+          )
+
+        mockUpdateSubscription(CgtReference("XDCGT123456789"), subscriptionUpdateRequest)(
+          Right(
+            SubscriptionUpdateResponse(
+              "CGT",
+              LocalDateTime.of(2015, 12, 17, 9, 30, 47),
+              "012345678901",
+              "XXCGTP123456789",
+              "GB",
+              Some("TF34NT")
+            )
+          )
+        )
+        val result = controller.updateSubscription(CgtReference("XDCGT123456789"))(request)
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.parse(expectedSubscriptionUpdateResponse)
+      }
+    }
+
     "handling request to get subscription details" must {
 
       "return a 200 OK response if the a subscription exists" in {
@@ -130,6 +336,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             headerCarrier,
             FakeRequest()
           )
+
         mockGetSubscription(CgtReference("XDCGT123456789"))(
           Right(
             SubscribedDetails(
@@ -140,7 +347,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
               CgtReference("XDCGT123456789"),
               Some(TelephoneNumber("+44191919191919")),
               true
-            ))
+            )
+          )
         )
 
         val expectedResponse =
