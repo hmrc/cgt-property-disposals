@@ -17,10 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest.DesSubscriptionUpdateDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
 final case class DesSubscriptionUpdateRequest(
   regime: String,
@@ -40,13 +40,28 @@ object DesSubscriptionUpdateRequest {
     implicit val format: OFormat[DesSubscriptionUpdateDetails] = Json.format[DesSubscriptionUpdateDetails]
   }
 
-  def apply(subscriptionUpdateRequest: SubscriptionUpdateRequest): DesSubscriptionUpdateRequest =
+  def apply(subscriptionUpdateRequest: SubscriptionUpdateRequest): DesSubscriptionUpdateRequest = {
+    val typeOfPerson: Either[Trustee, Individual] =
+      subscriptionUpdateRequest.subscriptionDetails.typeOfPersonDetails.fold[Either[Trustee, Individual]](
+        trust => Left(Trustee("Trustee", trust.value)),
+        individual => Right(Individual("Individual", individual.firstName, individual.lastName))
+      )
+
+    val contactDetails = uk.gov.hmrc.cgtpropertydisposals.models.des.ContactDetails(
+      subscriptionUpdateRequest.subscriptionDetails.contactDetails.contactName,
+      subscriptionUpdateRequest.subscriptionDetails.contactDetails.phoneNumber,
+      None,
+      None,
+      subscriptionUpdateRequest.subscriptionDetails.contactDetails.emailAddress
+    )
+
     new DesSubscriptionUpdateRequest(
-      subscriptionUpdateRequest.regime,
+      "CGT",
       DesSubscriptionUpdateDetails(
-        subscriptionUpdateRequest.subscriptionDetails.typeOfPersonDetails,
+        typeOfPerson,
         Address.toAddressDetails(subscriptionUpdateRequest.subscriptionDetails.addressDetails),
-        subscriptionUpdateRequest.subscriptionDetails.contactDetails
+        contactDetails
       )
     )
+  }
 }

@@ -50,10 +50,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionDetails._
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{ContactDetails, Trustee}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, SapNumber, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TaxEnrolmentRequest, TelephoneNumber, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.{ContactDetails, Email, Error, RegistrationDetails, SapNumber, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TaxEnrolmentRequest, TelephoneNumber, sample}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -163,8 +162,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             |   "subscriptionDetails":{
             |      "typeOfPersonDetails":{
             |         "l":{
-            |            "typeOfPerson":"Trustee",
-            |            "organisationName":"ABC Trust"
+            |            "value":"ABC Trust"
             |         }
             |      },
             |      "addressDetails":{
@@ -178,8 +176,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             |      "contactDetails":{
             |         "contactName":"Stephen Wood",
             |         "phoneNumber":"(+013)32752856",
-            |         "mobileNumber":"(+44)7782565326",
-            |         "faxNumber":"01332754256",
             |         "emailAddress":"stephen@abc.co.uk"
             |      }
             |   }
@@ -187,9 +183,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             |""".stripMargin
 
         val subscriptionUpdateRequest = SubscriptionUpdateRequest(
-          "CGT",
           SubscriptionUpdateDetails(
-            Left(Trustee("Trustee", "ABC Trust")),
+            Left(TrustName("ABC Trust")),
             NonUkAddress(
               "101 Kiwi Street",
               None,
@@ -201,24 +196,10 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             ContactDetails(
               "Stephen Wood",
               Some("(+013)32752856"),
-              Some("(+44)7782565326"),
-              Some("01332754256"),
               Some("stephen@abc.co.uk")
             )
           )
         )
-
-        val expectedSubscriptionUpdateResponse =
-          """
-            |{
-            |    "regime": "CGT",
-            |    "processingDate" : "2015-12-17T09:30:47",
-            |    "formBundleNumber": "012345678901",
-            |    "cgtReferenceNumber": "XXCGTP123456789",
-            |    "countryCode": "GB",
-            |    "postalCode" : "TF34NT"
-            |}
-            |""".stripMargin
 
         val request =
           new AuthenticatedRequest(
@@ -243,8 +224,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             |   "subscriptionDetails":{
             |      "typeOfPersonDetails":{
             |         "l":{
-            |            "typeOfPerson":"Trustee",
-            |            "organisationName":"ABC Trust"
+            |            "value":"ABC Trust"
             |         }
             |      },
             |      "addressDetails":{
@@ -267,9 +247,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             |""".stripMargin
 
         val subscriptionUpdateRequest = SubscriptionUpdateRequest(
-          "CGT",
           SubscriptionUpdateDetails(
-            Left(Trustee("Trustee", "ABC Trust")),
+            Left(TrustName("ABC Trust")),
             NonUkAddress(
               "101 Kiwi Street",
               None,
@@ -281,8 +260,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             ContactDetails(
               "Stephen Wood",
               Some("(+013)32752856"),
-              Some("(+44)7782565326"),
-              Some("01332754256"),
               Some("stephen@abc.co.uk")
             )
           )

@@ -67,7 +67,7 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
       http
         .post(subscribeUrl, Json.toJson(subscriptionRequest), headers)(
           implicitly[Writes[JsValue]],
-          hc.copy(authorization = None), //FIXME: remove when DES APIs are dropped to IST0
+          hc.copy(authorization = None),
           ec
         )
         .map(Right(_))
@@ -81,7 +81,7 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
     EitherT[Future, Error, HttpResponse](
       http
         .get(subscriptionDisplayUrl(cgtReference), Map.empty, headers)(
-          hc.copy(authorization = None), //FIXME: remove when DES APIs are dropped to IST0
+          hc.copy(authorization = None),
           ec
         )
         .map(Right(_))
@@ -97,7 +97,7 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
       http
         .put(subscriptionDisplayUrl(cgtReference), DesSubscriptionUpdateRequest(subscriptionUpdateRequest), headers)(
           implicitly[Writes[DesSubscriptionUpdateRequest]],
-          hc.copy(authorization = None), //FIXME: remove when DES APIs are dropped to IST0
+          hc.copy(authorization = None),
           ec
         )
         .map(Right(_))

@@ -23,13 +23,12 @@ import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
+import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{ContactDetails, DesSubscriptionUpdateRequest, Individual}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models._
-import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest.DesSubscriptionUpdateDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -74,9 +73,8 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       val cgtReference = CgtReference("XFCGT123456789")
 
       val expectedRequest = SubscriptionUpdateRequest(
-        regime = "CGT",
         subscriptionDetails = SubscriptionUpdateDetails(
-          Right(Individual("Individual", "Stephen", "Wood")),
+          Right(IndividualName("Stephen", "Wood")),
           UkAddress(
             "100 Sutton Street",
             Some("Wokingham"),
@@ -87,21 +85,12 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           ContactDetails(
             "Stephen Wood",
             Some("(+013)32752856"),
-            Some("(+013)32752856"),
-            Some("(+013)32752856"),
             Some("stephen@abc.co.uk")
           )
         )
       )
 
-      val expectedDesSubUpdateRequest = DesSubscriptionUpdateRequest(
-        expectedRequest.regime,
-        DesSubscriptionUpdateDetails(
-          expectedRequest.subscriptionDetails.typeOfPersonDetails,
-          Address.toAddressDetails(expectedRequest.subscriptionDetails.addressDetails),
-          expectedRequest.subscriptionDetails.contactDetails
-        )
-      )
+      val expectedDesSubUpdateRequest = DesSubscriptionUpdateRequest(expectedRequest)
 
       val expectedResponse =
         """

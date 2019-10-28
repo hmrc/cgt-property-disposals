@@ -25,10 +25,10 @@ import play.api.Configuration
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{ContactDetails, Individual}
+import uk.gov.hmrc.cgtpropertydisposals.models.ContactDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, TelephoneNumber, sample}
@@ -76,9 +76,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
   "SubscriptionServiceImpl" when {
 
     val expectedRequest = SubscriptionUpdateRequest(
-      regime = "CGT",
       subscriptionDetails = SubscriptionUpdateDetails(
-        Right(Individual("Individual", "Stephen", "Wood")),
+        Right(IndividualName("Stephen", "Wood")),
         UkAddress(
           "100 Sutton Street",
           Some("Wokingham"),
@@ -89,8 +88,6 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         ContactDetails(
           "Stephen Wood",
           Some("(+013)32752856"),
-          Some("(+013)32752857"),
-          Some("(+013)32752858"),
           Some("stephen@abc.co.uk")
         )
       )
