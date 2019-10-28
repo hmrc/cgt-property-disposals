@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
 import com.typesafe.config.ConfigFactory
+import org.scalacheck.ScalacheckShapeless._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
@@ -26,11 +27,12 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
+import uk.gov.hmrc.cgtpropertydisposals.models.ContactDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, TelephoneNumber, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, TelephoneNumber, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import org.scalacheck.ScalacheckShapeless._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -63,7 +65,88 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(cgtReference, *)
       .returning(EitherT(Future.successful(response)))
 
+  def mockUpdateSubscriptionDetails(cgtReference: CgtReference, subscriptionUpdateRequest: SubscriptionUpdateRequest)(
+    response: Either[Error, HttpResponse]
+  ) =
+    (mockConnector
+      .updateSubscription(_: CgtReference, _: SubscriptionUpdateRequest)(_: HeaderCarrier))
+      .expects(cgtReference, subscriptionUpdateRequest, *)
+      .returning(EitherT(Future.successful(response)))
+
   "SubscriptionServiceImpl" when {
+
+    val expectedRequest = SubscriptionUpdateRequest(
+      subscriptionDetails = SubscriptionUpdateDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "DH14EJ"
+        ),
+        ContactDetails(
+          "Stephen Wood",
+          Some("(+013)32752856"),
+          Some("stephen@abc.co.uk")
+        )
+      )
+    )
+
+    "handling requests to update subscription details " must {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val cgtReference               = CgtReference("XFCGT123456789")
+
+      "return an error" when {
+        "the http call comes back with a status other than 200" in {
+          mockUpdateSubscriptionDetails(cgtReference, expectedRequest)(Right(HttpResponse(500)))
+          await(service.updateSubscription(cgtReference, expectedRequest).value).isLeft shouldBe true
+        }
+
+        "there is no JSON in the body of the http response" in {
+          mockUpdateSubscriptionDetails(cgtReference, expectedRequest)(Right(HttpResponse(200)))
+          await(service.updateSubscription(cgtReference, expectedRequest).value).isLeft shouldBe true
+        }
+
+        "the JSON body of the response cannot be parsed" in {
+          mockUpdateSubscriptionDetails(cgtReference, expectedRequest)(Right(HttpResponse(200, Some(JsNumber(1)))))
+          await(service.updateSubscription(cgtReference, expectedRequest).value).isLeft shouldBe true
+        }
+      }
+
+      "return the subscription update response if the call comes back with a " +
+        "200 status and the JSON body can be parsed" in {
+        val jsonBody =
+          """
+            |{
+            |    "regime": "CGT",
+            |    "subscriptionDetails": {
+            |        "trustee": {
+            |            "typeOfPerson": "Trustee",
+            |            "organisationName": "ABC Trust"
+            |        },
+            |        "addressDetails": {
+            |            "addressLine1": "101 Kiwi Street",
+            |            "addressLine4": "Christchurch",
+            |            "countryCode": "NZ"
+            |        },
+            |        "contactDetails": {
+            |            "contactName": "Stephen Wood",
+            |            "phoneNumber": "(+013)32752856",
+            |            "mobileNumber": "(+44)7782565326",
+            |            "faxNumber": "01332754256",
+            |            "emailAddress": "stephen@abc.co.uk"
+            |        }
+            |    }
+            |}
+            |""".stripMargin
+
+        mockUpdateSubscriptionDetails(cgtReference, expectedRequest)(
+          Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+        await(service.updateSubscription(cgtReference, expectedRequest).value).isLeft shouldBe true
+
+      }
+    }
 
     "handling requests to get subscription display details " must {
       implicit val hc: HeaderCarrier = HeaderCarrier()

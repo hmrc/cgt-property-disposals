@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, Individual, Trustee}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, TelephoneNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
 import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.DesSubscriptionDisplayDetails
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
@@ -49,6 +49,10 @@ trait SubscriptionService {
   def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscribedDetails]
+
+  def updateSubscription(cgtReference: CgtReference, subscriptionUpdateRequest: SubscriptionUpdateRequest)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, SubscriptionUpdateResponse]
 }
 
 @Singleton
@@ -84,6 +88,25 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
           .leftMap(Error(_, identifiers: _*))
       else {
         Left(Error(s"call to subscription display api came back with status ${response.status}"))
+      }
+    }
+
+  override def updateSubscription(cgtReference: CgtReference, subscriptionUpdateRequest: SubscriptionUpdateRequest)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, SubscriptionUpdateResponse] =
+    connector.updateSubscription(cgtReference, subscriptionUpdateRequest).subflatMap { response =>
+      lazy val identifiers =
+        List(
+          "id"                -> cgtReference.value,
+          "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
+        )
+
+      if (response.status === 200)
+        response
+          .parseJSON[SubscriptionUpdateResponse]()
+          .leftMap(Error(_, identifiers: _*))
+      else {
+        Left(Error(s"call to subscription update api came back with status ${response.status}"))
       }
     }
 

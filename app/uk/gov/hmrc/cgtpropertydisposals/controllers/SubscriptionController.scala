@@ -21,12 +21,12 @@ import cats.instances.future._
 import cats.syntax.either._
 import com.google.inject.Inject
 import play.api.libs.json.{JsString, Json, Reads}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscriptionDetails, SubscriptionResponse, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
@@ -114,7 +114,30 @@ class SubscriptionController @Inject()(
     }
   }
 
-  private def extractRequest[R: Reads](request: AuthenticatedRequest[AnyContent]): Either[SubscriptionError, R] =
+  def updateSubscription(cgtReference: CgtReference): Action[AnyContent] = Action.async { implicit request =>
+    val result: EitherT[Future, SubscriptionError, SubscriptionUpdateResponse] =
+      for {
+        subscriptionUpdateRequest <- EitherT.fromEither[Future](extractRequest[SubscriptionUpdateRequest](request))
+        subscriptionResponse <- subscriptionService
+                                 .updateSubscription(cgtReference, subscriptionUpdateRequest)
+                                 .leftMap[SubscriptionError](BackendError)
+      } yield subscriptionResponse
+
+    result.fold(
+      {
+        case RequestValidationError(msg) =>
+          logger.warn(s"Error in request to update subscription: $msg")
+          BadRequest
+        case BackendError(e) =>
+          logger.warn("Error while trying to update subscription:", e)
+          InternalServerError
+      }, { subscriptionUpdateResponse =>
+        Ok(Json.toJson(subscriptionUpdateResponse))
+      }
+    )
+  }
+
+  private def extractRequest[R: Reads](request: Request[AnyContent]): Either[SubscriptionError, R] =
     Either
       .fromOption(request.body.asJson, RequestValidationError("No JSON body found in request"))
       .flatMap(
