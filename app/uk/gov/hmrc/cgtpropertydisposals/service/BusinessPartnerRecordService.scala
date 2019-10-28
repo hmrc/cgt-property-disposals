@@ -65,7 +65,7 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
     connector.getBusinessPartnerRecord(bprRequest).subflatMap { response =>
       lazy val identifiers =
         List(
-          "id"                -> bprRequest.id.fold(_.value, _.value),
+          "id"                -> bprRequest.foldOnId(_.value, _.value, _.value),
           "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-")
         )
 
