@@ -19,12 +19,12 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.bpr.BusinessPartnerRecordRequest.{IndividualBusinessPartnerRecordRequest, TrustBusinessPartnerRecordRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR}
-import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR, TRN}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -163,16 +163,27 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
       }
 
       "handling organisations with SAUTRs" must {
-        val sautr      = SAUTR("sautr")
-        val bprRequest = TrustBusinessPartnerRecordRequest(sautr)
+        val sautr                                    = SAUTR("sautr")
+        def bprRequest(nameMatch: Option[TrustName]) = TrustBusinessPartnerRecordRequest(Right(sautr), nameMatch)
 
-        val expectedBody = Json.parse(s"""
-                                         | {
-                                         |   "regime" : "CGT",
-                                         |   "requiresNameMatch" : false,
-                                         |   "isAnAgent" : false
-                                         | }
-                                         |""".stripMargin)
+        def expectedBody(nameMatch: Option[TrustName]): JsValue = {
+          val organisationJsonString =
+            nameMatch.fold("") { trustName =>
+              s""",
+                |  "organisation" : {
+                |     "organisationName" : "${trustName.value}"
+                |    }
+                |""".stripMargin
+            }
+
+          Json.parse(s"""
+                        | {
+                        |   "regime" : "CGT",
+                        |   "requiresNameMatch" : ${nameMatch.isDefined},
+                        |   "isAnAgent" : false$organisationJsonString
+                        | }
+                        |""".stripMargin)
+        }
 
         "do a post http call and return the result" in {
           List(
@@ -181,22 +192,126 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
             HttpResponse(500)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(s"http://host:123/registration/organisation/utr/${sautr.value}", expectedHeaders, expectedBody)(
+              mockPost(
+                s"http://host:123/registration/organisation/utr/${sautr.value}",
+                expectedHeaders,
+                expectedBody(None)
+              )(
                 Some(httpResponse)
               )
 
-              await(connector.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(httpResponse)
+              await(connector.getBusinessPartnerRecord(bprRequest(None)).value) shouldBe Right(httpResponse)
             }
           }
         }
 
-        "return an error when the future fails" in {
-          mockPost(s"http://host:123/registration/organisation/utr/${sautr.value}", expectedHeaders, expectedBody)(None)
+        "pass in the trust name for name matching if one is passed in" in {
+          val trustName    = TrustName("trust")
+          val httpResponse = HttpResponse(200)
 
-          await(connector.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+          mockPost(
+            s"http://host:123/registration/organisation/utr/${sautr.value}",
+            expectedHeaders,
+            expectedBody(Some(trustName))
+          )(
+            Some(httpResponse)
+          )
+
+          await(connector.getBusinessPartnerRecord(bprRequest(Some(trustName))).value) shouldBe Right(httpResponse)
+        }
+
+        "return an error when the future fails" in {
+          mockPost(
+            s"http://host:123/registration/organisation/utr/${sautr.value}",
+            expectedHeaders,
+            expectedBody(None)
+          )(None)
+
+          await(connector.getBusinessPartnerRecord(bprRequest(None)).value).isLeft shouldBe true
         }
       }
 
+      "handling organisations" must {
+        val trn   = TRN("trn")
+        val sautr = SAUTR("sautr")
+        def bprRequest(id: Either[TRN, SAUTR], nameMatch: Option[TrustName]) =
+          TrustBusinessPartnerRecordRequest(id, nameMatch)
+
+        def expectedBody(nameMatch: Option[TrustName]): JsValue = {
+          val organisationJsonString =
+            nameMatch.fold("") { trustName =>
+              s""",
+                 |  "organisation" : {
+                 |     "organisationName" : "${trustName.value}"
+                 |    }
+                 |""".stripMargin
+            }
+
+          Json.parse(s"""
+                        | {
+                        |   "regime" : "CGT",
+                        |   "requiresNameMatch" : ${nameMatch.isDefined},
+                        |   "isAnAgent" : false$organisationJsonString
+                        | }
+                        |""".stripMargin)
+        }
+
+        val idsWithExpectedUrlsList = List[(Either[TRN, SAUTR], String)](
+          Left(trn)    -> s"http://host:123/registration/organisation/trn/${trn.value}",
+          Right(sautr) -> s"http://host:123/registration/organisation/utr/${sautr.value}"
+        )
+
+        "do a post http call and return the result" in {
+          for {
+            httpResponse <- List(
+                             HttpResponse(200),
+                             HttpResponse(200, Some(JsString("hi"))),
+                             HttpResponse(500)
+                           )
+            idsWithExpectedUrls <- idsWithExpectedUrlsList
+          } {
+            withClue(s"For http response [${httpResponse.toString}] and id ${idsWithExpectedUrls._1}") {
+              mockPost(idsWithExpectedUrls._2, expectedHeaders, expectedBody(None))(
+                Some(httpResponse)
+              )
+
+              await(connector.getBusinessPartnerRecord(bprRequest(idsWithExpectedUrls._1, None)).value) shouldBe Right(
+                httpResponse
+              )
+            }
+          }
+        }
+
+        "pass in the trust name for name matching if one is passed in" in {
+          val trustName    = TrustName("trust")
+          val httpResponse = HttpResponse(200)
+
+          idsWithExpectedUrlsList.foreach {
+            case (id, expectedUrl) =>
+              withClue(s"For id $id: ") {
+                mockPost(expectedUrl, expectedHeaders, expectedBody(Some(trustName)))(
+                  Some(httpResponse)
+                )
+
+                await(connector.getBusinessPartnerRecord(bprRequest(id, Some(trustName))).value) shouldBe Right(
+                  httpResponse
+                )
+              }
+          }
+
+        }
+
+        "return an error when the future fails" in {
+          idsWithExpectedUrlsList.foreach {
+            case (id, expectedUrl) =>
+              withClue(s"For id $id: ") {
+                mockPost(expectedUrl, expectedHeaders, expectedBody(None))(None)
+
+                await(connector.getBusinessPartnerRecord(bprRequest(id, None)).value).isLeft shouldBe true
+              }
+          }
+        }
+      }
     }
 
   }

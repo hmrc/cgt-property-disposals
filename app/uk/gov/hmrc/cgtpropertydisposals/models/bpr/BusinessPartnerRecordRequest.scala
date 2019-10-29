@@ -18,9 +18,9 @@ package uk.gov.hmrc.cgtpropertydisposals.models.bpr
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR, TRN}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR}
-import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
 
 sealed trait BusinessPartnerRecordRequest extends Product with Serializable
 
@@ -31,7 +31,10 @@ object BusinessPartnerRecordRequest {
     nameMatch: Option[IndividualName]
   ) extends BusinessPartnerRecordRequest
 
-  final case class TrustBusinessPartnerRecordRequest(id: SAUTR) extends BusinessPartnerRecordRequest
+  final case class TrustBusinessPartnerRecordRequest(
+    id: Either[TRN, SAUTR],
+    nameMatch: Option[TrustName]
+  ) extends BusinessPartnerRecordRequest
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[BusinessPartnerRecordRequest] = derived.oformat[BusinessPartnerRecordRequest]
@@ -40,12 +43,18 @@ object BusinessPartnerRecordRequest {
 
     def fold[A](
       ifTrust: TrustBusinessPartnerRecordRequest => A,
-      ifIndividual: IndividualBusinessPartnerRecordRequest => A): A = r match {
+      ifIndividual: IndividualBusinessPartnerRecordRequest => A
+    ): A = r match {
       case t: TrustBusinessPartnerRecordRequest      => ifTrust(t)
       case i: IndividualBusinessPartnerRecordRequest => ifIndividual(i)
     }
 
-    def id: Either[SAUTR, NINO] = fold(t => Left(t.id), _.id)
+    def foldOnId[A](
+      ifTrn: TRN => A,
+      ifSautr: SAUTR => A,
+      ifNino: NINO => A
+    ): A =
+      fold(_.id.fold(ifTrn, ifSautr), _.id.fold(ifSautr, ifNino))
 
   }
 

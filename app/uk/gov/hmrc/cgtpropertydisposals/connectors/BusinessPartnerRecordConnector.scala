@@ -51,7 +51,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
 
   def url(bprRequest: BusinessPartnerRecordRequest): String = {
     val entityType = bprRequest.fold(_ => "organisation", _ => "individual")
-    val suffix     = bprRequest.id.fold(s => s"utr/${s.value}", n => s"nino/${n.value}")
+    val suffix     = bprRequest.foldOnId(t => s"trn/${t.value}", s => s"utr/${s.value}", n => s"nino/${n.value}")
     s"$baseUrl/registration/$entityType/$suffix"
   }
 
@@ -60,11 +60,15 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
   ): EitherT[Future, Error, HttpResponse] = {
     val registerDetails = RegisterDetails(
       regime            = "CGT",
-      requiresNameMatch = bprRequest.fold(_ => false, _.nameMatch.isDefined),
+      requiresNameMatch = bprRequest.fold(_.nameMatch.isDefined, _.nameMatch.isDefined),
       isAnAgent         = false,
       individual = bprRequest.fold(
         _ => None,
         _.nameMatch.map(name => RegisterIndividual(name.firstName, name.lastName))
+      ),
+      organisation = bprRequest.fold(
+        _.nameMatch.map(name => RegisterOrganisation(name.value)),
+        _ => None
       )
     )
 
@@ -77,7 +81,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
         )
         .map(Right(_))
         .recover {
-          case e => Left(Error(e, "id" -> bprRequest.id.fold(_.value, _.value)))
+          case e => Left(Error(e, "id" -> bprRequest.foldOnId(_.value, _.value, _.value)))
         }
     )
   }
@@ -89,12 +93,17 @@ object BusinessPartnerRecordConnectorImpl {
     regime: String,
     requiresNameMatch: Boolean,
     isAnAgent: Boolean,
-    individual: Option[RegisterIndividual]
+    individual: Option[RegisterIndividual],
+    organisation: Option[RegisterOrganisation]
   )
 
   private final case class RegisterIndividual(firstName: String, lastName: String)
 
+  private final case class RegisterOrganisation(organisationName: String)
+
   private implicit val desIndividualFormat: OFormat[RegisterIndividual] = Json.format[RegisterIndividual]
+
+  private implicit val desOrganisationFormat: OFormat[RegisterOrganisation] = Json.format[RegisterOrganisation]
 
   private implicit val registerDetailsFormat: OFormat[RegisterDetails] = Json.format[RegisterDetails]
 

@@ -50,7 +50,7 @@ class BusinessPartnerRecordController @Inject()(
             .value
             .map {
               case Left(e) =>
-                logger.warn(s"Failed to get BPR for id ${bprRequest.id}", e)
+                logger.warn(s"Failed to get BPR for id ${bprRequest.foldOnId(_.toString, _.toString, _.toString)}", e)
                 InternalServerError
               case Right(bpr) =>
                 Ok(Json.toJson(bpr))
