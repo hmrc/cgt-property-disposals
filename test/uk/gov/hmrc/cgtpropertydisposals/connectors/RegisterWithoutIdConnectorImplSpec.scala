@@ -24,7 +24,7 @@ import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, RegistrationDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
@@ -70,7 +70,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
       val registrationDetails = RegistrationDetails(
         IndividualName("name", "surname"),
         Email("email"),
-        UkAddress("line1", None, None, None, "postcode")
+        UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
       )
 
       val expectedRequest = Json.parse(
@@ -85,6 +85,9 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
           |  },
           |  "address" : {
           |    "line1" : "line1",
+          |    "line2" : "line2",
+          |    "line3" : "line3",
+          |    "line4" : "line4",
           |    "postalCode" : "postcode",
           |    "countryCode" : "GB"
           |  },
@@ -117,6 +120,50 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
         await(connector.registerWithoutId(registrationDetails).value).isLeft shouldBe true
       }
 
+      "be able to convert non uk addresses" in {
+        val httpResponse = HttpResponse(200)
+
+        val registrationDetails = RegistrationDetails(
+          IndividualName("name", "surname"),
+          Email("email"),
+          NonUkAddress(
+            "line1",
+            Some("line2"),
+            Some("line3"),
+            Some("line4"),
+            Some("postcode"),
+            Country("HK", Some("Hong Kong")))
+        )
+
+        val expectedRequest = Json.parse(
+          """
+              |{
+              |  "regime": "CGT",
+              |  "isAnAgent": false,
+              |  "isAGroup": false,
+              |  "individual": {
+              |    "firstName": "name",
+              |    "lastName":  "surname"
+              |  },
+              |  "address" : {
+              |    "line1" : "line1",
+              |    "line2" : "line2",
+              |    "line3" : "line3",
+              |    "line4" : "line4",
+              |    "postalCode" : "postcode",
+              |    "countryCode" : "HK"
+              |  },
+              |  "contactDetails" : {
+              |    "emailAddress" : "email"
+              |  }
+              |}
+              |""".stripMargin
+        )
+
+        mockPost(expectedUrl, expectedHeaders, expectedRequest)(Some(httpResponse))
+
+        await(connector.registerWithoutId(registrationDetails).value) shouldBe Right(httpResponse)
+      }
     }
 
   }
