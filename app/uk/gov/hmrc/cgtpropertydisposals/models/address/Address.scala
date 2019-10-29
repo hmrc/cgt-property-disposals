@@ -50,8 +50,8 @@ object Address {
 
   def toAddressDetails(address: Address): AddressDetails =
     address match {
-      case UkAddress(line1, line2, town, county, postcode) =>
-        AddressDetails(line1, line2, town, county, Some(postcode), "GB")
+      case u @ UkAddress(line1, line2, town, county, postcode) =>
+        AddressDetails(line1, line2, town, county, Some(postcode), u.countryCode)
       case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
         AddressDetails(line1, line2, line3, line4, postcode, country.code)
     }

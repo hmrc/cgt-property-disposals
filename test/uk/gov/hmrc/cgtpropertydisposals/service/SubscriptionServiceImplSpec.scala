@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
+import java.time.LocalDateTime
+
 import cats.data.EitherT
 import com.typesafe.config.ConfigFactory
 import org.scalacheck.ScalacheckShapeless._
@@ -27,11 +29,10 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
-import uk.gov.hmrc.cgtpropertydisposals.models.ContactDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.{ContactDetails, Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TelephoneNumber, sample}
 import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, TelephoneNumber, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -116,35 +117,30 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
       "return the subscription update response if the call comes back with a " +
         "200 status and the JSON body can be parsed" in {
+        val updateResponse =
+          SubscriptionUpdateResponse(
+            "CGT",
+            LocalDateTime.now(),
+            "form",
+            "cgtRef",
+            "GB",
+            Some("postcode")
+          )
         val jsonBody =
-          """
+          s"""
             |{
-            |    "regime": "CGT",
-            |    "subscriptionDetails": {
-            |        "trustee": {
-            |            "typeOfPerson": "Trustee",
-            |            "organisationName": "ABC Trust"
-            |        },
-            |        "addressDetails": {
-            |            "addressLine1": "101 Kiwi Street",
-            |            "addressLine4": "Christchurch",
-            |            "countryCode": "NZ"
-            |        },
-            |        "contactDetails": {
-            |            "contactName": "Stephen Wood",
-            |            "phoneNumber": "(+013)32752856",
-            |            "mobileNumber": "(+44)7782565326",
-            |            "faxNumber": "01332754256",
-            |            "emailAddress": "stephen@abc.co.uk"
-            |        }
-            |    }
+            | "regime": "CGT",
+            | "processingDate": "${updateResponse.processingDate.toString}",
+            | "formBundleNumber": "${updateResponse.formBundleNumber}",
+            | "cgtReferenceNumber": "${updateResponse.cgtReferenceNumber}",
+            | "countryCode": "${updateResponse.countryCode}",
+            | "postalCode": "postcode"
             |}
             |""".stripMargin
 
         mockUpdateSubscriptionDetails(cgtReference, expectedRequest)(
           Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
-        await(service.updateSubscription(cgtReference, expectedRequest).value).isLeft shouldBe true
-
+        await(service.updateSubscription(cgtReference, expectedRequest).value) shouldBe Right(updateResponse)
       }
     }
 
@@ -167,6 +163,101 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(JsNumber(1)))))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
+
+        "an email cannot be found in the response" in {
+          val jsonBody =
+            """
+              |{
+              |    "regime": "CGT",
+              |    "subscriptionDetails": {
+              |        "trustee": {
+              |            "typeOfPerson": "Trustee",
+              |            "organisationName": "ABC Trust"
+              |        },
+              |        "isRegisteredWithId": true,
+              |        "addressDetails": {
+              |            "addressLine1": "101 Kiwi Street",
+              |            "addressLine4": "Christchurch",
+              |            "countryCode": "NZ"
+              |        },
+              |        "contactDetails": {
+              |            "contactName": "Stephen Wood",
+              |            "phoneNumber": "(+013)32752856",
+              |            "mobileNumber": "(+44)7782565326",
+              |            "faxNumber": "01332754256"
+              |        },
+              |        "isRegisteredWithId": true
+              |    }
+              |}
+              |""".stripMargin
+
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          await(service.getSubscription(cgtReference).value).isLeft shouldBe true
+        }
+
+        "both an organisation name and an individual's name are returned in the response" in {
+          val jsonBody =
+            Json.parse("""
+              |{
+              |    "regime": "CGT",
+              |    "subscriptionDetails": {
+              |        "trustee": {
+              |            "typeOfPerson": "Trustee",
+              |            "organisationName": "ABC Trust"
+              |        },
+              |        "individual": {
+              |            "typeOfPerson": "Individual",
+              |            "firstName" : "First",
+              |            "lastName" : "Last"
+              |        },
+              |        "addressDetails": {
+              |            "addressLine1": "101 Kiwi Street",
+              |            "addressLine4": "Christchurch",
+              |            "countryCode": "NZ"
+              |        },
+              |        "contactDetails": {
+              |            "contactName": "Stephen Wood",
+              |            "phoneNumber": "(+013)32752856",
+              |            "mobileNumber": "(+44)7782565326",
+              |            "faxNumber": "01332754256",
+              |            "emailAddress": "stephen@abc.co.uk"
+              |        },
+              |        "isRegisteredWithId": true
+              |    }
+              |}
+              |""".stripMargin)
+
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          await(service.getSubscription(cgtReference).value).isLeft shouldBe true
+        }
+
+        "no organisation name or individual's name can be found in the response" in {
+          val jsonBody =
+            Json.parse("""
+              |{
+              |    "regime": "CGT",
+              |    "subscriptionDetails": {
+              |        "addressDetails": {
+              |            "addressLine1": "101 Kiwi Street",
+              |            "addressLine4": "Christchurch",
+              |            "countryCode": "NZ"
+              |        },
+              |        "contactDetails": {
+              |            "contactName": "Stephen Wood",
+              |            "phoneNumber": "(+013)32752856",
+              |            "mobileNumber": "(+44)7782565326",
+              |            "faxNumber": "01332754256",
+              |            "emailAddress": "stephen@abc.co.uk"
+              |        },
+              |        "isRegisteredWithId": true
+              |    }
+              |}
+              |""".stripMargin)
+
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          await(service.getSubscription(cgtReference).value).isLeft shouldBe true
+        }
+
       }
       "return the subscription display response if the call comes back with a " +
         "200 status and the JSON body can be parsed and the address is a Non-UK address and no post code" in {
