@@ -55,7 +55,7 @@ object DesSubscriptionUpdateRequest {
       subscriptionUpdateRequest.subscriptionDetails.contactDetails.emailAddress
     )
 
-    new DesSubscriptionUpdateRequest(
+    DesSubscriptionUpdateRequest(
       "CGT",
       DesSubscriptionUpdateDetails(
         typeOfPerson,

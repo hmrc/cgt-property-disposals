@@ -129,6 +129,35 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         )
         await(connector.updateSubscription(cgtReference, expectedRequest).value).isLeft shouldBe true
       }
+
+      "be able to handle non uk addresses" in {
+        val expectedRequest = SubscriptionUpdateRequest(
+          SubscriptionUpdateDetails(
+            Left(TrustName("Trust")),
+            NonUkAddress(
+              "100 Via Suttono",
+              Some("Wokingama"),
+              Some("Surre"),
+              Some("Londono"),
+              Some("DH14EJ"),
+              Country("IT", Some("Italy"))
+            ),
+            ContactDetails(
+              "Stefano Bosco",
+              Some("(+013)32752856"),
+              Some("stefano@abc.co.uk")
+            )
+          )
+        )
+
+        val expectedDesSubUpdateRequest = DesSubscriptionUpdateRequest(expectedRequest)
+        val httpResponse                = HttpResponse(200)
+
+        mockPut(expectedSubscriptionDisplayUrl(cgtReference), expectedDesSubUpdateRequest)(Some(httpResponse))
+
+        await(connector.updateSubscription(cgtReference, expectedRequest).value) shouldBe Right(httpResponse)
+      }
+
     }
 
     "handling request to get subscription display details" must {
