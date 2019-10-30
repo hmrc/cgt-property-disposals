@@ -42,24 +42,24 @@ object DesSubscriptionUpdateRequest {
 
   def apply(subscriptionUpdateRequest: SubscriptionUpdateRequest): DesSubscriptionUpdateRequest = {
     val typeOfPerson: Either[Trustee, Individual] =
-      subscriptionUpdateRequest.subscriptionDetails.typeOfPersonDetails.fold[Either[Trustee, Individual]](
+      subscriptionUpdateRequest.subscribedDetails.name.fold[Either[Trustee, Individual]](
         trust => Left(Trustee("Trustee", trust.value)),
         individual => Right(Individual("Individual", individual.firstName, individual.lastName))
       )
 
-    val contactDetails = uk.gov.hmrc.cgtpropertydisposals.models.des.ContactDetails(
-      subscriptionUpdateRequest.subscriptionDetails.contactDetails.contactName,
-      subscriptionUpdateRequest.subscriptionDetails.contactDetails.phoneNumber,
+    val contactDetails = ContactDetails(
+      subscriptionUpdateRequest.subscribedDetails.contactName.value,
+      subscriptionUpdateRequest.subscribedDetails.telephoneNumber.map(telephoneNumber => telephoneNumber.value),
       None,
       None,
-      subscriptionUpdateRequest.subscriptionDetails.contactDetails.emailAddress
+      Some(subscriptionUpdateRequest.subscribedDetails.emailAddress.value)
     )
 
     DesSubscriptionUpdateRequest(
       "CGT",
       DesSubscriptionUpdateDetails(
         typeOfPerson,
-        Address.toAddressDetails(subscriptionUpdateRequest.subscriptionDetails.addressDetails),
+        Address.toAddressDetails(subscriptionUpdateRequest.subscribedDetails.address),
         contactDetails
       )
     )

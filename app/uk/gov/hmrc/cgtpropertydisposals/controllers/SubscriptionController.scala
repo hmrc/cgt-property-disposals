@@ -26,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.Subsc
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
@@ -117,9 +117,9 @@ class SubscriptionController @Inject()(
   def updateSubscription(cgtReference: CgtReference): Action[AnyContent] = Action.async { implicit request =>
     val result: EitherT[Future, SubscriptionError, SubscriptionUpdateResponse] =
       for {
-        subscriptionUpdateRequest <- EitherT.fromEither[Future](extractRequest[SubscriptionUpdateRequest](request))
+        subscriptionUpdateRequest <- EitherT.fromEither[Future](extractRequest[SubscribedDetails](request))
         subscriptionResponse <- subscriptionService
-                                 .updateSubscription(cgtReference, subscriptionUpdateRequest)
+                                 .updateSubscription(cgtReference, SubscriptionUpdateRequest(subscriptionUpdateRequest))
                                  .leftMap[SubscriptionError](BackendError)
       } yield subscriptionResponse
 

@@ -73,7 +73,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       val cgtReference = CgtReference("XFCGT123456789")
 
       val expectedRequest = SubscriptionUpdateRequest(
-        subscriptionDetails = SubscriptionUpdateDetails(
+        subscribedDetails = SubscriptionUpdateDetails(
           Right(IndividualName("Stephen", "Wood")),
           UkAddress(
             "100 Sutton Street",

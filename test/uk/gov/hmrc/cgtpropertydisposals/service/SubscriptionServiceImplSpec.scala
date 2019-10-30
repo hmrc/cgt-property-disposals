@@ -77,7 +77,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
   "SubscriptionServiceImpl" when {
 
     val expectedRequest = SubscriptionUpdateRequest(
-      subscriptionDetails = SubscriptionUpdateDetails(
+      subscribedDetails = SubscriptionUpdateDetails(
         Right(IndividualName("Stephen", "Wood")),
         UkAddress(
           "100 Sutton Street",
