@@ -26,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.Subsc
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
@@ -114,12 +114,12 @@ class SubscriptionController @Inject()(
     }
   }
 
-  def updateSubscription(cgtReference: CgtReference): Action[AnyContent] = Action.async { implicit request =>
+  def updateSubscription: Action[AnyContent] = authenticate.async { implicit request =>
     val result: EitherT[Future, SubscriptionError, SubscriptionUpdateResponse] =
       for {
-        subscriptionUpdateRequest <- EitherT.fromEither[Future](extractRequest[SubscribedDetails](request))
+        subscribedDetails <- EitherT.fromEither[Future](extractRequest[SubscribedDetails](request))
         subscriptionResponse <- subscriptionService
-                                 .updateSubscription(cgtReference, SubscriptionUpdateRequest(subscriptionUpdateRequest))
+                                 .updateSubscription(subscribedDetails)
                                  .leftMap[SubscriptionError](BackendError)
       } yield subscriptionResponse
 
@@ -154,8 +154,7 @@ class SubscriptionController @Inject()(
     subscriptionDetails: SubscriptionDetails
   )(implicit request: AuthenticatedRequest[_]): EitherT[Future, Error, SubscriptionResponse] =
     for {
-      subscriptionResponse <- subscriptionService
-                               .subscribe(subscriptionDetails)
+      subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails)
       _ <- taxEnrolmentService
             .allocateEnrolmentToGroup(
               TaxEnrolmentRequest(

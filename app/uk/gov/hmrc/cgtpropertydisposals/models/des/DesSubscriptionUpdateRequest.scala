@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest.DesSubscriptionUpdateDetails
 
@@ -40,26 +40,26 @@ object DesSubscriptionUpdateRequest {
     implicit val format: OFormat[DesSubscriptionUpdateDetails] = Json.format[DesSubscriptionUpdateDetails]
   }
 
-  def apply(subscriptionUpdateRequest: SubscriptionUpdateRequest): DesSubscriptionUpdateRequest = {
+  def apply(subscribedDetails: SubscribedDetails): DesSubscriptionUpdateRequest = {
     val typeOfPerson: Either[Trustee, Individual] =
-      subscriptionUpdateRequest.subscribedDetails.name.fold[Either[Trustee, Individual]](
+      subscribedDetails.name.fold[Either[Trustee, Individual]](
         trust => Left(Trustee("Trustee", trust.value)),
         individual => Right(Individual("Individual", individual.firstName, individual.lastName))
       )
 
     val contactDetails = ContactDetails(
-      subscriptionUpdateRequest.subscribedDetails.contactName.value,
-      subscriptionUpdateRequest.subscribedDetails.telephoneNumber.map(telephoneNumber => telephoneNumber.value),
+      subscribedDetails.contactName.value,
+      subscribedDetails.telephoneNumber.map(telephoneNumber => telephoneNumber.value),
       None,
       None,
-      Some(subscriptionUpdateRequest.subscribedDetails.emailAddress.value)
+      Some(subscribedDetails.emailAddress.value)
     )
 
     DesSubscriptionUpdateRequest(
       "CGT",
       DesSubscriptionUpdateDetails(
         typeOfPerson,
-        Address.toAddressDetails(subscriptionUpdateRequest.subscribedDetails.address),
+        Address.toAddressDetails(subscribedDetails.address),
         contactDetails
       )
     )
