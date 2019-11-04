@@ -17,26 +17,12 @@
 package uk.gov.hmrc.cgtpropertydisposals.models
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
 final case class SubscriptionUpdateRequest(
-  subscriptionDetails: SubscriptionUpdateDetails
+  subscribedDetails: SubscribedDetails
 )
 
 object SubscriptionUpdateRequest {
   implicit val format: OFormat[SubscriptionUpdateRequest] = Json.format[SubscriptionUpdateRequest]
-
-  final case class SubscriptionUpdateDetails(
-    typeOfPersonDetails: Either[TrustName, IndividualName],
-    addressDetails: Address,
-    contactDetails: ContactDetails
-  )
-
-  object SubscriptionUpdateDetails {
-    implicit val format: OFormat[SubscriptionUpdateDetails] = Json.format[SubscriptionUpdateDetails]
-  }
-
 }

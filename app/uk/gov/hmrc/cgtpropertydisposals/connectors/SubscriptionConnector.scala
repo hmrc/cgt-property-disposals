@@ -24,7 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesSubscriptionUpdateRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscriptionDetails, SubscriptionUpdateRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -42,7 +42,7 @@ trait SubscriptionConnector {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
-  def updateSubscription(cgtReference: CgtReference, subscriptionUpdateRequest: SubscriptionUpdateRequest)(
+  def updateSubscription(subscribedDetails: SubscribedDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 }
@@ -90,12 +90,15 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
         }
     )
 
-  override def updateSubscription(cgtReference: CgtReference, subscriptionUpdateRequest: SubscriptionUpdateRequest)(
+  override def updateSubscription(subscribedDetails: SubscribedDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .put(subscriptionDisplayUrl(cgtReference), DesSubscriptionUpdateRequest(subscriptionUpdateRequest), headers)(
+        .put(
+          subscriptionDisplayUrl(subscribedDetails.cgtReference),
+          DesSubscriptionUpdateRequest(subscribedDetails),
+          headers)(
           implicitly[Writes[DesSubscriptionUpdateRequest]],
           hc.copy(authorization = None),
           ec

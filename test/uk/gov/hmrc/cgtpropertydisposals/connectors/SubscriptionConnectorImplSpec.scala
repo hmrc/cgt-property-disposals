@@ -22,7 +22,6 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionUpdateRequest.SubscriptionUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
@@ -72,22 +71,20 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     "handling request to update subscription details" must {
       val cgtReference = CgtReference("XFCGT123456789")
 
-      val expectedRequest = SubscriptionUpdateRequest(
-        subscriptionDetails = SubscriptionUpdateDetails(
-          Right(IndividualName("Stephen", "Wood")),
-          UkAddress(
-            "100 Sutton Street",
-            Some("Wokingham"),
-            Some("Surrey"),
-            Some("London"),
-            "DH14EJ"
-          ),
-          ContactDetails(
-            "Stephen Wood",
-            Some("(+013)32752856"),
-            Some("stephen@abc.co.uk")
-          )
-        )
+      val expectedRequest = SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "DH14EJ"
+        ),
+        ContactName("Stephen Wood"),
+        cgtReference,
+        Some(TelephoneNumber("(+013)32752856")),
+        true
       )
 
       val expectedDesSubUpdateRequest = DesSubscriptionUpdateRequest(expectedRequest)
@@ -117,7 +114,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
               Some(httpResponse)
             )
 
-            await(connector.updateSubscription(cgtReference, expectedRequest).value) shouldBe Right(httpResponse)
+            await(connector.updateSubscription(expectedRequest).value) shouldBe Right(httpResponse)
           }
         }
       }
@@ -127,27 +124,26 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         mockPut(expectedSubscriptionDisplayUrl(cgtReference), expectedDesSubUpdateRequest)(
           None
         )
-        await(connector.updateSubscription(cgtReference, expectedRequest).value).isLeft shouldBe true
+        await(connector.updateSubscription(expectedRequest).value).isLeft shouldBe true
       }
 
       "be able to handle non uk addresses" in {
-        val expectedRequest = SubscriptionUpdateRequest(
-          SubscriptionUpdateDetails(
-            Left(TrustName("Trust")),
-            NonUkAddress(
-              "100 Via Suttono",
-              Some("Wokingama"),
-              Some("Surre"),
-              Some("Londono"),
-              Some("DH14EJ"),
-              Country("IT", Some("Italy"))
-            ),
-            ContactDetails(
-              "Stefano Bosco",
-              Some("(+013)32752856"),
-              Some("stefano@abc.co.uk")
-            )
-          )
+
+        val expectedRequest = SubscribedDetails(
+          Left(TrustName("Trust")),
+          Email("stefano@abc.co.uk"),
+          NonUkAddress(
+            "100 Via Suttono",
+            Some("Wokingama"),
+            Some("Surre"),
+            Some("Londono"),
+            Some("DH14EJ"),
+            Country("IT", Some("Italy"))
+          ),
+          ContactName("Stefano Bosco"),
+          cgtReference,
+          Some(TelephoneNumber("(+013)32752856")),
+          true
         )
 
         val expectedDesSubUpdateRequest = DesSubscriptionUpdateRequest(expectedRequest)
@@ -155,7 +151,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
         mockPut(expectedSubscriptionDisplayUrl(cgtReference), expectedDesSubUpdateRequest)(Some(httpResponse))
 
-        await(connector.updateSubscription(cgtReference, expectedRequest).value) shouldBe Right(httpResponse)
+        await(connector.updateSubscription(expectedRequest).value) shouldBe Right(httpResponse)
       }
 
     }
