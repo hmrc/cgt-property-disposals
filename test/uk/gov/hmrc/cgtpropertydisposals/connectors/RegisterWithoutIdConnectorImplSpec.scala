@@ -80,7 +80,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
         s"""
           |{
           |  "regime": "CGT",
-          |  "acknowledgementReference" : "${referenceId.toString}",
+          |  "acknowledgementReference" : "${referenceId.toString.replaceAllLiterally("-", "")}",
           |  "isAnAgent": false,
           |  "isAGroup": false,
           |  "individual": {
@@ -143,7 +143,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
           s"""
               |{
               |  "regime": "CGT",
-              |  "acknowledgementReference" : "${referenceId.toString}",
+              |  "acknowledgementReference" : "${referenceId.toString.replaceAllLiterally("-", "")}",
               |  "isAnAgent": false,
               |  "isAGroup": false,
               |  "individual": {
