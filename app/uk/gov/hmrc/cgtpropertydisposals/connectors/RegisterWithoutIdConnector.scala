@@ -19,7 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import java.util.UUID
 
 import cats.data.EitherT
-import cats.syntax.either._
+import cats.instances.char._
+import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
@@ -58,7 +59,7 @@ class RegisterWithoutIdConnectorImpl @Inject()(http: HttpClient, val config: Ser
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
     val registerWithoutIdRequest = RegistrationRequest(
       "CGT",
-      acknowledgementReferenceId.toString,
+      acknowledgementReferenceId.toString.filterNot(_ === '-'),
       isAnAgent = false,
       isAGroup  = false,
       RegistrationIndividual(registrationDetails.name.firstName, registrationDetails.name.lastName),
