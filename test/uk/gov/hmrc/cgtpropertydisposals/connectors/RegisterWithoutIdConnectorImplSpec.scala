@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
+import java.util.UUID
+
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
@@ -72,11 +74,13 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
         Email("email"),
         UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
       )
+      val referenceId: UUID = UUID.randomUUID()
 
       val expectedRequest = Json.parse(
-        """
+        s"""
           |{
           |  "regime": "CGT",
+          |  "acknowledgementReference" : "${referenceId.toString}",
           |  "isAnAgent": false,
           |  "isAGroup": false,
           |  "individual": {
@@ -109,7 +113,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
               Some(httpResponse)
             )
 
-            await(connector.registerWithoutId(registrationDetails).value) shouldBe Right(httpResponse)
+            await(connector.registerWithoutId(registrationDetails, referenceId).value) shouldBe Right(httpResponse)
           }
         }
       }
@@ -117,7 +121,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
       "return an error when the future fails" in {
         mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
 
-        await(connector.registerWithoutId(registrationDetails).value).isLeft shouldBe true
+        await(connector.registerWithoutId(registrationDetails, referenceId).value).isLeft shouldBe true
       }
 
       "be able to convert non uk addresses" in {
@@ -136,9 +140,10 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
         )
 
         val expectedRequest = Json.parse(
-          """
+          s"""
               |{
               |  "regime": "CGT",
+              |  "acknowledgementReference" : "${referenceId.toString}",
               |  "isAnAgent": false,
               |  "isAGroup": false,
               |  "individual": {
@@ -162,7 +167,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
 
         mockPost(expectedUrl, expectedHeaders, expectedRequest)(Some(httpResponse))
 
-        await(connector.registerWithoutId(registrationDetails).value) shouldBe Right(httpResponse)
+        await(connector.registerWithoutId(registrationDetails, referenceId).value) shouldBe Right(httpResponse)
       }
     }
 

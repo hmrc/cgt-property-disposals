@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
+import java.util.UUID
+
 import cats.data.EitherT
 import cats.syntax.either._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
@@ -33,7 +35,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[RegisterWithoutIdConnectorImpl])
 trait RegisterWithoutIdConnector {
 
-  def registerWithoutId(registrationDetails: RegistrationDetails)(
+  def registerWithoutId(registrationDetails: RegistrationDetails, acknowledgementReferenceId: UUID)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -51,10 +53,12 @@ class RegisterWithoutIdConnectorImpl @Inject()(http: HttpClient, val config: Ser
   val url: String = s"$baseUrl/registration/02.00.00/individual"
 
   override def registerWithoutId(
-    registrationDetails: RegistrationDetails
+    registrationDetails: RegistrationDetails,
+    acknowledgementReferenceId: UUID
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
     val registerWithoutIdRequest = RegistrationRequest(
       "CGT",
+      acknowledgementReferenceId.toString,
       isAnAgent = false,
       isAGroup  = false,
       RegistrationIndividual(registrationDetails.name.firstName, registrationDetails.name.lastName),
@@ -89,6 +93,7 @@ object RegisterWithoutIdConnectorImpl {
 
   final case class RegistrationRequest(
     regime: String,
+    acknowledgementReference: String,
     isAnAgent: Boolean,
     isAGroup: Boolean,
     individual: RegistrationIndividual,
