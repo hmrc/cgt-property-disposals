@@ -16,14 +16,17 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
+import java.util.UUID
+
 import cats.data.EitherT
 import org.scalacheck.ScalacheckShapeless._
+import org.scalamock.handlers.CallHandler0
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.RegisterWithoutIdConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, UUIDGenerator, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,12 +36,18 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
 
   val mockConnector = mock[RegisterWithoutIdConnector]
 
-  val service = new RegisterWithoutIdServiceImpl(mockConnector)
+  val mockUUIDGenerator = mock[UUIDGenerator]
 
-  def mockRegisterWithoutId(expectedRegistrationDetails: RegistrationDetails)(response: Either[Error, HttpResponse]) =
+  val service = new RegisterWithoutIdServiceImpl(mockConnector, mockUUIDGenerator)
+
+  def mockGenerateUUID(uuid: UUID) =
+    (mockUUIDGenerator.nextId: () => UUID).expects().returning(uuid)
+
+  def mockRegisterWithoutId(expectedRegistrationDetails: RegistrationDetails, expectedReferenceId: UUID)(
+    response: Either[Error, HttpResponse]) =
     (mockConnector
-      .registerWithoutId(_: RegistrationDetails)(_: HeaderCarrier))
-      .expects(expectedRegistrationDetails, *)
+      .registerWithoutId(_: RegistrationDetails, _: UUID)(_: HeaderCarrier))
+      .expects(expectedRegistrationDetails, expectedReferenceId, *)
       .returning(EitherT(Future.successful(response)))
 
   "RegisterWithoutIdServiceImpl" when {
@@ -47,20 +56,33 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
       val registrationDetails        = sample[RegistrationDetails]
+      val referenceId                = UUID.randomUUID()
 
       "return an error" when {
         "the http call comes back with a status other than 200" in {
-          mockRegisterWithoutId(registrationDetails)(Right(HttpResponse(500)))
+          inSequence {
+            mockGenerateUUID(referenceId)
+            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(500)))
+          }
+
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
-          mockRegisterWithoutId(registrationDetails)(Right(HttpResponse(200)))
+          inSequence {
+            mockGenerateUUID(referenceId)
+            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200)))
+          }
+
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
-          mockRegisterWithoutId(registrationDetails)(Right(HttpResponse(200, Some(JsNumber(1)))))
+          inSequence {
+            mockGenerateUUID(referenceId)
+            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(JsNumber(1)))))
+          }
+
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
         }
       }
@@ -73,7 +95,12 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
              |}
              |""".stripMargin
         )
-        mockRegisterWithoutId(registrationDetails)(Right(HttpResponse(200, Some(jsonBody))))
+
+        inSequence {
+          mockGenerateUUID(referenceId)
+          mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(jsonBody))))
+        }
+
         await(service.registerWithoutId(registrationDetails).value) shouldBe Right(SapNumber(sapNumber))
       }
     }

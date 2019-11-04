@@ -24,9 +24,10 @@ import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.RegisterWithoutIdConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.service.RegisterWithoutIdServiceImpl.RegisterWithoutIdResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,24 +42,31 @@ trait RegisterWithoutIdService {
 }
 
 @Singleton
-class RegisterWithoutIdServiceImpl @Inject()(connector: RegisterWithoutIdConnector)(implicit ec: ExecutionContext)
-    extends RegisterWithoutIdService {
+class RegisterWithoutIdServiceImpl @Inject()(connector: RegisterWithoutIdConnector, uuidGenerator: UUIDGenerator)(
+  implicit ec: ExecutionContext)
+    extends RegisterWithoutIdService
+    with Logging {
 
   def registerWithoutId(registrationDetails: RegistrationDetails)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, SapNumber] =
-    connector.registerWithoutId(registrationDetails).subflatMap { response =>
+  ): EitherT[Future, Error, SapNumber] = {
+    val referenceId = uuidGenerator.nextId()
+    connector.registerWithoutId(registrationDetails, referenceId).subflatMap { response =>
       if (response.status === 200) {
         response
           .parseJSON[RegisterWithoutIdResponse]()
           .bimap(
-            Error(_),
-            response => SapNumber(response.sapNumber)
+            Error(_), { response =>
+              logger.info(
+                s"For acknowledgement reference id $referenceId, register with id was successful with sap number ${response.sapNumber}")
+              SapNumber(response.sapNumber)
+            }
           )
       } else {
-        Left(Error(s"call to register with id came back with status ${response.status}"))
+        Left(Error(s"call to register with id with reference id $referenceId came back with status ${response.status}"))
       }
     }
+  }
 
 }
 
