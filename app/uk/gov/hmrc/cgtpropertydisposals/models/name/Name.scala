@@ -18,22 +18,29 @@ package uk.gov.hmrc.cgtpropertydisposals.models.name
 
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{Individual, Trustee}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
+import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.TypeOfPersonDetails
+import cats.implicits._
 
 object Name {
 
   def nameValidation(
-    individual: Option[Individual],
-    trustee: Option[Trustee]
+    typeOfPersonDetails: TypeOfPersonDetails
   ): Validation[Either[TrustName, IndividualName]] =
-    individual -> trustee match {
-      case (Some(individual), None)   => Valid(Right(IndividualName(individual.firstName, individual.lastName)))
-      case (None, Some(organisation)) => Valid(Left(TrustName(organisation.organisationName)))
-      case (Some(_), Some(_)) =>
-        Invalid(NonEmptyList.one("BPR contained both an organisation name and individual name"))
-      case (None, None) =>
-        Invalid(NonEmptyList.one("BPR contained contained neither an organisation name or an individual name"))
+    if (typeOfPersonDetails.typeOfPerson === "Individual") {
+      typeOfPersonDetails.firstName -> typeOfPersonDetails.lastName match {
+        case (Some(firstName), Some(lastName)) => Valid(Right(IndividualName(firstName, lastName)))
+        case (Some(_), None) =>
+          Invalid(NonEmptyList.one("Subscription Display response did not contain last name"))
+        case (None, Some(_)) =>
+          Invalid(NonEmptyList.one("Subscription Display response did not contain first name"))
+        case _ => Invalid(NonEmptyList.one("Subscription Display response did not contain first name or last name"))
+      }
+    } else if (typeOfPersonDetails.typeOfPerson === "Trustee") typeOfPersonDetails.organisationName match {
+      case Some(organisationName) => Valid(Left(TrustName(organisationName)))
+      case _                      => Invalid(NonEmptyList.one("Subscription Display response did not contain organisation name"))
+    } else {
+      Invalid(NonEmptyList.one("BPR contained contained neither an organisation name or an individual name"))
     }
 
 }

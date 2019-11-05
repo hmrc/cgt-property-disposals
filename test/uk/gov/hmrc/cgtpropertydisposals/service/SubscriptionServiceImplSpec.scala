@@ -166,7 +166,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
               |{
               |    "regime": "CGT",
               |    "subscriptionDetails": {
-              |        "trustee": {
+              |        "typeOfPersonDetails": {
               |            "typeOfPerson": "Trustee",
               |            "organisationName": "ABC Trust"
               |        },
@@ -191,20 +191,14 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
-        "both an organisation name and an individual's name are returned in the response" in {
+        "some invalid person type is in the response" in {
           val jsonBody =
             Json.parse("""
               |{
               |    "regime": "CGT",
               |    "subscriptionDetails": {
-              |        "trustee": {
-              |            "typeOfPerson": "Trustee",
-              |            "organisationName": "ABC Trust"
-              |        },
-              |        "individual": {
-              |            "typeOfPerson": "Individual",
-              |            "firstName" : "First",
-              |            "lastName" : "Last"
+              |        "typeOfPersonDetails": {
+              |            "typeOfPerson": "bad person type"
               |        },
               |        "addressDetails": {
               |            "addressLine1": "101 Kiwi Street",
@@ -254,6 +248,128 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
+        "type of person is individual but last name is missing" in {
+          val jsonBody =
+            Json.parse("""
+                         |{
+                         |    "regime": "CGT",
+                         |    "subscriptionDetails": {
+                         |        "typeOfPersonDetails": {
+                         |            "typeOfPerson": "Individual",
+                         |            "firstName" : "Joe"
+                         |        },
+                         |        "addressDetails": {
+                         |            "addressLine1": "101 Kiwi Street",
+                         |            "addressLine4": "Christchurch",
+                         |            "countryCode": "NZ"
+                         |        },
+                         |        "contactDetails": {
+                         |            "contactName": "Stephen Wood",
+                         |            "phoneNumber": "(+013)32752856",
+                         |            "mobileNumber": "(+44)7782565326",
+                         |            "faxNumber": "01332754256",
+                         |            "emailAddress": "stephen@abc.co.uk"
+                         |        },
+                         |        "isRegisteredWithId": true
+                         |    }
+                         |}
+                         |""".stripMargin)
+
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          await(service.getSubscription(cgtReference).value).isLeft shouldBe true
+        }
+
+        "type of person is individual and first and last name is missing" in {
+          val jsonBody =
+            Json.parse("""
+                         |{
+                         |    "regime": "CGT",
+                         |    "subscriptionDetails": {
+                         |        "typeOfPersonDetails": {
+                         |            "typeOfPerson": "Individual"
+                         |        },
+                         |        "addressDetails": {
+                         |            "addressLine1": "101 Kiwi Street",
+                         |            "addressLine4": "Christchurch",
+                         |            "countryCode": "NZ"
+                         |        },
+                         |        "contactDetails": {
+                         |            "contactName": "Stephen Wood",
+                         |            "phoneNumber": "(+013)32752856",
+                         |            "mobileNumber": "(+44)7782565326",
+                         |            "faxNumber": "01332754256",
+                         |            "emailAddress": "stephen@abc.co.uk"
+                         |        },
+                         |        "isRegisteredWithId": true
+                         |    }
+                         |}
+                         |""".stripMargin)
+
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          await(service.getSubscription(cgtReference).value).isLeft shouldBe true
+        }
+
+        "type of person is individual but first name is missing" in {
+          val jsonBody =
+            Json.parse("""
+                         |{
+                         |    "regime": "CGT",
+                         |    "subscriptionDetails": {
+                         |        "typeOfPersonDetails": {
+                         |            "typeOfPerson": "Individual",
+                         |            "lastName" : "Smith"
+                         |        },
+                         |        "addressDetails": {
+                         |            "addressLine1": "101 Kiwi Street",
+                         |            "addressLine4": "Christchurch",
+                         |            "countryCode": "NZ"
+                         |        },
+                         |        "contactDetails": {
+                         |            "contactName": "Stephen Wood",
+                         |            "phoneNumber": "(+013)32752856",
+                         |            "mobileNumber": "(+44)7782565326",
+                         |            "faxNumber": "01332754256",
+                         |            "emailAddress": "stephen@abc.co.uk"
+                         |        },
+                         |        "isRegisteredWithId": true
+                         |    }
+                         |}
+                         |""".stripMargin)
+
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          await(service.getSubscription(cgtReference).value).isLeft shouldBe true
+        }
+
+        "type of person is trustee but organisation name is missing" in {
+          val jsonBody =
+            Json.parse("""
+                         |{
+                         |    "regime": "CGT",
+                         |    "subscriptionDetails": {
+                         |        "typeOfPersonDetails": {
+                         |            "typeOfPerson": "Trustee"
+                         |        },
+                         |        "addressDetails": {
+                         |            "addressLine1": "101 Kiwi Street",
+                         |            "addressLine4": "Christchurch",
+                         |            "countryCode": "NZ"
+                         |        },
+                         |        "contactDetails": {
+                         |            "contactName": "Stephen Wood",
+                         |            "phoneNumber": "(+013)32752856",
+                         |            "mobileNumber": "(+44)7782565326",
+                         |            "faxNumber": "01332754256",
+                         |            "emailAddress": "stephen@abc.co.uk"
+                         |        },
+                         |        "isRegisteredWithId": true
+                         |    }
+                         |}
+                         |""".stripMargin)
+
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          await(service.getSubscription(cgtReference).value).isLeft shouldBe true
+        }
+
       }
       "return the subscription display response if the call comes back with a " +
         "200 status and the JSON body can be parsed and the address is a Non-UK address and no post code" in {
@@ -262,7 +378,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |{
             |    "regime": "CGT",
             |    "subscriptionDetails": {
-            |        "trustee": {
+            |        "typeOfPersonDetails": {
             |            "typeOfPerson": "Trustee",
             |            "organisationName": "ABC Trust"
             |        },
@@ -303,7 +419,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |{
             |    "regime": "CGT",
             |    "subscriptionDetails": {
-            |        "trustee": {
+            |        "typeOfPersonDetails": {
             |            "typeOfPerson": "Trustee",
             |            "organisationName": "ABC Trust"
             |        },
@@ -352,7 +468,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |{
             |    "regime": "CGT",
             |    "subscriptionDetails": {
-            |        "individual": {
+            |        "typeOfPersonDetails": {
             |            "typeOfPerson": "Individual",
             |            "firstName": "Luke",
             |            "lastName": "Bishop"
