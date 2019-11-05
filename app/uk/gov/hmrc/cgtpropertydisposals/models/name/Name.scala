@@ -40,7 +40,7 @@ object Name {
       case Some(organisationName) => Valid(Left(TrustName(organisationName)))
       case _                      => Invalid(NonEmptyList.one("Subscription Display response did not contain organisation name"))
     } else {
-      Invalid(NonEmptyList.one("BPR contained contained neither an organisation name or an individual name"))
+      Invalid(NonEmptyList.one("Subscription Display contained contained neither an organisation name or an individual name"))
     }
 
 }
