@@ -28,7 +28,7 @@ import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, Individual, Trustee}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse, TelephoneNumber}
@@ -123,8 +123,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
     )(desNonIsoCountryCodes)
 
     val nameValidation: Validation[Either[TrustName, IndividualName]] = Name.nameValidation(
-      desSubscriptionDisplayDetails.subscriptionDetails.individual,
-      desSubscriptionDisplayDetails.subscriptionDetails.trustee
+      desSubscriptionDisplayDetails.subscriptionDetails.typeOfPersonDetails
     )
 
     val emailValidation: Validation[Email] =
@@ -154,6 +153,17 @@ object SubscriptionService {
 
   import play.api.libs.json.{Json, OFormat}
 
+  final case class TypeOfPersonDetails(
+    typeOfPerson: String,
+    firstName: Option[String],
+    lastName: Option[String],
+    organisationName: Option[String]
+  )
+
+  object TypeOfPersonDetails {
+    implicit val format: OFormat[TypeOfPersonDetails] = Json.format[TypeOfPersonDetails]
+  }
+
   final case class DesSubscriptionDisplayDetails(
     regime: String,
     subscriptionDetails: DesSubscribedDetails
@@ -164,8 +174,7 @@ object SubscriptionService {
   }
 
   final case class DesSubscribedDetails(
-    individual: Option[Individual],
-    trustee: Option[Trustee],
+    typeOfPersonDetails: TypeOfPersonDetails,
     isRegisteredWithId: Boolean,
     addressDetails: AddressDetails,
     contactDetails: ContactDetails
