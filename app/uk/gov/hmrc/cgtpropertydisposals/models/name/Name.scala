@@ -18,9 +18,10 @@ package uk.gov.hmrc.cgtpropertydisposals.models.name
 
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
+import cats.instances.string._
+import cats.syntax.eq._
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
 import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.TypeOfPersonDetails
-import cats.implicits._
 
 object Name {
 
@@ -34,13 +35,19 @@ object Name {
           Invalid(NonEmptyList.one("Subscription Display response did not contain last name"))
         case (None, Some(_)) =>
           Invalid(NonEmptyList.one("Subscription Display response did not contain first name"))
-        case _ => Invalid(NonEmptyList.one("Subscription Display response did not contain first name or last name"))
+        case (None, None) =>
+          Invalid(NonEmptyList.one("Subscription Display response did not contain first name or last name"))
       }
-    } else if (typeOfPersonDetails.typeOfPerson === "Trustee") typeOfPersonDetails.organisationName match {
-      case Some(organisationName) => Valid(Left(TrustName(organisationName)))
-      case _                      => Invalid(NonEmptyList.one("Subscription Display response did not contain organisation name"))
-    } else {
-      Invalid(NonEmptyList.one("Subscription Display contained contained neither an organisation name or an individual name"))
+    } else if (typeOfPersonDetails.typeOfPerson === "Trustee")
+      typeOfPersonDetails.organisationName match {
+        case Some(organisationName) => Valid(Left(TrustName(organisationName)))
+        case None                   => Invalid(NonEmptyList.one("Subscription Display response did not contain organisation name"))
+      } else {
+      Invalid(
+        NonEmptyList.one(
+          s"Subscription Display contained contained an unknown type of person: ${typeOfPersonDetails.typeOfPerson}"
+        )
+      )
     }
 
 }
