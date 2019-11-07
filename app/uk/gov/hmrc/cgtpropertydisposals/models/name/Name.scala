@@ -45,7 +45,7 @@ object Name {
       } else {
       Invalid(
         NonEmptyList.one(
-          s"Subscription Display contained contained an unknown type of person: ${typeOfPersonDetails.typeOfPerson}"
+          s"Subscription Display contained an unknown type of person: ${typeOfPersonDetails.typeOfPerson}"
         )
       )
     }
