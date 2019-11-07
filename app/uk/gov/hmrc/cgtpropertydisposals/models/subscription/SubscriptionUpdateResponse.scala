@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.subscription
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Format
+import java.time.LocalDateTime
 
-final case class SapNumber(value: String) extends AnyVal
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 
-object SapNumber {
+final case class SubscriptionUpdateResponse(
+  regime: String,
+  processingDate: LocalDateTime,
+  formBundleNumber: String,
+  cgtReferenceNumber: String,
+  countryCode: CountryCode,
+  postalCode: Option[String]
+)
 
-  implicit val format: Format[SapNumber] =
-    implicitly[Format[String]].inmap(SapNumber(_), _.value)
-
+object SubscriptionUpdateResponse {
+  implicit val format: OFormat[SubscriptionUpdateResponse] = Json.format[SubscriptionUpdateResponse]
 }

@@ -26,7 +26,9 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.Subsc
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, TaxEnrolmentRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
@@ -61,8 +63,9 @@ class SubscriptionController @Inject()(
         case BackendError(e) =>
           logger.warn("Error while trying to subscribe:", e)
           InternalServerError
-      }, { r =>
-        Ok(Json.toJson(r))
+      }, {
+        case successful: SubscriptionSuccessful => Ok(Json.toJson(successful))
+        case AlreadySubscribed                  => Conflict
       }
     )
   }
@@ -86,8 +89,9 @@ class SubscriptionController @Inject()(
         case BackendError(e) =>
           logger.warn("Error while trying to register without id and subscribe:", e)
           InternalServerError
-      }, { r =>
-        Ok(Json.toJson(r))
+      }, {
+        case successful: SubscriptionSuccessful => Ok(Json.toJson(successful))
+        case AlreadySubscribed                  => Conflict
       }
     )
   }
@@ -155,15 +159,20 @@ class SubscriptionController @Inject()(
   )(implicit request: AuthenticatedRequest[_]): EitherT[Future, Error, SubscriptionResponse] =
     for {
       subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails)
-      _ <- taxEnrolmentService
-            .allocateEnrolmentToGroup(
-              TaxEnrolmentRequest(
-                request.user.ggCredId,
-                subscriptionResponse.cgtReferenceNumber,
-                subscriptionDetails.address,
-                timestamp = request.timestamp
-              )
-            )
+      _ <- subscriptionResponse match {
+            case SubscriptionSuccessful(cgtReferenceNumber) =>
+              taxEnrolmentService
+                .allocateEnrolmentToGroup(
+                  TaxEnrolmentRequest(
+                    request.user.ggCredId,
+                    cgtReferenceNumber,
+                    subscriptionDetails.address,
+                    timestamp = request.timestamp
+                  )
+                )
+
+            case AlreadySubscribed => EitherT.pure[Future, Error](())
+          }
     } yield subscriptionResponse
 }
 

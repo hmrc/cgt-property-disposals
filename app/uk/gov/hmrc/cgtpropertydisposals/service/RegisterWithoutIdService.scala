@@ -22,9 +22,11 @@ import cats.instances.int._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.api.http.Status.OK
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.RegisterWithoutIdConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, UUIDGenerator}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.service.RegisterWithoutIdServiceImpl.RegisterWithoutIdResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -52,7 +54,7 @@ class RegisterWithoutIdServiceImpl @Inject()(connector: RegisterWithoutIdConnect
   ): EitherT[Future, Error, SapNumber] = {
     val referenceId = uuidGenerator.nextId()
     connector.registerWithoutId(registrationDetails, referenceId).subflatMap { response =>
-      if (response.status === 200) {
+      if (response.status === OK) {
         response
           .parseJSON[RegisterWithoutIdResponse]()
           .bimap(

@@ -20,13 +20,13 @@ import java.util.UUID
 
 import cats.data.EitherT
 import org.scalacheck.ScalacheckShapeless._
-import org.scalamock.handlers.CallHandler0
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.RegisterWithoutIdConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SapNumber, UUIDGenerator, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, UUIDGenerator, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
