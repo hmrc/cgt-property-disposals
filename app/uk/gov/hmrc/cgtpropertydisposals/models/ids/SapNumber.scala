@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.ids
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format
 
-final case class SubscriptionResponse(cgtReferenceNumber: String) extends AnyVal
+final case class SapNumber(value: String) extends AnyVal
 
-object SubscriptionResponse {
+object SapNumber {
 
-  implicit val format: Format[SubscriptionResponse] = Json.format[SubscriptionResponse]
+  implicit val format: Format[SapNumber] =
+    implicitly[Format[String]].inmap(SapNumber(_), _.value)
 
 }

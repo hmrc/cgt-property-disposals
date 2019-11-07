@@ -26,7 +26,7 @@ import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -107,10 +107,10 @@ object RegisterWithoutIdConnectorImpl {
   final case class RegistrationContactDetails(emailAddress: String)
 
   final case class RegistrationAddress(
-    line1: String,
-    line2: Option[String],
-    line3: Option[String],
-    line4: Option[String],
+    addressLine1: String,
+    addressLine2: Option[String],
+    addressLine3: Option[String],
+    addressLine4: Option[String],
     postalCode: Option[String],
     countryCode: String
   )

@@ -31,7 +31,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, Uk
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TelephoneNumber, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, sample, subscription}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -75,7 +77,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   "SubscriptionServiceImpl" when {
     val cgtReference = CgtReference("XFCGT123456789")
-    val expectedRequest = SubscribedDetails(
+    val expectedRequest = subscription.SubscribedDetails(
       Right(IndividualName("Stephen", "Wood")),
       Email("stephen@abc.co.uk"),
       UkAddress(
@@ -399,7 +401,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = SubscribedDetails(
+        val subscriptionDisplayResponse = subscription.SubscribedDetails(
           Left(TrustName("ABC Trust")),
           Email("stephen@abc.co.uk"),
           NonUkAddress("101 Kiwi Street", None, None, Some("Christchurch"), None, Country("NZ", Some("New Zealand"))),
@@ -441,7 +443,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = SubscribedDetails(
+        val subscriptionDisplayResponse = subscription.SubscribedDetails(
           Left(TrustName("ABC Trust")),
           Email("stephen@abc.co.uk"),
           NonUkAddress(
@@ -493,7 +495,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = SubscribedDetails(
+        val subscriptionDisplayResponse = subscription.SubscribedDetails(
           Right(IndividualName("Luke", "Bishop")),
           Email("stephen@abc.co.uk"),
           UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
@@ -539,8 +541,23 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
              |""".stripMargin
         )
         mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(jsonBody))))
-        await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionResponse(cgtReferenceNumber))
+        await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionSuccessful(cgtReferenceNumber))
       }
+
+      "return an already subscribed response if the response from DES indicates as such" in {
+        val jsonBody = Json.parse(
+          s"""
+             |{
+             |  "code" :   "ACTIVE_SUBSCRIPTION",
+             |  "reason" : "The remote endpoint has responded that there is already an active subscription for the CGT regime."
+             |}
+             |""".stripMargin
+        )
+        mockSubscribe(subscriptionDetails)(Right(HttpResponse(403, Some(jsonBody))))
+        await(service.subscribe(subscriptionDetails).value) shouldBe Right(AlreadySubscribed)
+
+      }
+
     }
   }
 }

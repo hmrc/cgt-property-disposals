@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 import cats.data.EitherT
 import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.api.http.Status.NO_CONTENT
 import play.api.libs.json.JsString
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
@@ -74,8 +75,8 @@ class TaxEnrolmentServiceImpl @Inject()(
 
   def handleTaxEnrolmentResponse(httpResponse: HttpResponse): Either[Error, Unit] =
     httpResponse.status match {
-      case 204   => Right(())
-      case other => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
+      case NO_CONTENT => Right(())
+      case other      => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
 
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
@@ -102,7 +103,7 @@ class TaxEnrolmentServiceImpl @Inject()(
                                 .leftMap(
                                   error => Error(s"Could not check database to determine subscription status: $error")
                                 )
-      result <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
+      _ <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
     } yield maybeEnrolmentRequest
 
 }

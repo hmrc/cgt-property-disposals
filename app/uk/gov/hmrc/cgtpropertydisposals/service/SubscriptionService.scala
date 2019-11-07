@@ -19,23 +19,28 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
+import cats.instances.string._
 import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
+import play.api.http.Status.{FORBIDDEN, OK}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse, TelephoneNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, subscription}
+import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
 import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.DesSubscriptionDisplayDetails
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -62,14 +67,23 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] = {
+    def isAlreadySubscribedResponse(response: HttpResponse): Boolean =
+      response.status === FORBIDDEN && response
+        .parseJSON[DesErrorResponse]()
+        .map(_.code)
+        .exists(_ === "ACTIVE_SUBSCRIPTION")
+
     connector.subscribe(subscriptionDetails).subflatMap { response =>
-      if (response.status === 200) {
-        response.parseJSON[SubscriptionResponse]().leftMap(Error(_))
+      if (response.status === OK) {
+        response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
+      } else if (isAlreadySubscribedResponse(response)) {
+        Right(AlreadySubscribed)
       } else {
         Left(Error(s"call to subscribe came back with status ${response.status}"))
       }
     }
+  }
 
   override def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
@@ -81,7 +95,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
           "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
         )
 
-      if (response.status === 200)
+      if (response.status === OK)
         response
           .parseJSON[DesSubscriptionDisplayDetails]()
           .flatMap(toSubscriptionDisplayRecord(_, cgtReference))
@@ -101,7 +115,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
           "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
         )
 
-      if (response.status === 200)
+      if (response.status === OK)
         response
           .parseJSON[SubscriptionUpdateResponse]()
           .leftMap(Error(_, identifiers: _*))
@@ -132,7 +146,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
     (addressValidation, nameValidation, emailValidation)
       .mapN {
         case (address, name, email) =>
-          SubscribedDetails(
+          subscription.SubscribedDetails(
             name,
             email,
             address,

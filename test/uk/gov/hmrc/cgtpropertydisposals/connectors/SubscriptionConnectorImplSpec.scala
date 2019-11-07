@@ -22,12 +22,13 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models._
+import uk.gov.hmrc.cgtpropertydisposals.models.{subscription, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -129,7 +130,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
       "be able to handle non uk addresses" in {
 
-        val expectedRequest = SubscribedDetails(
+        val expectedRequest = subscription.SubscribedDetails(
           Left(TrustName("Trust")),
           Email("stefano@abc.co.uk"),
           NonUkAddress(
@@ -221,7 +222,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
     "handling request to subscribe for individuals" must {
 
-      val subscriptionDetails = SubscriptionDetails(
+      val subscriptionDetails = subscription.SubscriptionDetails(
         Right(IndividualName("name", "surname")),
         ContactName("contact"),
         Email("email"),

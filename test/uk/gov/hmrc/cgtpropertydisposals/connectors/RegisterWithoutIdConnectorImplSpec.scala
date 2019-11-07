@@ -72,7 +72,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
       val registrationDetails = RegistrationDetails(
         IndividualName("name", "surname"),
         Email("email"),
-        UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
+        UkAddress("addressLine1", Some("addressLine2"), Some("addressLine3"), Some("addressLine4"), "postcode")
       )
       val referenceId: UUID = UUID.randomUUID()
 
@@ -88,10 +88,10 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
           |    "lastName":  "surname"
           |  },
           |  "address" : {
-          |    "line1" : "line1",
-          |    "line2" : "line2",
-          |    "line3" : "line3",
-          |    "line4" : "line4",
+          |    "addressLine1" : "addressLine1",
+          |    "addressLine2" : "addressLine2",
+          |    "addressLine3" : "addressLine3",
+          |    "addressLine4" : "addressLine4",
           |    "postalCode" : "postcode",
           |    "countryCode" : "GB"
           |  },
@@ -131,10 +131,10 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
           IndividualName("name", "surname"),
           Email("email"),
           NonUkAddress(
-            "line1",
-            Some("line2"),
-            Some("line3"),
-            Some("line4"),
+            "addressLine1",
+            Some("addressLine2"),
+            Some("addressLine3"),
+            Some("addressLine4"),
             Some("postcode"),
             Country("HK", Some("Hong Kong")))
         )
@@ -151,10 +151,10 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
               |    "lastName":  "surname"
               |  },
               |  "address" : {
-              |    "line1" : "line1",
-              |    "line2" : "line2",
-              |    "line3" : "line3",
-              |    "line4" : "line4",
+              |    "addressLine1" : "addressLine1",
+              |    "addressLine2" : "addressLine2",
+              |    "addressLine3" : "addressLine3",
+              |    "addressLine4" : "addressLine4",
               |    "postalCode" : "postcode",
               |    "countryCode" : "HK"
               |  },
