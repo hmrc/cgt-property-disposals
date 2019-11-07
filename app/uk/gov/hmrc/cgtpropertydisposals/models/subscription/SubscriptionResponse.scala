@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.subscription
 
-import java.time.LocalDateTime
+import play.api.libs.json.{Format, Json}
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
+sealed trait SubscriptionResponse extends Product with Serializable
 
-final case class SubscriptionUpdateResponse(
-  regime: String,
-  processingDate: LocalDateTime,
-  formBundleNumber: String,
-  cgtReferenceNumber: String,
-  countryCode: CountryCode,
-  postalCode: Option[String]
-)
+object SubscriptionResponse {
 
-object SubscriptionUpdateResponse {
-  implicit val format: OFormat[SubscriptionUpdateResponse] = Json.format[SubscriptionUpdateResponse]
+  final case class SubscriptionSuccessful(cgtReferenceNumber: String) extends SubscriptionResponse
+
+  final case object AlreadySubscribed extends SubscriptionResponse
+
+  implicit val subscriptionSuccessfulFormat: Format[SubscriptionSuccessful] = Json.format[SubscriptionSuccessful]
+
 }

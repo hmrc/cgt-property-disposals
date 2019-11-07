@@ -18,9 +18,9 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest.DesSubscriptionUpdateDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscribedDetails
 
 final case class DesSubscriptionUpdateRequest(
   regime: String,

@@ -46,12 +46,13 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.SubscriptionDetails._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, SapNumber, SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse, TaxEnrolmentRequest, TelephoneNumber, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, TaxEnrolmentRequest, TelephoneNumber, sample, subscription}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -242,7 +243,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             |}
             |""".stripMargin
 
-        val subscribedDetails = SubscribedDetails(
+        val subscribedDetails = subscription.SubscribedDetails(
           Left(TrustName("ABC Trust")),
           Email("stephen@abc.co.uk"),
           NonUkAddress(
@@ -310,7 +311,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
         mockGetSubscription(CgtReference("XDCGT123456789"))(
           Right(
-            SubscribedDetails(
+            subscription.SubscribedDetails(
               Right(IndividualName("Stephen", "Wood")),
               Email("stephen@abc.co.uk"),
               UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
@@ -422,12 +423,12 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           requestBody.fold[FakeRequest[AnyContent]](FakeRequest())(json => FakeRequest().withJsonBody(json))
         )
 
-      val subscriptionDetails     = sample[SubscriptionDetails]
-      val subscriptionDetailsJson = Json.toJson(subscriptionDetails)
-      val subscriptionResponse    = sample[SubscriptionResponse]
+      val subscriptionDetails            = sample[SubscriptionDetails]
+      val subscriptionDetailsJson        = Json.toJson(subscriptionDetails)
+      val subscriptionSuccessfulResponse = sample[SubscriptionSuccessful]
       val taxEnrolmentRequest = TaxEnrolmentRequest(
         Fake.user.ggCredId,
-        subscriptionResponse.cgtReferenceNumber,
+        subscriptionSuccessfulResponse.cgtReferenceNumber,
         subscriptionDetails.address,
         fixedTimestamp
       )
@@ -457,7 +458,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
         "subscription is not successful if the tax enrolment service returns an error" in {
           inSequence {
-            mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
+            mockSubscribe(subscriptionDetails)(Right(subscriptionSuccessfulResponse))
             mockAllocateEnrolment(taxEnrolmentRequest)(
               Left(Error("Failed to allocate tax enrolment"))
             )
@@ -469,17 +470,28 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
       }
 
+      "return a conflict" when {
+
+        "the user has already subscribed to cgt" in {
+          mockSubscribe(subscriptionDetails)(Right(AlreadySubscribed))
+
+          val result = performAction(Some(subscriptionDetailsJson))
+          status(result) shouldBe CONFLICT
+        }
+
+      }
+
       "return the subscription response" when {
 
         "subscription is successful" in {
           inSequence {
-            mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
+            mockSubscribe(subscriptionDetails)(Right(subscriptionSuccessfulResponse))
             mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
           }
 
           val result = performAction(Some(subscriptionDetailsJson))
           status(result)        shouldBe OK
-          contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
+          contentAsJson(result) shouldBe Json.toJson(subscriptionSuccessfulResponse)
         }
       }
     }
@@ -491,14 +503,14 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           requestBody.fold[FakeRequest[AnyContent]](FakeRequest())(json => FakeRequest().withJsonBody(json))
         )
 
-      val registrationDetails     = sample[RegistrationDetails]
-      val registrationDetailsJson = Json.toJson(registrationDetails)
-      val sapNumber               = sample[SapNumber]
-      val subscriptionDetails     = SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber)
-      val subscriptionResponse    = sample[SubscriptionResponse]
+      val registrationDetails            = sample[RegistrationDetails]
+      val registrationDetailsJson        = Json.toJson(registrationDetails)
+      val sapNumber                      = sample[SapNumber]
+      val subscriptionDetails            = SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber)
+      val subscriptionSuccessfulResponse = sample[SubscriptionSuccessful]
       val taxEnrolmentRequest = TaxEnrolmentRequest(
         Fake.user.ggCredId,
-        subscriptionResponse.cgtReferenceNumber,
+        subscriptionSuccessfulResponse.cgtReferenceNumber,
         subscriptionDetails.address,
         fixedTimestamp
       )
@@ -546,14 +558,14 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           inSequence {
             mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
             mockSubscribe(SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))(
-              Right(subscriptionResponse)
+              Right(subscriptionSuccessfulResponse)
             )
             mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
           }
 
           val result = performAction(Some(registrationDetailsJson))
           status(result)        shouldBe OK
-          contentAsJson(result) shouldBe Json.toJson(subscriptionResponse)
+          contentAsJson(result) shouldBe Json.toJson(subscriptionSuccessfulResponse)
         }
       }
 
@@ -561,7 +573,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         inSequence {
           mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
           mockSubscribe(SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))(
-            Right(subscriptionResponse)
+            Right(subscriptionSuccessfulResponse)
           )
           mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("")))
         }
