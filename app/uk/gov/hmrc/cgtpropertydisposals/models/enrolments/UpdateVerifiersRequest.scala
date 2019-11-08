@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.enrolments
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class Enrolments(verifiers: List[KeyValuePair], identifiers: List[KeyValuePair])
-final case class KeyValuePair(key: String, value: String)
+final case class Legacy(previousVerifiers: List[KeyValuePair])
+final case class UpdateVerifiersRequest(verifiers: List[KeyValuePair], legacy: Legacy)
 
-object Enrolments {
-  implicit val keyValuePairFormat: OFormat[KeyValuePair]   = Json.format[KeyValuePair]
-  implicit val enrolmentRequestFormat: OFormat[Enrolments] = Json.format[Enrolments]
+object UpdateVerifiersRequest {
+  implicit val legacyFormat: OFormat[Legacy]                          = Json.format[Legacy]
+  implicit val updateVerifiersFormat: OFormat[UpdateVerifiersRequest] = Json.format[UpdateVerifiersRequest]
 }

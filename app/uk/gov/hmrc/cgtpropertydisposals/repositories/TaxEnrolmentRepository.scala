@@ -25,6 +25,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models._
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -35,6 +36,10 @@ trait TaxEnrolmentRepository {
   def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
   def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit]
   def delete(userId: String): EitherT[Future, Error, Int]
+  def update(
+    ggCredId: String,
+    cgtEnrolmentRequest: TaxEnrolmentRequest
+  ): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
 }
 
 @Singleton
@@ -66,7 +71,8 @@ class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
             Left(
               Error(
                 s"Could not insert enrolment request into database: got write errors :${result.writeErrors}"
-              ))
+              )
+            )
         }
         .recover {
           case exception => Left(Error(exception))
@@ -97,4 +103,24 @@ class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
           case exception => Left(Error(exception.getMessage))
         }
     )
+
+  override def update(
+    ggCredId: String,
+    cgtEnrolmentRequest: TaxEnrolmentRequest
+  ): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
+    EitherT[Future, Error, Option[TaxEnrolmentRequest]](
+      collection
+        .findAndUpdate(
+          Json.obj("ggCredId" -> ggCredId),
+          Json.obj("$set"     -> Json.toJson(cgtEnrolmentRequest)),
+          fetchNewObject = true
+        )
+        .map { result =>
+          Right(result[TaxEnrolmentRequest])
+        }
+        .recover {
+          case exception => Left(Error(exception.getMessage))
+        }
+    )
+
 }

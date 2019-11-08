@@ -25,10 +25,11 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError
 import uk.gov.hmrc.cgtpropertydisposals.controllers.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails}
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._

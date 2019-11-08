@@ -22,7 +22,8 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.{TaxEnrolmentRequest, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.sample
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
