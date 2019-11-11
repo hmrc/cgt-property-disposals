@@ -82,6 +82,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           Some("London"),
           "DH14EJ"
         ),
+        None,
         ContactName("Stephen Wood"),
         cgtReference,
         Some(TelephoneNumber("(+013)32752856")),
@@ -141,6 +142,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
             Some("DH14EJ"),
             Country("IT", Some("Italy"))
           ),
+          None,
           ContactName("Stefano Bosco"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),

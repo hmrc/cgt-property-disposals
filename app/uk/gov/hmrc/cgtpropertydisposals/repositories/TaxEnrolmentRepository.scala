@@ -115,9 +115,7 @@ class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
           Json.obj("$set"     -> Json.toJson(cgtEnrolmentRequest)),
           fetchNewObject = true
         )
-        .map { result =>
-          Right(result[TaxEnrolmentRequest])
-        }
+        .map(dbResult => Right(dbResult.result[TaxEnrolmentRequest]))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }

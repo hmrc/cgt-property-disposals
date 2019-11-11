@@ -34,7 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetai
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, subscription}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
@@ -150,6 +150,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
             name,
             email,
             address,
+            None,
             ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
             cgtReference,
             desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber

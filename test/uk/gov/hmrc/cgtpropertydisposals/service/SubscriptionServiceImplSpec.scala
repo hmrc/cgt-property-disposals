@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, sample, subscription}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -87,6 +87,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         Some("London"),
         "DH14EJ"
       ),
+      None,
       ContactName("Stephen Wood"),
       cgtReference,
       Some(TelephoneNumber("(+013)32752856")),
@@ -405,6 +406,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Left(TrustName("ABC Trust")),
           Email("stephen@abc.co.uk"),
           NonUkAddress("101 Kiwi Street", None, None, Some("Christchurch"), None, Country("NZ", Some("New Zealand"))),
+          None,
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),
@@ -454,6 +456,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             Some("C11"),
             Country("NZ", Some("New Zealand"))
           ),
+          None,
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),
@@ -499,6 +502,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Right(IndividualName("Luke", "Bishop")),
           Email("stephen@abc.co.uk"),
           UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
+          None,
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),

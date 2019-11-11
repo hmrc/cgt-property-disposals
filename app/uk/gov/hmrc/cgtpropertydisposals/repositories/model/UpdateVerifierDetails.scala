@@ -14,26 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.subscription
+package uk.gov.hmrc.cgtpropertydisposals.repositories.model
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, TelephoneNumber}
 
-final case class SubscribedDetails(
-  name: Either[TrustName, IndividualName],
-  emailAddress: Email,
-  address: Address,
-  previousAddress: Option[Address],
-  contactName: ContactName,
+final case class UpdateVerifierDetails(
+  ggCredId: String,
   cgtReference: CgtReference,
-  telephoneNumber: Option[TelephoneNumber],
-  registeredWithId: Boolean
-)
+  currentAddress: Address,
+  previousAddress: Option[Address])
 
-object SubscribedDetails {
-  implicit val format: OFormat[SubscribedDetails] = Json.format[SubscribedDetails]
+object UpdateVerifierDetails {
+  implicit val updateVerifiersFormat: OFormat[UpdateVerifierDetails] = Json.format[UpdateVerifierDetails]
 }

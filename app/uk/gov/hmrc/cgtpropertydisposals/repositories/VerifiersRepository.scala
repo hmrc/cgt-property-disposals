@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
 import cats.data.EitherT
@@ -8,26 +24,26 @@ import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
-import uk.gov.hmrc.auth.core.retrieve.GGCredId
 import uk.gov.hmrc.cgtpropertydisposals.models._
-import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.UpdateVerifiersRequest
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[DefaultTaxEnrolmentRepository])
+@ImplementedBy(classOf[DefaultVerifiersRepository])
 trait VerifiersRepository {
-  def insert(updateVerifiersRequest: UpdateVerifiersRequest): EitherT[Future, Error, Unit]
-  def delete(ggCredId: GGCredId): EitherT[Future, Error, Int]
+  def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifierDetails]]
+  def insert(updateVerifiersRequest: UpdateVerifierDetails): EitherT[Future, Error, Unit]
+  def delete(ggCredId: String): EitherT[Future, Error, Int]
 }
 
 class DefaultVerifiersRepository @Inject()(mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
-) extends ReactiveRepository[UpdateVerifiersRequest, BSONObjectID](
+) extends ReactiveRepository[UpdateVerifierDetails, BSONObjectID](
       collectionName = "update-verifiers-requests",
       mongo          = mongo.mongoConnector.db,
-      UpdateVerifiersRequest.updateVerifiersFormat,
+      UpdateVerifierDetails.updateVerifiersFormat,
       ReactiveMongoFormats.objectIdFormats
     )
     with VerifiersRepository {
@@ -39,10 +55,23 @@ class DefaultVerifiersRepository @Inject()(mongo: ReactiveMongoComponent)(
     )
   )
 
-  override def insert(updateVerifiersRequest: UpdateVerifiersRequest): EitherT[Future, Error, Unit] =
+  override def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifierDetails]] =
+    EitherT[Future, Error, Option[UpdateVerifierDetails]](
+      collection
+        .find(Json.obj("ggCredId" -> ggCredId), None)
+        .one[UpdateVerifierDetails]
+        .map { maybeVerifiersRequest =>
+          Right(maybeVerifiersRequest)
+        }
+        .recover {
+          case exception => Left(Error(exception.getMessage))
+        }
+    )
+
+  override def insert(updateVerifiersRequest: UpdateVerifierDetails): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       collection.insert
-        .one[UpdateVerifiersRequest](updateVerifiersRequest)
+        .one[UpdateVerifierDetails](updateVerifiersRequest)
         .map[Either[Error, Unit]] { result: WriteResult =>
           if (result.ok)
             Right(())
@@ -58,10 +87,10 @@ class DefaultVerifiersRepository @Inject()(mongo: ReactiveMongoComponent)(
         }
     )
 
-  override def delete(ggCredId: GGCredId): EitherT[Future, Error, Int] =
+  override def delete(ggCredId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
       collection.delete
-        .one(Json.obj("ggCredId" -> ggCredId.credId))
+        .one(Json.obj("ggCredId" -> ggCredId))
         .map { result: WriteResult =>
           Right(result.n)
         }

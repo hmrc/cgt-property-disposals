@@ -14,22 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Copyright 2019 HM Revenue & Customs
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http:www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
 import java.time.LocalDateTime
@@ -54,6 +38,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, TelephoneNumber, sample, subscription}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -98,6 +83,14 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
     (mockSubscriptionService
       .updateSubscription(_: SubscribedDetails)(_: HeaderCarrier))
       .expects(subscribedDetails, *)
+      .returning(EitherT.fromEither(response))
+
+  def mockUpdateVerifiers(updateVerifierDetails: UpdateVerifierDetails)(
+    response: Either[Error, Unit]
+  ): Unit =
+    (mockTaxEnrolmentService
+      .updateVerifiers(_: UpdateVerifierDetails)(_: HeaderCarrier))
+      .expects(updateVerifierDetails, *)
       .returning(EitherT.fromEither(response))
 
   def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
@@ -195,6 +188,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             None,
             Country("NZ", Some("New Zealand"))
           ),
+          None,
           ContactName("Stefano Bosco"),
           cgtReference,
           None,
@@ -255,10 +249,18 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             None,
             Country("NZ", Some("New Zealand"))
           ),
+          None,
           ContactName("Stephen Wood"),
           CgtReference("XFCGT123456789"),
           Some(TelephoneNumber("(+013)32752856)")),
           true
+        )
+
+        val updateVerifierDetails = UpdateVerifierDetails(
+          "ggCredId",
+          CgtReference("XFCGT123456789"),
+          NonUkAddress("101 Kiwi Street", None, None, None, None, Country("NZ", Some("New Zealand"))),
+          None
         )
 
         val expectedSubscriptionUpdateResponse =
@@ -281,18 +283,21 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(Json.parse(subscriptionUpdateDetails))
           )
 
-        mockUpdateSubscription(subscribedDetails)(
-          Right(
-            SubscriptionUpdateResponse(
-              "CGT",
-              LocalDateTime.of(2015, 12, 17, 9, 30, 47),
-              "012345678901",
-              "XXCGTP123456789",
-              "GB",
-              Some("TF34NT")
+        inSequence {
+          mockUpdateSubscription(subscribedDetails)(
+            Right(
+              SubscriptionUpdateResponse(
+                "CGT",
+                LocalDateTime.of(2015, 12, 17, 9, 30, 47),
+                "012345678901",
+                "XXCGTP123456789",
+                "GB",
+                Some("TF34NT")
+              )
             )
           )
-        )
+          mockUpdateVerifiers(updateVerifierDetails)(Right(()))
+        }
         val result = controller.updateSubscription()(request)
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.parse(expectedSubscriptionUpdateResponse)
@@ -316,6 +321,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
               Right(IndividualName("Stephen", "Wood")),
               Email("stephen@abc.co.uk"),
               UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
+              None,
               ContactName("Stephen Wood"),
               CgtReference("XDCGT123456789"),
               Some(TelephoneNumber("+44191919191919")),

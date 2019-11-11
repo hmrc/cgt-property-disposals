@@ -21,12 +21,10 @@ import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.NO_CONTENT
 import play.api.libs.json.JsString
-import uk.gov.hmrc.auth.core.retrieve.GGCredId
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.{KeyValuePair, TaxEnrolmentRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, VerifiersRepository}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -44,7 +42,7 @@ trait TaxEnrolmentService {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
 
-  def updateVerifiers(ggCredId: String, cgtReference: CgtReference, previous: Address, current: Address)(
+  def updateVerifiers(updateVerifiersRequest: UpdateVerifierDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
 
@@ -58,7 +56,7 @@ class TaxEnrolmentServiceImpl @Inject()(
 ) extends TaxEnrolmentService
     with Logging {
 
-  def makeTaxEnrolmentCall(
+  def makeES8call(
     taxEnrolmentRequest: TaxEnrolmentRequest
   )(implicit hc: HeaderCarrier): Future[HttpResponse] =
     taxEnrolmentConnector
@@ -69,13 +67,11 @@ class TaxEnrolmentServiceImpl @Inject()(
         case Right(httpResponse) => httpResponse
       }
 
-  def makeUpdateVerifierCall(
-    cgtReference: CgtReference,
-    previousVerifier: KeyValuePair,
-    newVerifier: KeyValuePair
+  def makeES6call(
+    updateVerifiersRequest: UpdateVerifierDetails
   )(implicit hc: HeaderCarrier): Future[HttpResponse] =
     taxEnrolmentConnector
-      .updateVerifiers(cgtReference, previousVerifier, newVerifier)
+      .updateVerifiers(updateVerifiersRequest)
       .value
       .map {
         case Left(error)         => HttpResponse(999, Some(JsString(error.toString)))
@@ -86,43 +82,60 @@ class TaxEnrolmentServiceImpl @Inject()(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
     for {
-      httpResponse <- EitherT.liftF(makeTaxEnrolmentCall(taxEnrolmentRequest))
-      result <- EitherT.fromEither(handleTaxEnrolmentResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
-                 logger
-                   .warn(
-                     s"Failed to allocate enrolments due to error: $error; will store enrolment details"
-                   )
-                 taxEnrolmentRepository
-                   .insert(taxEnrolmentRequest)
-                   .leftMap(error => Error(s"Could not store enrolment details: $error"))
+      httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
+      result <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
+                 error: Error =>
+                   logger
+                     .warn(
+                       s"Failed to allocate enrolments due to error: $error; will store enrolment details"
+                     )
+                   taxEnrolmentRepository
+                     .insert(taxEnrolmentRequest)
+                     .leftMap(error => Error(s"Could not store enrolment details: $error"))
                }
     } yield result
 
-  def handleTaxEnrolmentResponse(httpResponse: HttpResponse): Either[Error, Unit] =
-    httpResponse.status match {
-      case NO_CONTENT => Right(())
-      case other      => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
-    }
-
-  def handleUpdateVerifierResponse(httpResponse: HttpResponse): Either[Error, Unit] =
+  def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
     httpResponse.status match {
       case NO_CONTENT => Right(())
       case other      => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
 
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-  def handleDatabaseResult(
-    maybeTaxEnrolmentRequest: Option[TaxEnrolmentRequest]
+  def handleEnrolmentState(
+    enrolmentState: (Option[TaxEnrolmentRequest], Option[UpdateVerifierDetails])
   )(implicit hc: HeaderCarrier): Future[Unit] =
-    maybeTaxEnrolmentRequest match {
-      case Some(enrolmentRequest) =>
+    enrolmentState match {
+
+      case (Some(createEnrolmentRequest), None) =>
         val result = for {
-          result <- EitherT.liftF(makeTaxEnrolmentCall(enrolmentRequest)) // attempt enrolment
-          _      <- EitherT.fromEither(handleTaxEnrolmentResponse(result)) // evaluate enrolment result
-          _      <- taxEnrolmentRepository.delete(enrolmentRequest.ggCredId) // delete record if enrolment was successful
+          httpResponse <- EitherT.liftF(makeES8call(createEnrolmentRequest)) // attempt to create enrolment
+          _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
+          _            <- taxEnrolmentRepository.delete(createEnrolmentRequest.ggCredId) // delete record if enrolment was successful
         } yield ()
-        result.leftMap(error => logger.warn(s"Error when retrying allocation of enrolments: $error")).merge
-      case None => Future.successful(())
+        result.leftMap(error => logger.warn(s"Error when trying to create enrolments again: $error")).merge
+
+      case (None, Some(updateVerifiersRequest)) =>
+        val result = for {
+          httpResponse <- EitherT.liftF(makeES6call(updateVerifiersRequest))
+          _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse))
+          _            <- verifiersRepository.delete(updateVerifiersRequest.ggCredId)
+        } yield ()
+        result.leftMap(error => logger.warn(s"Error when updating verifiers: $error")).merge
+
+      case (Some(enrolmentRequest), Some(updateVerifiersRequest)) =>
+        val updatedCreateEnrolmentRequest = enrolmentRequest.copy(address = updateVerifiersRequest.currentAddress)
+
+        val result = for {
+          _            <- taxEnrolmentRepository.update(enrolmentRequest.ggCredId, updatedCreateEnrolmentRequest)
+          httpResponse <- EitherT.liftF(makeES8call(updatedCreateEnrolmentRequest)) // attempt to create enrolment
+          _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
+          _            <- taxEnrolmentRepository.delete(enrolmentRequest.ggCredId) // delete record if enrolment was successful
+          _            <- verifiersRepository.delete(enrolmentRequest.ggCredId) // delete the update verifier request
+        } yield ()
+        result.leftMap(error => logger.warn(s"Error when creating enrolments with updated verifiers: $error")).merge
+
+      case (None, None) => Future.successful(())
     }
 
   override def hasCgtSubscription(
@@ -134,73 +147,29 @@ class TaxEnrolmentServiceImpl @Inject()(
                                 .leftMap(
                                   error => Error(s"Could not check database to determine subscription status: $error")
                                 )
-      _ <- EitherT.liftF(handleDatabaseResult(maybeEnrolmentRequest))
+      maybeUpdateVerifierRequest <- verifiersRepository
+                                     .get(ggCredId)
+                                     .leftMap(
+                                       error =>
+                                         Error(
+                                           s"Could not check database to determine update verifier request exists : $error"
+                                       )
+                                     )
+      _ <- EitherT.liftF(handleEnrolmentState(maybeEnrolmentRequest -> maybeUpdateVerifierRequest))
     } yield maybeEnrolmentRequest
 
-  override def updateVerifiers(ggCredId: String, cgtReference: CgtReference, )(
+  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+  override def updateVerifiers(updateVerifiersRequest: UpdateVerifierDetails)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, Unit] = {
-
-    val result = for {
-      // first insert the update verifiers into the database in case the call fails
-      _ <- verifiersRepository.insert(updateVerifiersRequest)
-      // go to the database and check if the record exists
-      maybeEnrolmentRequest <- taxEnrolmentRepository.get(ggCredId)
-      // if this call is successful then the we need to make another call
-
-      _ <- handleTheUpdateVerifiersResult(ggCredId, maybeEnrolmentRequest, updateVerifiersRequest)
-      // if this returns a None then we call the ES6 API but if it returns a row then we need to update that row first
-      //      _ <- EitherT.liftF(handleTheUpdateVerifiersResult(maybeEnrolmentRequest, current)]
-      //      // if the row exists then we want to update the information in that row and make the ES8 call - if the row does not exist then we make the ES6 call
-      //      httpResponse <- EitherT.liftF(makeTaxEnrolmentCall(maybeEnrolmentRequest)) // - this is the ES8 call
-
-    } yield ()
-
-    result.fold(
-      error =>
-      success =>
-    )
-  }
-
-  private def handleTheUpdateVerifiersResult(
-    ggCredId: String,
-    cgtReference: CgtReference,
-    maybeEnrolmentRequest: Option[TaxEnrolmentRequest],
-    previous : Address,
-    current : Address
-  )(implicit hc: HeaderCarrier): Unit =
-    maybeEnrolmentRequest match {
-      case Some(enrolmentRequest) => {
-        // update the row in the database
+  ): EitherT[Future, Error, Unit] =
+    updateVerifiersRequest.previousAddress match {
+      case Some(_) =>
         for {
-          _ <- taxEnrolmentRepository
-                .update(ggCredId, enrolmentRequest.copy(address = current))
-                .leftMap(
-                  error =>
-                    Error(
-                      s"Could not update the retry enrolment record with the updated verifier information: $error"
-                    )
-                )
-        _ <-
-
-        } yield (maybeTaxEnrolmentRepository)
-
-        // we make the ES8 call
-        makeTaxEnrolmentCall(enrolmentRequest)
-      }
-      case None => {
-        // This means there is no row in the database
-        // Therefore we need to just call the ES6 endpoint and go - if that fails then we need to store it to replay it back when they log in again
-        taxEnrolmentConnector.updateVerifiers(cgtReference, Address.toVerifier(previous), Address.toVerifier(current)).value.map {
-          case Left(a) => // if this fails then we want to store it in a database
-          case Right(b) => // if this succeeds then we delete it from the database //TODO: insert it somewhere first
-        }
-        for {
-        _ <- taxEnrolmentConnector.updateVerifiers(cgtReference, Address.toVerifier(previous), Address.toVerifier(current))
-        _ <- handleThisUpdateVErifiersCall() //if sccuess then reutrn success so that the beloew delete happens else return error in which delete does not happen (then we need to make a call somewhere on their return)
-        _ <- verifiersRepository.delete(GGCredId(ggCredId))
-        }yield()
-      }
+          _                           <- verifiersRepository.insert(updateVerifiersRequest)
+          maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
+          _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
+        } yield ()
+      case None => EitherT.rightT[Future, Error](Right(()))
     }
 
 }

@@ -57,7 +57,7 @@ object Address {
         AddressDetails(line1, line2, line3, line4, postcode, country.code)
     }
 
-  def toVerifier(address: Address): KeyValuePair =
+  def toVerifierFormat(address: Address): KeyValuePair =
     address match {
       case UkAddress(line1, line2, town, county, postcode)             => KeyValuePair("Postcode", postcode)
       case NonUkAddress(line1, line2, line3, line4, postcode, country) => KeyValuePair("CountryCode", country.code)

@@ -19,9 +19,9 @@ package uk.gov.hmrc.cgtpropertydisposals.models.enrolments
 import play.api.libs.json.{Json, OFormat}
 
 final case class Legacy(previousVerifiers: List[KeyValuePair])
-final case class UpdateVerifiersRequest(verifiers: List[KeyValuePair], legacy: Legacy)
+final case class TaxEnrolmentUpdateRequest(verifiers: List[KeyValuePair], legacy: Legacy)
 
-object UpdateVerifiersRequest {
-  implicit val legacyFormat: OFormat[Legacy]                          = Json.format[Legacy]
-  implicit val updateVerifiersFormat: OFormat[UpdateVerifiersRequest] = Json.format[UpdateVerifiersRequest]
+object TaxEnrolmentUpdateRequest {
+  implicit val legacyFormat: OFormat[Legacy]                             = Json.format[Legacy]
+  implicit val updateVerifiersFormat: OFormat[TaxEnrolmentUpdateRequest] = Json.format[TaxEnrolmentUpdateRequest]
 }

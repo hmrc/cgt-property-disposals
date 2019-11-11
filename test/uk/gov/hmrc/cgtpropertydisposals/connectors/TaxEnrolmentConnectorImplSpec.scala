@@ -24,12 +24,13 @@ import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class TaxEnrolmentConnectorImpldSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -67,7 +68,14 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
   val nonUkEnrolmentRequest =
     Enrolments(List(KeyValuePair("CountryCode", "NZ")), List(KeyValuePair("CGTPDRef", cgtReference.value)))
 
-  val updateVerifiersRequest = UpdateVerifiersRequest(
+  val updateVerifiersRequest = UpdateVerifierDetails(
+    "ggCredId",
+    cgtReference,
+    Address.UkAddress("line1", None, None, None, "TF2 6NU"),
+    Some(Address.UkAddress("line1", None, None, None, "OK113KO"))
+  )
+
+  val taxEnrolmentUpdateRequest = TaxEnrolmentUpdateRequest(
     List(
       KeyValuePair("Postcode", "TF2 6NU")
     ),
@@ -88,13 +96,13 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
           HttpResponse(400)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPut[UpdateVerifiersRequest](
+            mockPut[TaxEnrolmentUpdateRequest](
               s"http://host:123/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}",
-              updateVerifiersRequest
+              taxEnrolmentUpdateRequest
             )(Some(httpResponse))
             await(
               connector
-                .updateVerifiers(cgtReference, KeyValuePair("Postcode", "OK113KO"), KeyValuePair("Postcode", "TF2 6NU"))
+                .updateVerifiers(updateVerifiersRequest)
                 .value
             ) shouldBe Right(httpResponse)
           }
@@ -102,13 +110,13 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
       "return an error" when {
         "the future fails" in {
-          mockPut[UpdateVerifiersRequest](
+          mockPut[TaxEnrolmentUpdateRequest](
             s"http://host:123/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}",
-            updateVerifiersRequest
+            taxEnrolmentUpdateRequest
           )(None)
           await(
             connector
-              .updateVerifiers(cgtReference, KeyValuePair("Postcode", "OK113KO"), KeyValuePair("Postcode", "TF2 6NU"))
+              .updateVerifiers(updateVerifiersRequest)
               .value
           ).isLeft shouldBe true
         }

@@ -30,6 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
@@ -126,6 +127,16 @@ class SubscriptionController @Inject()(
         subscriptionResponse <- subscriptionService
                                  .updateSubscription(subscribedDetails)
                                  .leftMap[SubscriptionError](BackendError)
+        _ <- taxEnrolmentService
+              .updateVerifiers(
+                UpdateVerifierDetails(
+                  request.user.ggCredId,
+                  subscribedDetails.cgtReference,
+                  subscribedDetails.address,
+                  subscribedDetails.previousAddress
+                )
+              )
+              .leftMap[SubscriptionError](BackendError)
       } yield subscriptionResponse
 
     result.fold(
