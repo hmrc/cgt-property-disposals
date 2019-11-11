@@ -57,9 +57,7 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
       s"$serviceUrl/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${updateVerifierDetails.subscribedUpdateDetails.newDetails.cgtReference.value}"
 
     logger.info(
-      s"Updating verifiers with url $updateVerifiersUrl, previous verifiers + " +
-        s"${updateVerifierDetails.subscribedUpdateDetails.previousDetails.address} and " +
-        s"new verifiers: ${updateVerifierDetails.subscribedUpdateDetails.newDetails.address}"
+      s"Updating verifiers for cgt account ${updateVerifierDetails.subscribedUpdateDetails.newDetails.cgtReference}"
     )
 
     EitherT[Future, Error, HttpResponse](
