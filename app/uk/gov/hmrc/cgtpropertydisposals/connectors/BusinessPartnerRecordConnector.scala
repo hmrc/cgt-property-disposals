@@ -67,7 +67,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
         _.nameMatch.map(name => RegisterIndividual(name.firstName, name.lastName))
       ),
       organisation = bprRequest.fold(
-        _.nameMatch.map(name => RegisterOrganisation(name.value)),
+        _.nameMatch.map(name => RegisterOrganisation(name.value, "Not Specified")),
         _ => None
       )
     )
@@ -99,7 +99,7 @@ object BusinessPartnerRecordConnectorImpl {
 
   private final case class RegisterIndividual(firstName: String, lastName: String)
 
-  private final case class RegisterOrganisation(organisationName: String)
+  private final case class RegisterOrganisation(organisationName: String, organisationType: String)
 
   private implicit val desIndividualFormat: OFormat[RegisterIndividual] = Json.format[RegisterIndividual]
 

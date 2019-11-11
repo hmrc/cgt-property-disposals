@@ -171,7 +171,8 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
             nameMatch.fold("") { trustName =>
               s""",
                 |  "organisation" : {
-                |     "organisationName" : "${trustName.value}"
+                |     "organisationName" : "${trustName.value}",
+                |     "organisationType" : "Not Specified"
                 |    }
                 |""".stripMargin
             }
@@ -242,7 +243,8 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
             nameMatch.fold("") { trustName =>
               s""",
                  |  "organisation" : {
-                 |     "organisationName" : "${trustName.value}"
+                 |     "organisationName" : "${trustName.value}",
+                 |     "organisationType" : "Not Specified"
                  |    }
                  |""".stripMargin
             }
