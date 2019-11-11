@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories.model
+package uk.gov.hmrc.cgtpropertydisposals.models.subscription
 
+import cats.syntax.eq._
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 
-final case class UpdateVerifierDetails(
-  ggCredId: String,
-  cgtReference: CgtReference,
-  currentAddress: Address,
-  previousAddress: Option[Address])
+final case class SubscribedUpdateDetails(
+  newDetails: SubscribedDetails,
+  previousDetails: SubscribedDetails
+)
 
-object UpdateVerifierDetails {
-  implicit val updateVerifiersFormat: OFormat[UpdateVerifierDetails] = Json.format[UpdateVerifierDetails]
+object SubscribedUpdateDetails {
+  implicit val format: OFormat[SubscribedUpdateDetails] = Json.format[SubscribedUpdateDetails]
+
+  def hasAddressChanged(subscribedUpdateDetails: SubscribedUpdateDetails): Boolean =
+    subscribedUpdateDetails.newDetails.address === subscribedUpdateDetails.previousDetails.address
 }

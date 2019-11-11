@@ -17,13 +17,12 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
-import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient.HttpClientOps
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -37,7 +36,7 @@ trait TaxEnrolmentConnector {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
-  def updateVerifiers(updateVerifiersRequest: UpdateVerifierDetails)(
+  def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 }
@@ -50,40 +49,35 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
 
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
 
-  override def updateVerifiers(updateVerifierDetails: UpdateVerifierDetails)(
+  override def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
 
     val updateVerifiersUrl: String =
-      s"$serviceUrl/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${updateVerifierDetails.cgtReference.value}"
+      s"$serviceUrl/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${updateVerifierDetails.subscribedUpdateDetails.newDetails.cgtReference.value}"
 
     logger.info(
       s"Updating verifiers with url $updateVerifiersUrl, previous verifiers + " +
-        s"${updateVerifierDetails.previousAddress} and new verifiers: ${updateVerifierDetails.currentAddress}"
+        s"${updateVerifierDetails.subscribedUpdateDetails.previousDetails.address} and " +
+        s"new verifiers: ${updateVerifierDetails.subscribedUpdateDetails.newDetails.address}"
     )
 
-    updateVerifierDetails.previousAddress match {
-      case Some(previousAddress) => {
-        EitherT[Future, Error, HttpResponse](
-          http
-            .put[TaxEnrolmentUpdateRequest](
-              updateVerifiersUrl,
-              TaxEnrolmentUpdateRequest(
-                List(Address.toVerifierFormat(updateVerifierDetails.currentAddress)),
-                Legacy(List(Address.toVerifierFormat(previousAddress)))
-              )
+    EitherT[Future, Error, HttpResponse](
+      http
+        .put[TaxEnrolmentUpdateRequest](
+          updateVerifiersUrl,
+          TaxEnrolmentUpdateRequest(
+            List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.newDetails.address)),
+            Legacy(
+              List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.previousDetails.address))
             )
-            .map(Right(_))
-            .recover {
-              case e => Left(Error(e))
-            }
+          )
         )
-      }
-      case None => {
-        EitherT.leftT(Error("Could not find previous address"))
-      }
-    }
-
+        .map(Right(_))
+        .recover {
+          case e => Left(Error(e))
+        }
+    )
   }
 
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(

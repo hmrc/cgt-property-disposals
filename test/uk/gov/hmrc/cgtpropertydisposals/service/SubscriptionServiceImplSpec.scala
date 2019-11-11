@@ -77,7 +77,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   "SubscriptionServiceImpl" when {
     val cgtReference = CgtReference("XFCGT123456789")
-    val expectedRequest = subscription.SubscribedDetails(
+
+    val expectedRequest = SubscribedDetails(
       Right(IndividualName("Stephen", "Wood")),
       Email("stephen@abc.co.uk"),
       UkAddress(
@@ -87,11 +88,15 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         Some("London"),
         "DH14EJ"
       ),
-      None,
       ContactName("Stephen Wood"),
       cgtReference,
       Some(TelephoneNumber("(+013)32752856")),
       true
+    )
+
+    val updatedDetails = SubscribedUpdateDetails(
+      expectedRequest,
+      expectedRequest
     )
 
     "handling requests to update subscription details " must {
@@ -101,17 +106,17 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       "return an error" when {
         "the http call comes back with a status other than 200" in {
           mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(500)))
-          await(service.updateSubscription(expectedRequest).value).isLeft shouldBe true
+          await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
           mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(200)))
-          await(service.updateSubscription(expectedRequest).value).isLeft shouldBe true
+          await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
           mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(200, Some(JsNumber(1)))))
-          await(service.updateSubscription(expectedRequest).value).isLeft shouldBe true
+          await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
       }
 
@@ -139,7 +144,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |""".stripMargin
 
         mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
-        await(service.updateSubscription(expectedRequest).value) shouldBe Right(updateResponse)
+        await(service.updateSubscription(updatedDetails).value) shouldBe Right(updateResponse)
       }
     }
 
@@ -406,7 +411,6 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Left(TrustName("ABC Trust")),
           Email("stephen@abc.co.uk"),
           NonUkAddress("101 Kiwi Street", None, None, Some("Christchurch"), None, Country("NZ", Some("New Zealand"))),
-          None,
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),
@@ -456,7 +460,6 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             Some("C11"),
             Country("NZ", Some("New Zealand"))
           ),
-          None,
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),
@@ -502,7 +505,6 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Right(IndividualName("Luke", "Bishop")),
           Email("stephen@abc.co.uk"),
           UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
-          None,
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),

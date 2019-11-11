@@ -20,12 +20,14 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscribedUpdateDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, VerifiersRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -47,11 +49,11 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(taxEnrolmentRequest, *)
       .returning(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
-  def mockUpdateVerifier(updateVerifierDetails: UpdateVerifierDetails)(
+  def mockUpdateVerifier(updateVerifierDetails: UpdateVerifiersRequest)(
     response: Either[Error, HttpResponse]
   ) =
     (mockConnector
-      .updateVerifiers(_: UpdateVerifierDetails)(_: HeaderCarrier))
+      .updateVerifiers(_: UpdateVerifiersRequest)(_: HeaderCarrier))
       .expects(updateVerifierDetails, *)
       .returning(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
@@ -63,11 +65,11 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(taxEnrolmentRequest)
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
-  def mockInsertVerifier(updateVerifierDetails: UpdateVerifierDetails)(
+  def mockInsertVerifier(updateVerifierDetails: UpdateVerifiersRequest)(
     response: Either[Error, Unit]
   ) =
     (mockVerifierRepository
-      .insert(_: UpdateVerifierDetails))
+      .insert(_: UpdateVerifiersRequest))
       .expects(updateVerifierDetails)
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
@@ -80,12 +82,12 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .returning(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
 
   def mockGetUpdateVerifier(ggCredId: String)(
-    response: Either[Error, Option[UpdateVerifierDetails]]
+    response: Either[Error, Option[UpdateVerifiersRequest]]
   ) =
     (mockVerifierRepository
       .get(_: String))
       .expects(ggCredId)
-      .returning(EitherT[Future, Error, Option[UpdateVerifierDetails]](Future.successful(response)))
+      .returning(EitherT[Future, Error, Option[UpdateVerifiersRequest]](Future.successful(response)))
 
   def mockDeleteEnrolment(ggCredId: String)(
     response: Either[Error, Int]
@@ -127,18 +129,76 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
     Address.UkAddress("line1", None, None, None, "OK11KO")
   )
 
-  val updateVerifiers = UpdateVerifierDetails(
+  val noAddressChange = UpdateVerifiersRequest(
     "ggCredId",
-    CgtReference(cgtReference),
-    Address.UkAddress("line1", None, None, None, "BN112JJ"),
-    Some(Address.UkAddress("line1", None, None, None, "OK11KO"))
+    SubscribedUpdateDetails(
+      SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "DH14EJ"
+        ),
+        ContactName("Stephen Wood"),
+        CgtReference(cgtReference),
+        Some(TelephoneNumber("(+013)32752856")),
+        true
+      ),
+      SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "DH14EJ"
+        ),
+        ContactName("Stephen Wood"),
+        CgtReference(cgtReference),
+        Some(TelephoneNumber("(+013)32752856")),
+        true
+      )
+    )
   )
 
-  val noAddressChange = UpdateVerifierDetails(
+  val addressChange = UpdateVerifiersRequest(
     "ggCredId",
-    CgtReference(cgtReference),
-    Address.UkAddress("line1", None, None, None, "BN112JJ"),
-    None
+    SubscribedUpdateDetails(
+      SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "DH14EJ"
+        ),
+        ContactName("Stephen Wood"),
+        CgtReference(cgtReference),
+        Some(TelephoneNumber("(+013)32752856")),
+        true
+      ),
+      SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "BN114JB"
+        ),
+        ContactName("Stephen Wood"),
+        CgtReference(cgtReference),
+        Some(TelephoneNumber("(+013)32752856")),
+        true
+      )
+    )
   )
 
   "TaxEnrolment Service Implementation" when {
@@ -157,53 +217,53 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
       }
 
-      "it receives an update verifier request" must {
+      "it receives a request to update the verifiers" must {
 
         "not make the any enrolment API calls when there is no address change" in {
           await(service.updateVerifiers(noAddressChange).value) shouldBe Right(())
         }
 
         "make the ES6 call when there is an address change and there does not exists a failed enrolment create request" in {
-
           inSequence {
-            mockInsertVerifier(updateVerifiers)(Right(()))
+            mockInsertVerifier(addressChange)(Right(()))
             mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(None))
-            mockUpdateVerifier(updateVerifiers)(Right(HttpResponse(204)))
+            mockUpdateVerifier(addressChange)(Right(HttpResponse(204)))
             mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
           }
-          await(service.updateVerifiers(updateVerifiers).value) shouldBe Right(())
+          await(service.updateVerifiers(addressChange).value) shouldBe Right(())
         }
 
         "make the ES6 call and it fails" in {
 
           inSequence {
-            mockInsertVerifier(updateVerifiers)(Right(()))
+            mockInsertVerifier(addressChange)(Right(()))
             mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(None))
-            mockUpdateVerifier(updateVerifiers)(Right(HttpResponse(500)))
+            mockUpdateVerifier(addressChange)(Right(HttpResponse(500)))
           }
-          await(service.updateVerifiers(updateVerifiers).value) shouldBe Right(())
+          await(service.updateVerifiers(addressChange).value) shouldBe Right(())
         }
 
         "make the ES8 call when there is an address change and there exists a failed enrolment create request" in {
 
-          val updatedAddress = UkAddress("line1", None, None, None, "BN112JJ")
-
           inSequence {
-            mockInsertVerifier(updateVerifiers)(Right(()))
+            mockInsertVerifier(addressChange)(Right(()))
             mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(
               Right(Some(taxEnrolmentRequestWithUkAddress))
             )
             mockUpdateEnrolment(
               taxEnrolmentRequestWithUkAddress.ggCredId,
-              taxEnrolmentRequestWithUkAddress.copy(address = updatedAddress))(
-              Right(Some(taxEnrolmentRequestWithUkAddress)))
+              taxEnrolmentRequestWithUkAddress.copy(address = addressChange.subscribedUpdateDetails.newDetails.address)
+            )(Right(Some(taxEnrolmentRequestWithUkAddress)))
 
-            mockAllocateEnrolment(taxEnrolmentRequestWithUkAddress.copy(address = updatedAddress))(
-              Right(HttpResponse(204)))
+            mockAllocateEnrolment(
+              taxEnrolmentRequestWithUkAddress.copy(address = addressChange.subscribedUpdateDetails.newDetails.address)
+            )(
+              Right(HttpResponse(204))
+            )
             mockDeleteEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
             mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
           }
-          await(service.updateVerifiers(updateVerifiers).value) shouldBe Right(())
+          await(service.updateVerifiers(addressChange).value) shouldBe Right(())
         }
 
       }

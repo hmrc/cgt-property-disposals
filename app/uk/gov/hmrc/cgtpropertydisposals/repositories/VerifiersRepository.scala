@@ -25,7 +25,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models._
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -33,17 +33,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultVerifiersRepository])
 trait VerifiersRepository {
-  def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifierDetails]]
-  def insert(updateVerifiersRequest: UpdateVerifierDetails): EitherT[Future, Error, Unit]
+  def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifiersRequest]]
+  def insert(updateVerifiersRequest: UpdateVerifiersRequest): EitherT[Future, Error, Unit]
   def delete(ggCredId: String): EitherT[Future, Error, Int]
 }
 
 class DefaultVerifiersRepository @Inject()(mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
-) extends ReactiveRepository[UpdateVerifierDetails, BSONObjectID](
+) extends ReactiveRepository[UpdateVerifiersRequest, BSONObjectID](
       collectionName = "update-verifiers-requests",
       mongo          = mongo.mongoConnector.db,
-      UpdateVerifierDetails.updateVerifiersFormat,
+      UpdateVerifiersRequest.format,
       ReactiveMongoFormats.objectIdFormats
     )
     with VerifiersRepository {
@@ -55,11 +55,11 @@ class DefaultVerifiersRepository @Inject()(mongo: ReactiveMongoComponent)(
     )
   )
 
-  override def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifierDetails]] =
-    EitherT[Future, Error, Option[UpdateVerifierDetails]](
+  override def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifiersRequest]] =
+    EitherT[Future, Error, Option[UpdateVerifiersRequest]](
       collection
         .find(Json.obj("ggCredId" -> ggCredId), None)
-        .one[UpdateVerifierDetails]
+        .one[UpdateVerifiersRequest]
         .map { maybeVerifiersRequest =>
           Right(maybeVerifiersRequest)
         }
@@ -68,10 +68,10 @@ class DefaultVerifiersRepository @Inject()(mongo: ReactiveMongoComponent)(
         }
     )
 
-  override def insert(updateVerifiersRequest: UpdateVerifierDetails): EitherT[Future, Error, Unit] =
+  override def insert(updateVerifiersRequest: UpdateVerifiersRequest): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       collection.insert
-        .one[UpdateVerifierDetails](updateVerifiersRequest)
+        .one[UpdateVerifiersRequest](updateVerifiersRequest)
         .map[Either[Error, Unit]] { result: WriteResult =>
           if (result.ok)
             Right(())

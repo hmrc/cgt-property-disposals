@@ -25,7 +25,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.sample
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -36,7 +36,7 @@ class VerifiersRepositoryFailureSpec extends WordSpec with Matchers with MongoSu
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary((LocalDateTime.now()))
 
-  val updateVerifierDetails = sample[UpdateVerifierDetails]
+  val updateVerifierDetails = sample[UpdateVerifiersRequest]
 
   "The Update Verifiers repository" when {
     reactiveMongoComponent.mongoConnector.helper.driver.close()

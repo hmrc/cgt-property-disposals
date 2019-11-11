@@ -23,7 +23,7 @@ import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.sample
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -34,7 +34,7 @@ class VerifiersRepositorySpec extends WordSpec with Matchers with MongoSupport {
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary((LocalDateTime.now()))
 
-  val verifierDetails = sample[UpdateVerifierDetails]
+  val verifierDetails = sample[UpdateVerifiersRequest]
 
   "The Update Verifiers repository" when {
     "inserting" should {

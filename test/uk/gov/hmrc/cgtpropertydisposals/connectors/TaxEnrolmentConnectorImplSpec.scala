@@ -21,16 +21,19 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
+import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscribedUpdateDetails}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TaxEnrolmentConnectorImpldSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -68,20 +71,37 @@ class TaxEnrolmentConnectorImpldSpec extends WordSpec with Matchers with MockFac
   val nonUkEnrolmentRequest =
     Enrolments(List(KeyValuePair("CountryCode", "NZ")), List(KeyValuePair("CGTPDRef", cgtReference.value)))
 
-  val updateVerifiersRequest = UpdateVerifierDetails(
+  val updateVerifiersRequest = UpdateVerifiersRequest(
     "ggCredId",
-    cgtReference,
-    Address.UkAddress("line1", None, None, None, "TF2 6NU"),
-    Some(Address.UkAddress("line1", None, None, None, "OK113KO"))
+    SubscribedUpdateDetails(
+      SubscribedDetails(
+        Left(TrustName("ABC Corp")),
+        Email("ab@gmail.com"),
+        Address.UkAddress("line1", None, None, None, "OK113KO"),
+        ContactName("Stephen Wood"),
+        cgtReference,
+        None,
+        true
+      ),
+      SubscribedDetails(
+        Left(TrustName("ABC Corp")),
+        Email("ab@gmail.com"),
+        Address.UkAddress("line1", None, None, None, "TF2 6NU"),
+        ContactName("Stephen Wood"),
+        cgtReference,
+        None,
+        true
+      )
+    )
   )
 
   val taxEnrolmentUpdateRequest = TaxEnrolmentUpdateRequest(
     List(
-      KeyValuePair("Postcode", "TF2 6NU")
+      KeyValuePair("Postcode", "OK113KO")
     ),
     Legacy(
       List(
-        KeyValuePair("Postcode", "OK113KO")
+        KeyValuePair("Postcode", "TF2 6NU")
       )
     )
   )

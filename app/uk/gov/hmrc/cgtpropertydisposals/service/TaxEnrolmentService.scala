@@ -24,7 +24,8 @@ import play.api.libs.json.JsString
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifierDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscribedUpdateDetails
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, VerifiersRepository}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -42,7 +43,7 @@ trait TaxEnrolmentService {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
 
-  def updateVerifiers(updateVerifiersRequest: UpdateVerifierDetails)(
+  def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
 
@@ -68,7 +69,7 @@ class TaxEnrolmentServiceImpl @Inject()(
       }
 
   def makeES6call(
-    updateVerifiersRequest: UpdateVerifierDetails
+    updateVerifiersRequest: UpdateVerifiersRequest
   )(implicit hc: HeaderCarrier): Future[HttpResponse] =
     taxEnrolmentConnector
       .updateVerifiers(updateVerifiersRequest)
@@ -103,7 +104,7 @@ class TaxEnrolmentServiceImpl @Inject()(
 
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   def handleEnrolmentState(
-    enrolmentState: (Option[TaxEnrolmentRequest], Option[UpdateVerifierDetails])
+    enrolmentState: (Option[TaxEnrolmentRequest], Option[UpdateVerifiersRequest])
   )(implicit hc: HeaderCarrier): Future[Unit] =
     enrolmentState match {
 
@@ -124,7 +125,8 @@ class TaxEnrolmentServiceImpl @Inject()(
         result.leftMap(error => logger.warn(s"Error when updating verifiers: $error")).merge
 
       case (Some(enrolmentRequest), Some(updateVerifiersRequest)) =>
-        val updatedCreateEnrolmentRequest = enrolmentRequest.copy(address = updateVerifiersRequest.currentAddress)
+        val updatedCreateEnrolmentRequest =
+          enrolmentRequest.copy(address = updateVerifiersRequest.subscribedUpdateDetails.newDetails.address)
 
         val result = for {
           _            <- taxEnrolmentRepository.update(enrolmentRequest.ggCredId, updatedCreateEnrolmentRequest)
@@ -159,17 +161,18 @@ class TaxEnrolmentServiceImpl @Inject()(
     } yield maybeEnrolmentRequest
 
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-  override def updateVerifiers(updateVerifiersRequest: UpdateVerifierDetails)(
+  override def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
-    updateVerifiersRequest.previousAddress match {
-      case Some(_) =>
-        for {
-          _                           <- verifiersRepository.insert(updateVerifiersRequest)
-          maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
-          _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
-        } yield ()
-      case None => EitherT.rightT[Future, Error](Right(()))
+    if (!SubscribedUpdateDetails.hasAddressChanged(updateVerifiersRequest.subscribedUpdateDetails)) {
+      for {
+        _                           <- verifiersRepository.insert(updateVerifiersRequest)
+        maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
+        _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
+      } yield ()
+
+    } else {
+      EitherT.rightT[Future, Error](Right(()))
     }
 
 }

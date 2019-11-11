@@ -27,7 +27,6 @@ final case class SubscribedDetails(
   name: Either[TrustName, IndividualName],
   emailAddress: Email,
   address: Address,
-  previousAddress: Option[Address],
   contactName: ContactName,
   cgtReference: CgtReference,
   telephoneNumber: Option[TelephoneNumber],

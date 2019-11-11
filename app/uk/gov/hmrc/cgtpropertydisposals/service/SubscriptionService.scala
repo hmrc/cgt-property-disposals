@@ -55,7 +55,7 @@ trait SubscriptionService {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscribedDetails]
 
-  def updateSubscription(subscribedDetails: SubscribedDetails)(
+  def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse]
 }
@@ -105,13 +105,13 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
       }
     }
 
-  override def updateSubscription(subscribedDetails: SubscribedDetails)(
+  override def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse] =
-    connector.updateSubscription(subscribedDetails).subflatMap { response =>
+    connector.updateSubscription(subscribedUpdateDetails.newDetails).subflatMap { response =>
       lazy val identifiers =
         List(
-          "id"                -> subscribedDetails.cgtReference.value,
+          "id"                -> subscribedUpdateDetails.newDetails.cgtReference.value,
           "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
         )
 
@@ -150,7 +150,6 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
             name,
             email,
             address,
-            None,
             ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
             cgtReference,
             desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber
