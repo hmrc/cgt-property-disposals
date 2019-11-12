@@ -18,8 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
 import cats.instances.future._
-import cats.syntax.eq._
 import cats.instances.string._
+import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.NO_CONTENT
 import play.api.libs.json.JsString
@@ -165,38 +165,29 @@ class TaxEnrolmentServiceImpl @Inject()(
   override def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
-    hasAddressChange(updateVerifiersRequest.subscribedUpdateDetails) match {
-      case Left(error) =>
-        logger.warn(s"Could not check if address had changed with error $error")
-        EitherT.rightT[Future, Error](())
-      case Right(hasChanged) => {
-        if (hasChanged) {
-          for {
-            _                           <- verifiersRepository.insert(updateVerifiersRequest)
-            maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
-            _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
-          } yield ()
-        } else {
-          EitherT.rightT[Future, Error](())
-        }
-      }
+    if (hasChangedAddress(updateVerifiersRequest.subscribedUpdateDetails)) {
+      for {
+        _                           <- verifiersRepository.insert(updateVerifiersRequest)
+        maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
+        _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
+      } yield ()
+    } else {
+      EitherT.rightT[Future, Error](())
     }
 
-  private def hasAddressChange(subscribedUpdateDetails: SubscribedUpdateDetails): Either[Error, Boolean] =
+  private def hasChangedAddress(subscribedUpdateDetails: SubscribedUpdateDetails): Boolean =
     subscribedUpdateDetails.newDetails.address match {
       case Address.UkAddress(line1, line2, town, county, newPostcode) =>
         subscribedUpdateDetails.previousDetails.address match {
           case Address.UkAddress(line1, line2, town, county, oldPostcode) =>
-            if (newPostcode === oldPostcode) Right(false) else Right(true)
-          case Address.NonUkAddress(line1, line2, line3, line4, postcode, country) =>
-            Left(Error("New address is a UK address, but previous address is a Non-UK address"))
+            if (newPostcode === oldPostcode) false else true
+          case Address.NonUkAddress(line1, line2, line3, line4, postcode, country) => true
         }
       case Address.NonUkAddress(line1, line2, line3, line4, postcode, newCountry) =>
         subscribedUpdateDetails.previousDetails.address match {
-          case Address.UkAddress(line1, line2, town, county, postcode) =>
-            Left(Error("New address is a Non-UK address, but the previous address is a UK address"))
+          case Address.UkAddress(line1, line2, town, county, postcode) => true
           case Address.NonUkAddress(line1, line2, line3, line4, postcode, previousCountry) =>
-            if (newCountry === previousCountry) Right(false) else Right(true)
+            if (newCountry === previousCountry) false else true
         }
     }
 
