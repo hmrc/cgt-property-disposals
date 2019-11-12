@@ -18,11 +18,14 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
 import cats.instances.future._
+import cats.syntax.eq._
+import cats.instances.string._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.NO_CONTENT
 import play.api.libs.json.JsString
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
@@ -102,7 +105,6 @@ class TaxEnrolmentServiceImpl @Inject()(
       case other      => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
 
-  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   def handleEnrolmentState(
     enrolmentState: (Option[TaxEnrolmentRequest], Option[UpdateVerifiersRequest])
   )(implicit hc: HeaderCarrier): Future[Unit] =
@@ -160,19 +162,42 @@ class TaxEnrolmentServiceImpl @Inject()(
       _ <- EitherT.liftF(handleEnrolmentState(maybeEnrolmentRequest -> maybeUpdateVerifierRequest))
     } yield maybeEnrolmentRequest
 
-  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   override def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
-    if (!SubscribedUpdateDetails.hasAddressChanged(updateVerifiersRequest.subscribedUpdateDetails)) {
-      for {
-        _                           <- verifiersRepository.insert(updateVerifiersRequest)
-        maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
-        _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
-      } yield ()
+    hasAddressChange(updateVerifiersRequest.subscribedUpdateDetails) match {
+      case Left(error) =>
+        logger.warn(s"Could not check if address had changed with error $error")
+        EitherT.rightT[Future, Error](())
+      case Right(hasChanged) => {
+        if (hasChanged) {
+          for {
+            _                           <- verifiersRepository.insert(updateVerifiersRequest)
+            maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
+            _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
+          } yield ()
+        } else {
+          EitherT.rightT[Future, Error](())
+        }
+      }
+    }
 
-    } else {
-      EitherT.rightT[Future, Error](Right(()))
+  private def hasAddressChange(subscribedUpdateDetails: SubscribedUpdateDetails): Either[Error, Boolean] =
+    subscribedUpdateDetails.newDetails.address match {
+      case Address.UkAddress(line1, line2, town, county, newPostcode) =>
+        subscribedUpdateDetails.previousDetails.address match {
+          case Address.UkAddress(line1, line2, town, county, oldPostcode) =>
+            if (newPostcode === oldPostcode) Right(false) else Right(true)
+          case Address.NonUkAddress(line1, line2, line3, line4, postcode, country) =>
+            Left(Error("New address is a UK address, but previous address is a Non-UK address"))
+        }
+      case Address.NonUkAddress(line1, line2, line3, line4, postcode, newCountry) =>
+        subscribedUpdateDetails.previousDetails.address match {
+          case Address.UkAddress(line1, line2, town, county, postcode) =>
+            Left(Error("New address is a Non-UK address, but the previous address is a UK address"))
+          case Address.NonUkAddress(line1, line2, line3, line4, postcode, previousCountry) =>
+            if (newCountry === previousCountry) Right(false) else Right(true)
+        }
     }
 
 }

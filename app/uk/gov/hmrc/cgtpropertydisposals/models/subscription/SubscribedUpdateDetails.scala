@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.subscription
 
 import cats.syntax.eq._
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 
 final case class SubscribedUpdateDetails(
   newDetails: SubscribedDetails,
@@ -26,7 +27,4 @@ final case class SubscribedUpdateDetails(
 
 object SubscribedUpdateDetails {
   implicit val format: OFormat[SubscribedUpdateDetails] = Json.format[SubscribedUpdateDetails]
-
-  def hasAddressChanged(subscribedUpdateDetails: SubscribedUpdateDetails): Boolean =
-    subscribedUpdateDetails.newDetails.address === subscribedUpdateDetails.previousDetails.address
 }

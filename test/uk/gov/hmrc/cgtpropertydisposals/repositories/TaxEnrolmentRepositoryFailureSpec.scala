@@ -18,11 +18,10 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories
 
 import java.time.LocalDateTime
 
-import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.Arbitrary
+import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.sample
 
@@ -54,6 +53,13 @@ class TaxEnrolmentRepositoryFailureSpec extends WordSpec with Matchers with Mong
     "deleting from a broken repository" should {
       "fail the delete" in {
         await(repository.delete(taxEnrolmentRequest.ggCredId).value).isLeft shouldBe true
+      }
+    }
+    "updating on a broken repository" should {
+      val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
+      "fail to update" in {
+        await(repository.insert(taxEnrolmentRequest).value)
+        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value).isLeft shouldBe true
       }
     }
   }

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.address
 
+import cats.Eq
 import play.api.libs.json.{Json, OFormat, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.{CountryCode, CountryName}
 
@@ -52,4 +53,5 @@ object Country {
     }
   }
 
+  implicit val eq: Eq[Country] = Eq.fromUniversalEquals
 }

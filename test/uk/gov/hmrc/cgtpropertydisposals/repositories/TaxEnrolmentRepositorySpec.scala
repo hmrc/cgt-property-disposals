@@ -62,5 +62,15 @@ class TaxEnrolmentRepositorySpec extends WordSpec with Matchers with MongoSuppor
         await(repository.delete("this-gg-cred-id-does-not-exist").value) shouldBe (Right(0))
       }
     }
+
+    "updating" should {
+      val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
+      "return a the updated tax enrolment record" in {
+        await(repository.insert(taxEnrolmentRequest).value)
+        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe (Right(
+          Some(updatedTaxEnrolmentRequest)))
+      }
+    }
+
   }
 }
