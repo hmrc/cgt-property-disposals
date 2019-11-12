@@ -14,20 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.subscription
 
-import java.time.LocalDateTime
-
-import play.api.libs.json._
+import cats.syntax.eq._
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 
-final case class TaxEnrolmentRequest(
-  ggCredId: String,
-  cgtReference: String,
-  address: Address,
-  timestamp: LocalDateTime = LocalDateTime.now()
+final case class SubscribedUpdateDetails(
+  newDetails: SubscribedDetails,
+  previousDetails: SubscribedDetails
 )
 
-object TaxEnrolmentRequest {
-  implicit val format: OFormat[TaxEnrolmentRequest] = Json.format[TaxEnrolmentRequest]
+object SubscribedUpdateDetails {
+  implicit val format: OFormat[SubscribedUpdateDetails] = Json.format[SubscribedUpdateDetails]
 }

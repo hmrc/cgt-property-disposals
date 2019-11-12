@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.address
 
+import cats.Eq
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.KeyValuePair
 
 sealed trait Address
 
@@ -55,5 +57,13 @@ object Address {
       case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
         AddressDetails(line1, line2, line3, line4, postcode, country.code)
     }
+
+  def toVerifierFormat(address: Address): KeyValuePair =
+    address match {
+      case UkAddress(line1, line2, town, county, postcode)             => KeyValuePair("Postcode", postcode)
+      case NonUkAddress(line1, line2, line3, line4, postcode, country) => KeyValuePair("CountryCode", country.code)
+    }
+
+  implicit val eq: Eq[Address] = Eq.fromUniversalEquals
 
 }

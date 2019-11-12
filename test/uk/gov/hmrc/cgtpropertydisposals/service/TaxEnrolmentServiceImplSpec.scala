@@ -20,20 +20,26 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.NonUkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxEnrolmentRequest}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.TaxEnrolmentRepository
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscribedUpdateDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, VerifiersRepository}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
 
 class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
-  val mockConnector: TaxEnrolmentConnector   = mock[TaxEnrolmentConnector]
-  val mockRepository: TaxEnrolmentRepository = mock[TaxEnrolmentRepository]
+  val mockConnector: TaxEnrolmentConnector            = mock[TaxEnrolmentConnector]
+  val mockEnrolmentRepository: TaxEnrolmentRepository = mock[TaxEnrolmentRepository]
+  val mockVerifierRepository: VerifiersRepository     = mock[VerifiersRepository]
 
-  val service = new TaxEnrolmentServiceImpl(mockConnector, mockRepository)
+  val service = new TaxEnrolmentServiceImpl(mockConnector, mockEnrolmentRepository, mockVerifierRepository)
 
   def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, HttpResponse]
@@ -43,29 +49,69 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(taxEnrolmentRequest, *)
       .returning(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
-  def mockInsert(taxEnrolmentRequest: TaxEnrolmentRequest)(
+  def mockUpdateVerifier(updateVerifierDetails: UpdateVerifiersRequest)(
+    response: Either[Error, HttpResponse]
+  ) =
+    (mockConnector
+      .updateVerifiers(_: UpdateVerifiersRequest)(_: HeaderCarrier))
+      .expects(updateVerifierDetails, *)
+      .returning(EitherT[Future, Error, HttpResponse](Future.successful(response)))
+
+  def mockInsertEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
-    (mockRepository
+    (mockEnrolmentRepository
       .insert(_: TaxEnrolmentRequest))
       .expects(taxEnrolmentRequest)
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
-  def mockGet(ggCredId: String)(
+  def mockInsertVerifier(updateVerifierDetails: UpdateVerifiersRequest)(
+    response: Either[Error, Unit]
+  ) =
+    (mockVerifierRepository
+      .insert(_: UpdateVerifiersRequest))
+      .expects(updateVerifierDetails)
+      .returning(EitherT[Future, Error, Unit](Future.successful(response)))
+
+  def mockGetEnrolment(ggCredId: String)(
     response: Either[Error, Option[TaxEnrolmentRequest]]
   ) =
-    (mockRepository
+    (mockEnrolmentRepository
       .get(_: String))
       .expects(ggCredId)
       .returning(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
 
-  def mockDelete(ggCredId: String)(
+  def mockGetUpdateVerifier(ggCredId: String)(
+    response: Either[Error, Option[UpdateVerifiersRequest]]
+  ) =
+    (mockVerifierRepository
+      .get(_: String))
+      .expects(ggCredId)
+      .returning(EitherT[Future, Error, Option[UpdateVerifiersRequest]](Future.successful(response)))
+
+  def mockDeleteEnrolment(ggCredId: String)(
     response: Either[Error, Int]
   ) =
-    (mockRepository
+    (mockEnrolmentRepository
       .delete(_: String))
       .expects(ggCredId)
       .returning(EitherT[Future, Error, Int](Future.successful(response)))
+
+  def mockDeleteVerifier(ggCredId: String)(
+    response: Either[Error, Int]
+  ) =
+    (mockVerifierRepository
+      .delete(_: String))
+      .expects(ggCredId)
+      .returning(EitherT[Future, Error, Int](Future.successful(response)))
+
+  def mockUpdateEnrolment(ggCredId: String, taxEnrolmentRequest: TaxEnrolmentRequest)(
+    response: Either[Error, Option[TaxEnrolmentRequest]]
+  ) =
+    (mockEnrolmentRepository
+      .update(_: String, _: TaxEnrolmentRequest))
+      .expects(ggCredId, taxEnrolmentRequest)
+      .returning(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
 
   val (nonUkCountry, nonUkCountryCode) = Country("HK", Some("Hong Kong")) -> "HK"
   implicit val hc: HeaderCarrier       = HeaderCarrier()
@@ -83,45 +129,187 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
     Address.UkAddress("line1", None, None, None, "OK11KO")
   )
 
+  val noAddressChange = UpdateVerifiersRequest(
+    "ggCredId",
+    SubscribedUpdateDetails(
+      SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "DH14EJ"
+        ),
+        ContactName("Stephen Wood"),
+        CgtReference(cgtReference),
+        Some(TelephoneNumber("(+013)32752856")),
+        true
+      ),
+      SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "DH14EJ"
+        ),
+        ContactName("Stephen Wood"),
+        CgtReference(cgtReference),
+        Some(TelephoneNumber("(+013)32752856")),
+        true
+      )
+    )
+  )
+
+  val addressChange = UpdateVerifiersRequest(
+    "ggCredId",
+    SubscribedUpdateDetails(
+      SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "DH14EJ"
+        ),
+        ContactName("Stephen Wood"),
+        CgtReference(cgtReference),
+        Some(TelephoneNumber("(+013)32752856")),
+        true
+      ),
+      SubscribedDetails(
+        Right(IndividualName("Stephen", "Wood")),
+        Email("stephen@abc.co.uk"),
+        UkAddress(
+          "100 Sutton Street",
+          Some("Wokingham"),
+          Some("Surrey"),
+          Some("London"),
+          "BN114JB"
+        ),
+        ContactName("Stephen Wood"),
+        CgtReference(cgtReference),
+        Some(TelephoneNumber("(+013)32752856")),
+        true
+      )
+    )
+  )
+
   "TaxEnrolment Service Implementation" when {
 
     "it receives a request to check if a user has a CGT enrolment" must {
       "return an error" when {
-        "there is a mongo exception" in {
-          mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Connection error")))
+        "there is a mongo exception when calling the tax enrolment repo" in {
+          mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Connection error")))
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
         }
+        "there is a mongo exception when calling the verifiers repo" in {
+          mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
+          mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Connection error")))
+          await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
+        }
+
+      }
+
+      "it receives a request to update the verifiers" must {
+
+        "not make the any enrolment API calls when there is no address change" in {
+          await(service.updateVerifiers(noAddressChange).value) shouldBe Right(())
+        }
+
+        "make the ES6 call when there is an address change and there does not exists a failed enrolment create request" in {
+          inSequence {
+            mockInsertVerifier(addressChange)(Right(()))
+            mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(None))
+            mockUpdateVerifier(addressChange)(Right(HttpResponse(204)))
+            mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
+          }
+          await(service.updateVerifiers(addressChange).value) shouldBe Right(())
+        }
+
+        "make the ES6 call and it fails" in {
+
+          inSequence {
+            mockInsertVerifier(addressChange)(Right(()))
+            mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(None))
+            mockUpdateVerifier(addressChange)(Right(HttpResponse(500)))
+          }
+          await(service.updateVerifiers(addressChange).value) shouldBe Right(())
+        }
+
+        "make the ES8 call when there is an address change and there exists a failed enrolment create request" in {
+
+          inSequence {
+            mockInsertVerifier(addressChange)(Right(()))
+            mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(
+              Right(Some(taxEnrolmentRequestWithUkAddress))
+            )
+            mockUpdateEnrolment(
+              taxEnrolmentRequestWithUkAddress.ggCredId,
+              taxEnrolmentRequestWithUkAddress.copy(address = addressChange.subscribedUpdateDetails.newDetails.address)
+            )(Right(Some(taxEnrolmentRequestWithUkAddress)))
+
+            mockAllocateEnrolment(
+              taxEnrolmentRequestWithUkAddress.copy(address = addressChange.subscribedUpdateDetails.newDetails.address)
+            )(
+              Right(HttpResponse(204))
+            )
+            mockDeleteEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
+            mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
+          }
+          await(service.updateVerifiers(addressChange).value) shouldBe Right(())
+        }
+
       }
 
       "return a user's subscription status" when {
+
         "there does not exist a stored enrolment request" in {
-          mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
+          mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
+          mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(None)
         }
         "there does exist a stored enrolment request but the enrolment call fails again" in {
           inSequence {
-            mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
+            mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(
+              Right(Some(taxEnrolmentRequestWithNonUkAddress))
+            )
+            mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection error")))
           }
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(
-            Some(taxEnrolmentRequestWithNonUkAddress))
+            Some(taxEnrolmentRequestWithNonUkAddress)
+          )
         }
         "there does exist a stored enrolment request and the enrolment call succeeds but the deleting of the record fails" in {
           inSequence {
-            mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
+            mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(
+              Right(Some(taxEnrolmentRequestWithNonUkAddress))
+            )
+            mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
-            mockDelete(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Database error")))
+            mockDeleteEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Database error")))
           }
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(
-            Some(taxEnrolmentRequestWithNonUkAddress))
+            Some(taxEnrolmentRequestWithNonUkAddress)
+          )
         }
       }
       "return true" when {
         "an enrolment record exists, the tax enrolment call is made successfully, and the delete occurred correctly" in {
           inSequence {
-            mockGet(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(Some(taxEnrolmentRequestWithNonUkAddress)))
+            mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(
+              Right(Some(taxEnrolmentRequestWithNonUkAddress))
+            )
+            mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
-            mockDelete(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(1))
+            mockDeleteEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(1))
           }
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isRight shouldBe true
         }
@@ -134,14 +322,14 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status other than 204 and the recording of the enrolment request fails" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
+            mockInsertEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
           }
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isLeft shouldBe true
         }
         "the http call comes back with an exception and the insert into mongo fails" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection error")))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
+            mockInsertEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isLeft shouldBe true
@@ -152,7 +340,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status other than 204" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(()))
+            mockInsertEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(()))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
@@ -160,7 +348,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call comes back with a status other than no content and the insert into mongo succeeds" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(()))
+            mockInsertEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(()))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
@@ -169,7 +357,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the http call fails and the insert into mongo succeeds" in {
           inSequence {
             mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("uh oh")))
-            mockInsert(taxEnrolmentRequestWithNonUkAddress)(Right(()))
+            mockInsertEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(()))
           }
 
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true

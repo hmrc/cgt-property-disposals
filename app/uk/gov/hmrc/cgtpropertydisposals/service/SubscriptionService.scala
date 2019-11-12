@@ -34,7 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetai
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, subscription}
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
@@ -55,7 +55,7 @@ trait SubscriptionService {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscribedDetails]
 
-  def updateSubscription(subscribedDetails: SubscribedDetails)(
+  def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse]
 }
@@ -105,13 +105,13 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
       }
     }
 
-  override def updateSubscription(subscribedDetails: SubscribedDetails)(
+  override def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse] =
-    connector.updateSubscription(subscribedDetails).subflatMap { response =>
+    connector.updateSubscription(subscribedUpdateDetails.newDetails).subflatMap { response =>
       lazy val identifiers =
         List(
-          "id"                -> subscribedDetails.cgtReference.value,
+          "id"                -> subscribedUpdateDetails.newDetails.cgtReference.value,
           "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
         )
 

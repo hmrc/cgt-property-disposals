@@ -14,22 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Copyright 2019 HM Revenue & Customs
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http:www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
 import java.time.LocalDateTime
@@ -48,11 +32,13 @@ import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, TaxEnrolmentRequest, TelephoneNumber, sample, subscription}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscribedUpdateDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, TelephoneNumber, sample, subscription}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -91,12 +77,20 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(cgtReference, *)
       .returning(EitherT.fromEither(response))
 
-  def mockUpdateSubscription(subscribedDetails: SubscribedDetails)(
+  def mockUpdateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     response: Either[Error, SubscriptionUpdateResponse]
   ): Unit =
     (mockSubscriptionService
-      .updateSubscription(_: SubscribedDetails)(_: HeaderCarrier))
-      .expects(subscribedDetails, *)
+      .updateSubscription(_: SubscribedUpdateDetails)(_: HeaderCarrier))
+      .expects(subscribedUpdateDetails, *)
+      .returning(EitherT.fromEither(response))
+
+  def mockUpdateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
+    response: Either[Error, Unit]
+  ): Unit =
+    (mockTaxEnrolmentService
+      .updateVerifiers(_: UpdateVerifiersRequest)(_: HeaderCarrier))
+      .expects(updateVerifierDetails, *)
       .returning(EitherT.fromEither(response))
 
   def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
@@ -158,46 +152,88 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         val subscribedDetails =
           """
             |{
-            |    "name": {
-            |        "l": {
-            |            "value": "ABC Trust"
-            |        }
-            |    },
-            |    "emailAddress": "stefano@abc.co.uk",
-            |    "address": {
-            |        "NonUkAddress": {
-            |            "line1": "101 Kiwi Street",
-            |            "country": {
-            |                "code": "NZ",
-            |                "name": "New Zealand"
+            |    "newDetails": {
+            |        "name": {
+            |            "l": {
+            |                "value": "ABC Trust"
             |            }
-            |        }
+            |        },
+            |        "emailAddress": "stefano@abc.co.uk",
+            |        "address": {
+            |            "NonUkAddress": {
+            |                "line1": "101 Kiwi Street",
+            |                "country": {
+            |                    "code": "NZ",
+            |                    "name": "New Zealand"
+            |                }
+            |            }
+            |        },
+            |        "contactName": "Stefano Bosco",
+            |        "cgtReference": {
+            |            "value": "XFCGT123456789"
+            |        },
+            |        "registeredWithId": true
             |    },
-            |    "contactName": "Stefano Bosco",
-            |    "cgtReference": {
-            |        "value": "XFCGT123456789"
-            |    },
-            |    "registeredWithId": true
+            |    "previousDetails": {
+            |        "name": {
+            |            "l": {
+            |                "value": "ABC Trust"
+            |            }
+            |        },
+            |        "emailAddress": "stefano@abc.co.uk",
+            |        "address": {
+            |            "NonUkAddress": {
+            |                "line1": "101 Kiwi Street",
+            |                "country": {
+            |                    "code": "NZ",
+            |                    "name": "New Zealand"
+            |                }
+            |            }
+            |        },
+            |        "contactName": "Stefano Bosco",
+            |        "cgtReference": {
+            |            "value": "XFCGT123456789"
+            |        },
+            |        "registeredWithId": true
+            |    }
             |}
             |""".stripMargin
 
         val cgtReference = CgtReference("XFCGT123456789")
 
-        val expectedRequest = SubscribedDetails(
-          Left(TrustName("ABC Trust")),
-          Email("stefano@abc.co.uk"),
-          NonUkAddress(
-            "101 Kiwi Street",
+        val subscribedUpdateDetails = SubscribedUpdateDetails(
+          SubscribedDetails(
+            Left(TrustName("ABC Trust")),
+            Email("stefano@abc.co.uk"),
+            NonUkAddress(
+              "101 Kiwi Street",
+              None,
+              None,
+              None,
+              None,
+              Country("NZ", Some("New Zealand"))
+            ),
+            ContactName("Stefano Bosco"),
+            cgtReference,
             None,
-            None,
-            None,
-            None,
-            Country("NZ", Some("New Zealand"))
+            true
           ),
-          ContactName("Stefano Bosco"),
-          cgtReference,
-          None,
-          true
+          SubscribedDetails(
+            Left(TrustName("ABC Trust")),
+            Email("stefano@abc.co.uk"),
+            NonUkAddress(
+              "101 Kiwi Street",
+              None,
+              None,
+              None,
+              None,
+              Country("NZ", Some("New Zealand"))
+            ),
+            ContactName("Stefano Bosco"),
+            cgtReference,
+            None,
+            true
+          )
         )
 
         val request =
@@ -208,7 +244,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(Json.parse(subscribedDetails))
           )
 
-        mockUpdateSubscription(expectedRequest)(Left(Error("Des error")))
+        mockUpdateSubscription(subscribedUpdateDetails)(Left(Error("Des error")))
 
         val result = controller.updateSubscription()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
@@ -216,48 +252,94 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
       "return a 200 OK response if the subscription is updated" in {
 
-        val subscriptionUpdateDetails =
+        val subscriptionUpdateDetailsRequest =
           """
             |{
-            |    "name": {
-            |        "l": {
-            |            "value": "ABC Trust"
-            |        }
-            |    },
-            |    "emailAddress": "stephen@abc.co.uk",
-            |    "address": {
-            |        "NonUkAddress": {
-            |            "line1": "101 Kiwi Street",
-            |            "country": {
-            |                "code": "NZ",
-            |                "name": "New Zealand"
+            |    "newDetails": {
+            |        "name": {
+            |            "l": {
+            |                "value": "ABC Trust"
             |            }
-            |        }
+            |        },
+            |        "emailAddress": "stefano@abc.co.uk",
+            |        "address": {
+            |            "NonUkAddress": {
+            |                "line1": "121 Kiwi Street",
+            |                "country": {
+            |                    "code": "NZ",
+            |                    "name": "New Zealand"
+            |                }
+            |            }
+            |        },
+            |        "contactName": "Stefano Bosco",
+            |        "cgtReference": {
+            |            "value": "XFCGT123456789"
+            |        },
+            |        "registeredWithId": true
             |    },
-            |    "contactName": "Stephen Wood",
-            |    "telephoneNumber": "(+013)32752856)",
-            |    "cgtReference": {
-            |        "value": "XFCGT123456789"
-            |    },
-            |    "registeredWithId": true
+            |    "previousDetails": {
+            |        "name": {
+            |            "l": {
+            |                "value": "ABC Trust"
+            |            }
+            |        },
+            |        "emailAddress": "stefano@abc.co.uk",
+            |        "address": {
+            |            "NonUkAddress": {
+            |                "line1": "101 Kiwi Street",
+            |                "country": {
+            |                    "code": "NZ",
+            |                    "name": "New Zealand"
+            |                }
+            |            }
+            |        },
+            |        "contactName": "Stefano Bosco",
+            |        "cgtReference": {
+            |            "value": "XFCGT123456789"
+            |        },
+            |        "registeredWithId": true
+            |    }
             |}
             |""".stripMargin
 
-        val subscribedDetails = subscription.SubscribedDetails(
-          Left(TrustName("ABC Trust")),
-          Email("stephen@abc.co.uk"),
-          NonUkAddress(
-            "101 Kiwi Street",
+        val subscribedUpdateDetails = SubscribedUpdateDetails(
+          SubscribedDetails(
+            Left(TrustName("ABC Trust")),
+            Email("stefano@abc.co.uk"),
+            NonUkAddress(
+              "121 Kiwi Street",
+              None,
+              None,
+              None,
+              None,
+              Country("NZ", Some("New Zealand"))
+            ),
+            ContactName("Stefano Bosco"),
+            CgtReference("XFCGT123456789"),
             None,
-            None,
-            None,
-            None,
-            Country("NZ", Some("New Zealand"))
+            true
           ),
-          ContactName("Stephen Wood"),
-          CgtReference("XFCGT123456789"),
-          Some(TelephoneNumber("(+013)32752856)")),
-          true
+          SubscribedDetails(
+            Left(TrustName("ABC Trust")),
+            Email("stefano@abc.co.uk"),
+            NonUkAddress(
+              "101 Kiwi Street",
+              None,
+              None,
+              None,
+              None,
+              Country("NZ", Some("New Zealand"))
+            ),
+            ContactName("Stefano Bosco"),
+            CgtReference("XFCGT123456789"),
+            None,
+            true
+          )
+        )
+
+        val updateVerifiersRequest = UpdateVerifiersRequest(
+          "ggCredId",
+          subscribedUpdateDetails
         )
 
         val expectedSubscriptionUpdateResponse =
@@ -277,21 +359,24 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             Fake.user,
             LocalDateTime.now(),
             headerCarrier,
-            FakeRequest().withJsonBody(Json.parse(subscriptionUpdateDetails))
+            FakeRequest().withJsonBody(Json.parse(subscriptionUpdateDetailsRequest))
           )
 
-        mockUpdateSubscription(subscribedDetails)(
-          Right(
-            SubscriptionUpdateResponse(
-              "CGT",
-              LocalDateTime.of(2015, 12, 17, 9, 30, 47),
-              "012345678901",
-              "XXCGTP123456789",
-              "GB",
-              Some("TF34NT")
+        inSequence {
+          mockUpdateSubscription(subscribedUpdateDetails)(
+            Right(
+              SubscriptionUpdateResponse(
+                "CGT",
+                LocalDateTime.of(2015, 12, 17, 9, 30, 47),
+                "012345678901",
+                "XXCGTP123456789",
+                "GB",
+                Some("TF34NT")
+              )
             )
           )
-        )
+          mockUpdateVerifiers(updateVerifiersRequest)(Right(()))
+        }
         val result = controller.updateSubscription()(request)
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.parse(expectedSubscriptionUpdateResponse)

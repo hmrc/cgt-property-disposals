@@ -19,8 +19,10 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient.HttpClientOps
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.{Enrolments, Error, KeyValuePair, TaxEnrolmentRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -33,6 +35,10 @@ trait TaxEnrolmentConnector {
   def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
+
+  def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse]
 }
 
 @Singleton
@@ -42,6 +48,35 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
     with Logging {
 
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
+
+  override def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse] = {
+
+    val updateVerifiersUrl: String =
+      s"$serviceUrl/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${updateVerifierDetails.subscribedUpdateDetails.newDetails.cgtReference.value}"
+
+    logger.info(
+      s"Updating verifiers for cgt account ${updateVerifierDetails.subscribedUpdateDetails.newDetails.cgtReference}"
+    )
+
+    EitherT[Future, Error, HttpResponse](
+      http
+        .put[TaxEnrolmentUpdateRequest](
+          updateVerifiersUrl,
+          TaxEnrolmentUpdateRequest(
+            List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.newDetails.address)),
+            Legacy(
+              List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.previousDetails.address))
+            )
+          )
+        )
+        .map(Right(_))
+        .recover {
+          case e => Left(Error(e))
+        }
+    )
+  }
 
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier
@@ -74,4 +109,5 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
         .recover { case e => Left(Error(e)) }
     )
   }
+
 }

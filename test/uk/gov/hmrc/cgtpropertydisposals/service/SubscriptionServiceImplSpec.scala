@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, sample, subscription}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -77,7 +77,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   "SubscriptionServiceImpl" when {
     val cgtReference = CgtReference("XFCGT123456789")
-    val expectedRequest = subscription.SubscribedDetails(
+
+    val expectedRequest = SubscribedDetails(
       Right(IndividualName("Stephen", "Wood")),
       Email("stephen@abc.co.uk"),
       UkAddress(
@@ -93,6 +94,11 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       true
     )
 
+    val updatedDetails = SubscribedUpdateDetails(
+      expectedRequest,
+      expectedRequest
+    )
+
     "handling requests to update subscription details " must {
       implicit val hc: HeaderCarrier = HeaderCarrier()
       val cgtReference               = CgtReference("XFCGT123456789")
@@ -100,17 +106,17 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       "return an error" when {
         "the http call comes back with a status other than 200" in {
           mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(500)))
-          await(service.updateSubscription(expectedRequest).value).isLeft shouldBe true
+          await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
           mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(200)))
-          await(service.updateSubscription(expectedRequest).value).isLeft shouldBe true
+          await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
           mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(200, Some(JsNumber(1)))))
-          await(service.updateSubscription(expectedRequest).value).isLeft shouldBe true
+          await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
       }
 
@@ -138,7 +144,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |""".stripMargin
 
         mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
-        await(service.updateSubscription(expectedRequest).value) shouldBe Right(updateResponse)
+        await(service.updateSubscription(updatedDetails).value) shouldBe Right(updateResponse)
       }
     }
 
