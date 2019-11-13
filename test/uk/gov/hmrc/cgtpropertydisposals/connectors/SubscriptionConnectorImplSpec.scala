@@ -25,7 +25,6 @@ import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.{subscription, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
-import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails}
@@ -85,10 +84,36 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         ContactName("Stephen Wood"),
         cgtReference,
         Some(TelephoneNumber("(+013)32752856")),
-        true
+        registeredWithId = true
       )
 
-      val expectedDesSubUpdateRequest = DesSubscriptionUpdateRequest(expectedRequest)
+      val expectedRequestJson = Json.parse(
+        """
+          |{
+          |  "regime": "CGT",
+          |  "subscriptionDetails": {
+          |    "typeOfPersonDetails": {
+          |      "typeOfPerson": "Individual",
+          |      "firstName": "Stephen",
+          |      "lastName": "Wood"
+          |     },
+          |  "addressDetails": {
+          |    "addressLine1": "100 Sutton Street",
+          |    "addressLine2": "Wokingham",
+          |    "addressLine3": "Surrey",
+          |    "addressLine4": "London",
+          |    "countryCode": "GB",
+          |    "postalCode": "DH14EJ"
+          |  },
+          |  "contactDetails": {
+          |    "contactName": "Stephen Wood",
+          |    "phoneNumber": "(+013)32752856",
+          |    "emailAddress": "stephen@abc.co.uk"
+          |  }
+          | }
+          |}
+          |""".stripMargin
+      )
 
       val expectedResponse =
         """
@@ -110,7 +135,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           withClue(s"For http response [${httpResponse.toString}]") {
             mockPut(
               expectedSubscriptionDisplayUrl(cgtReference),
-              expectedDesSubUpdateRequest
+              expectedRequestJson
             )(
               Some(httpResponse)
             )
@@ -122,7 +147,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
       "return an error when the future fails" in {
 
-        mockPut(expectedSubscriptionDisplayUrl(cgtReference), expectedDesSubUpdateRequest)(
+        mockPut(expectedSubscriptionDisplayUrl(cgtReference), expectedRequestJson)(
           None
         )
         await(connector.updateSubscription(expectedRequest).value).isLeft shouldBe true
@@ -144,13 +169,38 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           ContactName("Stefano Bosco"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),
-          true
+          registeredWithId = true
         )
 
-        val expectedDesSubUpdateRequest = DesSubscriptionUpdateRequest(expectedRequest)
-        val httpResponse                = HttpResponse(200)
+        val expectedRequestJson = Json.parse(
+          """
+            |{
+            |  "regime": "CGT",
+            |  "subscriptionDetails": {
+            |    "typeOfPersonDetails": {
+            |      "typeOfPerson": "Trustee",
+            |      "organisationName": "Trust"
+            |     },
+            |  "addressDetails": {
+            |    "addressLine1": "100 Via Suttono",
+            |    "addressLine2": "Wokingama",
+            |    "addressLine3": "Surre",
+            |    "addressLine4": "Londono",
+            |    "countryCode": "IT",
+            |    "postalCode": "DH14EJ"
+            |  },
+            |  "contactDetails": {
+            |    "contactName": "Stefano Bosco",
+            |    "phoneNumber": "(+013)32752856",
+            |    "emailAddress": "stefano@abc.co.uk"
+            |  }
+            | }
+            |}
+            |""".stripMargin
+        )
 
-        mockPut(expectedSubscriptionDisplayUrl(cgtReference), expectedDesSubUpdateRequest)(Some(httpResponse))
+        val httpResponse = HttpResponse(200)
+        mockPut(expectedSubscriptionDisplayUrl(cgtReference), expectedRequestJson)(Some(httpResponse))
 
         await(connector.updateSubscription(expectedRequest).value) shouldBe Right(httpResponse)
       }

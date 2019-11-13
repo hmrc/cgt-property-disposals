@@ -22,7 +22,7 @@ import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnectorImpl.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesSubscriptionUpdateRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesSubscriptionUpdateRequest, TypeOfPersonDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -98,9 +98,9 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
       http
         .put(
           subscriptionDisplayUrl(subscribedDetails.cgtReference),
-          DesSubscriptionUpdateRequest(subscribedDetails),
+          Json.toJson(DesSubscriptionUpdateRequest(subscribedDetails)),
           headers)(
-          implicitly[Writes[DesSubscriptionUpdateRequest]],
+          implicitly[Writes[JsValue]],
           hc.copy(authorization = None),
           ec
         )
@@ -115,22 +115,6 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
 object SubscriptionConnectorImpl {
 
   final case class Identity(idType: String, idValue: String)
-
-  sealed trait TypeOfPersonDetails extends Product with Serializable
-
-  object TypeOfPersonDetails {
-
-    final case class Individual(firstName: String, lastName: String, typeOfPerson: String = "Individual")
-        extends TypeOfPersonDetails
-
-    final case class Trustee(organisationName: String, typeOfPerson: String = "Trustee") extends TypeOfPersonDetails
-
-    implicit val typeOfPersonWrites: Writes[TypeOfPersonDetails] = Writes {
-      case i: Individual => Json.writes[Individual].writes(i)
-      case t: Trustee    => Json.writes[Trustee].writes(t)
-    }
-
-  }
 
   final case class ContactDetails(
     contactName: String,
