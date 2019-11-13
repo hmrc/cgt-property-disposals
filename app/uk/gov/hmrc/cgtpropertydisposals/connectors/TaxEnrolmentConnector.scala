@@ -86,12 +86,12 @@ class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: Serv
     val enrolmentUrl: String = s"$serviceUrl/tax-enrolments/service/$serviceName/enrolment"
 
     val enrolmentRequest = taxEnrolmentRequest.address match {
-      case Address.UkAddress(line1, line2, line3, line4, postcode) =>
+      case Address.UkAddress(_, _, _, _, postcode) =>
         Enrolments(
           List(KeyValuePair("Postcode", postcode)),
           List(KeyValuePair("CGTPDRef", taxEnrolmentRequest.cgtReference))
         )
-      case Address.NonUkAddress(line1, line2, line3, line4, maybePostcode, countryCode) =>
+      case Address.NonUkAddress(_, _, _, _, _, countryCode) =>
         Enrolments(
           List(KeyValuePair("CountryCode", countryCode.code)),
           List(KeyValuePair("CGTPDRef", taxEnrolmentRequest.cgtReference))

@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
+import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest.DesSubscriptionUpdateDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.TypeOfPersonDetails._
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscribedDetails
 
 final case class DesSubscriptionUpdateRequest(
@@ -28,23 +28,23 @@ final case class DesSubscriptionUpdateRequest(
 )
 
 object DesSubscriptionUpdateRequest {
-  implicit val format: OFormat[DesSubscriptionUpdateRequest] = Json.format[DesSubscriptionUpdateRequest]
+  implicit val format: Writes[DesSubscriptionUpdateRequest] = Json.writes[DesSubscriptionUpdateRequest]
 
   final case class DesSubscriptionUpdateDetails(
-    typeOfPersonDetails: Either[Trustee, Individual],
+    typeOfPersonDetails: TypeOfPersonDetails,
     addressDetails: AddressDetails,
     contactDetails: ContactDetails
   )
 
   object DesSubscriptionUpdateDetails {
-    implicit val format: OFormat[DesSubscriptionUpdateDetails] = Json.format[DesSubscriptionUpdateDetails]
+    implicit val writes: Writes[DesSubscriptionUpdateDetails] = Json.writes[DesSubscriptionUpdateDetails]
   }
 
   def apply(subscribedDetails: SubscribedDetails): DesSubscriptionUpdateRequest = {
-    val typeOfPerson: Either[Trustee, Individual] =
-      subscribedDetails.name.fold[Either[Trustee, Individual]](
-        trust => Left(Trustee("Trustee", trust.value)),
-        individual => Right(Individual("Individual", individual.firstName, individual.lastName))
+    val typeOfPerson: TypeOfPersonDetails =
+      subscribedDetails.name.fold(
+        trustName => Trustee(trustName.value),
+        individualName => Individual(individualName.firstName, individualName.lastName)
       )
 
     val contactDetails = ContactDetails(
