@@ -26,8 +26,8 @@ import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
-import play.api.http.Status.{FORBIDDEN, OK}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
+import play.api.http.Status.{ACCEPTED, FORBIDDEN, OK}
+import uk.gov.hmrc.cgtpropertydisposals.connectors.{EmailConnector, SubscriptionConnector}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails}
@@ -40,6 +40,8 @@ import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
 import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.DesSubscriptionDisplayDetails
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -61,9 +63,14 @@ trait SubscriptionService {
 }
 
 @Singleton
-class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config: Configuration)(
+class SubscriptionServiceImpl @Inject()(
+  subscriptionConnector: SubscriptionConnector,
+  emailConnector: EmailConnector,
+  config: Configuration
+)(
   implicit ec: ExecutionContext
-) extends SubscriptionService {
+) extends SubscriptionService
+    with Logging {
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
@@ -74,7 +81,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
         .map(_.code)
         .exists(_ === "ACTIVE_SUBSCRIPTION")
 
-    connector.subscribe(subscriptionDetails).subflatMap { response =>
+    lazy val subscriptionResult = subscriptionConnector.subscribe(subscriptionDetails).subflatMap { response =>
       if (response.status === OK) {
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
       } else if (isAlreadySubscribedResponse(response)) {
@@ -83,12 +90,34 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
         Left(Error(s"call to subscribe came back with status ${response.status}"))
       }
     }
+
+    for {
+      subscriptionResponse <- subscriptionResult
+      _ <- {
+        subscriptionResponse match {
+          case SubscriptionSuccessful(cgtReferenceNumber) =>
+            emailConnector
+              .sendSubscriptionConfirmationEmail(subscriptionDetails, CgtReference(cgtReferenceNumber))
+              .map { httpResponse =>
+                if (httpResponse.status =!= ACCEPTED)
+                  logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
+                ()
+              }
+              .leftFlatMap { e =>
+                logger.warn("Could not send confirmation email", e)
+                EitherT.pure[Future, Error](())
+              }
+
+          case _ => EitherT.pure[Future, Error](())
+        }
+      }
+    } yield subscriptionResponse
   }
 
   override def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscribedDetails] =
-    connector.getSubscription(cgtReference).subflatMap { response =>
+    subscriptionConnector.getSubscription(cgtReference).subflatMap { response =>
       lazy val identifiers =
         List(
           "id"                -> cgtReference.value,
@@ -108,7 +137,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
   override def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse] =
-    connector.updateSubscription(subscribedUpdateDetails.newDetails).subflatMap { response =>
+    subscriptionConnector.updateSubscription(subscribedUpdateDetails.newDetails).subflatMap { response =>
       lazy val identifiers =
         List(
           "id"                -> subscribedUpdateDetails.newDetails.cgtReference.value,

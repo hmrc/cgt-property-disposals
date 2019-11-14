@@ -26,7 +26,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.{EmailConnector, SubscriptionConnector}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -41,7 +41,9 @@ import scala.concurrent.Future
 
 class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
-  val mockConnector = mock[SubscriptionConnector]
+  val mockSubscriptionConnector = mock[SubscriptionConnector]
+
+  val mockEmailConnector = mock[EmailConnector]
 
   val nonIsoCountryCode = "XZ"
 
@@ -53,16 +55,16 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
     )
   )
 
-  val service = new SubscriptionServiceImpl(mockConnector, config)
+  val service = new SubscriptionServiceImpl(mockSubscriptionConnector, mockEmailConnector, config)
 
   def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(response: Either[Error, HttpResponse]) =
-    (mockConnector
+    (mockSubscriptionConnector
       .subscribe(_: SubscriptionDetails)(_: HeaderCarrier))
       .expects(expectedSubscriptionDetails, *)
       .returning(EitherT(Future.successful(response)))
 
   def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
-    (mockConnector
+    (mockSubscriptionConnector
       .getSubscription(_: CgtReference)(_: HeaderCarrier))
       .expects(cgtReference, *)
       .returning(EitherT(Future.successful(response)))
@@ -70,9 +72,16 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
   def mockUpdateSubscriptionDetails(subscribedDetails: SubscribedDetails)(
     response: Either[Error, HttpResponse]
   ) =
-    (mockConnector
+    (mockSubscriptionConnector
       .updateSubscription(_: SubscribedDetails)(_: HeaderCarrier))
       .expects(subscribedDetails, *)
+      .returning(EitherT(Future.successful(response)))
+
+  def mockSendConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(
+    response: Either[Error, HttpResponse]) =
+    (mockEmailConnector
+      .sendSubscriptionConfirmationEmail(_: SubscriptionDetails, _: CgtReference)(_: HeaderCarrier))
+      .expects(subscriptionDetails, cgtReference, *)
       .returning(EitherT(Future.successful(response)))
 
   "SubscriptionServiceImpl" when {
@@ -101,7 +110,6 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
     "handling requests to update subscription details " must {
       implicit val hc: HeaderCarrier = HeaderCarrier()
-      val cgtReference               = CgtReference("XFCGT123456789")
 
       "return an error" when {
         "the http call comes back with a status other than 200" in {
@@ -536,22 +544,49 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
       }
-      "return the subscription response if the call comes back with a " +
-        "200 status and the JSON body can be parsed" in {
-        val cgtReferenceNumber = "number"
-        val jsonBody = Json.parse(
+      "return the subscription successful response" when {
+
+        val subscriptionResponseJsonBody = Json.parse(
           s"""
              |{
-             |  "cgtReferenceNumber" : "$cgtReferenceNumber"
+             |  "cgtReferenceNumber" : "${cgtReference.value}"
              |}
              |""".stripMargin
         )
-        mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(jsonBody))))
-        await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionSuccessful(cgtReferenceNumber))
+
+        "the subscription call comes back with a 200 status and the JSON body can be parsed" in {
+          inSequence {
+            mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
+            mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(ACCEPTED)))
+          }
+
+          await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionSuccessful(cgtReference.value))
+        }
+
+        "the call to send an email fails" in {
+          inSequence {
+            mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
+            mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Left(Error("")))
+          }
+
+          await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionSuccessful(cgtReference.value))
+        }
+
+        "the call to send an email comes back with a status other than 202" in {
+          List(OK, BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE).foreach { status =>
+            inSequence {
+              mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
+              mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(status)))
+            }
+
+            await(service.subscribe(subscriptionDetails).value) shouldBe Right(
+              SubscriptionSuccessful(cgtReference.value))
+          }
+        }
       }
 
       "return an already subscribed response if the response from DES indicates as such" in {
-        val jsonBody = Json.parse(
+        val subscriptionResponseJsonBody = Json.parse(
           s"""
              |{
              |  "code" :   "ACTIVE_SUBSCRIPTION",
@@ -559,7 +594,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
              |}
              |""".stripMargin
         )
-        mockSubscribe(subscriptionDetails)(Right(HttpResponse(403, Some(jsonBody))))
+
+        mockSubscribe(subscriptionDetails)(Right(HttpResponse(403, Some(subscriptionResponseJsonBody))))
+
         await(service.subscribe(subscriptionDetails).value) shouldBe Right(AlreadySubscribed)
 
       }
