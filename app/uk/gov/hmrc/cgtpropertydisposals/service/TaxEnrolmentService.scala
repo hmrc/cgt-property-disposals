@@ -167,6 +167,7 @@ class TaxEnrolmentServiceImpl @Inject()(
   ): EitherT[Future, Error, Unit] =
     if (hasChangedAddress(updateVerifiersRequest.subscribedUpdateDetails)) {
       for {
+        _                           <- verifiersRepository.delete(updateVerifiersRequest.ggCredId)
         _                           <- verifiersRepository.insert(updateVerifiersRequest)
         maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
         _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
