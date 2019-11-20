@@ -225,6 +225,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         "make the ES6 call when there is an address change and there does not exists a failed enrolment create request" in {
           inSequence {
+            mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
             mockInsertVerifier(addressChange)(Right(()))
             mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(None))
             mockUpdateVerifier(addressChange)(Right(HttpResponse(204)))
@@ -236,6 +237,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "make the ES6 call and it fails" in {
 
           inSequence {
+            mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
             mockInsertVerifier(addressChange)(Right(()))
             mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(None))
             mockUpdateVerifier(addressChange)(Right(HttpResponse(500)))
@@ -246,6 +248,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         "make the ES8 call when there is an address change and there exists a failed enrolment create request" in {
 
           inSequence {
+            mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
             mockInsertVerifier(addressChange)(Right(()))
             mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(
               Right(Some(taxEnrolmentRequestWithUkAddress))
