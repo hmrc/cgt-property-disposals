@@ -85,8 +85,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
           |  "isAGroup": false,
           |  "individual": {
           |    "firstName": "name",
-          |    "lastName":  "surname",
-          |    "dateOfBirth": "1970-01-01"
+          |    "lastName":  "surname"
           |  },
           |  "address" : {
           |    "addressLine1" : "addressLine1",
@@ -149,8 +148,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
               |  "isAGroup": false,
               |  "individual": {
               |    "firstName": "name",
-              |    "lastName":  "surname",
-              |    "dateOfBirth": "1970-01-01"
+              |    "lastName":  "surname"
               |  },
               |  "address" : {
               |    "addressLine1" : "addressLine1",

@@ -62,7 +62,7 @@ class RegisterWithoutIdConnectorImpl @Inject()(http: HttpClient, val config: Ser
       acknowledgementReferenceId.toString.filterNot(_ === '-'),
       isAnAgent = false,
       isAGroup  = false,
-      RegistrationIndividual(registrationDetails.name.firstName, registrationDetails.name.lastName, "1970-01-01"),
+      RegistrationIndividual(registrationDetails.name.firstName, registrationDetails.name.lastName),
       toRegistrationAddress(registrationDetails.address),
       RegistrationContactDetails(registrationDetails.emailAddress.value)
     )
@@ -102,7 +102,7 @@ object RegisterWithoutIdConnectorImpl {
     contactDetails: RegistrationContactDetails
   )
 
-  final case class RegistrationIndividual(firstName: String, lastName: String, dateOfBirth: String)
+  final case class RegistrationIndividual(firstName: String, lastName: String)
 
   final case class RegistrationContactDetails(emailAddress: String)
 
