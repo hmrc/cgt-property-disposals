@@ -29,6 +29,7 @@ import play.api.Configuration
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.BusinessPartnerRecordConnector
+import uk.gov.hmrc.cgtpropertydisposals.controllers.routes
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
@@ -52,7 +53,11 @@ trait BusinessPartnerRecordService {
 }
 
 @Singleton
-class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecordConnector, config: Configuration)(
+class BusinessPartnerRecordServiceImpl @Inject()(
+  connector: BusinessPartnerRecordConnector,
+  config: Configuration,
+  auditService: AuditService
+)(
   implicit ec: ExecutionContext
 ) extends BusinessPartnerRecordService {
 
@@ -69,6 +74,8 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
           "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-")
         )
 
+      auditRegistrationResponse(response)
+
       if (response.status === OK) {
         response
           .parseJSON[DesBusinessPartnerRecord]()
@@ -80,6 +87,15 @@ class BusinessPartnerRecordServiceImpl @Inject()(connector: BusinessPartnerRecor
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
       }
     }
+
+  private def auditRegistrationResponse(
+    httpResponse: HttpResponse
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
+    auditService.sendRegistrationResponse(
+      httpResponse.status,
+      httpResponse.body,
+      routes.BusinessPartnerRecordController.getBusinessPartnerRecord().url
+    )
 
   val correlationIdHeaderKey = "CorrelationId"
 

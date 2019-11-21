@@ -37,11 +37,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, s
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
   val mockConnector = mock[SubscriptionConnector]
+
+  val mockAuditService: AuditService = mock[AuditService]
 
   val nonIsoCountryCode = "XZ"
 
@@ -53,7 +55,13 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
     )
   )
 
-  val service = new SubscriptionServiceImpl(mockConnector, config)
+  val service = new SubscriptionServiceImpl(mockConnector, config, mockAuditService)
+
+  def mockSubscriptionResponse(httpStatus: Int, httpBody: String, path: String)(response: Unit) =
+    (mockAuditService
+      .sendSubscriptionResponse(_: Int, _: String, _: String)(_: HeaderCarrier, _: ExecutionContext))
+      .expects(httpStatus, *, path, *, *)
+      .returning(response)
 
   def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(response: Either[Error, HttpResponse]) =
     (mockConnector
@@ -106,6 +114,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       "return an error" when {
         "the http call comes back with a status other than 200" in {
           mockUpdateSubscriptionDetails(expectedRequest)(Right(HttpResponse(500)))
+          // mockSubscriptionResponse(500, null, "/cgt-property-disposals/subscription")(())
           await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
 
@@ -523,16 +532,19 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       "return an error" when {
         "the http call comes back with a status other than 200" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(500)))
+          mockSubscriptionResponse(500, "", "/subscription")(())
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(200)))
+          mockSubscriptionResponse(200, "", "/subscription")(())
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(JsNumber(1)))))
+          mockSubscriptionResponse(200, "", "/subscription")(())
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
       }
@@ -547,6 +559,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
              |""".stripMargin
         )
         mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(jsonBody))))
+        mockSubscriptionResponse(200, "", "/subscription")(())
         await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionSuccessful(cgtReferenceNumber))
       }
 
@@ -560,6 +573,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
              |""".stripMargin
         )
         mockSubscribe(subscriptionDetails)(Right(HttpResponse(403, Some(jsonBody))))
+        mockSubscriptionResponse(403, "", "/subscription")(())
         await(service.subscribe(subscriptionDetails).value) shouldBe Right(AlreadySubscribed)
 
       }

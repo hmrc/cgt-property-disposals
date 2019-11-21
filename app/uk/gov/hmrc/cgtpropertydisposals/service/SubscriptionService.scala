@@ -28,6 +28,7 @@ import configs.syntax._
 import play.api.Configuration
 import play.api.http.Status.{FORBIDDEN, OK}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.SubscriptionConnector
+import uk.gov.hmrc.cgtpropertydisposals.controllers.routes
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails}
@@ -61,7 +62,11 @@ trait SubscriptionService {
 }
 
 @Singleton
-class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config: Configuration)(
+class SubscriptionServiceImpl @Inject()(
+  connector: SubscriptionConnector,
+  config: Configuration,
+  auditService: AuditService
+)(
   implicit ec: ExecutionContext
 ) extends SubscriptionService {
 
@@ -75,6 +80,7 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
         .exists(_ === "ACTIVE_SUBSCRIPTION")
 
     connector.subscribe(subscriptionDetails).subflatMap { response =>
+      auditSubscriptionResponse(response)
       if (response.status === OK) {
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
       } else if (isAlreadySubscribedResponse(response)) {
@@ -84,6 +90,15 @@ class SubscriptionServiceImpl @Inject()(connector: SubscriptionConnector, config
       }
     }
   }
+
+  private def auditSubscriptionResponse(
+    httpResponse: HttpResponse
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
+    auditService.sendSubscriptionResponse(
+      httpResponse.status,
+      httpResponse.body,
+      routes.SubscriptionController.subscribe().url
+    )
 
   override def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier

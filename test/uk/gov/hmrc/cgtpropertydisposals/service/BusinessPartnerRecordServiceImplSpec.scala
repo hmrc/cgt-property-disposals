@@ -33,11 +33,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.{Error, address, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
   val mockConnector: BusinessPartnerRecordConnector = mock[BusinessPartnerRecordConnector]
+
+  val mockAuditService: AuditService = mock[AuditService]
 
   val nonIsoCountryCode = "XZ"
 
@@ -45,7 +47,13 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
       |des.non-iso-country-codes = ["$nonIsoCountryCode"]
       |""".stripMargin))
 
-  val service = new BusinessPartnerRecordServiceImpl(mockConnector, config)
+  val service = new BusinessPartnerRecordServiceImpl(mockConnector, config, mockAuditService)
+
+  def mockRegistrationResponse(httpStatus: Int, httpBody: String, path: String)(response: Unit) =
+    (mockAuditService
+      .sendRegistrationResponse(_: Int, _: String, _: String)(_: HeaderCarrier, _: ExecutionContext))
+      .expects(httpStatus, *, path, *, *)
+      .returning(response)
 
   def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
     (mockConnector
@@ -90,6 +98,11 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
         def testError(response: => Either[Error, HttpResponse]) = {
           mockGetBPR(bprRequest)(response)
+          response match {
+            case Left(a) => mockRegistrationResponse(500, "", "/cgt-property-disposals/business-partner-record")(())
+            case Right(b) =>
+              mockRegistrationResponse(b.status, b.body, "/cgt-property-disposals/business-partner-record")(())
+          }
 
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
@@ -111,7 +124,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
         }
 
         "the call to get a BPR fails" in {
-          testError(Left(Error(new Exception("Oh no!"))))
+          mockGetBPR(bprRequest)(Left(Error(new Exception("Oh no!"))))
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
         "the call comes back with status 200 and valid JSON but a postcode cannot " +
@@ -200,6 +214,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
+          mockRegistrationResponse(200, body.toString(), "/cgt-property-disposals/business-partner-record")(())
 
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
@@ -223,6 +238,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
+          mockRegistrationResponse(200, body.toString(), "/cgt-property-disposals/business-partner-record")(())
 
           val expectedAddress =
             NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
@@ -248,6 +264,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
+          mockRegistrationResponse(200, "", "/cgt-property-disposals/business-partner-record")(())
 
           val expectedAddress =
             NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country(nonIsoCountryCode, None))
@@ -267,6 +284,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(404, Some(body))))
+          mockRegistrationResponse(404, body.toString(), "/cgt-property-disposals/business-partner-record")(())
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(None)
