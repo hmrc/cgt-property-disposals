@@ -25,6 +25,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.OK
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.RegisterWithoutIdConnector
+import uk.gov.hmrc.cgtpropertydisposals.controllers.routes
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.service.RegisterWithoutIdServiceImpl.RegisterWithoutIdResponse
@@ -44,8 +45,10 @@ trait RegisterWithoutIdService {
 }
 
 @Singleton
-class RegisterWithoutIdServiceImpl @Inject()(connector: RegisterWithoutIdConnector, uuidGenerator: UUIDGenerator)(
-  implicit ec: ExecutionContext)
+class RegisterWithoutIdServiceImpl @Inject()(
+  connector: RegisterWithoutIdConnector,
+  uuidGenerator: UUIDGenerator,
+  auditService: AuditService)(implicit ec: ExecutionContext)
     extends RegisterWithoutIdService
     with Logging {
 
@@ -54,6 +57,11 @@ class RegisterWithoutIdServiceImpl @Inject()(connector: RegisterWithoutIdConnect
   ): EitherT[Future, Error, SapNumber] = {
     val referenceId = uuidGenerator.nextId()
     connector.registerWithoutId(registrationDetails, referenceId).subflatMap { response =>
+      auditService.sendRegistrationResponse(
+        response.status,
+        response.body,
+        routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
+
       if (response.status === OK) {
         response
           .parseJSON[RegisterWithoutIdResponse]()
