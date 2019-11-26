@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedUpdateDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
-import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
+import uk.gov.hmrc.cgtpropertydisposals.service.{AuditService, RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -42,6 +42,7 @@ class SubscriptionController @Inject()(
   authenticate: AuthenticateActions,
   subscriptionService: SubscriptionService,
   taxEnrolmentService: TaxEnrolmentService,
+  auditService: AuditService,
   registerWithoutIdService: RegisterWithoutIdService,
   cc: ControllerComponents
 )(
@@ -66,8 +67,10 @@ class SubscriptionController @Inject()(
           logger.warn("Error while trying to subscribe:", e)
           InternalServerError
       }, {
-        case successful: SubscriptionSuccessful => Ok(Json.toJson(successful))
-        case AlreadySubscribed                  => Conflict
+        case successful: SubscriptionSuccessful => {
+          Ok(Json.toJson(successful))
+        }
+        case AlreadySubscribed => Conflict
       }
     )
   }

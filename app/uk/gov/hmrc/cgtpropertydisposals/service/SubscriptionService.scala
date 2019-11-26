@@ -28,6 +28,8 @@ import configs.syntax._
 import play.api.Configuration
 import play.api.http.Status.{ACCEPTED, FORBIDDEN, OK}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.{EmailConnector, SubscriptionConnector}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.routes
+import uk.gov.hmrc.cgtpropertydisposals.controllers.routes._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails}
@@ -64,6 +66,7 @@ trait SubscriptionService {
 
 @Singleton
 class SubscriptionServiceImpl @Inject()(
+  auditService: AuditService,
   subscriptionConnector: SubscriptionConnector,
   emailConnector: EmailConnector,
   config: Configuration
@@ -82,6 +85,8 @@ class SubscriptionServiceImpl @Inject()(
         .exists(_ === "ACTIVE_SUBSCRIPTION")
 
     lazy val subscriptionResult = subscriptionConnector.subscribe(subscriptionDetails).subflatMap { response =>
+      auditService
+        .sendSubscriptionResponse(response.status, response.body, routes.SubscriptionController.subscribe().url)
       if (response.status === OK) {
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
       } else if (isAlreadySubscribedResponse(response)) {
@@ -99,9 +104,14 @@ class SubscriptionServiceImpl @Inject()(
             emailConnector
               .sendSubscriptionConfirmationEmail(subscriptionDetails, CgtReference(cgtReferenceNumber))
               .map { httpResponse =>
+                auditService.sendSubscriptionConfirmationEmailSentEvent(
+                  subscriptionDetails.emailAddress.value,
+                  cgtReferenceNumber,
+                  SubscriptionController.subscribe().url
+                )
+
                 if (httpResponse.status =!= ACCEPTED)
                   logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
-                ()
               }
               .leftFlatMap { e =>
                 logger.warn("Could not send confirmation email", e)
