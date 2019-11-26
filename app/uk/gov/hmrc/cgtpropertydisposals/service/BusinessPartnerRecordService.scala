@@ -55,8 +55,7 @@ trait BusinessPartnerRecordService {
 @Singleton
 class BusinessPartnerRecordServiceImpl @Inject()(
   connector: BusinessPartnerRecordConnector,
-  config: Configuration,
-  auditService: AuditService
+  config: Configuration
 )(
   implicit ec: ExecutionContext
 ) extends BusinessPartnerRecordService {
@@ -74,8 +73,6 @@ class BusinessPartnerRecordServiceImpl @Inject()(
           "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-")
         )
 
-      auditRegistrationResponse(response)
-
       if (response.status === OK) {
         response
           .parseJSON[DesBusinessPartnerRecord]()
@@ -87,15 +84,6 @@ class BusinessPartnerRecordServiceImpl @Inject()(
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
       }
     }
-
-  private def auditRegistrationResponse(
-    httpResponse: HttpResponse
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
-    auditService.sendRegistrationResponse(
-      httpResponse.status,
-      httpResponse.body,
-      routes.BusinessPartnerRecordController.getBusinessPartnerRecord().url
-    )
 
   val correlationIdHeaderKey = "CorrelationId"
 

@@ -25,20 +25,23 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.RegisterWithoutIdConnector
+import uk.gov.hmrc.cgtpropertydisposals.controllers.routes
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, UUIDGenerator, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
   val mockConnector = mock[RegisterWithoutIdConnector]
 
+  val mockAuditService = mock[AuditService]
+
   val mockUUIDGenerator = mock[UUIDGenerator]
 
-  val service = new RegisterWithoutIdServiceImpl(mockConnector, mockUUIDGenerator)
+  val service = new RegisterWithoutIdServiceImpl(mockConnector, mockUUIDGenerator, mockAuditService)
 
   def mockGenerateUUID(uuid: UUID) =
     (mockUUIDGenerator.nextId: () => UUID).expects().returning(uuid)
@@ -49,6 +52,12 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
       .registerWithoutId(_: RegistrationDetails, _: UUID)(_: HeaderCarrier))
       .expects(expectedRegistrationDetails, expectedReferenceId, *)
       .returning(EitherT(Future.successful(response)))
+
+  def mockAuditRegistrationResponse(httpStatus: Int, httpBody: String, path: String) =
+    (mockAuditService
+      .sendRegistrationResponse(_: Int, _: String, _: String)(_: HeaderCarrier, _: ExecutionContext))
+      .expects(httpStatus, *, path, *, *)
+      .returning(())
 
   "RegisterWithoutIdServiceImpl" when {
 
@@ -63,6 +72,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(500)))
+            mockAuditRegistrationResponse(500, "", routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -72,6 +82,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200)))
+            mockAuditRegistrationResponse(200, "", routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -81,6 +92,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(JsNumber(1)))))
+            mockAuditRegistrationResponse(200, "1", routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -99,6 +111,11 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
         inSequence {
           mockGenerateUUID(referenceId)
           mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(jsonBody))))
+          mockAuditRegistrationResponse(
+            200,
+            jsonBody.toString,
+            routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
+
         }
 
         await(service.registerWithoutId(registrationDetails).value) shouldBe Right(SapNumber(sapNumber))

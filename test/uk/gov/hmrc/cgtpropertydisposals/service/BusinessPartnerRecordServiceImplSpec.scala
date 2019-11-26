@@ -29,17 +29,15 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, Uk
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, address, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, sample}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
   val mockConnector: BusinessPartnerRecordConnector = mock[BusinessPartnerRecordConnector]
-
-  val mockAuditService: AuditService = mock[AuditService]
 
   val nonIsoCountryCode = "XZ"
 
@@ -47,13 +45,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
       |des.non-iso-country-codes = ["$nonIsoCountryCode"]
       |""".stripMargin))
 
-  val service = new BusinessPartnerRecordServiceImpl(mockConnector, config, mockAuditService)
-
-  def mockRegistrationResponse(httpStatus: Int, httpBody: String, path: String)(response: Unit) =
-    (mockAuditService
-      .sendRegistrationResponse(_: Int, _: String, _: String)(_: HeaderCarrier, _: ExecutionContext))
-      .expects(httpStatus, *, path, *, *)
-      .returning(response)
+  val service = new BusinessPartnerRecordServiceImpl(mockConnector, config)
 
   def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
     (mockConnector
@@ -98,12 +90,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
         def testError(response: => Either[Error, HttpResponse]) = {
           mockGetBPR(bprRequest)(response)
-          response match {
-            case Left(a) => mockRegistrationResponse(500, "", "/business-partner-record")(())
-            case Right(b) =>
-              mockRegistrationResponse(b.status, b.body, "/business-partner-record")(())
-          }
-
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
@@ -214,7 +200,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-          mockRegistrationResponse(200, body.toString(), "/business-partner-record")(())
 
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
@@ -238,7 +223,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-          mockRegistrationResponse(200, body.toString(), "/business-partner-record")(())
 
           val expectedAddress =
             NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
@@ -264,7 +248,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-          mockRegistrationResponse(200, "", "/business-partner-record")(())
 
           val expectedAddress =
             NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country(nonIsoCountryCode, None))
@@ -284,7 +267,6 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           mockGetBPR(bprRequest)(Right(HttpResponse(404, Some(body))))
-          mockRegistrationResponse(404, body.toString(), "/business-partner-record")(())
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(None)
