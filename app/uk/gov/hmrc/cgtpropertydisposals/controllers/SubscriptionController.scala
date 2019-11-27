@@ -54,7 +54,7 @@ class SubscriptionController @Inject()(
     val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
       for {
         subscriptionDetails <- EitherT.fromEither[Future](extractRequest[SubscriptionDetails](request))
-        subscriptionResponse <- subscribeAndEnrol(subscriptionDetails)
+        subscriptionResponse <- subscribeAndEnrol(subscriptionDetails, routes.SubscriptionController.subscribe().url)
                                  .leftMap[SubscriptionError](BackendError)
       } yield subscriptionResponse
 
@@ -82,7 +82,8 @@ class SubscriptionController @Inject()(
                     .registerWithoutId(registrationDetails)
                     .leftMap(BackendError)
       subscriptionResponse <- subscribeAndEnrol(
-                               SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber)
+                               SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber),
+                               routes.SubscriptionController.registerWithoutIdAndSubscribe().url
                              ).leftMap[SubscriptionError](BackendError)
     } yield subscriptionResponse
 
@@ -163,10 +164,11 @@ class SubscriptionController @Inject()(
       )
 
   private def subscribeAndEnrol(
-    subscriptionDetails: SubscriptionDetails
+    subscriptionDetails: SubscriptionDetails,
+    path: String
   )(implicit request: AuthenticatedRequest[_]): EitherT[Future, Error, SubscriptionResponse] =
     for {
-      subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails)
+      subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails, path)
       _ <- subscriptionResponse match {
             case SubscriptionSuccessful(cgtReferenceNumber) =>
               taxEnrolmentService
