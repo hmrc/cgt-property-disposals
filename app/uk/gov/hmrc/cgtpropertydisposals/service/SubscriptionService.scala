@@ -51,7 +51,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[SubscriptionServiceImpl])
 trait SubscriptionService {
 
-  def subscribe(subscriptionDetails: SubscriptionDetails)(
+  def subscribe(subscriptionDetails: SubscriptionDetails, path: String)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionResponse]
 
@@ -76,7 +76,8 @@ class SubscriptionServiceImpl @Inject()(
     with Logging {
 
   override def subscribe(
-    subscriptionDetails: SubscriptionDetails
+    subscriptionDetails: SubscriptionDetails,
+    path: String
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] = {
     def isAlreadySubscribedResponse(response: HttpResponse): Boolean =
       response.status === FORBIDDEN && response
@@ -86,7 +87,7 @@ class SubscriptionServiceImpl @Inject()(
 
     lazy val subscriptionResult = subscriptionConnector.subscribe(subscriptionDetails).subflatMap { response =>
       auditService
-        .sendSubscriptionResponse(response.status, response.body, routes.SubscriptionController.subscribe().url)
+        .sendSubscriptionResponse(response.status, response.body, path)
       if (response.status === OK) {
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
       } else if (isAlreadySubscribedResponse(response)) {
@@ -107,7 +108,7 @@ class SubscriptionServiceImpl @Inject()(
                 auditService.sendSubscriptionConfirmationEmailSentEvent(
                   subscriptionDetails.emailAddress.value,
                   cgtReferenceNumber,
-                  SubscriptionController.subscribe().url
+                  path
                 )
 
                 if (httpResponse.status =!= ACCEPTED)

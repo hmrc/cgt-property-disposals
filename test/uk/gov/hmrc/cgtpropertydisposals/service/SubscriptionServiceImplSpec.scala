@@ -48,6 +48,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   val nonIsoCountryCode = "XZ"
 
+  val path = "path"
+
   val config = Configuration(
     ConfigFactory.parseString(
       s"""
@@ -548,20 +550,20 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       "return an error" when {
         "the http call comes back with a status other than 200" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(500)))
-          mockSubscriptionResponse(500, "", "/cgt-property-disposals/subscription")(())
-          await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
+          mockSubscriptionResponse(500, "", path)(())
+          await(service.subscribe(subscriptionDetails, path).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(200)))
-          mockSubscriptionResponse(200, "", "/cgt-property-disposals/subscription")(())
-          await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
+          mockSubscriptionResponse(200, "", path)(())
+          await(service.subscribe(subscriptionDetails, path).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
           mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(JsNumber(1)))))
-          mockSubscriptionResponse(200, "", "/cgt-property-disposals/subscription")(())
-          await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
+          mockSubscriptionResponse(200, "", path)(())
+          await(service.subscribe(subscriptionDetails, path).value).isLeft shouldBe true
         }
       }
 
@@ -578,48 +580,35 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the subscription call comes back with a 200 status and the JSON body can be parsed" in {
           inSequence {
             mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
-            mockSubscriptionResponse(
-              200,
-              subscriptionResponseJsonBody.toString(),
-              "/cgt-property-disposals/subscription")(())
+            mockSubscriptionResponse(200, subscriptionResponseJsonBody.toString(), path)(())
             mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(ACCEPTED)))
-            mockSubscriptionEmailEvent(
-              subscriptionDetails.emailAddress.value,
-              cgtReference.value,
-              "/cgt-property-disposals/subscription")(())
+            mockSubscriptionEmailEvent(subscriptionDetails.emailAddress.value, cgtReference.value, path)(())
           }
 
-          await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionSuccessful(cgtReference.value))
+          await(service.subscribe(subscriptionDetails, path).value) shouldBe Right(
+            SubscriptionSuccessful(cgtReference.value))
         }
 
         "the call to send an email fails" in {
           inSequence {
             mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
-            mockSubscriptionResponse(
-              200,
-              subscriptionResponseJsonBody.toString(),
-              "/cgt-property-disposals/subscription")(())
+            mockSubscriptionResponse(200, subscriptionResponseJsonBody.toString(), path)(())
             mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Left(Error("")))
           }
 
-          await(service.subscribe(subscriptionDetails).value) shouldBe Right(SubscriptionSuccessful(cgtReference.value))
+          await(service.subscribe(subscriptionDetails, path).value) shouldBe Right(
+            SubscriptionSuccessful(cgtReference.value))
         }
 
         "the call to send an email comes back with a status other than 202" in {
           List(OK, BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE).foreach { status =>
             inSequence {
               mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
-              mockSubscriptionResponse(
-                200,
-                subscriptionResponseJsonBody.toString(),
-                "/cgt-property-disposals/subscription")(())
+              mockSubscriptionResponse(200, subscriptionResponseJsonBody.toString(), path)(())
               mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(status)))
-              mockSubscriptionEmailEvent(
-                subscriptionDetails.emailAddress.value,
-                cgtReference.value,
-                "/cgt-property-disposals/subscription")(())
+              mockSubscriptionEmailEvent(subscriptionDetails.emailAddress.value, cgtReference.value, path)(())
             }
-            await(service.subscribe(subscriptionDetails).value) shouldBe Right(
+            await(service.subscribe(subscriptionDetails, path).value) shouldBe Right(
               SubscriptionSuccessful(cgtReference.value)
             )
           }
@@ -638,8 +627,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         mockSubscribe(subscriptionDetails)(Right(HttpResponse(403, Some(subscriptionResponseJsonBody))))
 
-        mockSubscriptionResponse(403, "", "/cgt-property-disposals/subscription")(())
-        await(service.subscribe(subscriptionDetails).value) shouldBe Right(AlreadySubscribed)
+        mockSubscriptionResponse(403, "", path)(())
+        await(service.subscribe(subscriptionDetails, path).value) shouldBe Right(AlreadySubscribed)
 
       }
 

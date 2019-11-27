@@ -36,7 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscribedUpdateDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.subscription._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, RegistrationDetails, TelephoneNumber, sample, subscription}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.{RegisterWithoutIdService, SubscriptionService, TaxEnrolmentService}
@@ -65,10 +65,12 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
   lazy val controller = instanceOf[SubscriptionController]
 
-  def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(response: Either[Error, SubscriptionResponse]) =
+  def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails, path: String)(
+    response: Either[Error, SubscriptionResponse]
+  ) =
     (mockSubscriptionService
-      .subscribe(_: SubscriptionDetails)(_: HeaderCarrier))
-      .expects(expectedSubscriptionDetails, *)
+      .subscribe(_: SubscriptionDetails, _: String)(_: HeaderCarrier))
+      .expects(expectedSubscriptionDetails, path, *)
       .returning(EitherT(Future.successful(response)))
 
   def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, SubscribedDetails]): Unit =
@@ -535,7 +537,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       "return an internal server error" when {
 
         "there is a problem while trying to subscribe" in {
-          mockSubscribe(subscriptionDetails)(Left(Error("oh no!")))
+          mockSubscribe(subscriptionDetails, routes.SubscriptionController.subscribe().url)(Left(Error("oh no!")))
 
           val result = performAction(Some(subscriptionDetailsJson))
           status(result) shouldBe INTERNAL_SERVER_ERROR
@@ -543,7 +545,9 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
         "subscription is not successful if the tax enrolment service returns an error" in {
           inSequence {
-            mockSubscribe(subscriptionDetails)(Right(subscriptionSuccessfulResponse))
+            mockSubscribe(subscriptionDetails, routes.SubscriptionController.subscribe().url)(
+              Right(subscriptionSuccessfulResponse)
+            )
             mockAllocateEnrolment(taxEnrolmentRequest)(
               Left(Error("Failed to allocate tax enrolment"))
             )
@@ -558,7 +562,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       "return a conflict" when {
 
         "the user has already subscribed to cgt" in {
-          mockSubscribe(subscriptionDetails)(Right(AlreadySubscribed))
+          mockSubscribe(subscriptionDetails, routes.SubscriptionController.subscribe().url)(Right(AlreadySubscribed))
 
           val result = performAction(Some(subscriptionDetailsJson))
           status(result) shouldBe CONFLICT
@@ -570,7 +574,9 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
         "subscription is successful" in {
           inSequence {
-            mockSubscribe(subscriptionDetails)(Right(subscriptionSuccessfulResponse))
+            mockSubscribe(subscriptionDetails, routes.SubscriptionController.subscribe().url)(
+              Right(subscriptionSuccessfulResponse)
+            )
             mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
           }
 
@@ -626,7 +632,10 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         "there is a problem while trying to subscribe" in {
           inSequence {
             mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
-            mockSubscribe(SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))(
+            mockSubscribe(
+              SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber),
+              routes.SubscriptionController.registerWithoutIdAndSubscribe().url
+            )(
               Left(Error("oh no!"))
             )
           }
@@ -642,7 +651,10 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         "subscription is successful" in {
           inSequence {
             mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
-            mockSubscribe(SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))(
+            mockSubscribe(
+              SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber),
+              routes.SubscriptionController.registerWithoutIdAndSubscribe().url
+            )(
               Right(subscriptionSuccessfulResponse)
             )
             mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
@@ -657,7 +669,10 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       "subscription is not successful if the tax enrolment service returns an error" in {
         inSequence {
           mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
-          mockSubscribe(SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber))(
+          mockSubscribe(
+            SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber),
+            routes.SubscriptionController.registerWithoutIdAndSubscribe().url
+          )(
             Right(subscriptionSuccessfulResponse)
           )
           mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("")))
