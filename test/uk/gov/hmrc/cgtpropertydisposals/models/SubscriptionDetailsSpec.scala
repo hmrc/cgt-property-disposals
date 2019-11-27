@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 
 class SubscriptionDetailsSpec extends WordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
