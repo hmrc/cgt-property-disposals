@@ -27,7 +27,8 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.RegisterWithoutIdConnector
 import uk.gov.hmrc.cgtpropertydisposals.controllers.routes
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, UUIDGenerator, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, RegistrationDetails, UUIDGenerator}
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global

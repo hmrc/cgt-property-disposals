@@ -32,9 +32,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription._
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, sample, subscription}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, subscription}
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import org.scalacheck.ScalacheckShapeless._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 

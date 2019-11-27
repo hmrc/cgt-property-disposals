@@ -17,9 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.service
 
 import cats.data.EitherT
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
-import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import play.api.libs.json.{JsNumber, Json}
@@ -29,7 +28,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, Uk
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global

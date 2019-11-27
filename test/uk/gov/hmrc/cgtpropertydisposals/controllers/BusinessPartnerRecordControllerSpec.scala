@@ -20,7 +20,6 @@ import java.time.LocalDateTime
 
 import akka.stream.Materializer
 import cats.data.EitherT
-import org.scalacheck.ScalacheckShapeless._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, JsValue, Json}
@@ -30,7 +29,8 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordService
 import uk.gov.hmrc.http.HeaderCarrier
 

@@ -17,15 +17,14 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import com.typesafe.config.ConfigFactory
-import org.scalacheck.ScalacheckShapeless._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.sample
 import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
