@@ -124,6 +124,17 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
           await(connector.getBusinessPartnerRecord(individualBprRequest(Right(nino), false)).value).isLeft shouldBe true
         }
+
+        "strip out spaces in NINOs" in {
+          mockPost(
+            s"http://host:123/registration/individual/nino/AA123456C",
+            expectedHeaders,
+            expectedIndividualBody(false)
+          )(None)
+
+          await(connector.getBusinessPartnerRecord(individualBprRequest(Right(NINO("  AA 123 456C")), false)).value).isLeft shouldBe true
+
+        }
       }
 
       "handling individuals with SA UTRs" must {
@@ -160,81 +171,22 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
           await(connector.getBusinessPartnerRecord(individualBprRequest(Left(sautr), false)).value).isLeft shouldBe true
         }
-      }
 
-      "handling organisations with SAUTRs" must {
-        val sautr                                    = SAUTR("sautr")
-        def bprRequest(nameMatch: Option[TrustName]) = TrustBusinessPartnerRecordRequest(Right(sautr), nameMatch)
-
-        def expectedBody(nameMatch: Option[TrustName]): JsValue = {
-          val organisationJsonString =
-            nameMatch.fold("") { trustName =>
-              s""",
-                |  "organisation" : {
-                |     "organisationName" : "${trustName.value}",
-                |     "organisationType" : "Not Specified"
-                |    }
-                |""".stripMargin
-            }
-
-          Json.parse(s"""
-                        | {
-                        |   "regime" : "CGT",
-                        |   "requiresNameMatch" : ${nameMatch.isDefined},
-                        |   "isAnAgent" : false$organisationJsonString
-                        | }
-                        |""".stripMargin)
-        }
-
-        "do a post http call and return the result" in {
-          List(
-            HttpResponse(200),
-            HttpResponse(200, Some(JsString("hi"))),
-            HttpResponse(500)
-          ).foreach { httpResponse =>
-            withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(
-                s"http://host:123/registration/organisation/utr/${sautr.value}",
-                expectedHeaders,
-                expectedBody(None)
-              )(
-                Some(httpResponse)
-              )
-
-              await(connector.getBusinessPartnerRecord(bprRequest(None)).value) shouldBe Right(httpResponse)
-            }
-          }
-        }
-
-        "pass in the trust name for name matching if one is passed in" in {
-          val trustName    = TrustName("trust")
-          val httpResponse = HttpResponse(200)
-
+        "strip out spaces in SA UTR's" in {
           mockPost(
-            s"http://host:123/registration/organisation/utr/${sautr.value}",
+            s"http://host:123/registration/individual/utr/12345",
             expectedHeaders,
-            expectedBody(Some(trustName))
-          )(
-            Some(httpResponse)
-          )
-
-          await(connector.getBusinessPartnerRecord(bprRequest(Some(trustName))).value) shouldBe Right(httpResponse)
-        }
-
-        "return an error when the future fails" in {
-          mockPost(
-            s"http://host:123/registration/organisation/utr/${sautr.value}",
-            expectedHeaders,
-            expectedBody(None)
+            expectedIndividualBody(false)
           )(None)
 
-          await(connector.getBusinessPartnerRecord(bprRequest(None)).value).isLeft shouldBe true
+          await(connector.getBusinessPartnerRecord(individualBprRequest(Left(SAUTR(" 12 34 5 ")), false)).value).isLeft shouldBe true
+
         }
       }
 
       "handling organisations" must {
-        val trn   = TRN("trn")
-        val sautr = SAUTR("sautr")
+        val trn   = TRN("t r n ")
+        val sautr = SAUTR(" sa utr ")
         def bprRequest(id: Either[TRN, SAUTR], nameMatch: Option[TrustName]) =
           TrustBusinessPartnerRecordRequest(id, nameMatch)
 
@@ -259,8 +211,8 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         }
 
         val idsWithExpectedUrlsList = List[(Either[TRN, SAUTR], String)](
-          Left(trn)    -> s"http://host:123/registration/organisation/trn/${trn.value}",
-          Right(sautr) -> s"http://host:123/registration/organisation/utr/${sautr.value}"
+          Left(trn)    -> s"http://host:123/registration/organisation/trn/trn",
+          Right(sautr) -> s"http://host:123/registration/organisation/utr/sautr"
         )
 
         "do a post http call and return the result" in {

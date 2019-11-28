@@ -22,6 +22,7 @@ import play.api.libs.json.{JsValue, Json, OFormat, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.bpr.BusinessPartnerRecordRequest
+import uk.gov.hmrc.cgtpropertydisposals.util.StringOps._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -51,7 +52,11 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
 
   def url(bprRequest: BusinessPartnerRecordRequest): String = {
     val entityType = bprRequest.fold(_ => "organisation", _ => "individual")
-    val suffix     = bprRequest.foldOnId(t => s"trn/${t.value}", s => s"utr/${s.value}", n => s"nino/${n.value}")
+    val suffix = bprRequest.foldOnId(
+      t => s"trn/${t.value.removeAllWhitespaces()}",
+      s => s"utr/${s.value.removeAllWhitespaces()}",
+      n => s"nino/${n.value.removeAllWhitespaces()}"
+    )
     s"$baseUrl/registration/$entityType/$suffix"
   }
 
