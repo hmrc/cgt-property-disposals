@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories.model
+package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
+import play.api.libs.json.{Format, Json}
 
-final case class UpdateVerifiersRequest(ggCredId: String, subscribedUpdateDetails: SubscribedUpdateDetails)
+sealed trait SubscriptionResponse extends Product with Serializable
 
-object UpdateVerifiersRequest {
-  implicit val format: OFormat[UpdateVerifiersRequest] = Json.format[UpdateVerifiersRequest]
+object SubscriptionResponse {
+
+  final case class SubscriptionSuccessful(cgtReferenceNumber: String) extends SubscriptionResponse
+
+  final case object AlreadySubscribed extends SubscriptionResponse
+
+  implicit val subscriptionSuccessfulFormat: Format[SubscriptionSuccessful] = Json.format[SubscriptionSuccessful]
+
 }

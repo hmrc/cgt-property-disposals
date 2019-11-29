@@ -14,13 +14,22 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories.model
+package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription
+
+import java.time.LocalDateTime
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 
-final case class UpdateVerifiersRequest(ggCredId: String, subscribedUpdateDetails: SubscribedUpdateDetails)
+final case class SubscriptionUpdateResponse(
+  regime: String,
+  processingDate: LocalDateTime,
+  formBundleNumber: String,
+  cgtReferenceNumber: String,
+  countryCode: CountryCode,
+  postalCode: Option[String]
+)
 
-object UpdateVerifiersRequest {
-  implicit val format: OFormat[UpdateVerifiersRequest] = Json.format[UpdateVerifiersRequest]
+object SubscriptionUpdateResponse {
+  implicit val format: OFormat[SubscriptionUpdateResponse] = Json.format[SubscriptionUpdateResponse]
 }

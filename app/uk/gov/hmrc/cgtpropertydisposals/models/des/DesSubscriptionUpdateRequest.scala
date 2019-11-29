@@ -17,10 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
 import play.api.libs.json.{Json, Writes}
+import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest.DesSubscriptionUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.TypeOfPersonDetails._
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscribedDetails
 
 final case class DesSubscriptionUpdateRequest(
   regime: String,

@@ -14,13 +14,22 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories.model
+package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
+import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 
-final case class UpdateVerifiersRequest(ggCredId: String, subscribedUpdateDetails: SubscribedUpdateDetails)
+final case class BusinessPartnerRecord(
+  emailAddress: Option[String],
+  address: Address,
+  sapNumber: String,
+  name: Either[TrustName, IndividualName]
+)
 
-object UpdateVerifiersRequest {
-  implicit val format: OFormat[UpdateVerifiersRequest] = Json.format[UpdateVerifiersRequest]
+object BusinessPartnerRecord {
+
+  implicit val format: Format[BusinessPartnerRecord] = Json.format
+
 }

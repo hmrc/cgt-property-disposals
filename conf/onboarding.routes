@@ -1,0 +1,6 @@
+POST     /business-partner-record                   uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.BusinessPartnerRecordController.getBusinessPartnerRecord()
+POST     /subscription                              uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.subscribe()
+PUT      /subscription                              uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.updateSubscription()
+GET      /subscription/:cgtReference                uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.getSubscription(cgtReference : uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference)
+POST     /register-without-id-and-subscribe         uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.registerWithoutIdAndSubscribe()
+GET      /check-subscription-status                 uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.checkSubscriptionStatus()
