@@ -25,9 +25,9 @@ import play.api.http.Status.NO_CONTENT
 import play.api.libs.json.JsString
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, VerifiersRepository}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging

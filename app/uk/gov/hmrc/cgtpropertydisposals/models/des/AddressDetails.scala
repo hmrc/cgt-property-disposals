@@ -24,7 +24,7 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
-import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.Validation
 
 final case class AddressDetails(
   addressLine1: String,

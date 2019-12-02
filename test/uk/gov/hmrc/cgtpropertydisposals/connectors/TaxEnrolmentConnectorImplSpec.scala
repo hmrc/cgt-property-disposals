@@ -22,11 +22,11 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
+import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}

@@ -20,8 +20,8 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import cats.instances.string._
 import cats.syntax.eq._
-import uk.gov.hmrc.cgtpropertydisposals.service.BusinessPartnerRecordServiceImpl.Validation
-import uk.gov.hmrc.cgtpropertydisposals.service.SubscriptionService.TypeOfPersonDetails
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.Validation
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.SubscriptionService.TypeOfPersonDetails
 
 object Name {
 

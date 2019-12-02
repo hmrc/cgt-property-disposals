@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories.model
+package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 
-final case class UpdateVerifiersRequest(ggCredId: String, subscribedUpdateDetails: SubscribedUpdateDetails)
+final case class SubscriptionConfirmationEmailSentEvent(
+  emailAddress: String,
+  cgtReferenceId: String
+)
 
-object UpdateVerifiersRequest {
-  implicit val format: OFormat[UpdateVerifiersRequest] = Json.format[UpdateVerifiersRequest]
+object SubscriptionConfirmationEmailSentEvent {
+  implicit val format: OFormat[SubscriptionConfirmationEmailSentEvent] =
+    Json.format[SubscriptionConfirmationEmailSentEvent]
 }

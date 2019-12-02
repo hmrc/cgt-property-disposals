@@ -18,14 +18,15 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
-import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.ScalacheckShapeless._
-import uk.gov.hmrc.cgtpropertydisposals.models.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
+import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.SubscriptionResponse.SubscriptionSuccessful
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.SubscriptionSuccessful
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 import scala.reflect.{ClassTag, classTag}

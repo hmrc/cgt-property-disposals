@@ -20,12 +20,12 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
+import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName}
-import uk.gov.hmrc.cgtpropertydisposals.models.subscription.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, VerifiersRepository}
