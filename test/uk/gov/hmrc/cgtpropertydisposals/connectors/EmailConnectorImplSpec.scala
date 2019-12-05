@@ -76,8 +76,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
            |  "templateId": "$accountCreatedTemplateId",
            |  "parameters": {
            |    "name": "${subscriptionDetails.contactName.value}",
-           |    "cgtReference": "${cgtReference.value}",
-           |    "signInUrl": "$accountCreatedSignInUrl"
+           |    "cgtReference": "${cgtReference.value}"
            |  },
            |  "force": false
            |}

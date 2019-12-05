@@ -47,8 +47,6 @@ class EmailConnectorImpl @Inject()(http: HttpClient, servicesConfig: ServicesCon
 
   val accountCreatedTemplateId: String = servicesConfig.getString("email.account-created.template-id")
 
-  val accountCreatedSignInUrl: String = servicesConfig.getString("email.account-created.sign-in-url")
-
   override def sendSubscriptionConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
@@ -62,8 +60,7 @@ class EmailConnectorImpl @Inject()(http: HttpClient, servicesConfig: ServicesCon
               accountCreatedTemplateId,
               Map(
                 "name"         -> subscriptionDetails.contactName.value,
-                "cgtReference" -> cgtReference.value,
-                "signInUrl"    -> accountCreatedSignInUrl
+                "cgtReference" -> cgtReference.value
               ),
               force = false
             )
