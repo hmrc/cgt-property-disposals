@@ -78,12 +78,11 @@ class AuditServiceImpl @Inject()(
       Json.parse(body)
     } match {
       case Failure(exception) => {
-        logger.warn(s"{Could not send subscription response audit message: $exception}")
         sendEvent(
           "subscriptionResponse",
           SubscriptionResponseEvent(
             httpStatus,
-            Json.parse("""{"body" : "failed to get subscription response"}""")
+            Json.parse(s"""{"body" : could not parse body as JSON: $body""")
           ),
           hc.toAuditTags("subscription-response", path)
         )
@@ -109,7 +108,6 @@ class AuditServiceImpl @Inject()(
       Json.parse(body)
     } match {
       case Failure(exception) => {
-        logger.warn(s"{Could not send registration response audit message: $exception}")
         sendEvent(
           "registrationResponse",
           RegistrationResponseEvent(
