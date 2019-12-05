@@ -20,12 +20,14 @@ import com.google.inject.ImplementedBy
 import javax.inject.Inject
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.{RegistrationResponseEvent, SubscriptionConfirmationEmailSentEvent, SubscriptionResponseEvent}
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Success, Try}
 
 @ImplementedBy(classOf[AuditServiceImpl])
 trait AuditService {
@@ -51,7 +53,8 @@ trait AuditService {
 
 class AuditServiceImpl @Inject()(
   auditConnector: AuditConnector
-) extends AuditService {
+) extends AuditService
+    with Logging {
 
   private def sendEvent[A](auditType: String, detail: A, tags: Map[String, String])(
     implicit ec: ExecutionContext,
@@ -70,38 +73,62 @@ class AuditServiceImpl @Inject()(
     httpStatus: Int,
     body: String,
     path: String
-  )(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Unit = {
-
-    val detail = SubscriptionResponseEvent(
-      httpStatus,
-      body
-    )
-
-    sendEvent(
-      "subscriptionResponse",
-      detail,
-      hc.toAuditTags("subscription-response", path)
-    )
-
-  }
+  )(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Unit =
+    Try {
+      Json.parse(body)
+    } match {
+      case Failure(exception) => {
+        sendEvent(
+          "subscriptionResponse",
+          SubscriptionResponseEvent(
+            httpStatus,
+            Json.parse(s"""{"body" : could not parse body as JSON: $body""")
+          ),
+          hc.toAuditTags("subscription-response", path)
+        )
+      }
+      case Success(subscriptionResponse) => {
+        sendEvent(
+          "subscriptionResponse",
+          SubscriptionResponseEvent(
+            httpStatus,
+            subscriptionResponse
+          ),
+          hc.toAuditTags("subscription-response", path)
+        )
+      }
+    }
 
   override def sendRegistrationResponse(
     httpStatus: Int,
     body: String,
     path: String
-  )(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Unit = {
+  )(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Unit =
+    Try {
+      Json.parse(body)
+    } match {
+      case Failure(exception) => {
+        sendEvent(
+          "registrationResponse",
+          RegistrationResponseEvent(
+            httpStatus,
+            Json.parse(s"""{"body" : could not parse body as JSON: $body""")
+          ),
+          hc.toAuditTags("registration-response", path)
+        )
 
-    val detail = RegistrationResponseEvent(
-      httpStatus,
-      body
-    )
-
-    sendEvent(
-      "registrationResponse",
-      detail,
-      hc.toAuditTags("registration-response", path)
-    )
-  }
+      }
+      case Success(subscriptionResponse) => {
+        sendEvent(
+          "registrationResponse",
+          RegistrationResponseEvent(
+            httpStatus,
+            subscriptionResponse
+          ),
+          hc.toAuditTags("registration-response", path)
+        )
+      }
+    }
 
   override def sendSubscriptionConfirmationEmailSentEvent(
     emailAddress: String,

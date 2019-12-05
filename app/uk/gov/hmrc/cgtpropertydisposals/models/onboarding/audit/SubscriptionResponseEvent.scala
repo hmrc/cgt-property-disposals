@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{JsValue, Json, OFormat}
 
 final case class SubscriptionResponseEvent(
   responseHttpStatusCode: Int,
-  responseHttpBody: String
+  responseHttpBody: JsValue
 )
 
 object SubscriptionResponseEvent {
