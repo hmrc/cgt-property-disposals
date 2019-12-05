@@ -86,8 +86,7 @@ class SubscriptionServiceImpl @Inject()(
         .exists(_ === "ACTIVE_SUBSCRIPTION")
 
     lazy val subscriptionResult = subscriptionConnector.subscribe(subscriptionDetails).subflatMap { response =>
-      auditService
-        .sendSubscriptionResponse(response.status, response.body, path)
+      auditService.sendSubscriptionResponse(response.status, response.body, path)
       if (response.status === OK) {
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
       } else if (isAlreadySubscribedResponse(response)) {
