@@ -112,7 +112,7 @@ class AuditServiceImpl @Inject()(
           "registrationResponse",
           RegistrationResponseEvent(
             httpStatus,
-            Json.parse("""{"body" : "failed to get registration response"}""")
+            Json.parse(s"""{"body" : could not parse body as JSON: $body""")
           ),
           hc.toAuditTags("registration-response", path)
         )
