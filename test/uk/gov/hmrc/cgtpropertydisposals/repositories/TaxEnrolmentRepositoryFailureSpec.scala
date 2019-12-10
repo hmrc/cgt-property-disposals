@@ -39,7 +39,7 @@ class TaxEnrolmentRepositoryFailureSpec extends WordSpec with Matchers with Mong
     reactiveMongoComponent.mongoConnector.helper.driver.close()
     "inserting into a broken repository" should {
       "fail the insert" in {
-        await(repository.insert(taxEnrolmentRequest).value).isLeft shouldBe true
+        await(repository.save(taxEnrolmentRequest).value).isLeft shouldBe true
       }
     }
 
@@ -57,7 +57,7 @@ class TaxEnrolmentRepositoryFailureSpec extends WordSpec with Matchers with Mong
     "updating on a broken repository" should {
       val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
       "fail to update" in {
-        await(repository.insert(taxEnrolmentRequest).value)
+        await(repository.save(taxEnrolmentRequest).value)
         await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value).isLeft shouldBe true
       }
     }

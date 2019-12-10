@@ -94,7 +94,7 @@ class TaxEnrolmentServiceImpl @Inject()(
                        s"Failed to allocate enrolments due to error: $error; will store enrolment details"
                      )
                    taxEnrolmentRepository
-                     .insert(taxEnrolmentRequest)
+                     .save(taxEnrolmentRequest)
                      .leftMap(error => Error(s"Could not store enrolment details: $error"))
                }
     } yield result

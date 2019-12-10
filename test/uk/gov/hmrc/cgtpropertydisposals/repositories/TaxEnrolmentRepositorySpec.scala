@@ -38,13 +38,13 @@ class TaxEnrolmentRepositorySpec extends WordSpec with Matchers with MongoSuppor
   "The Tax Enrolment Retry repository" when {
     "inserting" should {
       "create a new tax enrolment record" in {
-        await(repository.insert(taxEnrolmentRequest).value) shouldBe Right(())
+        await(repository.save(taxEnrolmentRequest).value) shouldBe Right(())
       }
     }
 
     "getting" should {
       "retrieve an existing record" in {
-        await(repository.insert(taxEnrolmentRequest).value)       shouldBe Right(())
+        await(repository.save(taxEnrolmentRequest).value)         shouldBe Right(())
         await(repository.get(taxEnrolmentRequest.ggCredId).value) shouldBe (Right(Some(taxEnrolmentRequest)))
       }
       "return none if the record does not exist" in {
@@ -54,7 +54,7 @@ class TaxEnrolmentRepositorySpec extends WordSpec with Matchers with MongoSuppor
 
     "deleting" should {
       "return a count of one when deleting a unique tax enrolment record" in {
-        await(repository.insert(taxEnrolmentRequest).value)
+        await(repository.save(taxEnrolmentRequest).value)
         await(repository.delete(taxEnrolmentRequest.ggCredId).value) shouldBe (Right(1))
       }
       "return a count of zero when the tax enrolment record does not exist" in {
@@ -65,7 +65,7 @@ class TaxEnrolmentRepositorySpec extends WordSpec with Matchers with MongoSuppor
     "updating" should {
       val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
       "return a the updated tax enrolment record" in {
-        await(repository.insert(taxEnrolmentRequest).value)
+        await(repository.save(taxEnrolmentRequest).value)
         await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe (Right(
           Some(updatedTaxEnrolmentRequest)))
       }

@@ -23,7 +23,6 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -34,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultTaxEnrolmentRepository])
 trait TaxEnrolmentRepository {
   def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
-  def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit]
+  def save(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit]
   def delete(userId: String): EitherT[Future, Error, Int]
   def update(
     ggCredId: String,
@@ -60,10 +59,9 @@ class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
     )
   )
 
-  override def insert(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit] =
+  override def save(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
-      collection.insert
-        .one[TaxEnrolmentRequest](cgtEnrolmentRequest)
+      insert(cgtEnrolmentRequest)
         .map[Either[Error, Unit]] { result: WriteResult =>
           if (result.ok)
             Right(())
@@ -81,11 +79,9 @@ class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
 
   override def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
-      collection
-        .find(Json.obj("ggCredId" -> ggCredId), None)
-        .one[TaxEnrolmentRequest]
+      find("ggCredId" -> ggCredId)
         .map { maybeEnrolmentRequest =>
-          Right(maybeEnrolmentRequest)
+          Right(maybeEnrolmentRequest.headOption)
         }
         .recover {
           case exception => Left(Error(exception.getMessage))
@@ -94,8 +90,7 @@ class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
 
   override def delete(ggCredId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
-      collection.delete
-        .one(Json.obj("ggCredId" -> ggCredId))
+      remove("ggCredId" -> ggCredId)
         .map { result: WriteResult =>
           Right(result.n)
         }
@@ -109,13 +104,11 @@ class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
     cgtEnrolmentRequest: TaxEnrolmentRequest
   ): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
-      collection
-        .findAndUpdate(
-          Json.obj("ggCredId" -> ggCredId),
-          Json.obj("$set"     -> Json.toJson(cgtEnrolmentRequest)),
-          fetchNewObject = true
-        )
-        .map(dbResult => Right(dbResult.result[TaxEnrolmentRequest]))
+      findAndUpdate(
+        Json.obj("ggCredId" -> ggCredId),
+        Json.obj("$set"     -> Json.toJson(cgtEnrolmentRequest)),
+        fetchNewObject = true
+      ).map(dbResult => Right(dbResult.result[TaxEnrolmentRequest]))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }
