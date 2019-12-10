@@ -61,7 +61,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
     response: Either[Error, Unit]
   ) =
     (mockEnrolmentRepository
-      .insert(_: TaxEnrolmentRequest))
+      .save(_: TaxEnrolmentRequest))
       .expects(taxEnrolmentRequest)
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
