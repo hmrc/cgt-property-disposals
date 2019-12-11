@@ -29,6 +29,7 @@ import play.api.Configuration
 import play.api.http.Status.{ACCEPTED, FORBIDDEN, OK}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnector
+import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
@@ -69,13 +70,27 @@ class SubscriptionServiceImpl @Inject()(
   auditService: AuditService,
   subscriptionConnector: SubscriptionConnector,
   emailConnector: EmailConnector,
-  config: Configuration
+  config: Configuration,
+  metrics: Metrics
 )(
   implicit ec: ExecutionContext
 ) extends SubscriptionService
     with Logging {
 
   override def subscribe(
+    subscriptionDetails: SubscriptionDetails,
+    path: String
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] =
+    for {
+      subscriptionResponse <- sendSubscriptionRequest(subscriptionDetails, path)
+      _ <- subscriptionResponse match {
+            case successful: SubscriptionSuccessful =>
+              sendSubscriptionConfirmationEmail(subscriptionDetails, successful, path)
+            case _ => EitherT.pure[Future, Error](())
+          }
+    } yield subscriptionResponse
+
+  private def sendSubscriptionRequest(
     subscriptionDetails: SubscriptionDetails,
     path: String
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] = {
@@ -85,85 +100,106 @@ class SubscriptionServiceImpl @Inject()(
         .map(_.code)
         .exists(_ === "ACTIVE_SUBSCRIPTION")
 
-    lazy val subscriptionResult = subscriptionConnector.subscribe(subscriptionDetails).subflatMap { response =>
+    val timer = metrics.subscriptionCreateTimer.time()
+
+    subscriptionConnector.subscribe(subscriptionDetails).subflatMap { response =>
+      timer.close()
       auditService.sendSubscriptionResponse(response.status, response.body, path)
       if (response.status === OK) {
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
       } else if (isAlreadySubscribedResponse(response)) {
         Right(AlreadySubscribed)
       } else {
+        metrics.subscriptionCreateErrorCounter.inc()
         Left(Error(s"call to subscribe came back with status ${response.status}"))
       }
     }
+  }
 
-    for {
-      subscriptionResponse <- subscriptionResult
-      _ <- {
-        subscriptionResponse match {
-          case SubscriptionSuccessful(cgtReferenceNumber) =>
-            emailConnector
-              .sendSubscriptionConfirmationEmail(subscriptionDetails, CgtReference(cgtReferenceNumber))
-              .map { httpResponse =>
-                auditService.sendSubscriptionConfirmationEmailSentEvent(
-                  subscriptionDetails.emailAddress.value,
-                  cgtReferenceNumber,
-                  path
-                )
+  private def sendSubscriptionConfirmationEmail(
+    subscriptionDetails: SubscriptionDetails,
+    subscriptionSuccessful: SubscriptionSuccessful,
+    path: String
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Unit] = {
+    val timer = metrics.subscriptionConfirmationEmailTimer.time()
+    emailConnector
+      .sendSubscriptionConfirmationEmail(subscriptionDetails, CgtReference(subscriptionSuccessful.cgtReferenceNumber))
+      .map { httpResponse =>
+        timer.close()
+        auditService.sendSubscriptionConfirmationEmailSentEvent(
+          subscriptionDetails.emailAddress.value,
+          subscriptionSuccessful.cgtReferenceNumber,
+          path
+        )
 
-                if (httpResponse.status =!= ACCEPTED)
-                  logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
-              }
-              .leftFlatMap { e =>
-                logger.warn("Could not send confirmation email", e)
-                EitherT.pure[Future, Error](())
-              }
-
-          case _ => EitherT.pure[Future, Error](())
+        if (httpResponse.status =!= ACCEPTED) {
+          metrics.subscriptionCreateErrorCounter.inc()
+          logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
         }
       }
-    } yield subscriptionResponse
+      .leftFlatMap { e =>
+        metrics.subscriptionCreateErrorCounter.inc()
+        logger.warn("Could not send confirmation email", e)
+        EitherT.pure[Future, Error](())
+      }
   }
 
   override def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, SubscribedDetails] =
+  ): EitherT[Future, Error, SubscribedDetails] = {
+    val timer = metrics.subscriptionGetTimer.time()
     subscriptionConnector.getSubscription(cgtReference).subflatMap { response =>
+      timer.close()
       lazy val identifiers =
         List(
           "id"                -> cgtReference.value,
           "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
         )
 
-      if (response.status === OK)
+      if (response.status === OK) {
         response
           .parseJSON[DesSubscriptionDisplayDetails]()
           .flatMap(toSubscriptionDisplayRecord(_, cgtReference))
-          .leftMap(Error(_, identifiers: _*))
-      else {
+          .leftMap { e =>
+            metrics.subscriptionGetErrorCounter.inc()
+            Error(e, identifiers: _*)
+          }
+      } else {
+        metrics.subscriptionGetErrorCounter.inc()
         Left(Error(s"call to subscription display api came back with status ${response.status}"))
       }
     }
+  }
 
   override def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, SubscriptionUpdateResponse] =
+  ): EitherT[Future, Error, SubscriptionUpdateResponse] = {
+    val timer = metrics.subscriptionUpdateTimer.time()
+
     subscriptionConnector.updateSubscription(subscribedUpdateDetails.newDetails).subflatMap { response =>
+      timer.close()
+
       lazy val identifiers =
         List(
           "id"                -> subscribedUpdateDetails.newDetails.cgtReference.value,
           "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
         )
 
-      if (response.status === OK)
+      if (response.status === OK) {
         response
           .parseJSON[SubscriptionUpdateResponse]()
-          .leftMap(Error(_, identifiers: _*))
-      else {
+          .leftMap { e =>
+            metrics.subscriptionUpdateErrorCounter.inc()
+            Error(e, identifiers: _*)
+          }
+      } else {
+        metrics.subscriptionUpdateErrorCounter.inc()
         Left(Error(s"call to subscription update api came back with status ${response.status}"))
       }
     }
+  }
 
-  def toSubscriptionDisplayRecord(
+  private def toSubscriptionDisplayRecord(
     desSubscriptionDisplayDetails: DesSubscriptionDisplayDetails,
     cgtReference: CgtReference
   ): Either[String, SubscribedDetails] = {

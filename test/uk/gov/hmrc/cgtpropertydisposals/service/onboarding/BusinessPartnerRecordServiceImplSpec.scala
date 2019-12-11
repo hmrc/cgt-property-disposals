@@ -24,6 +24,7 @@ import play.api.Configuration
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnector
+import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
@@ -45,7 +46,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
       |des.non-iso-country-codes = ["$nonIsoCountryCode"]
       |""".stripMargin))
 
-  val service = new BusinessPartnerRecordServiceImpl(mockConnector, config)
+  val service = new BusinessPartnerRecordServiceImpl(mockConnector, config, MockMetrics.metrics)
 
   def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
     (mockConnector

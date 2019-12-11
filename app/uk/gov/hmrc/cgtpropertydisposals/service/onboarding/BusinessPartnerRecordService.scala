@@ -30,6 +30,7 @@ import play.api.Configuration
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnector
+import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
@@ -55,7 +56,8 @@ trait BusinessPartnerRecordService {
 @Singleton
 class BusinessPartnerRecordServiceImpl @Inject()(
   connector: BusinessPartnerRecordConnector,
-  config: Configuration
+  config: Configuration,
+  metrics: Metrics
 )(
   implicit ec: ExecutionContext
 ) extends BusinessPartnerRecordService {
@@ -65,8 +67,11 @@ class BusinessPartnerRecordServiceImpl @Inject()(
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, BusinessPartnerRecordResponse] =
+  ): EitherT[Future, Error, BusinessPartnerRecordResponse] = {
+    val timer = metrics.registerWithIdTimer.time()
+
     connector.getBusinessPartnerRecord(bprRequest).subflatMap { response =>
+      timer.close()
       lazy val identifiers =
         List(
           "id"                -> bprRequest.foldOnId(_.value, _.value, _.value),
@@ -77,13 +82,18 @@ class BusinessPartnerRecordServiceImpl @Inject()(
         response
           .parseJSON[DesBusinessPartnerRecord]()
           .flatMap(toBusinessPartnerRecord(_).map(bpr => BusinessPartnerRecordResponse(Some(bpr))))
-          .leftMap(Error(_, identifiers: _*))
+          .leftMap { e =>
+            metrics.registerWithIdErrorCounter.inc()
+            Error(e, identifiers: _*)
+          }
       } else if (isNotFoundResponse(response)) {
         Right(BusinessPartnerRecordResponse(None))
       } else {
+        metrics.registerWithIdErrorCounter.inc()
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
       }
     }
+  }
 
   val correlationIdHeaderKey = "CorrelationId"
 

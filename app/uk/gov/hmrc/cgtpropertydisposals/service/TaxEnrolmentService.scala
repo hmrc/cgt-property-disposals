@@ -24,6 +24,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.NO_CONTENT
 import play.api.libs.json.JsString
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
+import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
@@ -56,31 +57,52 @@ trait TaxEnrolmentService {
 class TaxEnrolmentServiceImpl @Inject()(
   taxEnrolmentConnector: TaxEnrolmentConnector,
   taxEnrolmentRepository: TaxEnrolmentRepository,
-  verifiersRepository: VerifiersRepository
+  verifiersRepository: VerifiersRepository,
+  metrics: Metrics
 ) extends TaxEnrolmentService
     with Logging {
 
   def makeES8call(
     taxEnrolmentRequest: TaxEnrolmentRequest
-  )(implicit hc: HeaderCarrier): Future[HttpResponse] =
+  )(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    val timer = metrics.eacdCreateEnrolmentTimer.time()
+
     taxEnrolmentConnector
       .allocateEnrolmentToGroup(taxEnrolmentRequest)
       .value
-      .map {
-        case Left(error)         => HttpResponse(999, Some(JsString(error.toString)))
-        case Right(httpResponse) => httpResponse
+      .map { result =>
+        timer.close()
+
+        result match {
+          case Left(error) =>
+            metrics.eacdCreateEnrolmentErrorCounter.inc()
+            HttpResponse(999, Some(JsString(error.toString)))
+
+          case Right(httpResponse) => httpResponse
+        }
       }
+  }
 
   def makeES6call(
     updateVerifiersRequest: UpdateVerifiersRequest
-  )(implicit hc: HeaderCarrier): Future[HttpResponse] =
+  )(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    val timer = metrics.eacdUpdateEnrolmentTimer.time()
+
     taxEnrolmentConnector
       .updateVerifiers(updateVerifiersRequest)
       .value
-      .map {
-        case Left(error)         => HttpResponse(999, Some(JsString(error.toString)))
-        case Right(httpResponse) => httpResponse
+      .map { result =>
+        timer.close()
+
+        result match {
+          case Left(error) =>
+            metrics.eacdUpdateEnrolmentErrorCounter.inc()
+            HttpResponse(999, Some(JsString(error.toString)))
+
+          case Right(httpResponse) => httpResponse
+        }
       }
+  }
 
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
     implicit hc: HeaderCarrier

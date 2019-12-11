@@ -26,6 +26,7 @@ import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnector
 import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.routes
+import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
@@ -43,7 +44,8 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
 
   val mockUUIDGenerator = mock[UUIDGenerator]
 
-  val service = new RegisterWithoutIdServiceImpl(mockConnector, mockUUIDGenerator, mockAuditService)
+  val service =
+    new RegisterWithoutIdServiceImpl(mockConnector, mockUUIDGenerator, mockAuditService, MockMetrics.metrics)
 
   def mockGenerateUUID(uuid: UUID) =
     (mockUUIDGenerator.nextId: () => UUID).expects().returning(uuid)

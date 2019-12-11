@@ -20,6 +20,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
+import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
@@ -39,7 +40,8 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
   val mockEnrolmentRepository: TaxEnrolmentRepository = mock[TaxEnrolmentRepository]
   val mockVerifierRepository: VerifiersRepository     = mock[VerifiersRepository]
 
-  val service = new TaxEnrolmentServiceImpl(mockConnector, mockEnrolmentRepository, mockVerifierRepository)
+  val service =
+    new TaxEnrolmentServiceImpl(mockConnector, mockEnrolmentRepository, mockVerifierRepository, MockMetrics.metrics)
 
   def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, HttpResponse]
