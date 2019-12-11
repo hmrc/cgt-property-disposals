@@ -19,8 +19,10 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.{Application, Configuration, Play}
+import uk.gov.hmrc.cgtpropertydisposals.metrics.{Metrics, MockMetrics}
 
 import scala.reflect.ClassTag
 
@@ -28,19 +30,23 @@ trait ControllerSpec extends WordSpec with Matchers with BeforeAndAfterAll with 
 
   val overrideBindings: List[GuiceableModule] = List.empty[GuiceableModule]
 
-  def buildFakeApplication(): Application =
+  def buildFakeApplication(): Application = {
+    val metricsBinding: GuiceableModule = bind[Metrics].toInstance(MockMetrics.metrics)
+
     new GuiceApplicationBuilder()
       .configure(
         Configuration(
           ConfigFactory.parseString(
             """
-            | metrics.enabled = false
+              | metrics.jvm = false
+              | metrics.logback = false
           """.stripMargin
           )
         )
       )
-      .overrides(overrideBindings: _*)
+      .overrides(metricsBinding :: overrideBindings: _*)
       .build()
+  }
 
   lazy val fakeApplication: Application = buildFakeApplication()
 

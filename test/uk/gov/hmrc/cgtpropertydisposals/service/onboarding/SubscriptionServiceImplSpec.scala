@@ -27,6 +27,7 @@ import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnector
+import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
@@ -61,7 +62,12 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
     )
   )
 
-  val service = new SubscriptionServiceImpl(mockAuditService, mockSubscriptionConnector, mockEmailConnector, config)
+  val service = new SubscriptionServiceImpl(
+    mockAuditService,
+    mockSubscriptionConnector,
+    mockEmailConnector,
+    config,
+    MockMetrics.metrics)
 
   def mockSubscriptionResponse(httpStatus: Int, httpBody: String, path: String)(response: Unit) =
     (mockAuditService

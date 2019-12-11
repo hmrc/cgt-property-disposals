@@ -26,6 +26,7 @@ import play.api.http.Status.OK
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnector
 import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding._
+import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
@@ -49,7 +50,9 @@ trait RegisterWithoutIdService {
 class RegisterWithoutIdServiceImpl @Inject()(
   connector: RegisterWithoutIdConnector,
   uuidGenerator: UUIDGenerator,
-  auditService: AuditService)(implicit ec: ExecutionContext)
+  auditService: AuditService,
+  metrics: Metrics
+)(implicit ec: ExecutionContext)
     extends RegisterWithoutIdService
     with Logging {
 
@@ -57,23 +60,32 @@ class RegisterWithoutIdServiceImpl @Inject()(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SapNumber] = {
     val referenceId = uuidGenerator.nextId()
+    val timer       = metrics.registerWithoutIdTimer.time()
+
     connector.registerWithoutId(registrationDetails, referenceId).subflatMap { response =>
+      timer.close()
       auditService.sendRegistrationResponse(
         response.status,
         response.body,
-        routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
+        routes.SubscriptionController.registerWithoutIdAndSubscribe().url
+      )
 
       if (response.status === OK) {
         response
           .parseJSON[RegisterWithoutIdResponse]()
           .bimap(
-            Error(_), { response =>
+            { e =>
+              metrics.registerWithIdErrorCounter.inc()
+              Error(e)
+            }, { response =>
               logger.info(
-                s"For acknowledgement reference id $referenceId, register with id was successful with sap number ${response.sapNumber}")
+                s"For acknowledgement reference id $referenceId, register with id was successful with sap number ${response.sapNumber}"
+              )
               SapNumber(response.sapNumber)
             }
           )
       } else {
+        metrics.registerWithIdErrorCounter.inc()
         Left(Error(s"call to register with id with reference id $referenceId came back with status ${response.status}"))
       }
     }
