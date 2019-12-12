@@ -407,6 +407,35 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
     }
+
+    "handling requests to get subscription status" must {
+
+      val sapNumber                     = SapNumber("sap")
+      val expectedSubscriptionStatusUrl = s"http://host:123/subscriptions/CGT/${sapNumber.value}/status"
+
+      "do a post http call and return the result" in {
+        List(
+          HttpResponse(200),
+          HttpResponse(200, Some(JsString("hi"))),
+          HttpResponse(500)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+            mockGet(expectedSubscriptionStatusUrl, Map.empty, expectedHeaders)(
+              Some(httpResponse)
+            )
+
+            await(connector.getSubscriptionStatus(sapNumber).value) shouldBe Right(httpResponse)
+          }
+        }
+      }
+
+      "return an error when the future fails" in {
+        mockGet(expectedSubscriptionStatusUrl, Map.empty, expectedHeaders)(None)
+
+        await(connector.getSubscriptionStatus(sapNumber).value).isLeft shouldBe true
+      }
+
+    }
   }
 
 }

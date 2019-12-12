@@ -29,16 +29,17 @@ import configs.syntax._
 import play.api.Configuration
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.{BusinessPartnerRecordConnector, SubscriptionConnector}
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, SubscriptionStatus}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, Validation}
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, DesSubscriptionStatusResponse, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -55,7 +56,8 @@ trait BusinessPartnerRecordService {
 
 @Singleton
 class BusinessPartnerRecordServiceImpl @Inject()(
-  connector: BusinessPartnerRecordConnector,
+  bprConnector: BusinessPartnerRecordConnector,
+  subscriptionConnector: SubscriptionConnector,
   config: Configuration,
   metrics: Metrics
 )(
@@ -65,12 +67,28 @@ class BusinessPartnerRecordServiceImpl @Inject()(
   val desNonIsoCountryCodes: List[CountryCode] =
     config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
+  val subscriptionStatusApiEnabled: Boolean =
+    config.underlying.get[Boolean]("subscription-status-api.enabled").value
+
+  val correlationIdHeaderKey = "CorrelationId"
+
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, BusinessPartnerRecordResponse] = {
+  ): EitherT[Future, Error, BusinessPartnerRecordResponse] =
+    for {
+      maybeBpr <- getBpr(bprRequest)
+      maybeCgtRef <- maybeBpr.fold[EitherT[Future, Error, Option[CgtReference]]](EitherT.pure(None))(
+                      bpr =>
+                        if (subscriptionStatusApiEnabled) getSubscriptionStatus(bpr.sapNumber) else EitherT.pure(None)
+                    )
+    } yield BusinessPartnerRecordResponse(maybeBpr, maybeCgtRef)
+
+  private def getBpr(
+    bprRequest: BusinessPartnerRecordRequest
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[BusinessPartnerRecord]] = {
     val timer = metrics.registerWithIdTimer.time()
 
-    connector.getBusinessPartnerRecord(bprRequest).subflatMap { response =>
+    bprConnector.getBusinessPartnerRecord(bprRequest).subflatMap { response =>
       timer.close()
       lazy val identifiers =
         List(
@@ -81,13 +99,14 @@ class BusinessPartnerRecordServiceImpl @Inject()(
       if (response.status === OK) {
         response
           .parseJSON[DesBusinessPartnerRecord]()
-          .flatMap(toBusinessPartnerRecord(_).map(bpr => BusinessPartnerRecordResponse(Some(bpr))))
+          .flatMap(toBusinessPartnerRecord(_))
+          .map(Some(_))
           .leftMap { e =>
             metrics.registerWithIdErrorCounter.inc()
             Error(e, identifiers: _*)
           }
       } else if (isNotFoundResponse(response)) {
-        Right(BusinessPartnerRecordResponse(None))
+        Right(None)
       } else {
         metrics.registerWithIdErrorCounter.inc()
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
@@ -95,13 +114,47 @@ class BusinessPartnerRecordServiceImpl @Inject()(
     }
   }
 
-  val correlationIdHeaderKey = "CorrelationId"
+  private def getSubscriptionStatus(
+    sapNumber: SapNumber
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[CgtReference]] = {
+    val timer = metrics.subscriptionStatusTimer.time()
 
-  def isNotFoundResponse(response: HttpResponse): Boolean =
+    subscriptionConnector.getSubscriptionStatus(sapNumber).subflatMap { response =>
+      timer.close()
+      if (response.status === OK) {
+        response
+          .parseJSON[DesSubscriptionStatusResponse]()
+          .leftMap { e =>
+            metrics.subscriptionStatusErrorCounter.inc()
+            Error(e)
+          }
+          .flatMap {
+            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, Some("ZCGT"), Some(cgtRef)) =>
+              Right(Some(CgtReference(cgtRef)))
+
+            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, otherIdType, id) =>
+              Left(
+                Error(
+                  s"Could not find cgt reference id in subscription status response. Got id type " +
+                    s"${otherIdType.getOrElse("-")} with id ${id.getOrElse("-")}"
+                )
+              )
+
+            case DesSubscriptionStatusResponse(_, _, _) =>
+              Right(None)
+          }
+      } else {
+        metrics.subscriptionStatusErrorCounter.inc()
+        Left(Error(s"Call to get subscription status came back with status ${response.status}"))
+      }
+    }
+  }
+
+  private def isNotFoundResponse(response: HttpResponse): Boolean =
     // check that a 404 response has actually come from DES by inspecting the body
     response.status === NOT_FOUND && response.parseJSON[DesErrorResponse]().map(_.code).exists(_ === "NOT_FOUND")
 
-  def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
+  private def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
     val a = d.address
 
     val addressValidation: Validation[Address] = AddressDetails.fromDesAddressDetails(a)(desNonIsoCountryCodes)
@@ -122,7 +175,7 @@ class BusinessPartnerRecordServiceImpl @Inject()(
           BusinessPartnerRecord(
             d.contactDetails.emailAddress,
             address,
-            d.sapNumber,
+            SapNumber(d.sapNumber),
             name
           )
       }
@@ -146,6 +199,12 @@ object BusinessPartnerRecordServiceImpl {
     individual: Option[DesIndividual]
   )
 
+  final case class DesSubscriptionStatusResponse(
+    subscriptionStatus: SubscriptionStatus,
+    idType: Option[String],
+    idValue: Option[String]
+  )
+
   object DesBusinessPartnerRecord {
     final case class DesOrganisation(organisationName: String)
 
@@ -163,6 +222,12 @@ object BusinessPartnerRecordServiceImpl {
     implicit val contactDetailsReads: Reads[DesContactDetails] = Json.reads
     implicit val bprReads: Reads[DesBusinessPartnerRecord]     = Json.reads
     implicit val errorResponseReads: Reads[DesErrorResponse]   = Json.reads
+  }
+
+  object DesSubscriptionStatusResponse {
+
+    implicit val reads: Reads[DesSubscriptionStatusResponse] = Json.reads
+
   }
 
 }
