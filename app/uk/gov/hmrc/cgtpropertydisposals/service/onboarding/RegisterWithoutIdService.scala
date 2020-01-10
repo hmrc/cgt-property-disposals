@@ -67,7 +67,7 @@ class RegisterWithoutIdServiceImpl @Inject()(
       auditService.sendRegistrationResponse(
         response.status,
         response.body,
-        routes.SubscriptionController.registerWithoutIdAndSubscribe().url
+        routes.SubscriptionController.registerWithoutId().url
       )
 
       if (response.status === OK) {

@@ -37,7 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.{RegisteredWithoutId, RegistrationDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.{SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
@@ -593,24 +593,16 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       }
     }
 
-    "handling requests to register without id and subscribe" must {
+    "handling requests to register without id" must {
 
       def performAction(requestBody: Option[JsValue]): Future[Result] =
-        controller.registerWithoutIdAndSubscribe()(
+        controller.registerWithoutId()(
           requestBody.fold[FakeRequest[AnyContent]](FakeRequest())(json => FakeRequest().withJsonBody(json))
         )
 
-      val registrationDetails            = sample[RegistrationDetails]
-      val registrationDetailsJson        = Json.toJson(registrationDetails)
-      val sapNumber                      = sample[SapNumber]
-      val subscriptionDetails            = SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber)
-      val subscriptionSuccessfulResponse = sample[SubscriptionSuccessful]
-      val taxEnrolmentRequest = TaxEnrolmentRequest(
-        Fake.user.ggCredId,
-        subscriptionSuccessfulResponse.cgtReferenceNumber,
-        subscriptionDetails.address,
-        fixedTimestamp
-      )
+      val registrationDetails     = sample[RegistrationDetails]
+      val registrationDetailsJson = Json.toJson(registrationDetails)
+      val sapNumber               = sample[SapNumber]
 
       "return a bad request" when {
 
@@ -635,58 +627,21 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
 
-        "there is a problem while trying to subscribe" in {
-          inSequence {
-            mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
-            mockSubscribe(
-              SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber),
-              onboarding.routes.SubscriptionController.registerWithoutIdAndSubscribe().url
-            )(
-              Left(Error("oh no!"))
-            )
-          }
-
-          val result = performAction(Some(registrationDetailsJson))
-          status(result) shouldBe INTERNAL_SERVER_ERROR
-        }
-
       }
 
       "return the subscription response" when {
 
-        "subscription is successful" in {
+        "registration is successful" in {
           inSequence {
             mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
-            mockSubscribe(
-              SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber),
-              onboarding.routes.SubscriptionController.registerWithoutIdAndSubscribe().url
-            )(
-              Right(subscriptionSuccessfulResponse)
-            )
-            mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
           }
 
           val result = performAction(Some(registrationDetailsJson))
           status(result)        shouldBe OK
-          contentAsJson(result) shouldBe Json.toJson(subscriptionSuccessfulResponse)
+          contentAsJson(result) shouldBe Json.toJson(RegisteredWithoutId(sapNumber))
         }
       }
 
-      "subscription is not successful if the tax enrolment service returns an error" in {
-        inSequence {
-          mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
-          mockSubscribe(
-            SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber),
-            onboarding.routes.SubscriptionController.registerWithoutIdAndSubscribe().url
-          )(
-            Right(subscriptionSuccessfulResponse)
-          )
-          mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("")))
-        }
-
-        val result = performAction(Some(registrationDetailsJson))
-        status(result) shouldBe INTERNAL_SERVER_ERROR
-      }
     }
 
   }

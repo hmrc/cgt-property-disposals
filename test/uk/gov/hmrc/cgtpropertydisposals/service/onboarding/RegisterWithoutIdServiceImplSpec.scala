@@ -77,7 +77,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(500)))
-            mockAuditRegistrationResponse(500, "", routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
+            mockAuditRegistrationResponse(500, "", routes.SubscriptionController.registerWithoutId().url)
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -87,7 +87,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200)))
-            mockAuditRegistrationResponse(200, "", routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
+            mockAuditRegistrationResponse(200, "", routes.SubscriptionController.registerWithoutId().url)
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -97,7 +97,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(JsNumber(1)))))
-            mockAuditRegistrationResponse(200, "1", routes.SubscriptionController.registerWithoutIdAndSubscribe().url)
+            mockAuditRegistrationResponse(200, "1", routes.SubscriptionController.registerWithoutId().url)
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -119,7 +119,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           mockAuditRegistrationResponse(
             200,
             jsonBody.toString,
-            routes.SubscriptionController.registerWithoutIdAndSubscribe().url
+            routes.SubscriptionController.registerWithoutId().url
           )
 
         }

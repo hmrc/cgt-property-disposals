@@ -29,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.{RegisteredWithoutId, RegistrationDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.{SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
@@ -78,30 +78,24 @@ class SubscriptionController @Inject()(
     )
   }
 
-  def registerWithoutIdAndSubscribe(): Action[AnyContent] = authenticate.async { implicit request =>
+  def registerWithoutId(): Action[AnyContent] = authenticate.async { implicit request =>
     val result = for {
       registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))
       sapNumber <- registerWithoutIdService
                     .registerWithoutId(registrationDetails)
-                    .leftMap(BackendError)
-      subscriptionResponse <- subscribeAndEnrol(
-                               SubscriptionDetails.fromRegistrationDetails(registrationDetails, sapNumber),
-                               routes.SubscriptionController.registerWithoutIdAndSubscribe().url
-                             ).leftMap[SubscriptionError](BackendError)
-    } yield subscriptionResponse
+                    .leftMap[SubscriptionError](BackendError)
+    } yield sapNumber
 
     result.fold(
       {
         case RequestValidationError(msg) =>
-          logger.warn(s"Error in request to register without id and subscribe: $msg")
+          logger.warn(s"Error in request to register without id: $msg")
           BadRequest
         case BackendError(e) =>
-          logger.warn("Error while trying to register without id and subscribe:", e)
+          logger.warn("Error while trying to register without id:", e)
           InternalServerError
-      }, {
-        case successful: SubscriptionSuccessful => Ok(Json.toJson(successful))
-        case AlreadySubscribed                  => Conflict
-      }
+      },
+      sapNumber => Ok(Json.toJson(RegisteredWithoutId(sapNumber)))
     )
   }
 
