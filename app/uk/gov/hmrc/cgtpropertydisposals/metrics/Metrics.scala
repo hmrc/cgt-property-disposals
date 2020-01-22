@@ -46,6 +46,10 @@ class Metrics @Inject()(metrics: com.kenshoo.play.metrics.Metrics) {
 
   val subscriptionGetErrorCounter: Counter = counter("subscription-get.errors.count")
 
+  val subscriptionStatusTimer: Timer = timer("subscription-status.time")
+
+  val subscriptionStatusErrorCounter: Counter = counter("subscription-status.errors.count")
+
   val eacdCreateEnrolmentTimer: Timer = timer("eacd.create-enrolment.time")
 
   val eacdCreateEnrolmentErrorCounter: Counter = counter("eacd.create-enrolment.errors.count")

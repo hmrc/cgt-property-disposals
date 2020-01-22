@@ -26,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesSubscriptionUpdateRequest, TypeOfPersonDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -48,6 +48,9 @@ trait SubscriptionConnector {
   def updateSubscription(subscribedDetails: SubscribedDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
+
+  def getSubscriptionStatus(sapNumber: SapNumber)(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse]
+
 }
 
 @Singleton
@@ -58,8 +61,12 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
   val baseUrl: String = config.baseUrl("subscription")
 
   val subscribeUrl: String = s"$baseUrl/subscriptions/create/CGT"
+
   def subscriptionDisplayUrl(cgtReference: CgtReference): String =
     s"$baseUrl/subscriptions/CGT/ZCGT/${cgtReference.value}"
+
+  def subscriptionStatusUrl(sapNumber: SapNumber): String =
+    s"$baseUrl/subscriptions/CGT/${sapNumber.value}/status"
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
@@ -110,6 +117,22 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
         .recover {
           case e => Left(Error(e))
         }
+    )
+
+  override def getSubscriptionStatus(sapNumber: SapNumber)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse] =
+    EitherT[Future, Error, HttpResponse](
+      http
+        .get(
+          subscriptionStatusUrl(sapNumber),
+          headers = headers
+        )(
+          hc.copy(authorization = None),
+          ec
+        )
+        .map(Right(_))
+        .recover { case e => Left(Error(e)) }
     )
 
 }

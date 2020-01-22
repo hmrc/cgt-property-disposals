@@ -31,6 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -75,6 +76,8 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
 
     val bpr = sample[BusinessPartnerRecord]
 
+    val cgtReference = sample[CgtReference]
+
     val bprRequest = sample[BusinessPartnerRecordRequest]
 
     "handling requests to get BPR's" must {
@@ -82,8 +85,9 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
       "return a BPR response if one is returned" in {
 
         List(
-          BusinessPartnerRecordResponse(Some(bpr)),
-          BusinessPartnerRecordResponse(None)
+          BusinessPartnerRecordResponse(Some(bpr), Some(cgtReference)),
+          BusinessPartnerRecordResponse(Some(bpr), None),
+          BusinessPartnerRecordResponse(None, None)
         ).foreach { bprResponse =>
           mockBprService(bprRequest)(Right(bprResponse))
 
