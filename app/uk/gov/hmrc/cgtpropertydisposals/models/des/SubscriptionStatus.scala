@@ -22,33 +22,33 @@ sealed trait SubscriptionStatus extends Product with Serializable
 
 object SubscriptionStatus {
 
-  final case object NotSubscribed extends SubscriptionStatus
+  case object NotSubscribed extends SubscriptionStatus
 
-  final case object Subscribed extends SubscriptionStatus
+  case object Subscribed extends SubscriptionStatus
 
-  final case object RegistrationFormReceived extends SubscriptionStatus
+  case object RegistrationFormReceived extends SubscriptionStatus
 
-  final case object SentToDs extends SubscriptionStatus
+  case object SentToDs extends SubscriptionStatus
 
-  final case object DsOutcomeInProgress extends SubscriptionStatus
+  case object DsOutcomeInProgress extends SubscriptionStatus
 
-  final case object Rejected extends SubscriptionStatus
+  case object Rejected extends SubscriptionStatus
 
-  final case object InProcessing extends SubscriptionStatus
+  case object InProcessing extends SubscriptionStatus
 
-  final case object CreateFailed extends SubscriptionStatus
+  case object CreateFailed extends SubscriptionStatus
 
-  final case object Withdrawal extends SubscriptionStatus
+  case object Withdrawal extends SubscriptionStatus
 
-  final case object SentToRcm extends SubscriptionStatus
+  case object SentToRcm extends SubscriptionStatus
 
-  final case object ApprovedWithConditions extends SubscriptionStatus
+  case object ApprovedWithConditions extends SubscriptionStatus
 
-  final case object Revoked extends SubscriptionStatus
+  case object Revoked extends SubscriptionStatus
 
-  final case object Deregistered extends SubscriptionStatus
+  case object Deregistered extends SubscriptionStatus
 
-  final case object ContractObjectInactive extends SubscriptionStatus
+  case object ContractObjectInactive extends SubscriptionStatus
 
   implicit val reads: Reads[SubscriptionStatus] =
     Reads {
