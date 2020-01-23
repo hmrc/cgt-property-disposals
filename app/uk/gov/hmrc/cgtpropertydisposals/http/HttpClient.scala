@@ -47,6 +47,13 @@ object HttpClient {
     )(implicit w: Writes[A], hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] =
       http.POST(url, body, headers.toSeq)(w, rawHttpReads, hc, ec)
 
+    def postForm(
+      url: String,
+      body: Map[String, Seq[String]],
+      headers: Seq[(String, String)] = Seq.empty
+    )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] =
+      http.POSTForm(url, body, headers)(rawHttpReads, hc, ec)
+
     def put[A](
       url: String,
       body: A,
