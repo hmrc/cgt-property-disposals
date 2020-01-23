@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.ids
 
-import cats.syntax.either._
 import play.api.libs.json.{Json, OFormat}
 import play.api.mvc.PathBindable
 
