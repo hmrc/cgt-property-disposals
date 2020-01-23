@@ -41,7 +41,7 @@ lazy val microservice = Project(appName, file("."))
     SbtArtifactory,
     ScalafmtCorePlugin
   )
-  .settings(scalaVersion := "2.11.12")
+  .settings(scalaVersion := "2.12.10")
   .settings(
     scalafmtOnCompile := true,
     majorVersion := 1,
@@ -54,3 +54,12 @@ lazy val microservice = Project(appName, file("."))
   .settings(wartremoverSettings: _*)
   .settings(scoverageSettings: _*)
   .settings(PlayKeys.playDefaultPort := 7021)
+
+val akkaVersion     = "2.5.23"
+val akkaHttpVersion = "10.0.15"
+
+dependencyOverrides += "com.typesafe.akka" %% "akka-stream"    % akkaVersion
+dependencyOverrides += "com.typesafe.akka" %% "akka-protobuf"  % akkaVersion
+dependencyOverrides += "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
+dependencyOverrides += "com.typesafe.akka" %% "akka-actor"     % akkaVersion
+dependencyOverrides += "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion

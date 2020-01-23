@@ -22,8 +22,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR, TRN}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
-sealed trait BusinessPartnerRecordRequest extends Product with Serializable
-
 object BusinessPartnerRecordRequest {
 
   final case class IndividualBusinessPartnerRecordRequest(
@@ -37,7 +35,7 @@ object BusinessPartnerRecordRequest {
   ) extends BusinessPartnerRecordRequest
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[BusinessPartnerRecordRequest] = derived.oformat[BusinessPartnerRecordRequest]
+  implicit val format: OFormat[BusinessPartnerRecordRequest] = derived.oformat()
 
   implicit class BusinessPartnerRecordRequestOps(val r: BusinessPartnerRecordRequest) extends AnyVal {
 
@@ -59,3 +57,5 @@ object BusinessPartnerRecordRequest {
   }
 
 }
+
+sealed trait BusinessPartnerRecordRequest extends Product with Serializable

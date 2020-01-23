@@ -7,7 +7,7 @@ object AppDependencies {
     "uk.gov.hmrc"       %% "simple-reactivemongo"     % "7.22.0-play-26",
     "uk.gov.hmrc"       %% "bootstrap-play-26"        % "1.3.0",
     "org.typelevel"     %% "cats-core"                % "1.6.1",
-    "org.julienrf"      %% "play-json-derived-codecs" % "3.3",
+    "org.julienrf"      %% "play-json-derived-codecs" % "6.0.0",
     "com.github.kxbmap" %% "configs"                  % "0.4.4"
   )
 

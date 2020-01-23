@@ -25,8 +25,8 @@ import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, _}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.bootstrap.controller.BackendHeaderCarrierProvider
+
 import scala.concurrent.{ExecutionContext, Future}
 
 final case class AuthenticatedUser(ggCredId: String)
