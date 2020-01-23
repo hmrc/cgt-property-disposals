@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.mvc.Http.Status
+import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
@@ -48,7 +49,7 @@ class PdfGeneratorConnectorImpl @Inject()(config: ServicesConfig, http: HttpClie
   ): EitherT[Future, Error, Stream[Char]] =
     EitherT[Future, Error, Stream[Char]](
       http
-        .POSTForm(url, payload, headers)
+        .postForm(url, payload, headers)
         .map[Either[Error, Stream[Char]]] { response =>
           if (response.status != Status.OK) {
             logger.warn(s"Could not generate PDF: http status : ${response.status} | http body : ${response.body}")
