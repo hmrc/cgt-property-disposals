@@ -20,7 +20,7 @@ import com.codahale.metrics.{Counter, Timer}
 import com.google.inject.{Inject, Singleton}
 
 @Singleton
-class Metrics @Inject()(metrics: com.kenshoo.play.metrics.Metrics) {
+class Metrics @Inject() (metrics: com.kenshoo.play.metrics.Metrics) {
 
   protected def timer(name: String): Timer = metrics.defaultRegistry.timer(s"backend.$name")
 

@@ -6,6 +6,9 @@ import wartremover.wartremoverExcluded
 
 val appName = "cgt-property-disposals"
 
+addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
+addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
+
 lazy val wartremoverSettings =
   Seq(
     wartremoverErrors in (Compile, compile) ++= Warts.allBut(
@@ -38,8 +41,7 @@ lazy val microservice = Project(appName, file("."))
     SbtAutoBuildPlugin,
     SbtGitVersioning,
     SbtDistributablesPlugin,
-    SbtArtifactory,
-    ScalafmtCorePlugin
+    SbtArtifactory
   )
   .settings(scalaVersion := "2.12.10")
   .settings(
@@ -47,6 +49,7 @@ lazy val microservice = Project(appName, file("."))
     majorVersion := 1,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
   )
+  .settings(scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused:imports"))
   .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)

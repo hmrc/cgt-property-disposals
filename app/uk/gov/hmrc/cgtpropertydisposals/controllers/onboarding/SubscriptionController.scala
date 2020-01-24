@@ -41,7 +41,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SubscriptionController @Inject()(
+class SubscriptionController @Inject() (
   authenticate: AuthenticateActions,
   subscriptionService: SubscriptionService,
   taxEnrolmentService: TaxEnrolmentService,
@@ -152,10 +152,9 @@ class SubscriptionController @Inject()(
       .fromOption(request.body.asJson, RequestValidationError("No JSON body found in request"))
       .flatMap(
         _.validate[R].asEither
-          .leftMap(
-            e =>
-              RequestValidationError(
-                s"Could not parse JSON body as register and subscribe request: $e"
+          .leftMap(e =>
+            RequestValidationError(
+              s"Could not parse JSON body as register and subscribe request: $e"
             )
           )
       )

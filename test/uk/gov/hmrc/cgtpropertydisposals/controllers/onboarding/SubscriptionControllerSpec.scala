@@ -542,7 +542,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
         "there is a problem while trying to subscribe" in {
           mockSubscribe(subscriptionDetails, onboarding.routes.SubscriptionController.subscribe().url)(
-            Left(Error("oh no!")))
+            Left(Error("oh no!"))
+          )
 
           val result = performAction(Some(subscriptionDetailsJson))
           status(result) shouldBe INTERNAL_SERVER_ERROR
@@ -568,7 +569,8 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
         "the user has already subscribed to cgt" in {
           mockSubscribe(subscriptionDetails, onboarding.routes.SubscriptionController.subscribe().url)(
-            Right(AlreadySubscribed))
+            Right(AlreadySubscribed)
+          )
 
           val result = performAction(Some(subscriptionDetailsJson))
           status(result) shouldBe CONFLICT

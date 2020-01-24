@@ -54,7 +54,7 @@ trait TaxEnrolmentService {
 }
 
 @Singleton
-class TaxEnrolmentServiceImpl @Inject()(
+class TaxEnrolmentServiceImpl @Inject() (
   taxEnrolmentConnector: TaxEnrolmentConnector,
   taxEnrolmentRepository: TaxEnrolmentRepository,
   verifiersRepository: VerifiersRepository,
@@ -170,15 +170,14 @@ class TaxEnrolmentServiceImpl @Inject()(
     for {
       maybeEnrolmentRequest <- taxEnrolmentRepository
                                 .get(ggCredId)
-                                .leftMap(
-                                  error => Error(s"Could not check database to determine subscription status: $error")
+                                .leftMap(error =>
+                                  Error(s"Could not check database to determine subscription status: $error")
                                 )
       maybeUpdateVerifierRequest <- verifiersRepository
                                      .get(ggCredId)
-                                     .leftMap(
-                                       error =>
-                                         Error(
-                                           s"Could not check database to determine update verifier request exists : $error"
+                                     .leftMap(error =>
+                                       Error(
+                                         s"Could not check database to determine update verifier request exists : $error"
                                        )
                                      )
       _ <- EitherT.liftF(handleEnrolmentState(maybeEnrolmentRequest -> maybeUpdateVerifierRequest))

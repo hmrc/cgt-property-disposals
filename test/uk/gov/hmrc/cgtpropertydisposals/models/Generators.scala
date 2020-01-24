@@ -57,7 +57,8 @@ sealed trait GenUtils {
     Arbitrary(
       Gen
         .chooseNum(0L, Long.MaxValue)
-        .map(l => LocalDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.systemDefault())))
+        .map(l => LocalDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.systemDefault()))
+    )
 
 }
 

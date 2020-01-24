@@ -40,7 +40,7 @@ class AuthenticatedRequest[+A](
 @ImplementedBy(classOf[AuthenticateActionBuilder])
 trait AuthenticateActions extends ActionBuilder[AuthenticatedRequest, AnyContent]
 
-class AuthenticateActionBuilder @Inject()(
+class AuthenticateActionBuilder @Inject() (
   val authConnector: AuthConnector,
   val parser: BodyParsers.Default,
   val executionContext: ExecutionContext

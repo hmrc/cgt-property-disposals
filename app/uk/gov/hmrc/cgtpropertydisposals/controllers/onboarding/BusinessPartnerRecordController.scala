@@ -28,7 +28,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class BusinessPartnerRecordController @Inject()(
+class BusinessPartnerRecordController @Inject() (
   authenticate: AuthenticateActions,
   bprService: BusinessPartnerRecordService,
   cc: ControllerComponents
@@ -44,7 +44,7 @@ class BusinessPartnerRecordController @Inject()(
           logger.error(s"Bad JSON payload ${jsError.toString}")
           Future.successful(BadRequest)
         },
-        bprRequest => {
+        bprRequest =>
           bprService
             .getBusinessPartnerRecord(bprRequest)
             .value
@@ -55,7 +55,6 @@ class BusinessPartnerRecordController @Inject()(
               case Right(bpr) =>
                 Ok(Json.toJson(bpr))
             }
-        }
       )
   }
 }

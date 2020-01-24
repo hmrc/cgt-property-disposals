@@ -44,16 +44,15 @@ object AddressDetails {
     if (addressDetails.countryCode === "GB") {
       addressDetails.postalCode.fold[ValidatedNel[String, Address]](
         Invalid(NonEmptyList.one("Could not find postcode for UK address"))
-      )(
-        p =>
-          Valid(
-            UkAddress(
-              addressDetails.addressLine1,
-              addressDetails.addressLine2,
-              addressDetails.addressLine3,
-              addressDetails.addressLine4,
-              p
-            )
+      )(p =>
+        Valid(
+          UkAddress(
+            addressDetails.addressLine1,
+            addressDetails.addressLine2,
+            addressDetails.addressLine3,
+            addressDetails.addressLine4,
+            p
+          )
         )
       )
     } else {
@@ -66,17 +65,16 @@ object AddressDetails {
 
       country.fold[ValidatedNel[String, Address]](
         Invalid(NonEmptyList.one(s"Received unknown country code: ${addressDetails.countryCode}"))
-      )(
-        c =>
-          Valid(
-            NonUkAddress(
-              addressDetails.addressLine1,
-              addressDetails.addressLine2,
-              addressDetails.addressLine3,
-              addressDetails.addressLine4,
-              addressDetails.postalCode,
-              c
-            )
+      )(c =>
+        Valid(
+          NonUkAddress(
+            addressDetails.addressLine1,
+            addressDetails.addressLine2,
+            addressDetails.addressLine3,
+            addressDetails.addressLine4,
+            addressDetails.postalCode,
+            c
+          )
         )
       )
     }

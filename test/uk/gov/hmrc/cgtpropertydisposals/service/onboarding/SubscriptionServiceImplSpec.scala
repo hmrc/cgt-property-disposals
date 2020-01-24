@@ -67,7 +67,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
     mockSubscriptionConnector,
     mockEmailConnector,
     config,
-    MockMetrics.metrics)
+    MockMetrics.metrics
+  )
 
   def mockSubscriptionResponse(httpStatus: Int, httpBody: String, path: String)(response: Unit) =
     (mockAuditService
@@ -595,7 +596,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           }
 
           await(service.subscribe(subscriptionDetails, path).value) shouldBe Right(
-            SubscriptionSuccessful(cgtReference.value))
+            SubscriptionSuccessful(cgtReference.value)
+          )
         }
 
         "the call to send an email fails" in {
@@ -606,7 +608,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           }
 
           await(service.subscribe(subscriptionDetails, path).value) shouldBe Right(
-            SubscriptionSuccessful(cgtReference.value))
+            SubscriptionSuccessful(cgtReference.value)
+          )
         }
 
         "the call to send an email comes back with a status other than 202" in {

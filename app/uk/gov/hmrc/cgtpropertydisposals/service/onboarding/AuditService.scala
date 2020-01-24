@@ -51,7 +51,7 @@ trait AuditService {
 
 }
 
-class AuditServiceImpl @Inject()(
+class AuditServiceImpl @Inject() (
   auditConnector: AuditConnector
 ) extends AuditService
     with Logging {

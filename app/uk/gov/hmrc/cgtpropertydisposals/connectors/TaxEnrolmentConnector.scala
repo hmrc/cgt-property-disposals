@@ -42,7 +42,7 @@ trait TaxEnrolmentConnector {
 }
 
 @Singleton
-class TaxEnrolmentConnectorImpl @Inject()(http: HttpClient, servicesConfig: ServicesConfig)(
+class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: ServicesConfig)(
   implicit ec: ExecutionContext
 ) extends TaxEnrolmentConnector
     with Logging {

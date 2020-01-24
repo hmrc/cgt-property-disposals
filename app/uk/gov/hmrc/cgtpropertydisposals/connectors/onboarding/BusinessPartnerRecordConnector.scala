@@ -40,7 +40,7 @@ trait BusinessPartnerRecordConnector {
 }
 
 @Singleton
-class BusinessPartnerRecordConnectorImpl @Inject()(
+class BusinessPartnerRecordConnectorImpl @Inject() (
   http: HttpClient,
   val config: ServicesConfig
 )(implicit ec: ExecutionContext)

@@ -55,7 +55,7 @@ trait BusinessPartnerRecordService {
 }
 
 @Singleton
-class BusinessPartnerRecordServiceImpl @Inject()(
+class BusinessPartnerRecordServiceImpl @Inject() (
   bprConnector: BusinessPartnerRecordConnector,
   subscriptionConnector: SubscriptionConnector,
   config: Configuration,
@@ -77,9 +77,8 @@ class BusinessPartnerRecordServiceImpl @Inject()(
   ): EitherT[Future, Error, BusinessPartnerRecordResponse] =
     for {
       maybeBpr <- getBpr(bprRequest)
-      maybeCgtRef <- maybeBpr.fold[EitherT[Future, Error, Option[CgtReference]]](EitherT.pure(None))(
-                      bpr =>
-                        if (subscriptionStatusApiEnabled) getSubscriptionStatus(bpr.sapNumber) else EitherT.pure(None)
+      maybeCgtRef <- maybeBpr.fold[EitherT[Future, Error, Option[CgtReference]]](EitherT.pure(None))(bpr =>
+                      if (subscriptionStatusApiEnabled) getSubscriptionStatus(bpr.sapNumber) else EitherT.pure(None)
                     )
     } yield BusinessPartnerRecordResponse(maybeBpr, maybeCgtRef)
 
