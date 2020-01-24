@@ -40,7 +40,7 @@ trait EmailConnector {
 }
 
 @Singleton
-class EmailConnectorImpl @Inject()(http: HttpClient, servicesConfig: ServicesConfig)(implicit ec: ExecutionContext)
+class EmailConnectorImpl @Inject() (http: HttpClient, servicesConfig: ServicesConfig)(implicit ec: ExecutionContext)
     extends EmailConnector {
 
   val sendEmailUrl: String = s"${servicesConfig.baseUrl("email")}/hmrc/email"

@@ -38,7 +38,7 @@ trait VerifiersRepository {
   def delete(ggCredId: String): EitherT[Future, Error, Int]
 }
 
-class DefaultVerifiersRepository @Inject()(mongo: ReactiveMongoComponent)(
+class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
 ) extends ReactiveRepository[UpdateVerifiersRequest, BSONObjectID](
       collectionName = "update-verifiers-requests",

@@ -54,7 +54,7 @@ trait SubscriptionConnector {
 }
 
 @Singleton
-class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: ServicesConfig)(implicit ec: ExecutionContext)
+class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: ServicesConfig)(implicit ec: ExecutionContext)
     extends SubscriptionConnector
     with DesConnector {
 
@@ -108,7 +108,8 @@ class SubscriptionConnectorImpl @Inject()(http: HttpClient, val config: Services
         .put(
           subscriptionDisplayUrl(subscribedDetails.cgtReference),
           Json.toJson(DesSubscriptionUpdateRequest(subscribedDetails)),
-          headers)(
+          headers
+        )(
           implicitly[Writes[JsValue]],
           hc.copy(authorization = None),
           ec

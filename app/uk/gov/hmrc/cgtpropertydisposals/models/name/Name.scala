@@ -42,7 +42,8 @@ object Name {
       typeOfPersonDetails.organisationName match {
         case Some(organisationName) => Valid(Left(TrustName(organisationName)))
         case None                   => Invalid(NonEmptyList.one("Subscription Display response did not contain organisation name"))
-      } else {
+      }
+    else {
       Invalid(
         NonEmptyList.one(
           s"Subscription Display contained an unknown type of person: ${typeOfPersonDetails.typeOfPerson}"

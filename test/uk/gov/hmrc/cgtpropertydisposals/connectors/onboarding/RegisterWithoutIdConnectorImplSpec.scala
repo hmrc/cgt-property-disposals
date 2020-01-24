@@ -138,7 +138,8 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
             Some("addressLine3"),
             Some("addressLine4"),
             Some("postcode"),
-            Country("HK", Some("Hong Kong")))
+            Country("HK", Some("Hong Kong"))
+          )
         )
 
         val expectedRequest = Json.parse(

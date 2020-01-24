@@ -42,7 +42,7 @@ trait TaxEnrolmentRepository {
 }
 
 @Singleton
-class DefaultTaxEnrolmentRepository @Inject()(mongo: ReactiveMongoComponent)(
+class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
 ) extends ReactiveRepository[TaxEnrolmentRequest, BSONObjectID](
       collectionName = "tax-enrolment-requests",

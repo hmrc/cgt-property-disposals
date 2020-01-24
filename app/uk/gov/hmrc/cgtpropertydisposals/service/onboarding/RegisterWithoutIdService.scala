@@ -47,7 +47,7 @@ trait RegisterWithoutIdService {
 }
 
 @Singleton
-class RegisterWithoutIdServiceImpl @Inject()(
+class RegisterWithoutIdServiceImpl @Inject() (
   connector: RegisterWithoutIdConnector,
   uuidGenerator: UUIDGenerator,
   auditService: AuditService,

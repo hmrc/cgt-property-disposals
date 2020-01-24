@@ -66,7 +66,7 @@ trait SubscriptionService {
 }
 
 @Singleton
-class SubscriptionServiceImpl @Inject()(
+class SubscriptionServiceImpl @Inject() (
   auditService: AuditService,
   subscriptionConnector: SubscriptionConnector,
   emailConnector: EmailConnector,

@@ -45,7 +45,7 @@ trait RegisterWithoutIdConnector {
 }
 
 @Singleton
-class RegisterWithoutIdConnectorImpl @Inject()(http: HttpClient, val config: ServicesConfig)(
+class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: ServicesConfig)(
   implicit ec: ExecutionContext
 ) extends RegisterWithoutIdConnector
     with DesConnector {

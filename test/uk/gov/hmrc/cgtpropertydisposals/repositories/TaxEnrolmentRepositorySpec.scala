@@ -67,7 +67,8 @@ class TaxEnrolmentRepositorySpec extends WordSpec with Matchers with MongoSuppor
       "return a the updated tax enrolment record" in {
         await(repository.save(taxEnrolmentRequest).value)
         await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe (Right(
-          Some(updatedTaxEnrolmentRequest)))
+          Some(updatedTaxEnrolmentRequest)
+        ))
       }
     }
 

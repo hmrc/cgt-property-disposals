@@ -40,7 +40,7 @@ trait BusinessPartnerRecordConnector {
 }
 
 @Singleton
-class BusinessPartnerRecordConnectorImpl @Inject()(
+class BusinessPartnerRecordConnectorImpl @Inject() (
   http: HttpClient,
   val config: ServicesConfig
 )(implicit ec: ExecutionContext)
@@ -95,7 +95,7 @@ class BusinessPartnerRecordConnectorImpl @Inject()(
 
 object BusinessPartnerRecordConnectorImpl {
 
-  private final case class RegisterDetails(
+  final case class RegisterDetails(
     regime: String,
     requiresNameMatch: Boolean,
     isAnAgent: Boolean,
@@ -103,14 +103,14 @@ object BusinessPartnerRecordConnectorImpl {
     organisation: Option[RegisterOrganisation]
   )
 
-  private final case class RegisterIndividual(firstName: String, lastName: String)
+  final case class RegisterIndividual(firstName: String, lastName: String)
 
-  private final case class RegisterOrganisation(organisationName: String, organisationType: String)
+  final case class RegisterOrganisation(organisationName: String, organisationType: String)
 
-  private implicit val desIndividualFormat: OFormat[RegisterIndividual] = Json.format[RegisterIndividual]
+  implicit val desIndividualFormat: OFormat[RegisterIndividual] = Json.format[RegisterIndividual]
 
-  private implicit val desOrganisationFormat: OFormat[RegisterOrganisation] = Json.format[RegisterOrganisation]
+  implicit val desOrganisationFormat: OFormat[RegisterOrganisation] = Json.format[RegisterOrganisation]
 
-  private implicit val registerDetailsFormat: OFormat[RegisterDetails] = Json.format[RegisterDetails]
+  implicit val registerDetailsFormat: OFormat[RegisterDetails] = Json.format[RegisterDetails]
 
 }
