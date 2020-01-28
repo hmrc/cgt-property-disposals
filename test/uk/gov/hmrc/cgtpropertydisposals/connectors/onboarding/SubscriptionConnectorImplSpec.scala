@@ -411,7 +411,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     "handling requests to get subscription status" must {
 
       val sapNumber                     = SapNumber("sap")
-      val expectedSubscriptionStatusUrl = s"http://host:123/subscriptions/CGT/${sapNumber.value}/status"
+      val expectedSubscriptionStatusUrl = s"http://host:123/cross-regime/subscription/CGT/${sapNumber.value}/status"
 
       "do a post http call and return the result" in {
         List(
