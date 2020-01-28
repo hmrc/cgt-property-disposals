@@ -43,6 +43,7 @@ lazy val microservice = Project(appName, file("."))
     SbtDistributablesPlugin,
     SbtArtifactory
   )
+  .disablePlugins(JUnitXmlReportPlugin)
   .settings(scalaVersion := "2.12.10")
   .settings(
     scalafmtOnCompile := true,

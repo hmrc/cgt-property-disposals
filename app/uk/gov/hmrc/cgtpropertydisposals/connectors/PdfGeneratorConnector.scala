@@ -36,7 +36,7 @@ trait PdfGeneratorConnector {
 }
 
 @Singleton
-class PdfGeneratorConnectorImpl @Inject()(config: ServicesConfig, http: HttpClient)(implicit ec: ExecutionContext)
+class PdfGeneratorConnectorImpl @Inject() (config: ServicesConfig, http: HttpClient)(implicit ec: ExecutionContext)
     extends PdfGeneratorConnector
     with Logging {
 
