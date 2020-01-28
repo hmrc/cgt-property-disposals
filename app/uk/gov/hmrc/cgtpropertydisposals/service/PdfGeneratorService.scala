@@ -31,7 +31,7 @@ trait PdfGeneratorService {
 }
 
 @Singleton
-class PdfGeneratorServiceImpl @Inject()(pdfGeneratorConnector: PdfGeneratorConnector)
+class PdfGeneratorServiceImpl @Inject() (pdfGeneratorConnector: PdfGeneratorConnector)
     extends PdfGeneratorService
     with Logging {
 
