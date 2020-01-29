@@ -27,7 +27,7 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.ExecutionContext
 
-class DraftReturnsController @Inject()(
+class DraftReturnsController @Inject() (
   authenticate: AuthenticateActions,
   draftReturnsService: DraftReturnsService,
   auditService: AuditService,

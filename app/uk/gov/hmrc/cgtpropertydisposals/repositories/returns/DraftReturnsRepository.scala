@@ -40,7 +40,7 @@ trait DraftReturnsRepository {
 class DefaultDraftReturnsRepository @Inject() (mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
 ) extends ReactiveRepository[DraftReturn, BSONObjectID](
-      collectionName = "draft-return",
+      collectionName = "draft-returns",
       mongo          = mongo.mongoConnector.db,
       DraftReturn.format,
       ReactiveMongoFormats.objectIdFormats

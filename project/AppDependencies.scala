@@ -8,7 +8,8 @@ object AppDependencies {
     "uk.gov.hmrc"       %% "bootstrap-play-26"        % "1.3.0",
     "org.typelevel"     %% "cats-core"                % "2.1.0",
     "org.julienrf"      %% "play-json-derived-codecs" % "7.0.0",
-    "com.github.kxbmap" %% "configs"                  % "0.4.4"
+    "com.github.kxbmap" %% "configs"                  % "0.4.4",
+    "uk.gov.hmrc"       %% "mongo-caching"            % "6.6.0-play-26"
   )
 
   val test = Seq(

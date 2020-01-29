@@ -47,10 +47,9 @@ class DraftReturnsServiceImpl @Inject() (
   override def saveDraftReturn(draftReturn: DraftReturn)(
     implicit hc: HeaderCarrier,
     ec: ExecutionContext
-  ): EitherT[Future, Error, Unit] = {
+  ): EitherT[Future, Error, Unit] =
     draftReturnRepository
       .save(draftReturn)
       .leftMap(error => Error(s"Could not store draft return: $error"))
-  }
 
 }
