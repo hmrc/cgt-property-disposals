@@ -1,0 +1,2 @@
+#GET  /draft-return       uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturn()
+POST /draft-return       uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturnSubmit()
