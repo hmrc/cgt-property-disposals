@@ -24,6 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.ExecutionContext
 
@@ -41,7 +42,7 @@ class DraftReturnsController @Inject() (
     withJsonBody[DraftReturn] { draftReturn =>
       draftReturnsService.saveDraftReturn(draftReturn).value.map {
         case Left(e) =>
-          logger.warn("Could not store draft return")
+          logger.warn("Could not store draft return", e)
           InternalServerError("")
 
         case Right(_) =>

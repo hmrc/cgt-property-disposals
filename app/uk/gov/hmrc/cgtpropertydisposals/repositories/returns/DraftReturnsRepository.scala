@@ -18,57 +18,26 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-
+import play.api.libs.json.Json
 import scala.concurrent.{ExecutionContext, Future}
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 
 @ImplementedBy(classOf[DefaultDraftReturnsRepository])
 trait DraftReturnsRepository {
-
   def save(draftReturn: DraftReturn): EitherT[Future, Error, Unit]
-
 }
 
 @Singleton
-class DefaultDraftReturnsRepository @Inject() (mongo: ReactiveMongoComponent)(
+class DefaultDraftReturnsRepository @Inject() (mongo: ReactiveMongoComponent, cacheRepository: CacheRepository)(
   implicit ec: ExecutionContext
-) extends ReactiveRepository[DraftReturn, BSONObjectID](
-      collectionName = "draft-returns",
-      mongo          = mongo.mongoConnector.db,
-      DraftReturn.format,
-      ReactiveMongoFormats.objectIdFormats
-    )
-    with DraftReturnsRepository {
-
-  override def indexes: Seq[Index] = Seq(
-    Index(
-      key  = Seq("id" → IndexType.Ascending),
-      name = Some("idIndex")
-    )
-  )
+) extends DraftReturnsRepository {
 
   override def save(draftReturn: DraftReturn): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
-      insert(draftReturn)
-        .map[Either[Error, Unit]] { result: WriteResult =>
-          if (result.ok)
-            Right(())
-          else
-            Left(
-              Error(
-                s"Could not insert draft return into database: got write errors :${result.writeErrors}"
-              )
-            )
-        }
-        .recover {
-          case exception => Left(Error(exception))
-        }
+      cacheRepository
+        .set(draftReturn.id.toString, Json.toJson(draftReturn))
     )
 }

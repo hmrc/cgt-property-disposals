@@ -14,16 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.config
 
-import java.util.UUID
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.{Configuration, Environment}
+import com.google.inject.Singleton
+import javax.inject.Inject
+import play.api.Mode
 
-final case class DraftReturn(id: UUID, cgtReference: CgtReference, triageAnswers: IndividualTriageAnswers)
+@Singleton
+class AppConfig @Inject() (
+  val runModeConfiguration: Configuration,
+  val environment: Environment,
+  servicesConfig: ServicesConfig
+) {
 
-object DraftReturn {
+  protected def mode: Mode = environment.mode
 
-  implicit val format: OFormat[DraftReturn] = Json.format[DraftReturn]
+  val appName: String = servicesConfig.getString("appName")
+
+  val mongoSessionExpireAfterSeconds: Int = servicesConfig.getInt("mongodb.session.expireAfterSeconds")
 
 }
