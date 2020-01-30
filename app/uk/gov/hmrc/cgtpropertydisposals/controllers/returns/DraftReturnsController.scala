@@ -43,10 +43,10 @@ class DraftReturnsController @Inject() (
       draftReturnsService.saveDraftReturn(draftReturn).value.map {
         case Left(e) =>
           logger.warn("Could not store draft return", e)
-          InternalServerError("")
+          InternalServerError
 
         case Right(_) =>
-          Ok(s"Stored draft return.")
+          Ok
       }
     }
   }
