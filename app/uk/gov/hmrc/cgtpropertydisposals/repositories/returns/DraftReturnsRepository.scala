@@ -19,11 +19,15 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.Json
+
 import scala.concurrent.{ExecutionContext, Future}
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.bson.BSONObjectID
+import uk.gov.hmrc.cgtpropertydisposals.config.AppConfig
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
+import uk.gov.hmrc.mongo.ReactiveRepository
 
 @ImplementedBy(classOf[DefaultDraftReturnsRepository])
 trait DraftReturnsRepository {
@@ -31,13 +35,22 @@ trait DraftReturnsRepository {
 }
 
 @Singleton
-class DefaultDraftReturnsRepository @Inject() (mongo: ReactiveMongoComponent, cacheRepository: CacheRepository)(
+class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, appConfig: AppConfig)(
   implicit ec: ExecutionContext
-) extends DraftReturnsRepository {
+) extends ReactiveRepository[DraftReturn, BSONObjectID](
+      collectionName = "draft-returns",
+      mongo          = component.mongoConnector.db,
+      domainFormat   = DraftReturn.format
+    )
+    with DraftReturnsRepository
+    with CacheRepository[DraftReturn] {
+
+  val cacheTtl: Int     = appConfig.mongoSessionExpireAfterSeconds
+  val indexName: String = "draft-return-cache-ttl"
+  val objName: String   = "return"
 
   override def save(draftReturn: DraftReturn): EitherT[Future, Error, Unit] =
-    EitherT[Future, Error, Unit](
-      cacheRepository
-        .set(draftReturn.id.toString, Json.toJson(draftReturn))
+    EitherT(
+      set(draftReturn.id.toString, Json.toJson(draftReturn))
     )
 }
