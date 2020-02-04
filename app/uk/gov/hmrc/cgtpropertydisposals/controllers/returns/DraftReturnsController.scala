@@ -17,15 +17,16 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import com.google.inject.Inject
-import play.api.libs.json.JsValue
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
+
 import scala.concurrent.ExecutionContext
 
 class DraftReturnsController @Inject() (
@@ -38,13 +39,25 @@ class DraftReturnsController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
+  def draftReturn(cgtReference: String): Action[AnyContent] = authenticate.async {
+    draftReturnsService
+      .getDraftReturn(cgtReference)
+      .value
+      .map {
+        case Left(e) =>
+          logger.warn(s"Failed to get draftreturn with $cgtReference", e)
+          InternalServerError
+        case Right(drList) =>
+          Ok(Json.toJson(GetDraftReturnResponse(drList)))
+      }
+  }
+
   def draftReturnSubmit: Action[JsValue] = authenticate(parse.json).async { implicit request =>
     withJsonBody[DraftReturn] { draftReturn =>
       draftReturnsService.saveDraftReturn(draftReturn).value.map {
         case Left(e) =>
           logger.warn("Could not store draft return", e)
           InternalServerError
-
         case Right(_) =>
           Ok
       }

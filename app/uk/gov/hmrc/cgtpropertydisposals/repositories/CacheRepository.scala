@@ -17,7 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
 import com.google.inject.Singleton
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json._
+import reactivemongo.api.Cursor
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.collection.JSONBatchCommands.FindAndModifyCommand
@@ -27,6 +28,11 @@ import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
+import cats.syntax.either._
+import cats.instances.list._
+import cats.syntax.traverse._
+import cats.instances.either._
+import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 
@@ -52,19 +58,23 @@ trait CacheRepository[A] { this: ReactiveRepository[A, BSONObjectID] =>
       case Failure(e) => logger.warn("Could not ensure indices", e)
     }
 
-  def get(key: String): Future[Either[Error, Option[JsValue]]] =
+  def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
+    Error(JsError(e).prettyPrint())
+
+  def get(key: String): Future[Either[Error, List[A]]] =
     collection
-      .find(Json.obj("_id" -> key), None)
-      .one[A]
-      .map(dr => Right(dr.map(Json.toJson(_))))
-      .recover {
-        case NonFatal(e) => Left(Error(e))
+      .find(Json.obj("return.cgtReference.value" -> ("$eq" -> key)), None)
+      .cursor[JsValue]()
+      .collect[List](10, Cursor.FailOnError[List[JsValue]]())
+      .map { l =>
+        val p: List[Either[Error, A]] = l.map(_.validate[A].asEither.leftMap(toError))
+        p.sequence[Either[Error, ?], A]
       }
 
-  def set(key: String, value: JsValue): Future[Either[Error, Unit]] =
+  def set(key: String, value: A): Future[Either[Error, Unit]] =
     withCurrentTime { time =>
       val selector = Json.obj("_id"  -> key)
-      val modifier = Json.obj("$set" -> Json.obj(objName -> value, "lastUpdated" -> time))
+      val modifier = Json.obj("$set" -> Json.obj(objName -> Json.toJson(value), "lastUpdated" -> time))
 
       collection
         .update(false)
