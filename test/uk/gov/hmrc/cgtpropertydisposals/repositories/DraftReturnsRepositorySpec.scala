@@ -16,26 +16,42 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
+import com.typesafe.config.ConfigFactory
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository
 import org.scalamock.scalatest.MockFactory
+import play.api.{Configuration, Environment, Mode}
+import uk.gov.hmrc.cgtpropertydisposals.config.AppConfig
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.sample
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import play.api.test.Helpers._
 
 class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSupport with MockFactory {
+  val config = Configuration(
+    ConfigFactory.parseString(
+      """
+        | appName=cgt-property-disposals
+        | mongodb.session.expireAfterSeconds = 600
+        | mongodb.maxDraftReturns = 10
+        |""".stripMargin
+    )
+  )
+  val runMode        = new RunMode(config, Mode.Dev)
+  val servicesConfig = new ServicesConfig(configuration = config, runMode = runMode)
 
-  private val cacheRepository = mock[CacheRepository]
+  val environment       = mock[Environment]
+  private val appConfig = new AppConfig(config, environment, servicesConfig)
 
-  val repository  = new DefaultDraftReturnsRepository(reactiveMongoComponent, cacheRepository)
+  val repository  = new DefaultDraftReturnsRepository(reactiveMongoComponent, appConfig)
   val draftReturn = sample[DraftReturn]
 
   "DraftReturnsRepository" when {
     "inserting" should {
       "create a new draft return successfully" in {
-        repository.save(draftReturn).value shouldBe Right(())
+
+        await(repository.save(draftReturn).value) shouldBe Right(())
       }
     }
   }

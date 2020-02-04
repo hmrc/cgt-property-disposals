@@ -24,15 +24,13 @@ import play.api.Mode
 
 @Singleton
 class AppConfig @Inject() (
-  val runModeConfiguration: Configuration,
-  val environment: Environment,
+  runModeConfiguration: Configuration,
+  environment: Environment,
   servicesConfig: ServicesConfig
 ) {
 
-  protected def mode: Mode = environment.mode
-
-  val appName: String = servicesConfig.getString("appName")
-
+  protected def mode: Mode                = environment.mode
+  val appName: String                     = servicesConfig.getString("appName")
   val mongoSessionExpireAfterSeconds: Int = servicesConfig.getInt("mongodb.session.expireAfterSeconds")
   val maxDraftReturns: Int                = servicesConfig.getInt("mongodb.maxDraftReturns")
 
