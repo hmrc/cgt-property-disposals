@@ -66,7 +66,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
     s"$baseUrl/subscriptions/CGT/ZCGT/${cgtReference.value}"
 
   def subscriptionStatusUrl(sapNumber: SapNumber): String =
-    s"$baseUrl/subscriptions/CGT/${sapNumber.value}/status"
+    s"$baseUrl/cross-regime/subscription/CGT/${sapNumber.value}/status"
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails

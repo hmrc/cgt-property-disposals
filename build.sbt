@@ -43,6 +43,7 @@ lazy val microservice = Project(appName, file("."))
     SbtDistributablesPlugin,
     SbtArtifactory
   )
+  .disablePlugins(JUnitXmlReportPlugin)
   .settings(
       addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
     )
