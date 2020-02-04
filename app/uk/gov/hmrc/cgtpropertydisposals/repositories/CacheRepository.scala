@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories
 
 import com.google.inject.Singleton
 import play.api.libs.json._
-import reactivemongo.api.Cursor
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.collection.JSONBatchCommands.FindAndModifyCommand
@@ -28,11 +27,6 @@ import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
-import cats.syntax.either._
-import cats.instances.list._
-import cats.syntax.traverse._
-import cats.instances.either._
-import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 
@@ -43,7 +37,7 @@ trait CacheRepository[A] { this: ReactiveRepository[A, BSONObjectID] =>
   val indexName: String
   val objName: String
 
-  private val index = Index(
+  private lazy val index = Index(
     key     = Seq("lastUpdated" → IndexType.Ascending),
     name    = Some(indexName),
     options = BSONDocument("expireAfterSeconds" -> cacheTtl)
@@ -57,19 +51,6 @@ trait CacheRepository[A] { this: ReactiveRepository[A, BSONObjectID] =>
       case Success(_) => logger.info("Successfully ensured indices")
       case Failure(e) => logger.warn("Could not ensure indices", e)
     }
-
-  def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
-    Error(JsError(e).prettyPrint())
-
-  def get(key: String): Future[Either[Error, List[A]]] =
-    collection
-      .find(Json.obj("return.cgtReference.value" -> ("$eq" -> key)), None)
-      .cursor[JsValue]()
-      .collect[List](10, Cursor.FailOnError[List[JsValue]]())
-      .map { l =>
-        val p: List[Either[Error, A]] = l.map(_.validate[A].asEither.leftMap(toError))
-        p.sequence[Either[Error, ?], A]
-      }
 
   def set(key: String, value: A): Future[Either[Error, Unit]] =
     withCurrentTime { time =>
@@ -92,9 +73,7 @@ trait CacheRepository[A] { this: ReactiveRepository[A, BSONObjectID] =>
     }
 
   def invalidate(key: String): Future[FindAndModifyCommand.FindAndModifyResult] = {
-
     val selector = Json.obj("_id" -> key)
-
     collection.findAndRemove(selector)
   }
 

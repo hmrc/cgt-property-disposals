@@ -39,7 +39,7 @@ class DraftReturnsController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def draftReturn(cgtReference: String): Action[AnyContent] = authenticate.async {
+  def draftReturns(cgtReference: String): Action[AnyContent] = authenticate.async {
     draftReturnsService
       .getDraftReturn(cgtReference)
       .value

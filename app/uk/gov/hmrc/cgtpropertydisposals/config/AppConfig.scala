@@ -34,5 +34,6 @@ class AppConfig @Inject() (
   val appName: String = servicesConfig.getString("appName")
 
   val mongoSessionExpireAfterSeconds: Int = servicesConfig.getInt("mongodb.session.expireAfterSeconds")
+  val maxDraftReturns: Int                = servicesConfig.getInt("mongodb.maxDraftReturns")
 
 }

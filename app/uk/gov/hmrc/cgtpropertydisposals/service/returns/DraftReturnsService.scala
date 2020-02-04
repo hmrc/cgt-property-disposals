@@ -28,7 +28,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[DraftReturnsServiceImpl])
+@ImplementedBy(classOf[DefaultDraftReturnsService])
 trait DraftReturnsService {
 
   def getDraftReturn(cgtReference: String): EitherT[Future, Error, List[DraftReturn]]
@@ -41,7 +41,7 @@ trait DraftReturnsService {
 }
 
 @Singleton
-class DraftReturnsServiceImpl @Inject() (
+class DefaultDraftReturnsService @Inject() (
   draftReturnRepository: DraftReturnsRepository,
   metrics: Metrics
 ) extends DraftReturnsService
