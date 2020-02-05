@@ -23,23 +23,21 @@ import cats.data.EitherT
 import cats.instances.future._
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Headers
+import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.http.HeaderCarrier
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class DraftReturnsControllerSpec extends ControllerSpec {
 
