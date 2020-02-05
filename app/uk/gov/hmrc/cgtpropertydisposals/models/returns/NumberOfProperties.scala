@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.util.UUID
+import julienrf.json.derived
+import play.api.libs.json.OFormat
 
-import com.google.inject.{ImplementedBy, Singleton}
+sealed trait NumberOfProperties extends Product with Serializable
 
-@ImplementedBy(classOf[UUIDGeneratorImpl])
-trait UUIDGenerator {
+object NumberOfProperties {
 
-  def nextId(): UUID
+  case object One extends NumberOfProperties
 
-}
+  case object MoreThanOne extends NumberOfProperties
 
-@Singleton
-class UUIDGeneratorImpl extends UUIDGenerator {
-
-  def nextId(): UUID = UUID.randomUUID()
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  implicit val format: OFormat[NumberOfProperties] = derived.oformat()
 
 }

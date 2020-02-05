@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import java.time.{Instant, LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 
 import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
@@ -27,6 +27,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 import scala.reflect.{ClassTag, classTag}
@@ -37,7 +38,8 @@ object Generators
     with NameGen
     with OnboardingGen
     with BusinessPartnerRecordGen
-    with TaxEnrolmentGen {
+    with TaxEnrolmentGen
+    with DraftReturnGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -59,6 +61,10 @@ sealed trait GenUtils {
         .chooseNum(0L, Long.MaxValue)
         .map(l => LocalDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.systemDefault()))
     )
+
+  implicit val localDateArb: Arbitrary[LocalDate] = Arbitrary(
+    Gen.chooseNum(0, Int.MaxValue).map(LocalDate.ofEpochDay(_))
+  )
 
 }
 
@@ -101,5 +107,11 @@ trait TaxEnrolmentGen { this: GenUtils =>
   implicit val taxEnrolmentRequestGen: Gen[TaxEnrolmentRequest] = gen[TaxEnrolmentRequest]
 
   implicit val updateVerifiersRequestGen: Gen[UpdateVerifiersRequest] = gen[UpdateVerifiersRequest]
+
+}
+
+trait DraftReturnGen { this: GenUtils =>
+
+  implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 
 }

@@ -14,22 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.util.UUID
+import java.time.LocalDate
 
-import com.google.inject.{ImplementedBy, Singleton}
+import play.api.libs.json.{Json, OFormat}
 
-@ImplementedBy(classOf[UUIDGeneratorImpl])
-trait UUIDGenerator {
+final case class DisposalDate(value: LocalDate) extends AnyVal
 
-  def nextId(): UUID
+object DisposalDate {
 
-}
-
-@Singleton
-class UUIDGeneratorImpl extends UUIDGenerator {
-
-  def nextId(): UUID = UUID.randomUUID()
+  implicit val format: OFormat[DisposalDate] = Json.format
 
 }

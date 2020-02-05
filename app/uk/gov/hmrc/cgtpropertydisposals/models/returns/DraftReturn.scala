@@ -14,22 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import java.util.UUID
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 
-import com.google.inject.{ImplementedBy, Singleton}
+final case class DraftReturn(id: UUID, cgtReference: CgtReference, triageAnswers: IndividualTriageAnswers)
 
-@ImplementedBy(classOf[UUIDGeneratorImpl])
-trait UUIDGenerator {
+object DraftReturn {
 
-  def nextId(): UUID
-
-}
-
-@Singleton
-class UUIDGeneratorImpl extends UUIDGenerator {
-
-  def nextId(): UUID = UUID.randomUUID()
+  implicit val format: OFormat[DraftReturn] = Json.format[DraftReturn]
 
 }
