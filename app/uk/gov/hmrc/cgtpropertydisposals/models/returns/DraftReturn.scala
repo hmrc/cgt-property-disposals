@@ -17,12 +17,21 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import java.util.UUID
+
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 
-final case class DraftReturn(id: UUID, cgtReference: CgtReference, triageAnswers: IndividualTriageAnswers)
+final case class DraftReturn(
+  id: UUID,
+  cgtReference: CgtReference,
+  triageAnswers: IndividualTriageAnswers,
+  propertyAddress: Option[UkAddress]
+)
 
 object DraftReturn {
+
+  implicit val ukAddressFormat: OFormat[UkAddress] = Json.format[UkAddress]
 
   implicit val format: OFormat[DraftReturn] = Json.format[DraftReturn]
 
