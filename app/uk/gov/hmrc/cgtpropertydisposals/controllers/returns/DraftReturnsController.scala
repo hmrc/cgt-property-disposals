@@ -20,13 +20,14 @@ import com.google.inject.Inject
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
-
+import cats.instances.future._
 import scala.concurrent.ExecutionContext
 
 class DraftReturnsController @Inject() (
@@ -41,26 +42,27 @@ class DraftReturnsController @Inject() (
 
   def draftReturns(cgtReference: String): Action[AnyContent] = authenticate.async {
     draftReturnsService
-      .getDraftReturn(cgtReference)
-      .value
-      .map {
-        case Left(e) =>
-          logger.warn(s"Failed to get draftreturn with $cgtReference", e)
+      .getDraftReturn(CgtReference(cgtReference))
+      .fold(
+        { e =>
+          logger.warn(s"Failed to get draft return with $cgtReference", e)
           InternalServerError
-        case Right(drList) =>
-          Ok(Json.toJson(GetDraftReturnResponse(drList)))
-      }
+        },
+        draftReturns => Ok(Json.toJson(GetDraftReturnResponse(draftReturns)))
+      )
   }
 
   def draftReturnSubmit: Action[JsValue] = authenticate(parse.json).async { implicit request =>
     withJsonBody[DraftReturn] { draftReturn =>
-      draftReturnsService.saveDraftReturn(draftReturn).value.map {
-        case Left(e) =>
-          logger.warn("Could not store draft return", e)
-          InternalServerError
-        case Right(_) =>
-          Ok
-      }
+      draftReturnsService
+        .saveDraftReturn(draftReturn)
+        .fold(
+          { e =>
+            logger.warn("Could not store draft return", e)
+            InternalServerError
+          },
+          _ => Ok
+        )
     }
   }
 

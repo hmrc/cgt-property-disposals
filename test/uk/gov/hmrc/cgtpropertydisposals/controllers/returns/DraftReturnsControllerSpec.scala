@@ -28,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.sample
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -37,6 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -49,10 +50,16 @@ class DraftReturnsControllerSpec extends ControllerSpec {
 
   val draftReturn = sample[DraftReturn]
 
-  def mockDraftReturnsService(df: DraftReturn)(response: Either[Error, Unit]) =
+  def mockStoreDraftReturnsService(df: DraftReturn)(response: Either[Error, Unit]) =
     (draftReturnsService
-      .saveDraftReturn(_: DraftReturn)(_: HeaderCarrier, _: ExecutionContext))
-      .expects(df, *, *)
+      .saveDraftReturn(_: DraftReturn))
+      .expects(df)
+      .returning(EitherT.fromEither[Future](response))
+
+  def mockGetDraftReturnsService(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
+    (draftReturnsService
+      .getDraftReturn(_: CgtReference))
+      .expects(cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
   implicit lazy val mat: Materializer = fakeApplication.materializer
@@ -75,26 +82,50 @@ class DraftReturnsControllerSpec extends ControllerSpec {
 
   "DraftReturnsController" when {
 
-    "Draft returns" must {
+    "handling requests to store a draft return" must {
 
-      "store in mongo successfully" in {
-        mockDraftReturnsService(draftReturn)(Right(()))
+      "return a 200 response if the draft returned was stored successfully" in {
+        mockStoreDraftReturnsService(draftReturn)(Right(()))
 
         val result = controller.draftReturnSubmit()(fakeRequestWithJsonBody(Json.toJson(draftReturn)))
         status(result) shouldBe OK
       }
 
-      "should not store in mongo" in {
+      "return a 500 response if the draft return was not stored successfully" in {
         List(
           Error(new Exception("oh no!")),
           Error("oh no!")
         ).foreach { e =>
-          mockDraftReturnsService(draftReturn)(Left(e))
+          mockStoreDraftReturnsService(draftReturn)(Left(e))
 
           val result = controller.draftReturnSubmit()(fakeRequestWithJsonBody(Json.toJson(draftReturn)))
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
       }
+    }
+
+    "handling requests to get draft returns" must {
+      val cgtReference = sample[CgtReference]
+      val draftReturns = List.fill(10)(sample[DraftReturn])
+
+      "return available draft returns from mongo successfully" in {
+
+        mockGetDraftReturnsService(cgtReference)(Right(draftReturns))
+
+        val result = controller.draftReturns(cgtReference.value)(request)
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(GetDraftReturnResponse(draftReturns))
+
+      }
+
+      "return a 500 response if the draft return was not retrieved successfully" in {
+
+        mockGetDraftReturnsService(cgtReference)(Left(Error("")))
+
+        val result = controller.draftReturns(cgtReference.value)(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
     }
 
   }

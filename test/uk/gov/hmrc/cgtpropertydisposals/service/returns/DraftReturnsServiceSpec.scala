@@ -21,6 +21,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import cats.instances.future._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -29,12 +30,14 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DraftReturnsRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import play.api.test.Helpers._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+
 import scala.concurrent.Future
 
 class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   val draftReturnRepository = mock[DraftReturnsRepository]
-  val draftReturnsService   = new DefaultDraftReturnsService(draftReturnRepository, MockMetrics.metrics)
+  val draftReturnsService   = new DefaultDraftReturnsService(draftReturnRepository)
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -44,9 +47,9 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(draftReturn)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockGetDraftReturn(cgtReference: String)(response: Either[Error, List[DraftReturn]]) =
+  def mockGetDraftReturn(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
     (draftReturnRepository
-      .fetch(_: String))
+      .fetch(_: CgtReference))
       .expects(cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
@@ -67,7 +70,7 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
     "Retrieve" should {
       "return draft returns successfully" in {
-        val cgtReference = ""
+        val cgtReference = sample[CgtReference]
         val draftReturn  = sample[DraftReturn]
 
         mockGetDraftReturn(cgtReference)(Right(List(draftReturn)))

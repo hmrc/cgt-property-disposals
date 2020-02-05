@@ -33,13 +33,6 @@ object IndividualTriageAnswers {
     completionDate: Option[CompletionDate]
   ) extends IndividualTriageAnswers
 
-  object IncompleteIndividualTriageAnswers {
-    val empty: IncompleteIndividualTriageAnswers =
-      IncompleteIndividualTriageAnswers(None, None, None, None, None, None, None)
-
-    implicit val format: OFormat[IncompleteIndividualTriageAnswers] = Json.format
-  }
-
   final case class CompleteIndividualTriageAnswers(
     individualUserType: IndividualUserType,
     numberOfProperties: NumberOfProperties,
@@ -49,24 +42,6 @@ object IndividualTriageAnswers {
     disposalDate: DisposalDate,
     completionDate: CompletionDate
   ) extends IndividualTriageAnswers
-
-  object CompleteIndividualTriageAnswers {
-
-    implicit val format: OFormat[CompleteIndividualTriageAnswers] = Json.format
-  }
-
-  implicit class IndividualTriageQuestionOps(val i: IndividualTriageAnswers) extends AnyVal {
-
-    def fold[A](
-      ifIncomplete: IncompleteIndividualTriageAnswers => A,
-      ifComplete: CompleteIndividualTriageAnswers => A
-    ): A = i match {
-      case incomplete: IncompleteIndividualTriageAnswers => ifIncomplete(incomplete)
-      case complete: CompleteIndividualTriageAnswers     => ifComplete(complete)
-    }
-
-  }
-
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[IndividualTriageAnswers] = derived.oformat()
 

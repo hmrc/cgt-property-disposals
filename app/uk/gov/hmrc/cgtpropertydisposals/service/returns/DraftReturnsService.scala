@@ -17,45 +17,33 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
-import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DraftReturnsRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.http.HeaderCarrier
-
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultDraftReturnsService])
 trait DraftReturnsService {
 
-  def getDraftReturn(cgtReference: String): EitherT[Future, Error, List[DraftReturn]]
+  def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]]
 
-  def saveDraftReturn(draftReturn: DraftReturn)(
-    implicit hc: HeaderCarrier,
-    ec: ExecutionContext
-  ): EitherT[Future, Error, Unit]
+  def saveDraftReturn(draftReturn: DraftReturn): EitherT[Future, Error, Unit]
 
 }
 
 @Singleton
 class DefaultDraftReturnsService @Inject() (
-  draftReturnRepository: DraftReturnsRepository,
-  metrics: Metrics
+  draftReturnRepository: DraftReturnsRepository
 ) extends DraftReturnsService
     with Logging {
 
-  def getDraftReturn(cgtReference: String): EitherT[Future, Error, List[DraftReturn]] =
+  def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
     draftReturnRepository.fetch(cgtReference)
 
-  override def saveDraftReturn(draftReturn: DraftReturn)(
-    implicit hc: HeaderCarrier,
-    ec: ExecutionContext
-  ): EitherT[Future, Error, Unit] =
-    draftReturnRepository
-      .save(draftReturn)
-      .leftMap(error => Error(s"Could not store draft return: $error"))
+  override def saveDraftReturn(draftReturn: DraftReturn): EitherT[Future, Error, Unit] =
+    draftReturnRepository.save(draftReturn)
 
 }

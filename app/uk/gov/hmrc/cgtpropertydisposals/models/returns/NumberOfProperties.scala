@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import cats.Eq
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 
@@ -27,8 +26,6 @@ object NumberOfProperties {
   case object One extends NumberOfProperties
 
   case object MoreThanOne extends NumberOfProperties
-
-  implicit val eq: Eq[NumberOfProperties] = Eq.fromUniversalEquals
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[NumberOfProperties] = derived.oformat()

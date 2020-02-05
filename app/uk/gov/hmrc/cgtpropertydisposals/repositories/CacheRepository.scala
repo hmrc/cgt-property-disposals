@@ -16,31 +16,31 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
-import com.google.inject.Singleton
 import play.api.libs.json._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.collection.JSONBatchCommands.FindAndModifyCommand
+import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.mongo.ReactiveRepository
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
-@Singleton
-trait CacheRepository[A] { this: ReactiveRepository[A, BSONObjectID] =>
+trait CacheRepository[A] {
+  this: ReactiveRepository[A, BSONObjectID] =>
 
-  val cacheTtl: Int
+  val cacheTtl: FiniteDuration
   val indexName: String
   val objName: String
 
   private lazy val index = Index(
     key     = Seq("lastUpdated" → IndexType.Ascending),
     name    = Some(indexName),
-    options = BSONDocument("expireAfterSeconds" -> cacheTtl)
+    options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
   )
 
   dropInvalidIndexes
@@ -72,17 +72,12 @@ trait CacheRepository[A] { this: ReactiveRepository[A, BSONObjectID] =>
         }
     }
 
-  def invalidate(key: String): Future[FindAndModifyCommand.FindAndModifyResult] = {
-    val selector = Json.obj("_id" -> key)
-    collection.findAndRemove(selector)
-  }
-
   private def dropInvalidIndexes: Future[Unit] =
     collection.indexesManager.list().flatMap { indexes =>
       indexes
         .find { index =>
           index.name.contains(indexName) &&
-          !index.options.getAs[Int]("expireAfterSeconds").contains(cacheTtl)
+          !index.options.getAs[Long]("expireAfterSeconds").contains(cacheTtl.toSeconds)
         }
         .map { i =>
           logger.warn(s"dropping $i as ttl value is incorrect for index")

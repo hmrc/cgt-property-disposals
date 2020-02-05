@@ -14,45 +14,49 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories
+package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository
 import org.scalamock.scalatest.MockFactory
-import play.api.{Configuration, Environment, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.config.AppConfig
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.sample
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.test.Helpers._
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSupport with MockFactory {
   val config = Configuration(
     ConfigFactory.parseString(
       """
-        | appName=cgt-property-disposals
-        | mongodb.session.expireAfterSeconds = 600
-        | mongodb.maxDraftReturns = 10
+        | mongodb.draft-returns.expiry-time = 30days
+        | mongodb.draft-returns.max-draft-returns = 10
         |""".stripMargin
     )
   )
-  val runMode        = new RunMode(config, Mode.Dev)
-  val servicesConfig = new ServicesConfig(configuration = config, runMode = runMode)
 
-  val environment       = mock[Environment]
-  private val appConfig = new AppConfig(config, environment, servicesConfig)
-
-  val repository  = new DefaultDraftReturnsRepository(reactiveMongoComponent, appConfig)
+  val repository  = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
   val draftReturn = sample[DraftReturn]
 
   "DraftReturnsRepository" when {
     "inserting" should {
       "create a new draft return successfully" in {
-
         await(repository.save(draftReturn).value) shouldBe Right(())
       }
     }
+
+    "getting" should {
+      "retrieve an existing record" in {
+        val draftReturn2 = sample[DraftReturn].copy(cgtReference = draftReturn.cgtReference)
+
+        await(repository.save(draftReturn).value)  shouldBe Right(())
+        await(repository.save(draftReturn2).value) shouldBe Right(())
+
+        await(repository.fetch(draftReturn.cgtReference).value).map(_.toSet) shouldBe Right(
+          Set(draftReturn, draftReturn2)
+        )
+      }
+    }
+
   }
 }

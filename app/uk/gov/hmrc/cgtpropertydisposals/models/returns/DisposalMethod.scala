@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import cats.Eq
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 
@@ -27,8 +26,6 @@ object DisposalMethod {
   case object Sold extends DisposalMethod
 
   case object Gifted extends DisposalMethod
-
-  implicit val eq: Eq[DisposalMethod] = Eq.fromUniversalEquals
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[DisposalMethod] = derived.oformat()
