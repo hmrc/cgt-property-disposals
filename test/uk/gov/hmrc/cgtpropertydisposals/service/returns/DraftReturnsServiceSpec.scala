@@ -17,21 +17,18 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
+import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import cats.instances.future._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
+import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DraftReturnsRepository
 import uk.gov.hmrc.http.HeaderCarrier
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
