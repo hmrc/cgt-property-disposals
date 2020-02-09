@@ -16,25 +16,16 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.util.UUID
+import java.time.LocalDate
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format
 
-final case class DraftReturn(
-  id: UUID,
-  cgtReference: CgtReference,
-  triageAnswers: IndividualTriageAnswers,
-  propertyAddress: Option[UkAddress],
-  disposalDetailsAnswers: Option[DisposalDetailsAnswers],
-  acquisitionDetailsAnswers: Option[AcquisitionDetailsAnswers]
-)
+final case class AcquisitionDate(value: LocalDate) extends AnyVal
 
-object DraftReturn {
+object AcquisitionDate {
 
-  implicit val ukAddressFormat: OFormat[UkAddress] = Json.format[UkAddress]
-
-  implicit val format: OFormat[DraftReturn] = Json.format[DraftReturn]
+  implicit val format: Format[AcquisitionDate] =
+    implicitly[Format[LocalDate]].inmap(AcquisitionDate(_), _.value)
 
 }

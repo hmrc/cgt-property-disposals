@@ -16,25 +16,22 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.util.UUID
+import julienrf.json.derived
+import play.api.libs.json.OFormat
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+sealed trait AcquisitionMethod extends Product with Serializable
 
-final case class DraftReturn(
-  id: UUID,
-  cgtReference: CgtReference,
-  triageAnswers: IndividualTriageAnswers,
-  propertyAddress: Option[UkAddress],
-  disposalDetailsAnswers: Option[DisposalDetailsAnswers],
-  acquisitionDetailsAnswers: Option[AcquisitionDetailsAnswers]
-)
+object AcquisitionMethod {
 
-object DraftReturn {
+  final case object Bought extends AcquisitionMethod
 
-  implicit val ukAddressFormat: OFormat[UkAddress] = Json.format[UkAddress]
+  final case object Inherited extends AcquisitionMethod
 
-  implicit val format: OFormat[DraftReturn] = Json.format[DraftReturn]
+  final case object Gifted extends AcquisitionMethod
+
+  final case class Other(value: String) extends AcquisitionMethod
+
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  implicit val format: OFormat[AcquisitionMethod] = derived.oformat()
 
 }
