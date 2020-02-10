@@ -16,24 +16,26 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.util.UUID
+import julienrf.json.derived
+import play.api.libs.json.OFormat
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+sealed trait ShareOfProperty extends Product with Serializable {
+  val percentageValue: Double
+}
 
-final case class DraftReturn(
-  id: UUID,
-  cgtReference: CgtReference,
-  triageAnswers: IndividualTriageAnswers,
-  propertyAddress: Option[UkAddress],
-  disposalDetailsAnswers: Option[DisposalDetailsAnswers]
-)
+object ShareOfProperty {
 
-object DraftReturn {
+  case object Full extends ShareOfProperty {
+    val percentageValue: Double = 100d
+  }
 
-  implicit val ukAddressFormat: OFormat[UkAddress] = Json.format[UkAddress]
+  case object Half extends ShareOfProperty {
+    val percentageValue: Double = 50d
+  }
 
-  implicit val format: OFormat[DraftReturn] = Json.format[DraftReturn]
+  final case class Other(percentageValue: Double) extends ShareOfProperty
+
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  implicit val format: OFormat[ShareOfProperty] = derived.oformat()
 
 }
