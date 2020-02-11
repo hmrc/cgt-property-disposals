@@ -138,7 +138,12 @@ class TaxEnrolmentServiceImpl @Inject() (
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
           _            <- taxEnrolmentRepository.delete(createEnrolmentRequest.ggCredId) // delete record if enrolment was successful
         } yield ()
-        result.leftMap(error => logger.warn(s"Error when trying to create enrolments again: $error")).merge
+        result
+          .bimap(
+            error => logger.warn(s"Error when trying to create enrolments again: $error"),
+            _ => logger.info("Successfully enrolled user to cgt")
+          )
+          .merge
 
       case (None, Some(updateVerifiersRequest)) =>
         val result = for {
@@ -146,7 +151,12 @@ class TaxEnrolmentServiceImpl @Inject() (
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse))
           _            <- verifiersRepository.delete(updateVerifiersRequest.ggCredId)
         } yield ()
-        result.leftMap(error => logger.warn(s"Error when updating verifiers: $error")).merge
+        result
+          .bimap(
+            error => logger.warn(s"Error when updating verifiers: $error"),
+            _ => logger.info("Successfully updated verifiers in enrolment")
+          )
+          .merge
 
       case (Some(enrolmentRequest), Some(updateVerifiersRequest)) =>
         val updatedCreateEnrolmentRequest =
@@ -159,7 +169,12 @@ class TaxEnrolmentServiceImpl @Inject() (
           _            <- taxEnrolmentRepository.delete(enrolmentRequest.ggCredId) // delete record if enrolment was successful
           _            <- verifiersRepository.delete(enrolmentRequest.ggCredId) // delete the update verifier request
         } yield ()
-        result.leftMap(error => logger.warn(s"Error when creating enrolments with updated verifiers: $error")).merge
+        result
+          .bimap(
+            error => logger.warn(s"Error when creating enrolments with updated verifiers: $error"),
+            _ => logger.info("Successfully updated verifiers in enrolment after previous enrolment failure")
+          )
+          .merge
 
       case (None, None) => Future.successful(())
     }

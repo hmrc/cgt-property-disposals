@@ -98,10 +98,6 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
         )
     }
 
-    logger.info(
-      s"Allocating enrolment with these details : $taxEnrolmentRequest"
-    )
-
     EitherT[Future, Error, HttpResponse](
       http
         .put[Enrolments](enrolmentUrl, enrolmentRequest)
