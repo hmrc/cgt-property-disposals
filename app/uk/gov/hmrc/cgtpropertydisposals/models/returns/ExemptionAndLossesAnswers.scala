@@ -20,22 +20,24 @@ import julienrf.json.derived
 import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 
-sealed trait ReliefDetailsAnswers extends Product with Serializable
+sealed trait ExemptionAndLossesAnswers extends Product with Serializable
 
-object ReliefDetailsAnswers {
+object ExemptionAndLossesAnswers {
 
-  final case class IncompleteReliefDetailsAnswers(
-    privateResidentsRelief: Option[AmountInPence],
-    lettingsRelief: Option[AmountInPence],
-    otherReliefs: Option[OtherReliefsOption]
-  ) extends ReliefDetailsAnswers
+  final case class IncompleteExemptionAndLossesAnswers(
+    inYearLosses: Option[AmountInPence],
+    previousYearsLosses: Option[AmountInPence],
+    annualExemptAmount: Option[AmountInPence],
+    taxableGainOrLoss: Option[AmountInPence]
+  ) extends ExemptionAndLossesAnswers
 
-  final case class CompleteReliefDetailsAnswers(
-    privateResidentsRelief: AmountInPence,
-    lettingsRelief: AmountInPence,
-    otherReliefs: Option[OtherReliefsOption]
-  ) extends ReliefDetailsAnswers
-
+  final case class CompleteExemptionAndLossesAnswers(
+    inYearLosses: AmountInPence,
+    previousYearsLosses: AmountInPence,
+    annualExemptAmount: AmountInPence,
+    taxableGainOrLoss: Option[AmountInPence]
+  ) extends ExemptionAndLossesAnswers
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[ReliefDetailsAnswers] = derived.oformat()
+  implicit val format: OFormat[ExemptionAndLossesAnswers] = derived.oformat()
+
 }
