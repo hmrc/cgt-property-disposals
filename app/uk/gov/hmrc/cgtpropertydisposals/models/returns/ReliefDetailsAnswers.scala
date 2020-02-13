@@ -30,31 +30,11 @@ object ReliefDetailsAnswers {
     otherReliefs: Option[OtherReliefsOption]
   ) extends ReliefDetailsAnswers
 
-  object IncompleteReliefDetailsAnswers {
-    val empty: IncompleteReliefDetailsAnswers =
-      IncompleteReliefDetailsAnswers(None, None, None)
-  }
-
   final case class CompleteReliefDetailsAnswers(
     privateResidentsRelief: AmountInPence,
     lettingsRelief: AmountInPence,
     otherReliefs: Option[OtherReliefsOption]
   ) extends ReliefDetailsAnswers
-
-  object CompleteReliefDetailsAnswers {}
-
-  implicit class ReliefDetailsAnswersOps(private val a: ReliefDetailsAnswers) extends AnyVal {
-
-    def fold[A](
-      ifIncomplete: IncompleteReliefDetailsAnswers => A,
-      ifComplete: CompleteReliefDetailsAnswers => A
-    ): A = a match {
-      case i: IncompleteReliefDetailsAnswers => ifIncomplete(i)
-      case c: CompleteReliefDetailsAnswers   => ifComplete(c)
-    }
-
-  }
-
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ReliefDetailsAnswers] = derived.oformat()
 }
