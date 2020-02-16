@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Format
+import play.api.libs.json.{Json, OFormat}
 
-final case class AmountInPence(value: Long)
+final case class HasEstimatedDetailsWithCalculatedTaxDue(
+  hasEstimatedDetails: Boolean,
+  calculatedTaxDue: CalculatedTaxDue
+)
 
-object AmountInPence {
+object HasEstimatedDetailsWithCalculatedTaxDue {
 
-  implicit val format: Format[AmountInPence] =
-    implicitly[Format[Long]].inmap(AmountInPence(_), _.value)
-
+  implicit val format: OFormat[HasEstimatedDetailsWithCalculatedTaxDue] = Json.format
 }

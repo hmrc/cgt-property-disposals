@@ -24,7 +24,13 @@ final case class TaxYear(
   startDateInclusive: LocalDate,
   endDateExclusive: LocalDate,
   annualExemptAmountGeneral: AmountInPence,
-  annualExemptAmountNonVulnerableTrust: AmountInPence
+  annualExemptAmountNonVulnerableTrust: AmountInPence,
+  personalAllowance: AmountInPence,
+  incomeTaxHigherRateThreshold: AmountInPence,
+  cgtRateLowerBandResidential: BigDecimal,
+  cgtRateLowerBandNonResidential: BigDecimal,
+  cgtRateHigherBandResidential: BigDecimal,
+  cgtRateHigherBandNonResidential: BigDecimal
 )
 object TaxYear {
 
