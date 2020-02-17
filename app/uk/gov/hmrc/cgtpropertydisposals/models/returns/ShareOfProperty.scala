@@ -20,20 +20,20 @@ import julienrf.json.derived
 import play.api.libs.json.OFormat
 
 sealed trait ShareOfProperty extends Product with Serializable {
-  val percentageValue: Double
+  val percentageValue: BigDecimal
 }
 
 object ShareOfProperty {
 
   case object Full extends ShareOfProperty {
-    val percentageValue: Double = 100d
+    val percentageValue: BigDecimal = BigDecimal("100")
   }
 
   case object Half extends ShareOfProperty {
-    val percentageValue: Double = 50d
+    val percentageValue: BigDecimal = BigDecimal("50")
   }
 
-  final case class Other(percentageValue: Double) extends ShareOfProperty
+  final case class Other(percentageValue: BigDecimal) extends ShareOfProperty
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ShareOfProperty] = derived.oformat()
