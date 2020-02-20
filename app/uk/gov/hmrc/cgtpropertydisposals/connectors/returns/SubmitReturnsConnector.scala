@@ -79,155 +79,187 @@ object SubmitReturnsConnectorImpl {
   object DesSubmitReturnRequest {
 
     def apply(submitReturnRequest: SubmitReturnRequest): DesSubmitReturnRequest = {
-      val c                = submitReturnRequest.completeReturn
-      val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
-
-      val (taxableGain, netLoss) = {
-        val value = c.exemptionsAndLossesDetails.taxableGainOrLoss.getOrElse(
-          c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue.taxableGainOrNetLoss
-        )
-
-        if (value < AmountInPence.zero)
-          AmountInPence.zero.inPounds() -> Some(value.inPounds())
-        else value.inPounds()           -> None
-      }
-
-      val (initialGain, initialLoss) = {
-        val value = calculatedTaxDue.initialGainOrLoss
-
-        if (value < AmountInPence.zero)
-          Some(AmountInPence.zero.inPounds()) -> Some(value.inPounds())
-        else Some(value.inPounds())           -> Some(AmountInPence.zero.inPounds())
-      }
-
-      val valueAtTaxBandDetails = calculatedTaxDue match {
-        case _: CalculatedTaxDue.NonGainCalculatedTaxDue => None
-        case g: CalculatedTaxDue.GainCalculatedTaxDue =>
-          Some(
-            List(
-              ValueAtTaxBandDetails(g.taxDueAtLowerRate.taxRate, g.taxDueAtLowerRate.taxableAmount.inPounds()),
-              ValueAtTaxBandDetails(g.taxDueAtHigherRate.taxRate, g.taxDueAtHigherRate.taxableAmount.inPounds())
-            )
-          )
-      }
-
-      val returnDetails = ReturnDetails(
-        customerType          = submitReturnRequest.subscribedDetails.name.fold(_ => "trust", _ => "individual"),
-        completionDate        = c.triageAnswers.completionDate.value,
-        isUKResident          = c.triageAnswers.wasAUKResident,
-        numberDisposals       = c.triageAnswers.numberOfProperties, // make into an Int, sys.error if more than one
-        totalTaxableGain      = taxableGain,
-        totalNetLoss          = netLoss,
-        valueAtTaxBandDetails = valueAtTaxBandDetails,
-        totalLiability        = c.yearToDateLiabilityAnswers.taxDue.inPounds,
-        totalYTDLiability     = calculatedTaxDue.yearToDateLiability.inPounds, //TODO:totalYTDLiability=estimatedIncome
-        estimate              = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.hasEstimatedDetails,
-        repayment             = false,
-        attachmentUpload      = false, //TODO
-        declaration           = true,
-        adjustedAmount        = None,
-        countryResidence      = None,
-        attachmentID          = None,
-        entrepreneursRelief   = None
-      )
-
-      val addressDetails = AddresssDetails(
-        addressLine1 = c.propertyAddress.line1,
-        addressLine2 = c.propertyAddress.line2,
-        addressLine3 = c.propertyAddress.town,
-        addressLine4 = c.propertyAddress.town,
-        countryCode  = c.propertyAddress.countryCode,
-        postalCode   = c.propertyAddress.postcode
-      )
-
-      def improvementCosts(r: CompleteReturn): Option[BigDecimal] =
-        if (r.acquisitionDetails.improvementCosts > AmountInPence.zero)
-          Some(r.acquisitionDetails.improvementCosts.inPounds())
-        else None
-
-      def disposalMethod(r: CompleteReturn): Option[String] =
-        r.triageAnswers.disposalMethod match {
-          case Sold   => Some("Sold")
-          case Gifted => Some("Gifted")
-        }
-
-      val disposalDetails = DisposalDetails(
-        disposalDate     = c.triageAnswers.disposalDate.value,
-        addressDetails   = addressDetails,
-        assetType        = c.triageAnswers.assetType,
-        acquisitionType  = c.acquisitionDetails.acquisitionMethod,
-        landRegistry     = false,
-        acquisitionPrice = c.acquisitionDetails.acquisitionPrice.inPounds,
-        rebased          = c.acquisitionDetails.rebasedAcquisitionPrice.isDefined,
-        disposalPrice    = c.disposalDetails.disposalPrice.inPounds,
-        improvements     = c.acquisitionDetails.improvementCosts > AmountInPence.zero,
-        percentOwned     = Some(c.disposalDetails.shareOfProperty.percentageValue),
-        acquisitionDate  = Some(c.acquisitionDetails.acquisitionDate.value),
-        rebasedAmount    = c.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds),
-        disposalType     = disposalMethod(c),
-        improvementCosts = improvementCosts(c),
-        acquisitionFees  = Some(c.acquisitionDetails.acquisitionFees.inPounds),
-        disposalFees     = Some(c.disposalDetails.disposalFees.inPounds),
-        initialGain      = initialGain,
-        initialLoss      = initialLoss
-      )
-
-      def inYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
-        if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
-          Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
-        else None
-
-      def preYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
-        if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
-          Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
-        else None
-
-      val lossSummaryDetails = LossSummaryDetails(
-        inYearLoss      = c.exemptionsAndLossesDetails.inYearLosses > AmountInPence.zero,
-        inYearLossUsed  = inYearLossUsed(c),
-        preYearLoss     = c.exemptionsAndLossesDetails.previousYearsLosses > AmountInPence.zero,
-        preYearLossUsed = preYearLossUsed(c)
-      )
-
-      def reliefs: Boolean =
-        c.reliefDetails.privateResidentsRelief > AmountInPence.zero &
-          c.reliefDetails.lettingsRelief > AmountInPence.zero &
-          c.reliefDetails.otherReliefs.map(_.fold(_ => true, () => false)).isDefined
-
-      val reliefDetails = ReliefDetails(
-        reliefs            = reliefs,
-        privateResRelief   = Some(c.reliefDetails.privateResidentsRelief.inPounds),
-        lettingsReflief    = Some(c.reliefDetails.lettingsRelief.inPounds),
-        giftHoldOverRelief = None,
-        otherRelief        = c.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.name), () => None)),
-        otherReliefAmount  = c.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.amount.inPounds), () => None))
-      )
-
-      val incomeAllowanceDetails = IncomeAllowanceDetails(
-        annualExemption   = c.exemptionsAndLossesDetails.annualExemptAmount.inPounds,
-        estimatedIncome   = Some(c.yearToDateLiabilityAnswers.estimatedIncome.inPounds),
-        personalAllowance = c.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds),
-        threshold         = Some(c.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
-      )
-
-      val ppdReturnDetails = PPDReturnDetails(
-        returnType = CreateReturnType(
-          source         = submitReturnRequest.agentReferenceNumber.fold("self digital")(_ => "agent digital"),
-          submissionType = SubmissionType.New
-        ),
-        returnDetails            = returnDetails,
-        representedPersonDetails = None,
-        disposalDetails          = disposalDetails,
-        lossSummaryDetails       = lossSummaryDetails,
-        incomeAllowanceDetails   = incomeAllowanceDetails,
-        reliefDetails            = reliefDetails
-      )
-
+      val ppdReturnDetails = getPPDReturnDetails(submitReturnRequest)
       DesSubmitReturnRequest(ppdReturnDetails)
     }
 
     implicit val desSubmitReturnRequestFormat: OFormat[DesSubmitReturnRequest] = Json.format[DesSubmitReturnRequest]
-
   }
+
+  private def getPPDReturnDetails(submitReturnRequest: SubmitReturnRequest): PPDReturnDetails = {
+    val c                      = submitReturnRequest.completeReturn
+    val returnDetails          = getReturnDetails(submitReturnRequest)
+    val lossSummaryDetails     = getLossSummaryDetails(c)
+    val reliefDetails          = getReliefDetails(c)
+    val incomeAllowanceDetails = getIncomeAllowanceDetails(c)
+    val disposalDetails        = getDisposalDetails(c)
+
+    PPDReturnDetails(
+      returnType = CreateReturnType(
+        source         = getSource(submitReturnRequest),
+        submissionType = SubmissionType.New
+      ),
+      returnDetails            = returnDetails,
+      representedPersonDetails = None,
+      disposalDetails          = disposalDetails,
+      lossSummaryDetails       = lossSummaryDetails,
+      incomeAllowanceDetails   = incomeAllowanceDetails,
+      reliefDetails            = reliefDetails
+    )
+  }
+
+  private def getSource(submitReturnRequest: SubmitReturnRequest): String =
+    submitReturnRequest.agentReferenceNumber.fold("self digital")(_ => "agent digital")
+
+  private def getAddresssDetails(c: CompleteReturn) =
+    AddresssDetails(
+      addressLine1 = c.propertyAddress.line1,
+      addressLine2 = c.propertyAddress.line2,
+      addressLine3 = c.propertyAddress.town,
+      addressLine4 = c.propertyAddress.town,
+      countryCode  = c.propertyAddress.countryCode,
+      postalCode   = c.propertyAddress.postcode
+    )
+
+  private def getDisposalDetails(c: CompleteReturn) = {
+    val addressDetails   = getAddresssDetails(c)
+    val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
+
+    DisposalDetails(
+      disposalDate     = c.triageAnswers.disposalDate.value,
+      addressDetails   = addressDetails,
+      assetType        = c.triageAnswers.assetType,
+      acquisitionType  = c.acquisitionDetails.acquisitionMethod,
+      landRegistry     = false,
+      acquisitionPrice = c.acquisitionDetails.acquisitionPrice.inPounds,
+      rebased          = c.acquisitionDetails.rebasedAcquisitionPrice.isDefined,
+      disposalPrice    = c.disposalDetails.disposalPrice.inPounds,
+      improvements     = c.acquisitionDetails.improvementCosts > AmountInPence.zero,
+      percentOwned     = Some(c.disposalDetails.shareOfProperty.percentageValue),
+      acquisitionDate  = Some(c.acquisitionDetails.acquisitionDate.value),
+      rebasedAmount    = c.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds),
+      disposalType     = disposalMethod(c),
+      improvementCosts = improvementCosts(c),
+      acquisitionFees  = Some(c.acquisitionDetails.acquisitionFees.inPounds),
+      disposalFees     = Some(c.disposalDetails.disposalFees.inPounds),
+      initialGain      = getInitialGainOrLoss(calculatedTaxDue)._1,
+      initialLoss      = getInitialGainOrLoss(calculatedTaxDue)._2
+    )
+  }
+
+  private def getValueAtTaxBandDetails(calculatedTaxDue: CalculatedTaxDue): Option[List[ValueAtTaxBandDetails]] =
+    calculatedTaxDue match {
+      case _: CalculatedTaxDue.NonGainCalculatedTaxDue => None
+      case g: CalculatedTaxDue.GainCalculatedTaxDue =>
+        Some(
+          List(
+            ValueAtTaxBandDetails(g.taxDueAtLowerRate.taxRate, g.taxDueAtLowerRate.taxableAmount.inPounds()),
+            ValueAtTaxBandDetails(g.taxDueAtHigherRate.taxRate, g.taxDueAtHigherRate.taxableAmount.inPounds())
+          )
+        )
+    }
+
+  private def getTaxableGainOrNetLoss(c: CompleteReturn): (BigDecimal, Option[BigDecimal]) = {
+    val (taxableGain, netLoss) = {
+      val value = c.exemptionsAndLossesDetails.taxableGainOrLoss.getOrElse(
+        c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue.taxableGainOrNetLoss
+      )
+
+      if (value < AmountInPence.zero)
+        AmountInPence.zero.inPounds() -> Some(value.inPounds())
+      else value.inPounds()           -> None
+    }
+    (taxableGain, netLoss)
+  }
+
+  private def getReturnDetails(submitReturnRequest: SubmitReturnRequest): ReturnDetails = {
+    val c                = submitReturnRequest.completeReturn
+    val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
+
+    ReturnDetails(
+      customerType          = getCustomerType(submitReturnRequest),
+      completionDate        = c.triageAnswers.completionDate.value,
+      isUKResident          = c.triageAnswers.wasAUKResident,
+      numberDisposals       = c.triageAnswers.numberOfProperties, // make into an Int, sys.error if more than one
+      totalTaxableGain      = getTaxableGainOrNetLoss(c)._1,
+      totalNetLoss          = getTaxableGainOrNetLoss(c)._2,
+      valueAtTaxBandDetails = getValueAtTaxBandDetails(calculatedTaxDue),
+      totalLiability        = c.yearToDateLiabilityAnswers.taxDue.inPounds,
+      totalYTDLiability     = calculatedTaxDue.yearToDateLiability.inPounds, //TODO:totalYTDLiability=estimatedIncome
+      estimate              = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.hasEstimatedDetails,
+      repayment             = false,
+      attachmentUpload      = false, //TODO
+      declaration           = true,
+      adjustedAmount        = None,
+      countryResidence      = None,
+      attachmentID          = None,
+      entrepreneursRelief   = None
+    )
+  }
+
+  private def getCustomerType(submitReturnRequest: SubmitReturnRequest): String =
+    submitReturnRequest.subscribedDetails.name.fold(_ => "trust", _ => "individual")
+
+  private def getInitialGainOrLoss(calculatedTaxDue: CalculatedTaxDue): (Option[BigDecimal], Option[BigDecimal]) = {
+    val (initialGain, initialLoss) = {
+      val value = calculatedTaxDue.initialGainOrLoss
+
+      if (value < AmountInPence.zero)
+        Some(AmountInPence.zero.inPounds()) -> Some(value.inPounds())
+      else Some(value.inPounds())           -> Some(AmountInPence.zero.inPounds())
+    }
+    (initialGain, initialLoss)
+  }
+  private def getIncomeAllowanceDetails(c: CompleteReturn): IncomeAllowanceDetails =
+    IncomeAllowanceDetails(
+      annualExemption   = c.exemptionsAndLossesDetails.annualExemptAmount.inPounds,
+      estimatedIncome   = Some(c.yearToDateLiabilityAnswers.estimatedIncome.inPounds),
+      personalAllowance = c.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds),
+      threshold         = Some(c.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
+    )
+
+  private def getLossSummaryDetails(c: CompleteReturn) =
+    LossSummaryDetails(
+      inYearLoss      = c.exemptionsAndLossesDetails.inYearLosses > AmountInPence.zero,
+      inYearLossUsed  = inYearLossUsed(c),
+      preYearLoss     = c.exemptionsAndLossesDetails.previousYearsLosses > AmountInPence.zero,
+      preYearLossUsed = preYearLossUsed(c)
+    )
+
+  private def getReliefDetails(c: CompleteReturn) =
+    ReliefDetails(
+      reliefs            = reliefs(c),
+      privateResRelief   = Some(c.reliefDetails.privateResidentsRelief.inPounds),
+      lettingsReflief    = Some(c.reliefDetails.lettingsRelief.inPounds),
+      giftHoldOverRelief = None,
+      otherRelief        = c.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.name), () => None)),
+      otherReliefAmount  = c.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.amount.inPounds), () => None))
+    )
+
+  private def improvementCosts(r: CompleteReturn): Option[BigDecimal] =
+    if (r.acquisitionDetails.improvementCosts > AmountInPence.zero)
+      Some(r.acquisitionDetails.improvementCosts.inPounds())
+    else None
+
+  private def disposalMethod(r: CompleteReturn): Option[String] =
+    r.triageAnswers.disposalMethod match {
+      case Sold   => Some("Sold")
+      case Gifted => Some("Gifted")
+    }
+
+  private def reliefs(c: CompleteReturn): Boolean =
+    c.reliefDetails.privateResidentsRelief > AmountInPence.zero &
+      c.reliefDetails.lettingsRelief > AmountInPence.zero &
+      c.reliefDetails.otherReliefs.map(_.fold(_ => true, () => false)).isDefined
+
+  private def inYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
+    if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
+      Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
+    else None
+
+  private def preYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
+    if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
+      Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
+    else None
 
 }
