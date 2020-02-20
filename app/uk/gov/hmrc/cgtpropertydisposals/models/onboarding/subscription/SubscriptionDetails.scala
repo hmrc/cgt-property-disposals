@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription
+package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
 
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address

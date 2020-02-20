@@ -24,8 +24,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.SubscriptionSuccessful
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest

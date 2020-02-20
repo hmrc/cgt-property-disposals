@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
-
-import java.time.LocalDateTime
+package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 
-final case class SubscriptionUpdateResponse(
-  regime: String,
-  processingDate: LocalDateTime,
-  formBundleNumber: String,
-  cgtReferenceNumber: String,
-  countryCode: CountryCode,
-  postalCode: Option[String]
+final case class AddresssDetails(
+  addressLine1: String,
+  addressLine2: Option[String],
+  addressLine3: Option[String],
+  addressLine4: Option[String],
+  countryCode: String,
+  postalCode: String
 )
 
-object SubscriptionUpdateResponse {
-  implicit val format: OFormat[SubscriptionUpdateResponse] = Json.format[SubscriptionUpdateResponse]
+object AddresssDetails {
+
+  implicit val addresssDetailsFormat: OFormat[AddresssDetails] = Json.format[AddresssDetails]
+
 }

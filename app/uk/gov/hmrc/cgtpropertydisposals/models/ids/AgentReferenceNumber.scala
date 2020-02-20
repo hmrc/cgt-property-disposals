@@ -14,22 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
-
-import java.time.LocalDateTime
+package uk.gov.hmrc.cgtpropertydisposals.models.ids
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 
-final case class SubscriptionUpdateResponse(
-  regime: String,
-  processingDate: LocalDateTime,
-  formBundleNumber: String,
-  cgtReferenceNumber: String,
-  countryCode: CountryCode,
-  postalCode: Option[String]
-)
+final case class AgentReferenceNumber(value: String) extends AnyVal
 
-object SubscriptionUpdateResponse {
-  implicit val format: OFormat[SubscriptionUpdateResponse] = Json.format[SubscriptionUpdateResponse]
+object AgentReferenceNumber {
+
+  implicit val format: OFormat[AgentReferenceNumber] = Json.format
+
 }

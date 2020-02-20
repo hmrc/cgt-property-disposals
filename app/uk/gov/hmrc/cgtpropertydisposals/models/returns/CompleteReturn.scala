@@ -20,7 +20,8 @@ import java.util.UUID
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
@@ -37,7 +38,9 @@ final case class CompleteReturn(
   acquisitionDetails: CompleteAcquisitionDetailsAnswers,
   reliefDetails: CompleteReliefDetailsAnswers,
   exemptionsAndLossesDetails: CompleteExemptionAndLossesAnswers,
-  yearToDateLiabilityAnswers: CompleteYearToDateLiabilityAnswers
+  yearToDateLiabilityAnswers: CompleteYearToDateLiabilityAnswers,
+  subscriptionDetails: SubscriptionDetails,
+  agentReferenceNumber: Option[AgentReferenceNumber]
 )
 
 object CompleteReturn {
