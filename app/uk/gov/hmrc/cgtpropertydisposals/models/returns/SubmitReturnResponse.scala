@@ -15,34 +15,20 @@
  */
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
+import java.time.LocalDate
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 
-sealed trait SubmitReturnResponse extends Product with Serializable
+final case class SubmitReturnResponse(
+  chargeReference: String,
+  amount: AmountInPence,
+  dueDate: LocalDate,
+  formBundleId: String
+)
 
 object SubmitReturnResponse {
 
-  final case class PPDReturnResponseDetails(
-    chargeType: String,
-    chargeReference: String,
-    amount: AmountInPence,
-    dueDate: String,
-    formBundleNumber: String,
-    cgtReferenceNumber: String
-  )
-
-  implicit val ppdReturnResponseDetailsFormat: Format[PPDReturnResponseDetails] = Json.format[PPDReturnResponseDetails]
-
-  final case class CreateReturnSuccessful(
-    processingDate: String,
-    ppdReturnResponseDetails: PPDReturnResponseDetails
-  ) extends SubmitReturnResponse
-
-  //final case class AmendReturnSuccessful(cgtReferenceNumber: String) extends SubmitReturnResponse
-
-  implicit val createReturnSuccessfulFormat: Format[CreateReturnSuccessful] = Json.format[CreateReturnSuccessful]
-
-  //implicit val amendReturnSuccessfulFormat: Format[AmendReturnSuccessful] = Json.format[AmendReturnSuccessful]
+  implicit val format: OFormat[SubmitReturnResponse] = Json.format
 
 }

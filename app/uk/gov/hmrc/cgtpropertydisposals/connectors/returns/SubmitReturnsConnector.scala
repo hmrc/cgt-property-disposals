@@ -21,7 +21,7 @@ import java.time.LocalDate
 import cats.data.EitherT
 import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsString, JsSuccess, JsValue, Json, OFormat, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnectorImpl.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
@@ -30,8 +30,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import julienrf.json.derived
-import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalMethod._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -77,22 +75,39 @@ class SubmitReturnsConnectorImpl @Inject() (http: HttpClient, val config: Servic
 
 object SubmitReturnsConnectorImpl {
 
-  sealed trait ReturnSubmission extends Product with Serializable
+  sealed trait SubmissionType extends Product with Serializable
 
-  final case object Create extends ReturnSubmission
+  object SubmissionType {
+    final case object Create extends SubmissionType
 
-  final case object Amend extends ReturnSubmission
+    final case object Amend extends SubmissionType
+
+    implicit val format: Format[SubmissionType] = new Format[SubmissionType] {
+      override def reads(json: JsValue): JsResult[SubmissionType] =
+        json match {
+          case JsString("Create") => JsSuccess(Create)
+          case JsString("Amend")  => JsSuccess(Amend)
+          case JsString(other)    => JsError(s"could not recognise submission type: $other")
+          case other              => JsError(s"Expected type string for submission type but found $other")
+        }
+
+      override def writes(o: SubmissionType): JsValue = o match {
+        case Create => JsString("Create")
+        case Amend  => JsString("Amend")
+      }
+    }
+  }
 
   sealed trait ReturnType extends Product with Serializable
 
   final case class CreateReturnType(
     source: String,
-    submissionType: ReturnSubmission
+    submissionType: SubmissionType
   ) extends ReturnType
 
   final case class AmendReturnType(
     source: String,
-    submissionType: ReturnSubmission,
+    submissionType: SubmissionType,
     submissionID: String
   ) extends ReturnType
 
@@ -153,7 +168,7 @@ object SubmitReturnsConnectorImpl {
     rebased: Boolean,
     disposalPrice: BigDecimal,
     improvements: Boolean,
-    percentOwned: Option[String],
+    percentOwned: Option[BigDecimal],
     acquisitionDate: Option[LocalDate],
     rebasedAmount: Option[BigDecimal],
     disposalType: Option[String],
@@ -283,10 +298,10 @@ object SubmitReturnsConnectorImpl {
         rebased          = r.acquisitionDetails.rebasedAcquisitionPrice.isDefined,
         disposalPrice    = r.disposalDetails.disposalPrice.inPounds,
         improvements     = r.acquisitionDetails.improvementCosts > AmountInPence.zero,
-        percentOwned     = Some(r.disposalDetails.shareOfProperty.percentageValue.toString), // TODO:New----bigdecimal
+        percentOwned     = Some(r.disposalDetails.shareOfProperty.percentageValue),
         acquisitionDate  = Some(r.acquisitionDetails.acquisitionDate.value),
         rebasedAmount    = r.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds),
-        disposalType     = disposalMethod(r), // TODO: work out mappings to string
+        disposalType     = disposalMethod(r),
         improvementCosts = improvementCosts(r),
         acquisitionFees  = Some(r.acquisitionDetails.acquisitionFees.inPounds),
         disposalFees     = Some(r.disposalDetails.disposalFees.inPounds),
@@ -330,7 +345,7 @@ object SubmitReturnsConnectorImpl {
       val ppdReturnDetails = PPDReturnDetails(
         returnType = CreateReturnType(
           source         = "Individual", //TODO: completeReturn.triageAnswers.individualUserType, check
-          submissionType = Create // TODO: chheck
+          submissionType = SubmissionType.Create // TODO: chheck
         ),
         returnDetails            = returnDetails,
         representedPersonDetails = None,
@@ -342,11 +357,6 @@ object SubmitReturnsConnectorImpl {
 
       SubmitReturnRequest(ppdReturnDetails)
     }
-
-    @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-    implicit val returnSubmissionFormat: OFormat[ReturnSubmission] = derived.oformat()
-
-    //implicit val returnSubmissionFormat: OFormat[ReturnSubmission] = Json.format[ReturnSubmission]
 
     implicit val valueAtTaxBandDetailsForamt: OFormat[ValueAtTaxBandDetails] = Json.format[ValueAtTaxBandDetails]
     implicit val addresssDetailsFormat: OFormat[AddresssDetails]             = Json.format[AddresssDetails]

@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.instances.future._
 import com.google.inject.Inject
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
@@ -46,10 +46,10 @@ class SubmitReturnsController @Inject() (
         .createReturn(completeReturn)
         .fold(
           { e =>
-            logger.warn("Could not store draft return", e)
+            logger.warn("Could not create return", e)
             InternalServerError
           },
-          _ => Ok
+          s => Ok(Json.toJson(s))
         )
     }
   }

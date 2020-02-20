@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
+import java.time.LocalDate
+
+import play.api.libs.json.{Format, Json}
 import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
@@ -27,14 +30,14 @@ import play.api.http.Status.OK
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.CreateReturnSuccessful
+import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse._
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultCompleteReturnsService._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -68,18 +71,44 @@ class DefaultCompleteReturnsService @Inject() (
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] =
     submitReturnsConnector.submit(completeReturn).subflatMap { response =>
       if (response.status === OK) {
-        response.parseJSON[CreateReturnSuccessful]().leftMap(Error(_))
+        response
+          .parseJSON[DesReturnResponse]()
+          .map(a => prepareSubmitReturnResponse(a))
+          .leftMap(Error(_))
       } else {
         metrics.subscriptionCreateErrorCounter.inc()
-        Left(Error(s"call to subscribe came back with status ${response.status}"))
+        Left(Error(s"call to create return came back with status ${response.status}"))
       }
     }
 
-  def prepareSubmitReturnResponse(successfulResponse: CreateReturnSuccessful): SubmitReturnResponse = {
-    val createdReturnSuccessful = CreateReturnSuccessful(
-      processingDate           = successfulResponse.processingDate,
-      ppdReturnResponseDetails = successfulResponse.ppdReturnResponseDetails
+  private def prepareSubmitReturnResponse(response: DesReturnResponse): SubmitReturnResponse = {
+    val resDetails = response.ppdReturnResponseDetails
+    SubmitReturnResponse(
+      chargeReference = resDetails.chargeReference,
+      amount          = AmountInPence.fromPounds(resDetails.amount),
+      dueDate         = resDetails.dueDate,
+      formBundleId    = resDetails.formBundleNumber
     )
-    createdReturnSuccessful
   }
+
+}
+
+object DefaultCompleteReturnsService {
+
+  final case class PPDReturnResponseDetails(
+    chargeType: String,
+    chargeReference: String,
+    amount: Double,
+    dueDate: LocalDate,
+    formBundleNumber: String,
+    cgtReferenceNumber: String
+  )
+
+  final case class DesReturnResponse(
+    processingDate: LocalDate,
+    ppdReturnResponseDetails: PPDReturnResponseDetails
+  )
+
+  implicit val ppdReturnResponseDetailsFormat: Format[PPDReturnResponseDetails] = Json.format[PPDReturnResponseDetails]
+  implicit val desReturnResponseFormat: Format[DesReturnResponse]               = Json.format[DesReturnResponse]
 }
