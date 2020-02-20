@@ -21,7 +21,7 @@ import com.google.inject.Inject
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.CompleteReturnsService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -41,9 +41,9 @@ class SubmitReturnsController @Inject() (
     with Logging {
 
   def returnsSubmit: Action[JsValue] = authenticate(parse.json).async { implicit request =>
-    withJsonBody[CompleteReturn] { completeReturn =>
+    withJsonBody[SubmitReturnRequest] { returnRequest =>
       completeReturnsService
-        .createReturn(completeReturn)
+        .submitReturn(returnRequest)
         .fold(
           { e =>
             logger.warn("Could not create return", e)

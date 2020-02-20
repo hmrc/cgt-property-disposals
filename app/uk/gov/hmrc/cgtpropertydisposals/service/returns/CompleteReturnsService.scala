@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse._
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
@@ -45,7 +45,7 @@ import scala.concurrent.Future
 @ImplementedBy(classOf[DefaultCompleteReturnsService])
 trait CompleteReturnsService {
 
-  def createReturn(completeReturn: CompleteReturn)(
+  def submitReturn(returnRequest: SubmitReturnRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubmitReturnResponse]
 
@@ -61,15 +61,15 @@ class DefaultCompleteReturnsService @Inject() (
 ) extends CompleteReturnsService
     with Logging {
 
-  override def createReturn(
-    completeReturn: CompleteReturn
+  override def submitReturn(
+    returnRequest: SubmitReturnRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] =
-    sendSubmitReturnRequest(completeReturn)
+    sendSubmitReturnRequest(returnRequest)
 
   private def sendSubmitReturnRequest(
-    completeReturn: CompleteReturn
+    returnRequest: SubmitReturnRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] =
-    submitReturnsConnector.submit(completeReturn).subflatMap { response =>
+    submitReturnsConnector.submit(returnRequest).subflatMap { response =>
       if (response.status === OK) {
         response
           .parseJSON[DesReturnResponse]()

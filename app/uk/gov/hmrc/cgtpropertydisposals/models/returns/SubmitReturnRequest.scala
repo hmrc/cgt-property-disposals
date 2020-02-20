@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.name
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 
-final case class IndividualName(firstName: String, lastName: String)
+final case class SubmitReturnRequest(
+  completeReturn: CompleteReturn,
+  subscribedDetails: SubscribedDetails,
+  agentReferenceNumber: Option[AgentReferenceNumber]
+)
 
-object IndividualName {
+object SubmitReturnRequest {
 
-  implicit class IndividualNameOps(private val name: IndividualName) extends AnyVal {
-    def makeSingleName(): String = name.firstName + " " + name.lastName
-  }
+  implicit val format: OFormat[SubmitReturnRequest] = Json.format[SubmitReturnRequest]
 
-  implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
 }

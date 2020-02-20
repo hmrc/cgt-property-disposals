@@ -21,11 +21,11 @@ import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnectorImpl.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnectorImpl.DesSubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalMethod._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculatedTaxDue, CompleteReturn, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -36,7 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[SubmitReturnsConnectorImpl])
 trait SubmitReturnsConnector {
 
-  def submit(completeReturn: CompleteReturn)(
+  def submit(returnRequest: SubmitReturnRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -48,19 +48,19 @@ class SubmitReturnsConnectorImpl @Inject() (http: HttpClient, val config: Servic
     with DesConnector {
 
   override def submit(
-    completeReturn: CompleteReturn
+    returnRequest: SubmitReturnRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
 
     val baseUrl: String    = config.baseUrl("returns")
-    val cgtReferenceNumber = completeReturn.cgtReference.value
+    val cgtReferenceNumber = returnRequest.subscribedDetails.cgtReference.value
 
     val returnUrl: String = s"$baseUrl/cgt-reference/$cgtReferenceNumber/return"
 
-    val submitReturnRequest = SubmitReturnRequest(completeReturn)
+    val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest)
 
     EitherT[Future, Error, HttpResponse](
       http
-        .post(returnUrl, Json.toJson(submitReturnRequest), headers)(
+        .post(returnUrl, Json.toJson(desSubmitReturnRequest), headers)(
           implicitly[Writes[JsValue]],
           hc.copy(authorization = None),
           ec
@@ -74,16 +74,17 @@ class SubmitReturnsConnectorImpl @Inject() (http: HttpClient, val config: Servic
 
 object SubmitReturnsConnectorImpl {
 
-  final case class SubmitReturnRequest(ppdReturnDetails: PPDReturnDetails)
+  final case class DesSubmitReturnRequest(ppdReturnDetails: PPDReturnDetails)
 
-  object SubmitReturnRequest {
+  object DesSubmitReturnRequest {
 
-    def apply(r: CompleteReturn): SubmitReturnRequest = {
-      val calculatedTaxDue = r.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
+    def apply(submitReturnRequest: SubmitReturnRequest): DesSubmitReturnRequest = {
+      val c                = submitReturnRequest.completeReturn
+      val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
 
       val (taxableGain, netLoss) = {
-        val value = r.exemptionsAndLossesDetails.taxableGainOrLoss.getOrElse(
-          r.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue.taxableGainOrNetLoss
+        val value = c.exemptionsAndLossesDetails.taxableGainOrLoss.getOrElse(
+          c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue.taxableGainOrNetLoss
         )
 
         if (value < AmountInPence.zero)
@@ -111,16 +112,16 @@ object SubmitReturnsConnectorImpl {
       }
 
       val returnDetails = ReturnDetails(
-        customerType          = r.subscriptionDetails.name.fold(_ => "trust", _ => "individual"),
-        completionDate        = r.triageAnswers.completionDate.value,
-        isUKResident          = r.triageAnswers.wasAUKResident,
-        numberDisposals       = r.triageAnswers.numberOfProperties, // make into an Int, sys.error if more than one
+        customerType          = submitReturnRequest.subscribedDetails.name.fold(_ => "trust", _ => "individual"),
+        completionDate        = c.triageAnswers.completionDate.value,
+        isUKResident          = c.triageAnswers.wasAUKResident,
+        numberDisposals       = c.triageAnswers.numberOfProperties, // make into an Int, sys.error if more than one
         totalTaxableGain      = taxableGain,
         totalNetLoss          = netLoss,
         valueAtTaxBandDetails = valueAtTaxBandDetails,
-        totalLiability        = r.yearToDateLiabilityAnswers.taxDue.inPounds,
+        totalLiability        = c.yearToDateLiabilityAnswers.taxDue.inPounds,
         totalYTDLiability     = calculatedTaxDue.yearToDateLiability.inPounds, //TODO:totalYTDLiability=estimatedIncome
-        estimate              = r.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.hasEstimatedDetails,
+        estimate              = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.hasEstimatedDetails,
         repayment             = false,
         attachmentUpload      = false, //TODO
         declaration           = true,
@@ -131,12 +132,12 @@ object SubmitReturnsConnectorImpl {
       )
 
       val addressDetails = AddresssDetails(
-        addressLine1 = r.propertyAddress.line1,
-        addressLine2 = r.propertyAddress.line2,
-        addressLine3 = r.propertyAddress.town,
-        addressLine4 = r.propertyAddress.town,
-        countryCode  = r.propertyAddress.countryCode,
-        postalCode   = r.propertyAddress.postcode
+        addressLine1 = c.propertyAddress.line1,
+        addressLine2 = c.propertyAddress.line2,
+        addressLine3 = c.propertyAddress.town,
+        addressLine4 = c.propertyAddress.town,
+        countryCode  = c.propertyAddress.countryCode,
+        postalCode   = c.propertyAddress.postcode
       )
 
       def improvementCosts(r: CompleteReturn): Option[BigDecimal] =
@@ -151,22 +152,22 @@ object SubmitReturnsConnectorImpl {
         }
 
       val disposalDetails = DisposalDetails(
-        disposalDate     = r.triageAnswers.disposalDate.value,
+        disposalDate     = c.triageAnswers.disposalDate.value,
         addressDetails   = addressDetails,
-        assetType        = r.triageAnswers.assetType,
-        acquisitionType  = r.acquisitionDetails.acquisitionMethod,
+        assetType        = c.triageAnswers.assetType,
+        acquisitionType  = c.acquisitionDetails.acquisitionMethod,
         landRegistry     = false,
-        acquisitionPrice = r.acquisitionDetails.acquisitionPrice.inPounds,
-        rebased          = r.acquisitionDetails.rebasedAcquisitionPrice.isDefined,
-        disposalPrice    = r.disposalDetails.disposalPrice.inPounds,
-        improvements     = r.acquisitionDetails.improvementCosts > AmountInPence.zero,
-        percentOwned     = Some(r.disposalDetails.shareOfProperty.percentageValue),
-        acquisitionDate  = Some(r.acquisitionDetails.acquisitionDate.value),
-        rebasedAmount    = r.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds),
-        disposalType     = disposalMethod(r),
-        improvementCosts = improvementCosts(r),
-        acquisitionFees  = Some(r.acquisitionDetails.acquisitionFees.inPounds),
-        disposalFees     = Some(r.disposalDetails.disposalFees.inPounds),
+        acquisitionPrice = c.acquisitionDetails.acquisitionPrice.inPounds,
+        rebased          = c.acquisitionDetails.rebasedAcquisitionPrice.isDefined,
+        disposalPrice    = c.disposalDetails.disposalPrice.inPounds,
+        improvements     = c.acquisitionDetails.improvementCosts > AmountInPence.zero,
+        percentOwned     = Some(c.disposalDetails.shareOfProperty.percentageValue),
+        acquisitionDate  = Some(c.acquisitionDetails.acquisitionDate.value),
+        rebasedAmount    = c.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds),
+        disposalType     = disposalMethod(c),
+        improvementCosts = improvementCosts(c),
+        acquisitionFees  = Some(c.acquisitionDetails.acquisitionFees.inPounds),
+        disposalFees     = Some(c.disposalDetails.disposalFees.inPounds),
         initialGain      = initialGain,
         initialLoss      = initialLoss
       )
@@ -182,36 +183,36 @@ object SubmitReturnsConnectorImpl {
         else None
 
       val lossSummaryDetails = LossSummaryDetails(
-        inYearLoss      = r.exemptionsAndLossesDetails.inYearLosses > AmountInPence.zero,
-        inYearLossUsed  = inYearLossUsed(r),
-        preYearLoss     = r.exemptionsAndLossesDetails.previousYearsLosses > AmountInPence.zero,
-        preYearLossUsed = preYearLossUsed(r)
+        inYearLoss      = c.exemptionsAndLossesDetails.inYearLosses > AmountInPence.zero,
+        inYearLossUsed  = inYearLossUsed(c),
+        preYearLoss     = c.exemptionsAndLossesDetails.previousYearsLosses > AmountInPence.zero,
+        preYearLossUsed = preYearLossUsed(c)
       )
 
       def reliefs: Boolean =
-        r.reliefDetails.privateResidentsRelief > AmountInPence.zero &
-          r.reliefDetails.lettingsRelief > AmountInPence.zero &
-          r.reliefDetails.otherReliefs.map(_.fold(_ => true, () => false)).isDefined
+        c.reliefDetails.privateResidentsRelief > AmountInPence.zero &
+          c.reliefDetails.lettingsRelief > AmountInPence.zero &
+          c.reliefDetails.otherReliefs.map(_.fold(_ => true, () => false)).isDefined
 
       val reliefDetails = ReliefDetails(
         reliefs            = reliefs,
-        privateResRelief   = Some(r.reliefDetails.privateResidentsRelief.inPounds),
-        lettingsReflief    = Some(r.reliefDetails.lettingsRelief.inPounds),
+        privateResRelief   = Some(c.reliefDetails.privateResidentsRelief.inPounds),
+        lettingsReflief    = Some(c.reliefDetails.lettingsRelief.inPounds),
         giftHoldOverRelief = None,
-        otherRelief        = r.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.name), () => None)),
-        otherReliefAmount  = r.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.amount.inPounds), () => None))
+        otherRelief        = c.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.name), () => None)),
+        otherReliefAmount  = c.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.amount.inPounds), () => None))
       )
 
       val incomeAllowanceDetails = IncomeAllowanceDetails(
-        annualExemption   = r.exemptionsAndLossesDetails.annualExemptAmount.inPounds,
-        estimatedIncome   = Some(r.yearToDateLiabilityAnswers.estimatedIncome.inPounds),
-        personalAllowance = r.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds),
-        threshold         = Some(r.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
+        annualExemption   = c.exemptionsAndLossesDetails.annualExemptAmount.inPounds,
+        estimatedIncome   = Some(c.yearToDateLiabilityAnswers.estimatedIncome.inPounds),
+        personalAllowance = c.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds),
+        threshold         = Some(c.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
       )
 
       val ppdReturnDetails = PPDReturnDetails(
         returnType = CreateReturnType(
-          source         = r.agentReferenceNumber.fold("self digital")(_ => "agent digital"),
+          source         = submitReturnRequest.agentReferenceNumber.fold("self digital")(_ => "agent digital"),
           submissionType = SubmissionType.New
         ),
         returnDetails            = returnDetails,
@@ -222,10 +223,10 @@ object SubmitReturnsConnectorImpl {
         reliefDetails            = reliefDetails
       )
 
-      SubmitReturnRequest(ppdReturnDetails)
+      DesSubmitReturnRequest(ppdReturnDetails)
     }
 
-    implicit val submitReturnRequestFormat: OFormat[SubmitReturnRequest] = Json.format[SubmitReturnRequest]
+    implicit val desSubmitReturnRequestFormat: OFormat[DesSubmitReturnRequest] = Json.format[DesSubmitReturnRequest]
 
   }
 
