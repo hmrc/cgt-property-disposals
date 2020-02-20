@@ -160,7 +160,6 @@ object SubmitReturnsConnectorImpl {
     }
 
   private def getTaxableGainOrNetLoss(c: CompleteReturn): (BigDecimal, Option[BigDecimal]) = {
-    val (taxableGain, netLoss) = {
       val value = c.exemptionsAndLossesDetails.taxableGainOrLoss.getOrElse(
         c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue.taxableGainOrNetLoss
       )
@@ -169,8 +168,7 @@ object SubmitReturnsConnectorImpl {
         AmountInPence.zero.inPounds() -> Some(value.inPounds())
       else value.inPounds()           -> None
     }
-    (taxableGain, netLoss)
-  }
+
 
   private def getReturnDetails(submitReturnRequest: SubmitReturnRequest): ReturnDetails = {
     val c                = submitReturnRequest.completeReturn
@@ -201,15 +199,13 @@ object SubmitReturnsConnectorImpl {
     submitReturnRequest.subscribedDetails.name.fold(_ => "trust", _ => "individual")
 
   private def getInitialGainOrLoss(calculatedTaxDue: CalculatedTaxDue): (Option[BigDecimal], Option[BigDecimal]) = {
-    val (initialGain, initialLoss) = {
       val value = calculatedTaxDue.initialGainOrLoss
 
       if (value < AmountInPence.zero)
         Some(AmountInPence.zero.inPounds()) -> Some(value.inPounds())
       else Some(value.inPounds())           -> Some(AmountInPence.zero.inPounds())
     }
-    (initialGain, initialLoss)
-  }
+
   private def getIncomeAllowanceDetails(c: CompleteReturn): IncomeAllowanceDetails =
     IncomeAllowanceDetails(
       annualExemption   = c.exemptionsAndLossesDetails.annualExemptAmount.inPounds,
