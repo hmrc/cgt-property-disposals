@@ -14,17 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.LocalDate
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 
-final case class DisposalDate(value: LocalDate, taxYear: TaxYear)
+final case class TaxYear(
+  startDateInclusive: LocalDate,
+  endDateExclusive: LocalDate,
+  annualExemptAmountGeneral: AmountInPence,
+  annualExemptAmountNonVulnerableTrust: AmountInPence,
+  personalAllowance: AmountInPence,
+  incomeTaxHigherRateThreshold: AmountInPence,
+  cgtRateLowerBandResidential: BigDecimal,
+  cgtRateLowerBandNonResidential: BigDecimal,
+  cgtRateHigherBandResidential: BigDecimal,
+  cgtRateHigherBandNonResidential: BigDecimal
+)
+object TaxYear {
 
-object DisposalDate {
-
-  implicit val format: OFormat[DisposalDate] = Json.format
+  implicit val format: OFormat[TaxYear] = Json.format
 
 }

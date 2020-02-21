@@ -18,24 +18,24 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 
-sealed trait ShareOfProperty extends Product with Serializable {
-  val percentageValue: BigDecimal
-}
+sealed trait ReliefDetailsAnswers extends Product with Serializable
 
-object ShareOfProperty {
+object ReliefDetailsAnswers {
 
-  case object Full extends ShareOfProperty {
-    val percentageValue: BigDecimal = BigDecimal("100")
-  }
+  final case class IncompleteReliefDetailsAnswers(
+    privateResidentsRelief: Option[AmountInPence],
+    lettingsRelief: Option[AmountInPence],
+    otherReliefs: Option[OtherReliefsOption]
+  ) extends ReliefDetailsAnswers
 
-  case object Half extends ShareOfProperty {
-    val percentageValue: BigDecimal = BigDecimal("50")
-  }
-
-  final case class Other(percentageValue: BigDecimal) extends ShareOfProperty
+  final case class CompleteReliefDetailsAnswers(
+    privateResidentsRelief: AmountInPence,
+    lettingsRelief: AmountInPence,
+    otherReliefs: Option[OtherReliefsOption]
+  ) extends ReliefDetailsAnswers
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[ShareOfProperty] = derived.oformat()
-
+  implicit val format: OFormat[ReliefDetailsAnswers] = derived.oformat()
 }

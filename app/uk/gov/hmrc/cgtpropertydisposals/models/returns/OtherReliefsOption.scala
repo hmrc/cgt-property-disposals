@@ -16,15 +16,19 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.time.LocalDate
+import julienrf.json.derived
+import play.api.libs.json.OFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
+sealed trait OtherReliefsOption extends Product with Serializable
 
-final case class DisposalDate(value: LocalDate, taxYear: TaxYear)
+object OtherReliefsOption {
 
-object DisposalDate {
+  final case class OtherReliefs(name: String, amount: AmountInPence) extends OtherReliefsOption
 
-  implicit val format: OFormat[DisposalDate] = Json.format
+  case object NoOtherReliefs extends OtherReliefsOption
+
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  implicit val format: OFormat[OtherReliefsOption] = derived.oformat()
 
 }

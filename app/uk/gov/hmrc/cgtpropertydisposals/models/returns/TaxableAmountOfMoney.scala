@@ -16,15 +16,16 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.time.LocalDate
-
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
+import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 
-final case class DisposalDate(value: LocalDate, taxYear: TaxYear)
+final case class TaxableAmountOfMoney(
+  taxRate: BigDecimal,
+  taxableAmount: AmountInPence
+)
 
-object DisposalDate {
+object TaxableAmountOfMoney {
 
-  implicit val format: OFormat[DisposalDate] = Json.format
+  implicit val format: OFormat[TaxableAmountOfMoney] = Json.format
 
 }

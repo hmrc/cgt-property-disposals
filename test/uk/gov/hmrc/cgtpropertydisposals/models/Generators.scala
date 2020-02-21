@@ -60,6 +60,10 @@ sealed trait GenUtils {
   // define our own Arbitrary instance for String to generate more legible strings
   implicit val stringArb: Arbitrary[String] = Arbitrary(Gen.alphaNumStr)
 
+  implicit val longArb: Arbitrary[Long] = Arbitrary(Gen.choose(-5e13.toLong, 5e13.toLong))
+
+  implicit val bigDecimalGen: Arbitrary[BigDecimal] = Arbitrary(Gen.choose(0L, 1e9.toLong).map(BigDecimal(_)))
+
   implicit val localDateTimeArb: Arbitrary[LocalDateTime] =
     Arbitrary(
       Gen
@@ -132,8 +136,6 @@ trait UpscanGen { this: GenUtils =>
 
   implicit val upscanMetaGen: Gen[FileDescriptors]        = gen[FileDescriptors]
   implicit val upscanUploadGen: Gen[UpscanFileDescriptor] = gen[UpscanFileDescriptor]
-
-  //implicit val upscanCallBackResultGen: Gen[UpscanCallBack] = gen[UpscanCallBackResult]
   implicit val upscanCallBackGen: Gen[UpscanCallBack] = gen[UpscanCallBack]
 
 }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.libs.json.{JsString, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.ReadConcern
 import reactivemongo.api.commands.WriteResult

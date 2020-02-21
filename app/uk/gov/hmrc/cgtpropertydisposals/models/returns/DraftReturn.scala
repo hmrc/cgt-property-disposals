@@ -25,10 +25,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 final case class DraftReturn(
   id: UUID,
   cgtReference: CgtReference,
-  triageAnswers: IndividualTriageAnswers,
+  triageAnswers: TriageAnswers,
   propertyAddress: Option[UkAddress],
   disposalDetailsAnswers: Option[DisposalDetailsAnswers],
-  acquisitionDetailsAnswers: Option[AcquisitionDetailsAnswers]
+  acquisitionDetailsAnswers: Option[AcquisitionDetailsAnswers],
+  reliefDetailsAnswers: Option[ReliefDetailsAnswers],
+  exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
+  yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers]
 )
 
 object DraftReturn {
