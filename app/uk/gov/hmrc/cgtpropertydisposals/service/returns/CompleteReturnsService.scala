@@ -61,8 +61,11 @@ class DefaultCompleteReturnsService @Inject() (
 
   private def sendSubmitReturnRequest(
     returnRequest: SubmitReturnRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] = {
+    val timer = metrics.submitReturnTimer.time()
+
     submitReturnsConnector.submit(returnRequest).subflatMap { response =>
+      timer.close()
       if (response.status === OK) {
         response
           .parseJSON[DesReturnResponse]()
@@ -73,6 +76,7 @@ class DefaultCompleteReturnsService @Inject() (
         Left(Error(s"call to submit return came back with status ${response.status}"))
       }
     }
+  }
 
   private def prepareSubmitReturnResponse(response: DesReturnResponse): SubmitReturnResponse = {
     val resDetails = response.ppdReturnResponseDetails

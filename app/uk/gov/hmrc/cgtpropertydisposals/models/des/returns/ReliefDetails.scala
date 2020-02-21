@@ -24,7 +24,7 @@ import cats.syntax.order._
 final case class ReliefDetails(
   reliefs: Boolean,
   privateResRelief: Option[BigDecimal],
-  lettingsReflief: Option[BigDecimal],
+  lettingsRelief: Option[BigDecimal],
   giftHoldOverRelief: Option[BigDecimal],
   otherRelief: Option[String],
   otherReliefAmount: Option[BigDecimal]
@@ -35,17 +35,27 @@ object ReliefDetails {
   def apply(cr: CompleteReturn): ReliefDetails =
     ReliefDetails(
       reliefs            = reliefs(cr),
-      privateResRelief   = Some(cr.reliefDetails.privateResidentsRelief.inPounds),
-      lettingsReflief    = Some(cr.reliefDetails.lettingsRelief.inPounds),
+      privateResRelief   = privateResRelief(cr),
+      lettingsRelief     = lettingsRelief(cr),
       giftHoldOverRelief = None,
       otherRelief        = cr.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.name), () => None)),
       otherReliefAmount  = cr.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.amount.inPounds), () => None))
     )
 
-  def reliefs(cr: CompleteReturn): Boolean =
+  private def reliefs(cr: CompleteReturn): Boolean =
     cr.reliefDetails.privateResidentsRelief > AmountInPence.zero &
       cr.reliefDetails.lettingsRelief > AmountInPence.zero &
       cr.reliefDetails.otherReliefs.map(_.fold(_ => true, () => false)).isDefined
+
+  private def privateResRelief(cr: CompleteReturn): Option[BigDecimal] =
+    if (cr.reliefDetails.privateResidentsRelief > AmountInPence.zero)
+      Some(cr.reliefDetails.privateResidentsRelief.inPounds)
+    else None
+
+  private def lettingsRelief(cr: CompleteReturn): Option[BigDecimal] =
+    if (cr.reliefDetails.lettingsRelief > AmountInPence.zero)
+      Some(cr.reliefDetails.lettingsRelief.inPounds)
+    else None
 
   implicit val reliefDetailsFormat: OFormat[ReliefDetails] = Json.format[ReliefDetails]
 

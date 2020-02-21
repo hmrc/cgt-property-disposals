@@ -76,8 +76,9 @@ object DisposalDetails {
     val value = calculatedTaxDue.initialGainOrLoss
 
     if (value < AmountInPence.zero)
-      Some(AmountInPence.zero.inPounds()) -> Some(value.inPounds())
-    else Some(value.inPounds())           -> Some(AmountInPence.zero.inPounds())
+      None -> Some(value.inPounds())
+    else
+      Some(value.inPounds()) -> None
   }
 
   private def improvementCosts(c: CompleteReturn): Option[BigDecimal] =
