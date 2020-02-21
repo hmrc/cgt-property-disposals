@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.address
 
 import cats.Eq
+import cats.syntax.eq._
 import play.api.libs.json.{Json, OFormat, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.{CountryCode, CountryName}
 
@@ -28,6 +29,8 @@ final case class Country(
 )
 
 object Country {
+
+  val uk: Country = Country("GB", Some("United Kingdom"))
 
   implicit val countryFormat: OFormat[Country] = Json.format[Country]
 
@@ -51,6 +54,10 @@ object Country {
     } finally {
       source.close()
     }
+  }
+
+  implicit class CountryOps(private val c: Country) extends AnyVal {
+    def isUk(): Boolean = c === Country.uk
   }
 
   implicit val eq: Eq[Country] = Eq.fromUniversalEquals

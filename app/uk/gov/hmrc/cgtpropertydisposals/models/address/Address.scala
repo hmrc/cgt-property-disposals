@@ -33,7 +33,7 @@ object Address {
     county: Option[String],
     postcode: String
   ) extends Address {
-    val countryCode: String = "GB"
+    val countryCode: String = Country.uk.code
   }
 
   final case class NonUkAddress(
