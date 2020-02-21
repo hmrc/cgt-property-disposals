@@ -1,0 +1,5 @@
+POST    /upscan-fd                          uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.saveUpscanFileDescriptor()
+GET     /upscan-fd/:fd                      uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanFileDescriptor(fd :uk.gov.hmrc.cgtpropertydisposals.models.upscan.FileDescriptorId)
+PUT     /upscan-fd/status                   uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.updateUpscanFileDescriptorStatus()
+POST    /upscan-cb                          uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.saveUpscanCallBack()
+GET     /upscan-snapshot/:id                uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanSnapshot(id : uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference)

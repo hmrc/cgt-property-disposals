@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.OFormat
 
 sealed trait IndividualTriageAnswers extends Product with Serializable
 

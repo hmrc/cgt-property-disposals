@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.name
+package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import java.time.LocalDateTime
+import play.api.libs.json._
 
-import play.api.libs.json.{Json, OFormat}
+final case class UploadRequest(
+  href: String,
+  fields: Map[String, String]
+)
 
-final case class IndividualName(firstName: String, lastName: String)
-
-object IndividualName {
-  implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
+object UploadRequest {
+  implicit val format = Json.format[UploadRequest]
 }
 
-final case class Foo(s: LocalDateTime)
-object Foo {
-  implicit val format = Json.format[Foo]
+final case class FileDescriptors(
+  reference: String,
+  uploadRequest: UploadRequest
+)
+
+object FileDescriptors {
+  implicit val format = Json.format[FileDescriptors]
 }

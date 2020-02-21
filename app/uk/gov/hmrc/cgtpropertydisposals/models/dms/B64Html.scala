@@ -14,19 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.name
-
-import java.time.LocalDateTime
+package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class IndividualName(firstName: String, lastName: String)
+final case class B64Html(value: String) extends AnyVal
 
-object IndividualName {
-  implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
-}
-
-final case class Foo(s: LocalDateTime)
-object Foo {
-  implicit val format = Json.format[Foo]
+object B64Html {
+  implicit val format: OFormat[B64Html] = Json.format[B64Html]
 }

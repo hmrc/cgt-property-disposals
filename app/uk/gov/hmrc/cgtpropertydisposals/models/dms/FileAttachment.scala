@@ -14,19 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.name
+package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
-import java.time.LocalDateTime
+import akka.util.ByteString
 
-import play.api.libs.json.{Json, OFormat}
-
-final case class IndividualName(firstName: String, lastName: String)
-
-object IndividualName {
-  implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
-}
-
-final case class Foo(s: LocalDateTime)
-object Foo {
-  implicit val format = Json.format[Foo]
-}
+final case class FileAttachment(
+  key: String,
+  filename: String,
+  contentType: Option[String],
+  data: ByteString
+)

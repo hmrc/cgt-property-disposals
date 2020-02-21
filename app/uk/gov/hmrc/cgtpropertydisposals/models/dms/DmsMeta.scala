@@ -14,19 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.name
+package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
-import java.time.LocalDateTime
+import play.api.libs.json.{Format, Json}
 
-import play.api.libs.json.{Json, OFormat}
+final case class DmsMetadata(dmsFormId: String, customerId: String, classificationType: String, businessArea: String)
 
-final case class IndividualName(firstName: String, lastName: String)
-
-object IndividualName {
-  implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
-}
-
-final case class Foo(s: LocalDateTime)
-object Foo {
-  implicit val format = Json.format[Foo]
+object DmsMetadata {
+  implicit val format: Format[DmsMetadata] = Json.format[DmsMetadata]
 }

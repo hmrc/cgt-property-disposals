@@ -49,9 +49,17 @@ lazy val microservice = Project(appName, file("."))
     )
   .settings(scalaVersion := "2.12.10")
   .settings(
-    scalafmtOnCompile := true,
     majorVersion := 1,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
+  )
+  .settings(
+    scalafmtOnCompile := true,
+    addCompilerPlugin(scalafixSemanticdb),
+    scalacOptions ++= List(
+      "-Yrangepos",
+      "-Ywarn-unused:imports",
+      "-Ypartial-unification"
+    )
   )
   .settings(scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused:imports"))
   .settings(publishingSettings: _*)

@@ -18,8 +18,10 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 
+import akka.util.ByteString
 import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
@@ -28,6 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.Sub
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptors, UpscanCallBack, UpscanFileDescriptor}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 import scala.reflect.{ClassTag, classTag}
@@ -39,7 +42,9 @@ object Generators
     with OnboardingGen
     with BusinessPartnerRecordGen
     with TaxEnrolmentGen
-    with DraftReturnGen {
+    with DraftReturnGen
+    with UpscanGen
+    with DmsSubmissionGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -65,6 +70,13 @@ sealed trait GenUtils {
   implicit val localDateArb: Arbitrary[LocalDate] = Arbitrary(
     Gen.chooseNum(0, Int.MaxValue).map(LocalDate.ofEpochDay(_))
   )
+
+  implicit val byteStringArb: Arbitrary[ByteString] =
+    Arbitrary(
+      Gen
+        .choose(0L, Long.MaxValue)
+        .map(s => ByteString(s))
+    )
 
 }
 
@@ -114,4 +126,20 @@ trait DraftReturnGen { this: GenUtils =>
 
   implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 
+}
+
+trait UpscanGen { this: GenUtils =>
+
+  implicit val upscanMetaGen: Gen[FileDescriptors]        = gen[FileDescriptors]
+  implicit val upscanUploadGen: Gen[UpscanFileDescriptor] = gen[UpscanFileDescriptor]
+
+  //implicit val upscanCallBackResultGen: Gen[UpscanCallBack] = gen[UpscanCallBackResult]
+  implicit val upscanCallBackGen: Gen[UpscanCallBack] = gen[UpscanCallBack]
+
+}
+
+trait DmsSubmissionGen { this: GenUtils =>
+  implicit val dmsMetadataGen: Gen[DmsMetadata]                   = gen[DmsMetadata]
+  implicit val fileAttachmentGen: Gen[FileAttachment]             = gen[FileAttachment]
+  implicit val dmsSubmissionPayloadGen: Gen[DmsSubmissionPayload] = gen[DmsSubmissionPayload]
 }
