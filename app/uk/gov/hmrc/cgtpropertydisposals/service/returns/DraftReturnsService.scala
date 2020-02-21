@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
+import java.util.UUID
+
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -23,6 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DraftReturnsRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+
 import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultDraftReturnsService])
@@ -32,6 +35,7 @@ trait DraftReturnsService {
 
   def saveDraftReturn(draftReturn: DraftReturn): EitherT[Future, Error, Unit]
 
+  def deleteDraftReturn(id: UUID): EitherT[Future, Error, Int]
 }
 
 @Singleton
@@ -45,5 +49,8 @@ class DefaultDraftReturnsService @Inject() (
 
   override def saveDraftReturn(draftReturn: DraftReturn): EitherT[Future, Error, Unit] =
     draftReturnRepository.save(draftReturn)
+
+  override def deleteDraftReturn(id: UUID): EitherT[Future, Error, Int] =
+    draftReturnRepository.delete(id)
 
 }

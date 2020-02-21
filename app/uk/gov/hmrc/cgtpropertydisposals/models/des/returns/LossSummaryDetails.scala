@@ -16,7 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import cats.syntax.order._
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 
 final case class LossSummaryDetails(
   inYearLoss: Boolean,
@@ -26,6 +29,24 @@ final case class LossSummaryDetails(
 )
 
 object LossSummaryDetails {
+
+  def apply(c: CompleteReturn): LossSummaryDetails =
+    LossSummaryDetails(
+      inYearLoss      = c.exemptionsAndLossesDetails.inYearLosses > AmountInPence.zero,
+      inYearLossUsed  = inYearLossUsed(c),
+      preYearLoss     = c.exemptionsAndLossesDetails.previousYearsLosses > AmountInPence.zero,
+      preYearLossUsed = preYearLossUsed(c)
+    )
+
+  private def preYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
+    if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
+      Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
+    else None
+
+  private def inYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
+    if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
+      Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
+    else None
 
   implicit val lossSummaryDetailsFormat: OFormat[LossSummaryDetails] = Json.format[LossSummaryDetails]
 

@@ -17,20 +17,17 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import java.time.LocalDate
-
+import cats.syntax.order._
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.NumberOfProperties
-
-final case class ValueAtTaxBandDetails(
-  taxRate: BigDecimal,
-  valueAtTaxRate: BigDecimal
-)
+import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 final case class ReturnDetails(
   customerType: String,
   completionDate: LocalDate,
   isUKResident: Boolean,
-  numberDisposals: NumberOfProperties,
+  numberDisposals: Int,
   totalTaxableGain: BigDecimal,
   totalLiability: BigDecimal,
   totalYTDLiability: BigDecimal,
@@ -47,6 +44,41 @@ final case class ReturnDetails(
 )
 
 object ReturnDetails {
-  implicit val valueAtTaxBandDetailsForamt: OFormat[ValueAtTaxBandDetails] = Json.format[ValueAtTaxBandDetails]
-  implicit val returnDetailsFormat: OFormat[ReturnDetails]                 = Json.format[ReturnDetails]
+
+  def apply(submitReturnRequest: SubmitReturnRequest): ReturnDetails = {
+    val c                = submitReturnRequest.completeReturn
+    val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
+
+    ReturnDetails(
+      customerType          = SubscribedDetails(submitReturnRequest),
+      completionDate        = c.triageAnswers.completionDate.value,
+      isUKResident          = c.triageAnswers.wasAUKResident,
+      numberDisposals       = NumberOfProperties(c),
+      totalTaxableGain      = getTaxableGainOrNetLoss(c)._1,
+      totalNetLoss          = getTaxableGainOrNetLoss(c)._2,
+      valueAtTaxBandDetails = ValueAtTaxBandDetails(calculatedTaxDue),
+      totalLiability        = c.yearToDateLiabilityAnswers.taxDue.inPounds,
+      totalYTDLiability     = calculatedTaxDue.yearToDateLiability.inPounds,
+      estimate              = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.hasEstimatedDetails,
+      repayment             = false,
+      attachmentUpload      = false, //TODO
+      declaration           = true,
+      adjustedAmount        = None,
+      countryResidence      = None,
+      attachmentID          = None,
+      entrepreneursRelief   = None
+    )
+  }
+
+  private def getTaxableGainOrNetLoss(c: CompleteReturn): (BigDecimal, Option[BigDecimal]) = {
+    val value = c.exemptionsAndLossesDetails.taxableGainOrLoss.getOrElse(
+      c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue.taxableGainOrNetLoss
+    )
+
+    if (value < AmountInPence.zero)
+      AmountInPence.zero.inPounds() -> Some(value.inPounds())
+    else value.inPounds()           -> None
+  }
+
+  implicit val returnDetailsFormat: OFormat[ReturnDetails] = Json.format[ReturnDetails]
 }

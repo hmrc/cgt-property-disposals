@@ -21,9 +21,9 @@ import com.google.inject.Inject
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.CompleteReturnsService
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CompleteReturnsService, DraftReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -32,6 +32,7 @@ import scala.concurrent.ExecutionContext
 
 class SubmitReturnsController @Inject() (
   authenticate: AuthenticateActions,
+  draftReturnsService: DraftReturnsService,
   completeReturnsService: CompleteReturnsService,
   auditService: AuditService,
   cc: ControllerComponents
@@ -40,17 +41,23 @@ class SubmitReturnsController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def returnsSubmit: Action[JsValue] = authenticate(parse.json).async { implicit request =>
+  def submitReturn: Action[JsValue] = authenticate(parse.json).async { implicit request =>
     withJsonBody[SubmitReturnRequest] { returnRequest =>
-      completeReturnsService
-        .submitReturn(returnRequest)
-        .fold(
-          { e =>
-            logger.warn("Could not create return", e)
-            InternalServerError
-          },
-          s => Ok(Json.toJson(s))
-        )
+      val draftReturnId = returnRequest.completeReturn.id
+
+      val result =
+        for {
+          submissionResult <- completeReturnsService.submitReturn(returnRequest)
+          _                <- draftReturnsService.deleteDraftReturn(draftReturnId)
+        } yield submissionResult
+
+      result.fold(
+        { e =>
+          logger.warn("Could not submit return", e)
+          InternalServerError
+        },
+        s => Ok(Json.toJson(s))
+      )
     }
   }
 

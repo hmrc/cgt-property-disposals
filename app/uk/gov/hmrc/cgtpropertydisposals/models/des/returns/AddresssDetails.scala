@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 
 final case class AddresssDetails(
   addressLine1: String,
@@ -28,6 +29,16 @@ final case class AddresssDetails(
 )
 
 object AddresssDetails {
+
+  def apply(c: CompleteReturn): AddresssDetails =
+    AddresssDetails(
+      addressLine1 = c.propertyAddress.line1,
+      addressLine2 = c.propertyAddress.line2,
+      addressLine3 = c.propertyAddress.town,
+      addressLine4 = c.propertyAddress.town,
+      countryCode  = c.propertyAddress.countryCode,
+      postalCode   = c.propertyAddress.postcode
+    )
 
   implicit val addresssDetailsFormat: OFormat[AddresssDetails] = Json.format[AddresssDetails]
 

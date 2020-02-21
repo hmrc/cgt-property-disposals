@@ -27,7 +27,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 import scala.reflect.{ClassTag, classTag}
@@ -39,7 +39,8 @@ object Generators
     with OnboardingGen
     with BusinessPartnerRecordGen
     with TaxEnrolmentGen
-    with DraftReturnGen {
+    with DraftReturnGen
+    with SubmitReturnRequestGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -117,5 +118,11 @@ trait TaxEnrolmentGen { this: GenUtils =>
 trait DraftReturnGen { this: GenUtils =>
 
   implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
+
+}
+
+trait SubmitReturnRequestGen { this: GenUtils =>
+
+  implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
 
 }

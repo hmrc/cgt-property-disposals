@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 
 final case class IncomeAllowanceDetails(
   annualExemption: BigDecimal,
@@ -26,6 +27,14 @@ final case class IncomeAllowanceDetails(
 )
 
 object IncomeAllowanceDetails {
+
+  def apply(c: CompleteReturn): IncomeAllowanceDetails =
+    IncomeAllowanceDetails(
+      annualExemption   = c.exemptionsAndLossesDetails.annualExemptAmount.inPounds,
+      estimatedIncome   = Some(c.yearToDateLiabilityAnswers.estimatedIncome.inPounds),
+      personalAllowance = c.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds),
+      threshold         = Some(c.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
+    )
 
   implicit val incomeAllowanceDetailsFormat: OFormat[IncomeAllowanceDetails] = Json.format[IncomeAllowanceDetails]
 

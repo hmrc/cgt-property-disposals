@@ -17,6 +17,9 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import cats.syntax.order._
 
 final case class ReliefDetails(
   reliefs: Boolean,
@@ -28,6 +31,21 @@ final case class ReliefDetails(
 )
 
 object ReliefDetails {
+
+  def apply(cr: CompleteReturn): ReliefDetails =
+    ReliefDetails(
+      reliefs            = reliefs(cr),
+      privateResRelief   = Some(cr.reliefDetails.privateResidentsRelief.inPounds),
+      lettingsReflief    = Some(cr.reliefDetails.lettingsRelief.inPounds),
+      giftHoldOverRelief = None,
+      otherRelief        = cr.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.name), () => None)),
+      otherReliefAmount  = cr.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.amount.inPounds), () => None))
+    )
+
+  def reliefs(cr: CompleteReturn): Boolean =
+    cr.reliefDetails.privateResidentsRelief > AmountInPence.zero &
+      cr.reliefDetails.lettingsRelief > AmountInPence.zero &
+      cr.reliefDetails.otherReliefs.map(_.fold(_ => true, () => false)).isDefined
 
   implicit val reliefDetailsFormat: OFormat[ReliefDetails] = Json.format[ReliefDetails]
 

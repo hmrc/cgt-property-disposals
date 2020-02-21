@@ -28,6 +28,11 @@ object AssetType {
 
   case object NonResidential extends AssetType
 
+  def apply(cr: CompleteReturn): String = cr.triageAnswers.assetType match {
+    case Residential    => "Residential"
+    case NonResidential => "NonResidential"
+  }
+
   implicit val eq: Eq[AssetType] = Eq.fromUniversalEquals
 
   implicit val format: OFormat[AssetType] = derived.oformat()

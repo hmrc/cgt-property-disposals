@@ -16,28 +16,24 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
-import play.api.libs.json.{Format, Json}
 import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.Configuration
 import play.api.http.Status.OK
-import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
+import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, SubmitReturnResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse._
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultCompleteReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultCompleteReturnsService._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -53,10 +49,7 @@ trait CompleteReturnsService {
 
 @Singleton
 class DefaultCompleteReturnsService @Inject() (
-  auditService: AuditService,
   submitReturnsConnector: SubmitReturnsConnector,
-  emailConnector: EmailConnector,
-  config: Configuration,
   metrics: Metrics
 ) extends CompleteReturnsService
     with Logging {
@@ -73,11 +66,11 @@ class DefaultCompleteReturnsService @Inject() (
       if (response.status === OK) {
         response
           .parseJSON[DesReturnResponse]()
-          .map(a => prepareSubmitReturnResponse(a))
+          .map(r => prepareSubmitReturnResponse(r))
           .leftMap(Error(_))
       } else {
-        metrics.subscriptionCreateErrorCounter.inc()
-        Left(Error(s"call to create return came back with status ${response.status}"))
+        metrics.submitReturnErrorCounter.inc()
+        Left(Error(s"call to submit return came back with status ${response.status}"))
       }
     }
 
@@ -105,7 +98,7 @@ object DefaultCompleteReturnsService {
   )
 
   final case class DesReturnResponse(
-    processingDate: LocalDate,
+    processingDate: LocalDateTime,
     ppdReturnResponseDetails: PPDReturnResponseDetails
   )
 

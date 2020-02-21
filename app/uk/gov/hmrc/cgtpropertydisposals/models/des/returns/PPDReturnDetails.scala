@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 
 final case class PPDReturnDetails(
   returnType: ReturnType,
@@ -29,6 +30,31 @@ final case class PPDReturnDetails(
 )
 
 object PPDReturnDetails {
+
+  def apply(submitReturnRequest: SubmitReturnRequest): PPDReturnDetails = {
+    val c                      = submitReturnRequest.completeReturn
+    val returnDetails          = ReturnDetails(submitReturnRequest)
+    val lossSummaryDetails     = LossSummaryDetails(c)
+    val reliefDetails          = ReliefDetails(c)
+    val incomeAllowanceDetails = IncomeAllowanceDetails(c)
+    val disposalDetails        = DisposalDetails(c)
+
+    PPDReturnDetails(
+      returnType = CreateReturnType(
+        source         = getSource(submitReturnRequest),
+        submissionType = SubmissionType.New
+      ),
+      returnDetails            = returnDetails,
+      representedPersonDetails = None,
+      disposalDetails          = disposalDetails,
+      lossSummaryDetails       = lossSummaryDetails,
+      incomeAllowanceDetails   = incomeAllowanceDetails,
+      reliefDetails            = reliefDetails
+    )
+  }
+
+  private def getSource(submitReturnRequest: SubmitReturnRequest): String =
+    submitReturnRequest.agentReferenceNumber.fold("self digital")(_ => "agent digital")
 
   implicit val ppdReturnDetailsFormat: OFormat[PPDReturnDetails] = Json.format[PPDReturnDetails]
 
