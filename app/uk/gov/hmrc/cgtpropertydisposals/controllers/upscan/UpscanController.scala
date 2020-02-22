@@ -38,25 +38,17 @@ class UpscanController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def updateUpscanFileDescriptorStatus(): Action[JsValue] =
-    authenticate(parse.json).async { implicit request =>
-      request.body
-        .asOpt[UpscanFileDescriptor] match {
-        case Some(fd) =>
-          upscanService
-            .updateUpscanFileDescriptorStatus(fd)
-            .fold(
-              e => {
-                logger.warn(s"failed to update upscan file descriptor details: $e")
-                InternalServerError
-              },
-              _ => Ok
-            )
-        case None => {
-          logger.warn(s"failed to parse upscan file descriptor JSON payload")
-          Future.successful(BadRequest)
-        }
-      }
+  def getUpscanSnapshot(cgtReference: CgtReference): Action[AnyContent] =
+    authenticate.async {
+      upscanService
+        .getUpscanSnapshot(cgtReference)
+        .fold(
+          e => {
+            logger.warn(s"failed to get upscan snapshot $e")
+            InternalServerError
+          },
+          snapshot => Ok(Json.toJson[UpscanSnapshot](snapshot))
+        )
     }
 
   def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): Action[AnyContent] =
@@ -77,17 +69,25 @@ class UpscanController @Inject() (
         )
     }
 
-  def getUpscanSnapshot(cgtReference: CgtReference): Action[AnyContent] =
-    authenticate.async {
-      upscanService
-        .getUpscanSnapshot(cgtReference)
-        .fold(
-          e => {
-            logger.warn(s"failed to get upscan snapshot $e")
-            InternalServerError
-          },
-          snapshot => Ok(Json.toJson[UpscanSnapshot](snapshot))
-        )
+  def updateUpscanFileDescriptorStatus(): Action[JsValue] =
+    authenticate(parse.json).async { implicit request =>
+      request.body
+        .asOpt[UpscanFileDescriptor] match {
+        case Some(fd) =>
+          upscanService
+            .updateUpscanFileDescriptorStatus(fd)
+            .fold(
+              e => {
+                logger.warn(s"failed to update upscan file descriptor details: $e")
+                InternalServerError
+              },
+              _ => Ok
+            )
+        case None => {
+          logger.warn(s"failed to parse upscan file descriptor JSON payload")
+          Future.successful(BadRequest)
+        }
+      }
     }
 
   def saveUpscanFileDescriptor(): Action[JsValue] = authenticate(parse.json).async { implicit request =>

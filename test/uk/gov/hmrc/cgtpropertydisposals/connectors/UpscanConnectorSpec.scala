@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -98,7 +99,9 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
               2 minutes
             )(Future.successful(httpResponse))
             await(
-              connector.downloadFile(UpscanCallBack(CgtReference(""), "", "", "some-url", Map.empty)).unsafeToFuture()
+              connector
+                .downloadFile(UpscanCallBack(CgtReference(""), "", UPLOADED, "some-url", Map.empty))
+                .unsafeToFuture()
             ) shouldBe Left(Error(s"download failed with status ${httpResponse.status}"))
           }
         }
@@ -120,7 +123,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
                   UpscanCallBack(
                     CgtReference("ref"),
                     "ref-1",
-                    "UPLOADED",
+                    UPLOADED,
                     "some-url",
                     Map(("filename" -> "f1.text"), ("fileMimeType" -> "application/pdf"))
                   )

@@ -18,17 +18,29 @@ package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
 import java.time.LocalDateTime
 
+import cats.Eq
+import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
 
 final case class UpscanFileDescriptor(
   key: String,
   cgtReference: CgtReference,
-  fileDescriptors: FileDescriptors,
+  fileDescriptor: FileDescriptor,
   timestamp: LocalDateTime,
-  status: String
+  status: UpscanFileDescriptorStatus
 )
 
 object UpscanFileDescriptor {
-  implicit val format: OFormat[UpscanFileDescriptor] = Json.format[UpscanFileDescriptor]
+  sealed trait UpscanFileDescriptorStatus
+  object UpscanFileDescriptorStatus {
+    case object UPLOADED extends UpscanFileDescriptorStatus
+    case object READY_TO_UPLOAD extends UpscanFileDescriptorStatus
+    case object QUARANTINED extends UpscanFileDescriptorStatus
+  }
+  implicit val eq: Eq[UpscanFileDescriptorStatus]                = Eq.fromUniversalEquals
+  implicit val statusFormat: OFormat[UpscanFileDescriptorStatus] = derived.oformat()
+  implicit val format: OFormat[UpscanFileDescriptor]             = Json.format[UpscanFileDescriptor]
+
 }

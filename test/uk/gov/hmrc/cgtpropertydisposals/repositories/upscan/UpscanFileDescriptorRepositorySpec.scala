@@ -25,6 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 
 class UpscanFileDescriptorRepositorySpec extends WordSpec with Matchers with MongoSupport {
 
@@ -51,7 +52,7 @@ class UpscanFileDescriptorRepositorySpec extends WordSpec with Matchers with Mon
     "updating upscan upload status" should {
       "return true if the update was successful" in {
         await(repository.insert(fd).value) shouldBe Right(())
-        await(repository.updateUpscanUploadStatus(fd.copy(status = "UPLOADED")).value) shouldBe Right(true)
+        await(repository.updateUpscanUploadStatus(fd.copy(status = UPLOADED)).value) shouldBe Right(true)
       }
     }
 

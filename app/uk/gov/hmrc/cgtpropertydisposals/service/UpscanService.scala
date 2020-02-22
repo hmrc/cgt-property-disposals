@@ -29,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -36,6 +37,9 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[UpscanServiceImpl])
 trait UpscanService {
+
+  def getUpscanSnapshot(cgtReference: CgtReference): EitherT[Future, Error, UpscanSnapshot]
+
   def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit]
 
   def storeCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit]
@@ -44,8 +48,6 @@ trait UpscanService {
     cgtReference: CgtReference,
     fileDescriptorId: FileDescriptorId
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]]
-
-  def getUpscanSnapshot(cgtReference: CgtReference): EitherT[Future, Error, UpscanSnapshot]
 
   def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
@@ -76,11 +78,6 @@ class UpscanServiceImpl @Inject() (
 
   private val s3UrlExpiryTime: Long = getUpscanInitiateConfig[Long]("s3url.expiry-time")
 
-  override def updateUpscanFileDescriptorStatus(
-    upscanFileDescriptor: UpscanFileDescriptor
-  ): EitherT[Future, Error, Boolean] =
-    upscanFileDescriptorRepository.updateUpscanUploadStatus(upscanFileDescriptor)
-
   override def getUpscanSnapshot(
     cgtReference: CgtReference
   ): EitherT[Future, Error, UpscanSnapshot] =
@@ -88,6 +85,11 @@ class UpscanServiceImpl @Inject() (
       fds <- upscanFileDescriptorRepository.getAll(cgtReference)
       d   <- EitherT.fromEither[Future](computeUpscanSnapshot(fds))
     } yield d
+
+  override def updateUpscanFileDescriptorStatus(
+    upscanFileDescriptor: UpscanFileDescriptor
+  ): EitherT[Future, Error, Boolean] =
+    upscanFileDescriptorRepository.updateUpscanUploadStatus(upscanFileDescriptor)
 
   def getUpscanFileDescriptor(
     fileDescriptorId: FileDescriptorId
@@ -111,7 +113,7 @@ class UpscanServiceImpl @Inject() (
     urls: List[UpscanCallBack]
   ): EitherT[Future, Error, List[Either[Error, FileAttachment]]] = {
     implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-    if ((snapshot.fileUploadCount === urls.size) && urls.forall(p => p.fileStatus === "UPLOADED")) {
+    if ((snapshot.fileUploadCount === urls.size) && urls.forall(p => p.fileStatus === UPLOADED)) {
       val maybeNonEmptyList: Option[NonEmptyList[UpscanCallBack]] = NonEmptyList.fromList(urls)
 
       val maybeDownloads: Option[IO[NonEmptyList[Either[Error, FileAttachment]]]] = maybeNonEmptyList map { urls =>
@@ -135,7 +137,7 @@ class UpscanServiceImpl @Inject() (
   private def computeUpscanSnapshot(upscanFileDescriptor: List[UpscanFileDescriptor]): Either[Error, UpscanSnapshot] = {
     val validFiles = upscanFileDescriptor
       .filter(fd => fd.timestamp.isAfter(LocalDateTime.now().minusDays(s3UrlExpiryTime)))
-      .filter(fd => fd.status === "UPLOADED")
+      .filter(fd => fd.status === UPLOADED)
     Right(
       UpscanSnapshot(
         validFiles.size

@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
 
@@ -132,7 +133,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
   val cgtReference         = sample[CgtReference]
   val ts                   = java.time.Instant.ofEpochSecond(1000)
   val upscanFileDescriptor = sample[UpscanFileDescriptor]
-  val upscanCallBack       = sample[UpscanCallBack].copy(fileStatus = "UPLOADED")
+  val upscanCallBack       = sample[UpscanCallBack].copy(fileStatus = UPLOADED)
   val s3Url                = "http://aws.s3.com/file"
 
   "Upscan Service" when {
@@ -162,7 +163,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       "return a list of upscan file descriptors" when {
         "it successfully updates the data" in {
           mockGetUpscanSnapshot(cgtReference)(
-            Right(List(upscanFileDescriptor.copy(status = "UPLOADED", timestamp = LocalDateTime.now())))
+            Right(List(upscanFileDescriptor.copy(status = UPLOADED, timestamp = LocalDateTime.now())))
           )
           await(service.getUpscanSnapshot(cgtReference).value) shouldBe Right(UpscanSnapshot(1))
         }

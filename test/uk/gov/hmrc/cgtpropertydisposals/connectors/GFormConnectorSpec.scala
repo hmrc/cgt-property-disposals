@@ -92,11 +92,9 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
   "GForm Connector" when {
     "return an error if the http call to download the file fails" in {
 
-      val fa = FileAttachment("key", "filename", Some("application/pdf"), ByteString("data"))
-
       val dms = DmsSubmissionPayload(
         B64Html("html"),
-        List(fa),
+        List(FileAttachment("key", "filename", Some("application/pdf"), ByteString("data"))),
         DmsMetadata("id", "cId", "ct", "ba")
       )
 
@@ -139,8 +137,6 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
     }
 
     "return an envelope id if successful call is made" in {
-
-      val fa = FileAttachment("key", "filename", Some("application/pdf"), ByteString("data"))
 
       val dms = DmsSubmissionPayload(
         B64Html("html"),

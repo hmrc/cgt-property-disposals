@@ -24,13 +24,13 @@ import reactivemongo.api.ReadConcern
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers._
+import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanFileDescriptor}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import play.api.libs.json._
+
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultUpscanFileDescriptorRepository])
@@ -132,15 +132,19 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
         }
     )
 
-  override def get(
-    fileDescriptorId: FileDescriptorId
-  ): EitherT[Future, Error, Option[UpscanFileDescriptor]] =
+  override def get(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]] = {
+    val selector = Json.obj(
+      "key" -> fileDescriptorId.value
+    )
+
     EitherT[Future, Error, Option[UpscanFileDescriptor]](
-      find("key" -> fileDescriptorId.value)
-        .map(fd => Right(fd.headOption))
+      collection
+        .find(selector, None)
+        .one[UpscanFileDescriptor]
+        .map(Right(_))
         .recover {
           case exception => Left(Error(exception))
         }
     )
-
+  }
 }

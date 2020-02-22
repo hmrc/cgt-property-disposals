@@ -16,17 +16,19 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json.{Json, OFormat}
+import julienrf.json.derived
+import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
 
 final case class UpscanCallBack(
   cgtReference: CgtReference,
   reference: String,
-  fileStatus: String,
+  fileStatus: UpscanFileDescriptorStatus,
   downloadUrl: String,
   uploadDetails: Map[String, String]
 )
 
 object UpscanCallBack {
-  implicit val format: OFormat[UpscanCallBack] = Json.format[UpscanCallBack]
+  implicit val format: OFormat[UpscanCallBack] = derived.oformat()
 }

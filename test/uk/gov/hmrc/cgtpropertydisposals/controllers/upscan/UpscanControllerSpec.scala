@@ -32,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.{READY_TO_UPLOAD, UPLOADED}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -113,7 +114,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   val upfd = UpscanFileDescriptor(
     key          = "12345",
     cgtReference = CgtReference("cgt-ref"),
-    fileDescriptors = FileDescriptors(
+    fileDescriptor = FileDescriptor(
       reference = "11370e18-6e24-453e-b45a-76d3e32ea33d",
       uploadRequest = UploadRequest(
         href = "https://xxxx/upscan-upload-proxy/bucketName",
@@ -131,35 +132,38 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       )
     ),
     timestamp = LocalDateTime.of(2020, 2, 19, 16, 24, 16),
-    status    = "UPLOADED"
+    status    = UPLOADED
   )
-
   val upscanFileDescriptorPayload =
     """
       |{
-      |   "key" : "12345",
-      |   "cgtReference" : {
-      |     "value" : "cgt-ref"
+      |   "key":"12345",
+      |   "cgtReference":{
+      |      "value":"cgt-ref"
       |   },
-      |   "fileDescriptors" : {
-      |    "reference": "11370e18-6e24-453e-b45a-76d3e32ea33d",
-      |    "uploadRequest": {
-      |        "href": "https://xxxx/upscan-upload-proxy/bucketName",
-      |        "fields": {
-      |            "Content-Type": "application/xml",
-      |            "acl": "private",
-      |            "key": "xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      |            "policy": "xxxxxxxx==",
-      |            "x-amz-algorithm": "AWS4-HMAC-SHA256",
-      |            "x-amz-credential": "ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
-      |            "x-amz-date": "yyyyMMddThhmmssZ",
-      |            "x-amz-meta-callback-url": "https://myservice.com/callback",
-      |            "x-amz-signature": "xxxx"
-      |        }
+      |   "fileDescriptor":{
+      |      "reference":"11370e18-6e24-453e-b45a-76d3e32ea33d",
+      |      "uploadRequest":{
+      |         "href":"https://xxxx/upscan-upload-proxy/bucketName",
+      |         "fields":{
+      |            "x-amz-meta-callback-url":"https://myservice.com/callback",
+      |            "x-amz-date":"yyyyMMddThhmmssZ",
+      |            "x-amz-credential":"ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
+      |            "x-amz-algorithm":"AWS4-HMAC-SHA256",
+      |            "key":"xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      |            "acl":"private",
+      |            "x-amz-signature":"xxxx",
+      |            "Content-Type":"application/xml",
+      |            "policy":"xxxxxxxx=="
+      |         }
       |      }
-      |    },
-      |    "timestamp": "2020-02-19T16:24:16",
-      |    "status" : "UPLOADED"
+      |   },
+      |   "timestamp":"2020-02-19T16:24:16",
+      |   "status":{
+      |      "UPLOADED":{
+      |
+      |      }
+      |   }
       |}
       |""".stripMargin
 
@@ -171,7 +175,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       |   },
       |   "callbackResult": {
       |   "reference":"11370e18-6e24-453e-b45a-76d3e32ea33d",
-      |   "fileStatus":"READY",
+      |   "fileStatus":{"READY_TO_UPLOAD":{}},
       |   "downloadUrl":"http://aws.com/file",
       |   "checksum":"12345",
       |   "fileName":"test.pdf",
@@ -184,7 +188,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   val upscanCallBack = UpscanCallBack(
     cgtReference = CgtReference("cgt-ref"),
     reference    = "11370e18-6e24-453e-b45a-76d3e32ea33d",
-    fileStatus   = "READY",
+    fileStatus   = READY_TO_UPLOAD,
     downloadUrl  = "http://aws.com/file",
     uploadDetails = Map(
       "Content-Type"            -> "application/xml",

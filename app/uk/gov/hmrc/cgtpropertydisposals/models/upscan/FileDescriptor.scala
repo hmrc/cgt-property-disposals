@@ -27,11 +27,11 @@ object UploadRequest {
   implicit val format = Json.format[UploadRequest]
 }
 
-final case class FileDescriptors(
+final case class FileDescriptor(
   reference: String,
   uploadRequest: UploadRequest
 )
 
-object FileDescriptors {
-  implicit val format = Json.format[FileDescriptors]
+object FileDescriptor {
+  implicit val format = Json.format[FileDescriptor]
 }

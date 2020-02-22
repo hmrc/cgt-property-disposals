@@ -30,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.Sub
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptors, UpscanCallBack, UpscanFileDescriptor}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptor, UpscanCallBack, UpscanFileDescriptor}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 import scala.reflect.{ClassTag, classTag}
@@ -134,9 +134,9 @@ trait DraftReturnGen { this: GenUtils =>
 
 trait UpscanGen { this: GenUtils =>
 
-  implicit val upscanMetaGen: Gen[FileDescriptors]        = gen[FileDescriptors]
+  implicit val upscanMetaGen: Gen[FileDescriptor]         = gen[FileDescriptor]
   implicit val upscanUploadGen: Gen[UpscanFileDescriptor] = gen[UpscanFileDescriptor]
-  implicit val upscanCallBackGen: Gen[UpscanCallBack] = gen[UpscanCallBack]
+  implicit val upscanCallBackGen: Gen[UpscanCallBack]     = gen[UpscanCallBack]
 
 }
 
