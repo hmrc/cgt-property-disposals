@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedDetails
 
 final case class SubscriptionUpdateRequest(
   subscribedDetails: SubscribedDetails

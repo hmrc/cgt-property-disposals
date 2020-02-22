@@ -52,7 +52,7 @@ object ReturnDetails {
     ReturnDetails(
       customerType          = SubscribedDetails(submitReturnRequest),
       completionDate        = c.triageAnswers.completionDate.value,
-      isUKResident          = c.triageAnswers.wasAUKResident,
+      isUKResident          = c.triageAnswers.countryOfResidence.isUk(),
       numberDisposals       = NumberOfProperties(c),
       totalTaxableGain      = getTaxableGainOrNetLoss(c)._1,
       totalNetLoss          = getTaxableGainOrNetLoss(c)._2,

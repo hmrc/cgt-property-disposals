@@ -20,7 +20,6 @@ import cats.Eq
 import cats.syntax.eq._
 import play.api.libs.json.{Json, OFormat, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.{CountryCode, CountryName}
-
 import scala.io.Source
 
 final case class Country(
