@@ -20,11 +20,11 @@ import julienrf.json.derived
 import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 
-sealed trait TriageAnswers extends Product with Serializable
+sealed trait SingleDisposalTriageAnswers extends Product with Serializable
 
-object TriageAnswers {
+object SingleDisposalTriageAnswers {
 
-  final case class IncompleteTriageAnswers(
+  final case class IncompleteSingleDisposalTriageAnswers(
     individualUserType: Option[IndividualUserType],
     numberOfProperties: Option[NumberOfProperties],
     disposalMethod: Option[DisposalMethod],
@@ -33,9 +33,9 @@ object TriageAnswers {
     assetType: Option[AssetType],
     disposalDate: Option[DisposalDate],
     completionDate: Option[CompletionDate]
-  ) extends TriageAnswers
+  ) extends SingleDisposalTriageAnswers
 
-  final case class CompleteTriageAnswers(
+  final case class CompleteSingleDisposalTriageAnswers(
     individualUserType: IndividualUserType,
     numberOfProperties: NumberOfProperties,
     disposalMethod: DisposalMethod,
@@ -43,8 +43,8 @@ object TriageAnswers {
     assetType: AssetType,
     disposalDate: DisposalDate,
     completionDate: CompletionDate
-  ) extends TriageAnswers
+  ) extends SingleDisposalTriageAnswers
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[TriageAnswers] = derived.oformat()
+  implicit val format: OFormat[SingleDisposalTriageAnswers] = derived.oformat()
 
 }
