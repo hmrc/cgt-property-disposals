@@ -23,6 +23,11 @@ import play.api.libs.json.{Json, OFormat}
 final case class IndividualName(firstName: String, lastName: String)
 
 object IndividualName {
+
+  implicit class IndividualNameOps(private val name: IndividualName) extends AnyVal {
+    def makeSingleName(): String = name.firstName + " " + name.lastName
+  }
+
   implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
 }
 

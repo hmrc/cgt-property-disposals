@@ -17,30 +17,29 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
 
 import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.cgtpropertydisposals.models.TelephoneNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
-final case class SubscriptionDetails(
+final case class SubscribedDetails(
   name: Either[TrustName, IndividualName],
-  contactName: ContactName,
   emailAddress: Email,
   address: Address,
-  sapNumber: SapNumber
+  contactName: ContactName,
+  cgtReference: CgtReference,
+  telephoneNumber: Option[TelephoneNumber],
+  registeredWithId: Boolean
 )
-object SubscriptionDetails {
-  implicit val format: Format[SubscriptionDetails] = Json.format[SubscriptionDetails]
 
-  def fromRegistrationDetails(registrationDetails: RegistrationDetails, sapNumber: SapNumber): SubscriptionDetails =
-    SubscriptionDetails(
-      Right(registrationDetails.name),
-      ContactName(s"${registrationDetails.name.firstName} ${registrationDetails.name.lastName}"),
-      registrationDetails.emailAddress,
-      registrationDetails.address,
-      sapNumber
-    )
+object SubscribedDetails {
+
+  def apply(submitReturnRequest: SubmitReturnRequest): String =
+    submitReturnRequest.subscribedDetails.name.fold(_ => "trust", _ => "individual")
+
+  implicit val format: Format[SubscribedDetails] = Json.format[SubscribedDetails]
 
 }

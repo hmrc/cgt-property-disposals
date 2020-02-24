@@ -31,6 +31,13 @@ object AcquisitionMethod {
 
   final case class Other(value: String) extends AcquisitionMethod
 
+  def apply(cr: CompleteReturn): String = cr.acquisitionDetails.acquisitionMethod match {
+    case Bought       => "Bought"
+    case Inherited    => "Inherited"
+    case Gifted       => "Gifted"
+    case Other(value) => value
+  }
+
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[AcquisitionMethod] = derived.oformat()
 

@@ -28,6 +28,16 @@ object OtherReliefsOption {
 
   case object NoOtherReliefs extends OtherReliefsOption
 
+  implicit class OtherReliefsOptionOps(private val o: OtherReliefsOption) extends AnyVal {
+    def fold[A](
+      ifOtherReliefs: OtherReliefs => A,
+      ifNoOtherReliefs: () => A
+    ): A = o match {
+      case NoOtherReliefs      => ifNoOtherReliefs()
+      case value: OtherReliefs => ifOtherReliefs(value)
+    }
+  }
+
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[OtherReliefsOption] = derived.oformat()
 

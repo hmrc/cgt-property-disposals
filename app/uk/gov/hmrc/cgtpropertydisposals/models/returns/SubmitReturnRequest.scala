@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 
-final case class SubscriptionUpdateRequest(
-  subscribedDetails: SubscribedDetails
+final case class SubmitReturnRequest(
+  completeReturn: CompleteReturn,
+  subscribedDetails: SubscribedDetails,
+  agentReferenceNumber: Option[AgentReferenceNumber]
 )
 
-object SubscriptionUpdateRequest {
-  implicit val format: OFormat[SubscriptionUpdateRequest] = Json.format[SubscriptionUpdateRequest]
+object SubmitReturnRequest {
+
+  implicit val format: OFormat[SubmitReturnRequest] = Json.format[SubmitReturnRequest]
+
 }

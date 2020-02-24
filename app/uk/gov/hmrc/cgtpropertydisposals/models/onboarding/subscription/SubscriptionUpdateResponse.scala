@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription
+package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
 
 import java.time.LocalDateTime
 

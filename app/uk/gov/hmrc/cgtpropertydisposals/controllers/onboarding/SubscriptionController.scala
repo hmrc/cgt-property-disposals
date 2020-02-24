@@ -30,8 +30,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.{RegisteredWithoutId, RegistrationDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.{SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{AuditService, RegisterWithoutIdService, SubscriptionService}

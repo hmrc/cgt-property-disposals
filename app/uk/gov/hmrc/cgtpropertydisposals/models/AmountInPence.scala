@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
+import cats.Order
+import cats.instances.long._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Format
 
@@ -23,7 +25,17 @@ final case class AmountInPence(value: Long)
 
 object AmountInPence {
 
+  val zero: AmountInPence = AmountInPence(0L)
+
+  implicit class AmountInPenceOps(private val a: AmountInPence) extends AnyVal {
+    def inPounds(): BigDecimal = a.value / BigDecimal("100")
+  }
+
+  implicit val order: Order[AmountInPence] = Order.by[AmountInPence, Long](_.value)
+
   implicit val format: Format[AmountInPence] =
     implicitly[Format[Long]].inmap(AmountInPence(_), _.value)
+
+  def fromPounds(amount: BigDecimal): AmountInPence = AmountInPence((amount * BigDecimal("100")).toLong)
 
 }
