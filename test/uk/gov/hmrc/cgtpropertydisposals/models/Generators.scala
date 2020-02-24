@@ -55,7 +55,8 @@ object Generators
     with GainCalculatedTaxDueGen
     with NonGainCalculatedTaxDueGen
     with CompleteAcquisitionDetailsAnswersGen
-    with CompleteExemptionAndLossesAnswersGen {
+    with CompleteExemptionAndLossesAnswersGen
+    with SubmitReturnResponseGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -196,5 +197,11 @@ trait CompleteAcquisitionDetailsAnswersGen { this: GenUtils =>
 trait CompleteExemptionAndLossesAnswersGen { this: GenUtils =>
 
   implicit val completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] = gen[CompleteExemptionAndLossesAnswers]
+
+}
+
+trait SubmitReturnResponseGen { this: GenUtils =>
+
+  implicit val submitReturnResponse: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
 
 }

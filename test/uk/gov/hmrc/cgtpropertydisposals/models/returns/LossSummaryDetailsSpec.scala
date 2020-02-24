@@ -29,16 +29,20 @@ class LossSummaryDetailsSpec extends WordSpec with Matchers with MockFactory wit
   "LossSummaryDetails inYearLossUsed" must {
     "return some value for in year losses" in {
       val inYearLossesAmountInPounds: BigDecimal = BigDecimal(1000)
-      val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers]
-        .copy(inYearLosses = AmountInPence.fromPounds(amount = inYearLossesAmountInPounds)))
+      val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails =
+        sample[CompleteExemptionAndLossesAnswers]
+          .copy(inYearLosses = AmountInPence.fromPounds(amount = inYearLossesAmountInPounds))
+      )
 
       LossSummaryDetails.apply(completeReturn).inYearLossUsed.isDefined shouldBe true
     }
 
     "return none for no in year losses" in {
       val inYearLossesAmountInPounds: BigDecimal = BigDecimal(0)
-      val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers]
-        .copy(inYearLosses = AmountInPence.fromPounds(amount = inYearLossesAmountInPounds)))
+      val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails =
+        sample[CompleteExemptionAndLossesAnswers]
+          .copy(inYearLosses = AmountInPence.fromPounds(amount = inYearLossesAmountInPounds))
+      )
 
       LossSummaryDetails.apply(completeReturn).inYearLossUsed.isDefined shouldBe false
     }
@@ -47,16 +51,20 @@ class LossSummaryDetailsSpec extends WordSpec with Matchers with MockFactory wit
   "LossSummaryDetails preYearLoss" must {
     "return some value for pre year losses" in {
       val preYearLossesAmountInPounds: BigDecimal = BigDecimal(1000)
-      val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers]
-        .copy(previousYearsLosses = AmountInPence.fromPounds(amount = preYearLossesAmountInPounds)))
+      val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails =
+        sample[CompleteExemptionAndLossesAnswers]
+          .copy(previousYearsLosses = AmountInPence.fromPounds(amount = preYearLossesAmountInPounds))
+      )
 
       LossSummaryDetails.apply(completeReturn).preYearLossUsed.isDefined shouldBe true
     }
 
     "return none for no pre year losses" in {
       val preYearLossesAmountInPounds: BigDecimal = BigDecimal(0)
-      val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers]
-        .copy(previousYearsLosses = AmountInPence.fromPounds(amount = preYearLossesAmountInPounds)))
+      val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails =
+        sample[CompleteExemptionAndLossesAnswers]
+          .copy(previousYearsLosses = AmountInPence.fromPounds(amount = preYearLossesAmountInPounds))
+      )
 
       LossSummaryDetails.apply(completeReturn).preYearLossUsed.isDefined shouldBe false
     }
