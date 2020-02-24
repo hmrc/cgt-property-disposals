@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.cgtpropertydisposals.connectors.returns
 
 import com.typesafe.config.ConfigFactory
@@ -42,8 +58,8 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
 
   val submitReturnRequest: SubmitReturnRequest = {
     sample[SubmitReturnRequest].copy(completeReturn =
-      sample[CompleteReturn].copy(triageAnswers =
-        sample[CompleteTriageAnswers].copy(numberOfProperties = One)))
+      sample[CompleteReturn].copy(triageAnswers = sample[CompleteTriageAnswers].copy(numberOfProperties = One))
+    )
   }
 
   val connector = new SubmitReturnsConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
@@ -51,7 +67,7 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
   "SubmitReturnsConnectorImpl" when {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     def expectedSubmitReturnUrl(cgtReference: String) =
       s"""http://localhost:7022/cgt-reference/$cgtReference/return"""
@@ -69,7 +85,11 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
           HttpResponse(503)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(expectedSubmitReturnUrl(submitReturnRequest.subscribedDetails.cgtReference.value), expectedHeaders, *)(
+            mockPost(
+              expectedSubmitReturnUrl(submitReturnRequest.subscribedDetails.cgtReference.value),
+              expectedHeaders,
+              *
+            )(
               Some(httpResponse)
             )
 
@@ -81,7 +101,11 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
       "return an error" when {
 
         "the call fails" in {
-          mockPost(expectedSubmitReturnUrl(submitReturnRequest.subscribedDetails.cgtReference.value), expectedHeaders, *)(None)
+          mockPost(
+            expectedSubmitReturnUrl(submitReturnRequest.subscribedDetails.cgtReference.value),
+            expectedHeaders,
+            *
+          )(None)
 
           await(connector.submit(submitReturnRequest).value).isLeft shouldBe true
         }

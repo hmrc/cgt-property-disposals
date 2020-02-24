@@ -33,6 +33,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import org.scalacheck.ScalacheckShapeless._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
+
 import scala.reflect.{ClassTag, classTag}
 
 object Generators
@@ -51,7 +53,8 @@ object Generators
     with CalculatedTaxDueGen
     with GainCalculatedTaxDueGen
     with NonGainCalculatedTaxDueGen
-    with CompleteAcquisitionDetailsAnswersGen {
+    with CompleteAcquisitionDetailsAnswersGen
+    with CompleteExemptionAndLossesAnswersGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -152,13 +155,15 @@ trait CompleteTriageAnswersGen { this: GenUtils =>
 
 trait CompleteYearToDateLiabilityAnswersGen { this: GenUtils =>
 
-  implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] = gen[CompleteYearToDateLiabilityAnswers]
+  implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] =
+    gen[CompleteYearToDateLiabilityAnswers]
 
 }
 
 trait HasEstimatedDetailsWithCalculatedTaxDueGen { this: GenUtils =>
 
-  implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] = gen[HasEstimatedDetailsWithCalculatedTaxDue]
+  implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
+    gen[HasEstimatedDetailsWithCalculatedTaxDue]
 
 }
 
@@ -183,5 +188,11 @@ trait GainCalculatedTaxDueGen { this: GenUtils =>
 trait CompleteAcquisitionDetailsAnswersGen { this: GenUtils =>
 
   implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] = gen[CompleteAcquisitionDetailsAnswers]
+
+}
+
+trait CompleteExemptionAndLossesAnswersGen { this: GenUtils =>
+
+  implicit val completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] = gen[CompleteExemptionAndLossesAnswers]
 
 }
