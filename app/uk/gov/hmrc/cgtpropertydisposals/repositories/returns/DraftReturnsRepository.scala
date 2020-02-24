@@ -39,9 +39,8 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.mongo.ReactiveRepository
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultDraftReturnsRepository])
@@ -54,8 +53,9 @@ trait DraftReturnsRepository {
 }
 
 @Singleton
-class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)
-    extends ReactiveRepository[DraftReturn, BSONObjectID](
+class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(
+  implicit val ec: ExecutionContext
+) extends ReactiveRepository[DraftReturn, BSONObjectID](
       collectionName = "draft-returns",
       mongo          = component.mongoConnector.db,
       domainFormat   = DraftReturn.format

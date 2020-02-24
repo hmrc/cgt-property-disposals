@@ -28,15 +28,14 @@ import play.api.http.Status.OK
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{Charge, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultCompleteReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultCompleteReturnsService])
 trait CompleteReturnsService {
@@ -51,7 +50,8 @@ trait CompleteReturnsService {
 class DefaultCompleteReturnsService @Inject() (
   submitReturnsConnector: SubmitReturnsConnector,
   metrics: Metrics
-) extends CompleteReturnsService
+)(implicit ec: ExecutionContext)
+    extends CompleteReturnsService
     with Logging {
 
   override def submitReturn(
@@ -67,10 +67,12 @@ class DefaultCompleteReturnsService @Inject() (
     submitReturnsConnector.submit(returnRequest).subflatMap { response =>
       timer.close()
       if (response.status === OK) {
-        response
-          .parseJSON[DesReturnResponse]()
-          .map(r => prepareSubmitReturnResponse(r))
-          .leftMap(Error(_))
+        for {
+          desResponse <- response
+                          .parseJSON[DesReturnResponse]()
+                          .leftMap(Error(_))
+          submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
+        } yield submitReturnResponse
       } else {
         metrics.submitReturnErrorCounter.inc()
         Left(Error(s"call to submit return came back with status ${response.status}"))
@@ -78,14 +80,23 @@ class DefaultCompleteReturnsService @Inject() (
     }
   }
 
-  private def prepareSubmitReturnResponse(response: DesReturnResponse): SubmitReturnResponse = {
-    val resDetails = response.ppdReturnResponseDetails
-    SubmitReturnResponse(
-      chargeReference = resDetails.chargeReference,
-      amount          = AmountInPence.fromPounds(resDetails.amount),
-      dueDate         = resDetails.dueDate,
-      formBundleId    = resDetails.formBundleNumber
-    )
+  private def prepareSubmitReturnResponse(response: DesReturnResponse): Either[Error, SubmitReturnResponse] = {
+    val charge = (
+      response.ppdReturnResponseDetails.amount,
+      response.ppdReturnResponseDetails.dueDate,
+      response.ppdReturnResponseDetails.chargeReference
+    ) match {
+      case (None, None, None) => Right(None)
+      case (Some(amount), Some(dueDate), Some(chargeReference)) =>
+        Right(Some(Charge(chargeReference, AmountInPence.fromPounds(amount), dueDate)))
+      case (amount, dueDate, chargeReference) =>
+        Left(
+          Error(
+            s"Found some charge details but not all of them: (amount: $amount, dueDate: $dueDate, chargeReference: $chargeReference)"
+          )
+        )
+    }
+    charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, _))
   }
 
 }
@@ -93,12 +104,10 @@ class DefaultCompleteReturnsService @Inject() (
 object DefaultCompleteReturnsService {
 
   final case class PPDReturnResponseDetails(
-    chargeType: String,
-    chargeReference: String,
-    amount: Double,
-    dueDate: LocalDate,
-    formBundleNumber: String,
-    cgtReferenceNumber: String
+    chargeReference: Option[String],
+    amount: Option[Double],
+    dueDate: Option[LocalDate],
+    formBundleNumber: String
   )
 
   final case class DesReturnResponse(
