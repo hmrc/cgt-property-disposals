@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 
-import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
@@ -29,11 +28,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscript
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.IndividualTriageAnswers.CompleteIndividualTriageAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.TriageAnswers.CompleteTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculatedTaxDue, CompleteReturn, DraftReturn, HasEstimatedDetailsWithCalculatedTaxDue, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
-
+import org.scalacheck.ScalacheckShapeless._
 import scala.reflect.{ClassTag, classTag}
 
 object Generators
@@ -46,7 +45,7 @@ object Generators
     with DraftReturnGen
     with SubmitReturnRequestGen
     with CompleteReturnGen
-    with CompleteIndividualTriageAnswersGen
+    with CompleteTriageAnswersGen
     with CompleteYearToDateLiabilityAnswersGen
     with HasEstimatedDetailsWithCalculatedTaxDueGen
     with CalculatedTaxDueGen
@@ -145,9 +144,9 @@ trait CompleteReturnGen { this: GenUtils =>
 
 }
 
-trait CompleteIndividualTriageAnswersGen { this: GenUtils =>
+trait CompleteTriageAnswersGen { this: GenUtils =>
 
-  implicit val completeIndividualTriageAnswersGen: Gen[CompleteIndividualTriageAnswers] = gen[CompleteIndividualTriageAnswers]
+  implicit val completeTriageAnswersGen: Gen[CompleteTriageAnswers] = gen[CompleteTriageAnswers]
 
 }
 

@@ -7,8 +7,8 @@ import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.IndividualTriageAnswers.CompleteIndividualTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.NumberOfProperties.One
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.TriageAnswers.CompleteTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
@@ -43,7 +43,7 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
   val submitReturnRequest: SubmitReturnRequest = {
     sample[SubmitReturnRequest].copy(completeReturn =
       sample[CompleteReturn].copy(triageAnswers =
-        sample[CompleteIndividualTriageAnswers].copy(numberOfProperties = One)))
+        sample[CompleteTriageAnswers].copy(numberOfProperties = One)))
   }
 
   val connector = new SubmitReturnsConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
