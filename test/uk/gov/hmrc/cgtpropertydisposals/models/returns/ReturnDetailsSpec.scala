@@ -20,12 +20,11 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.ReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.NumberOfProperties.One
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.TriageAnswers.CompleteTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
 
 class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
