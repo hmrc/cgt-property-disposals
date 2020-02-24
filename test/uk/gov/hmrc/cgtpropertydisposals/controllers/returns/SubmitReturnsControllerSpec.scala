@@ -65,10 +65,10 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     cc                  = Helpers.stubControllerComponents()
   )
 
-  def mockSubmitReturnService(response: Either[Error, SubmitReturnResponse]) =
+  def mockSubmitReturnService(request: SubmitReturnRequest)(response: Either[Error, SubmitReturnResponse]) =
     (completeReturnsService
       .submitReturn(_: SubmitReturnRequest)(_: HeaderCarrier))
-      .expects(*, *)
+      .expects(request, *)
       .returning(EitherT.fromEither[Future](response))
 
   def mockDeleteDraftReturnService(response: Either[Error, Int]) =
@@ -83,32 +83,34 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
       "return 200 for successful submission" in {
         val expectedResponseBody = sample[SubmitReturnResponse]
-        mockDeleteDraftReturnService(Right(1))
-        mockSubmitReturnService(Right(expectedResponseBody))
+        val requestBody = sample[SubmitReturnRequest]
 
-        val body = Json.toJson(sample[SubmitReturnRequest])
-        val result = controller.submitReturn()(fakeRequestWithJsonBody(body))
+        mockDeleteDraftReturnService(Right(1))
+        mockSubmitReturnService(requestBody)(Right(expectedResponseBody))
+
+        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
       }
 
       "return 500 when des call fails" in {
-        mockSubmitReturnService(Left(Error.apply("error while submitting return to DES")))
+        val requestBody = sample[SubmitReturnRequest]
 
-        val body = Json.toJson(sample[SubmitReturnRequest])
-        val result = controller.submitReturn()(fakeRequestWithJsonBody(body))
+        mockSubmitReturnService(requestBody)(Left(Error.apply("error while submitting return to DES")))
+
+        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result)        shouldBe INTERNAL_SERVER_ERROR
       }
 
       "return 500 when deleting draft return fails" in {
-        mockDeleteDraftReturnService(Left(Error.apply("error while deleting draft return")))
-        mockSubmitReturnService(Right(sample[SubmitReturnResponse]))
+        val requestBody = sample[SubmitReturnRequest]
 
-        val body = Json.toJson(sample[SubmitReturnRequest])
-        val result = controller.submitReturn()(fakeRequestWithJsonBody(body))
+        mockDeleteDraftReturnService(Left(Error.apply("error while deleting draft return")))
+        mockSubmitReturnService(requestBody)(Right(sample[SubmitReturnResponse]))
+
+        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result)        shouldBe INTERNAL_SERVER_ERROR
       }
-
     }
   }
 }
