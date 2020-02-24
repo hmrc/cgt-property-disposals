@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
+package uk.gov.hmrc.cgtpropertydisposals.models.ids
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class SubscriptionUpdateRequest(
-  subscribedDetails: SubscribedDetails
-)
+final case class AgentReferenceNumber(value: String) extends AnyVal
 
-object SubscriptionUpdateRequest {
-  implicit val format: OFormat[SubscriptionUpdateRequest] = Json.format[SubscriptionUpdateRequest]
+object AgentReferenceNumber {
+
+  implicit val format: OFormat[AgentReferenceNumber] = Json.format
+
 }

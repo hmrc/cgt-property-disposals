@@ -34,8 +34,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, Uk
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.{SubscriptionDetails, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, accounts}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 

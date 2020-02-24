@@ -1,2 +1,4 @@
 GET  /draft-returns/:cgtReference       uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturns(cgtReference:String)
 POST /draft-return                      uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturnSubmit()
+
+POST /return                            uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.submitReturn()

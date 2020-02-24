@@ -18,18 +18,21 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 
-import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.TriageAnswers.CompleteTriageAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
-
+import org.scalacheck.ScalacheckShapeless._
 import scala.reflect.{ClassTag, classTag}
 
 object Generators
@@ -39,7 +42,16 @@ object Generators
     with OnboardingGen
     with BusinessPartnerRecordGen
     with TaxEnrolmentGen
-    with DraftReturnGen {
+    with DraftReturnGen
+    with SubmitReturnRequestGen
+    with CompleteReturnGen
+    with CompleteTriageAnswersGen
+    with CompleteYearToDateLiabilityAnswersGen
+    with HasEstimatedDetailsWithCalculatedTaxDueGen
+    with CalculatedTaxDueGen
+    with GainCalculatedTaxDueGen
+    with NonGainCalculatedTaxDueGen
+    with CompleteAcquisitionDetailsAnswersGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -117,5 +129,59 @@ trait TaxEnrolmentGen { this: GenUtils =>
 trait DraftReturnGen { this: GenUtils =>
 
   implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
+
+}
+
+trait SubmitReturnRequestGen { this: GenUtils =>
+
+  implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
+
+}
+
+trait CompleteReturnGen { this: GenUtils =>
+
+  implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
+
+}
+
+trait CompleteTriageAnswersGen { this: GenUtils =>
+
+  implicit val completeTriageAnswersGen: Gen[CompleteTriageAnswers] = gen[CompleteTriageAnswers]
+
+}
+
+trait CompleteYearToDateLiabilityAnswersGen { this: GenUtils =>
+
+  implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] = gen[CompleteYearToDateLiabilityAnswers]
+
+}
+
+trait HasEstimatedDetailsWithCalculatedTaxDueGen { this: GenUtils =>
+
+  implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] = gen[HasEstimatedDetailsWithCalculatedTaxDue]
+
+}
+
+trait CalculatedTaxDueGen { this: GenUtils =>
+
+  implicit val calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
+
+}
+
+trait NonGainCalculatedTaxDueGen { this: GenUtils =>
+
+  implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
+
+}
+
+trait GainCalculatedTaxDueGen { this: GenUtils =>
+
+  implicit val gainCalculatedTaxDueGen: Gen[GainCalculatedTaxDue] = gen[GainCalculatedTaxDue]
+
+}
+
+trait CompleteAcquisitionDetailsAnswersGen { this: GenUtils =>
+
+  implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] = gen[CompleteAcquisitionDetailsAnswers]
 
 }

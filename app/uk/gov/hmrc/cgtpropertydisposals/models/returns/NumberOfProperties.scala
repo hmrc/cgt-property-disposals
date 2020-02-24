@@ -27,6 +27,11 @@ object NumberOfProperties {
 
   case object MoreThanOne extends NumberOfProperties
 
+  def apply(cr: CompleteReturn): Int = cr.triageAnswers.numberOfProperties match {
+    case One         => 1
+    case MoreThanOne => sys.error("MoreThanOneDisposal")
+  }
+
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[NumberOfProperties] = derived.oformat()
 

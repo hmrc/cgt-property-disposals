@@ -27,7 +27,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesSubscriptionUpdateRequest, TypeOfPersonDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.subscription.SubscriptionDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient

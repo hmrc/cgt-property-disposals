@@ -14,14 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
+package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class SubscriptionUpdateRequest(
-  subscribedDetails: SubscribedDetails
+final case class RepresentedPersonDetails(
+  capacitorPersonalRep: String,
+  firstName: String,
+  lastName: String,
+  idType: String, //TODO: "ZCGT","NINO","UTR","TRN"
+  idValue: String,
+  dateOfBirth: Option[String],
+  trustCessationDate: Option[String],
+  trustTerminationDate: Option[String],
+  addressDetails: Option[AddresssDetails],
+  email: Option[String]
 )
 
-object SubscriptionUpdateRequest {
-  implicit val format: OFormat[SubscriptionUpdateRequest] = Json.format[SubscriptionUpdateRequest]
+object RepresentedPersonDetails {
+  implicit val representedPersonDetailsFormat: OFormat[RepresentedPersonDetails] =
+    Json.format[RepresentedPersonDetails]
 }
