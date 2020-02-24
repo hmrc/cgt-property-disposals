@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.http
 
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.api.http.HttpVerbs.GET
 import play.api.libs.ws
 import play.api.libs.ws.{BodyWritable, WSClient}
 
@@ -38,6 +39,7 @@ class PlayHttpClientImpl @Inject() (wsClient: WSClient) extends PlayHttpClient {
   override def get(url: String, headers: Seq[(String, String)], timeout: Duration): Future[ws.WSResponse] =
     wsClient
       .url(url)
+      .withMethod(GET)
       .withHttpHeaders(headers: _*)
       .withRequestTimeout(timeout)
       .stream()
