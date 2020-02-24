@@ -24,10 +24,14 @@ import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.IndividualTriageAnswers.CompleteIndividualTriageAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculatedTaxDue, CompleteReturn, DraftReturn, HasEstimatedDetailsWithCalculatedTaxDue, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 import scala.reflect.{ClassTag, classTag}
@@ -40,7 +44,15 @@ object Generators
     with BusinessPartnerRecordGen
     with TaxEnrolmentGen
     with DraftReturnGen
-    with SubmitReturnRequestGen {
+    with SubmitReturnRequestGen
+    with CompleteReturnGen
+    with CompleteIndividualTriageAnswersGen
+    with CompleteYearToDateLiabilityAnswersGen
+    with HasEstimatedDetailsWithCalculatedTaxDueGen
+    with CalculatedTaxDueGen
+    with GainCalculatedTaxDueGen
+    with NonGainCalculatedTaxDueGen
+    with CompleteAcquisitionDetailsAnswersGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -124,5 +136,53 @@ trait DraftReturnGen { this: GenUtils =>
 trait SubmitReturnRequestGen { this: GenUtils =>
 
   implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
+
+}
+
+trait CompleteReturnGen { this: GenUtils =>
+
+  implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
+
+}
+
+trait CompleteIndividualTriageAnswersGen { this: GenUtils =>
+
+  implicit val completeIndividualTriageAnswersGen: Gen[CompleteIndividualTriageAnswers] = gen[CompleteIndividualTriageAnswers]
+
+}
+
+trait CompleteYearToDateLiabilityAnswersGen { this: GenUtils =>
+
+  implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] = gen[CompleteYearToDateLiabilityAnswers]
+
+}
+
+trait HasEstimatedDetailsWithCalculatedTaxDueGen { this: GenUtils =>
+
+  implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] = gen[HasEstimatedDetailsWithCalculatedTaxDue]
+
+}
+
+trait CalculatedTaxDueGen { this: GenUtils =>
+
+  implicit val calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
+
+}
+
+trait NonGainCalculatedTaxDueGen { this: GenUtils =>
+
+  implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
+
+}
+
+trait GainCalculatedTaxDueGen { this: GenUtils =>
+
+  implicit val gainCalculatedTaxDueGen: Gen[GainCalculatedTaxDue] = gen[GainCalculatedTaxDue]
+
+}
+
+trait CompleteAcquisitionDetailsAnswersGen { this: GenUtils =>
+
+  implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] = gen[CompleteAcquisitionDetailsAnswers]
 
 }
