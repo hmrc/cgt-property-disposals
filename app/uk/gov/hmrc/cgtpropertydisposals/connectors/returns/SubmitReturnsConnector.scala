@@ -52,7 +52,7 @@ class SubmitReturnsConnectorImpl @Inject() (http: HttpClient, val config: Servic
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
 
     val cgtReferenceNumber = returnRequest.subscribedDetails.cgtReference.value
-    val returnUrl: String  = s"$baseUrl/cgt-reference/$cgtReferenceNumber/return"
+    val returnUrl: String  = s"$baseUrl/capital-gains-tax/cgt-reference/$cgtReferenceNumber/return"
 
     val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest)
 
