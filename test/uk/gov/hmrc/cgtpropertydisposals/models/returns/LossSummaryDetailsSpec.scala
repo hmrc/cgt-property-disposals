@@ -36,7 +36,7 @@ class LossSummaryDetailsSpec extends WordSpec with Matchers with MockFactory wit
     }
 
     "return none for no in year losses" in {
-      val inYearLossesAmountInPounds: BigDecimal = BigDecimal(-1000)
+      val inYearLossesAmountInPounds: BigDecimal = BigDecimal(0)
       val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers]
         .copy(inYearLosses = AmountInPence.fromPounds(amount = inYearLossesAmountInPounds)))
 
@@ -54,7 +54,7 @@ class LossSummaryDetailsSpec extends WordSpec with Matchers with MockFactory wit
     }
 
     "return none for no pre year losses" in {
-      val preYearLossesAmountInPounds: BigDecimal = BigDecimal(-1000)
+      val preYearLossesAmountInPounds: BigDecimal = BigDecimal(0)
       val completeReturn = sample[CompleteReturn].copy(exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers]
         .copy(previousYearsLosses = AmountInPence.fromPounds(amount = preYearLossesAmountInPounds)))
 
