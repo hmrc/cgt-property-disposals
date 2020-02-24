@@ -28,11 +28,12 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscript
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.TriageAnswers.CompleteTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import org.scalacheck.ScalacheckShapeless._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
+
 import scala.reflect.{ClassTag, classTag}
 
 object Generators
@@ -146,19 +147,22 @@ trait CompleteReturnGen { this: GenUtils =>
 
 trait CompleteTriageAnswersGen { this: GenUtils =>
 
-  implicit val completeTriageAnswersGen: Gen[CompleteTriageAnswers] = gen[CompleteTriageAnswers]
+  implicit val completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
+    gen[CompleteSingleDisposalTriageAnswers]
 
 }
 
 trait CompleteYearToDateLiabilityAnswersGen { this: GenUtils =>
 
-  implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] = gen[CompleteYearToDateLiabilityAnswers]
+  implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] =
+    gen[CompleteYearToDateLiabilityAnswers]
 
 }
 
 trait HasEstimatedDetailsWithCalculatedTaxDueGen { this: GenUtils =>
 
-  implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] = gen[HasEstimatedDetailsWithCalculatedTaxDue]
+  implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
+    gen[HasEstimatedDetailsWithCalculatedTaxDue]
 
 }
 
@@ -182,6 +186,7 @@ trait GainCalculatedTaxDueGen { this: GenUtils =>
 
 trait CompleteAcquisitionDetailsAnswersGen { this: GenUtils =>
 
-  implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] = gen[CompleteAcquisitionDetailsAnswers]
+  implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] =
+    gen[CompleteAcquisitionDetailsAnswers]
 
 }

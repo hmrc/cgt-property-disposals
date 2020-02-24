@@ -26,16 +26,19 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
 
-class DisposalDetailsSpec extends WordSpec  with Matchers with MockFactory with HttpSupport {
+class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
   "DisposalDetails getInitialGainOrLoss" must {
 
     "return some value as initialGain and none as initialLoss" in {
       val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(123456))
 
-      val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
-        .copy(hasEstimatedDetailsWithCalculatedTaxDue = sample[HasEstimatedDetailsWithCalculatedTaxDue]
-          .copy(calculatedTaxDue = calculatedTaxDue)))
+      val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
+        sample[CompleteYearToDateLiabilityAnswers]
+          .copy(hasEstimatedDetailsWithCalculatedTaxDue = sample[HasEstimatedDetailsWithCalculatedTaxDue]
+            .copy(calculatedTaxDue = calculatedTaxDue)
+          )
+      )
 
       DisposalDetails.apply(completeReturn).initialGain.isDefined shouldBe true
       DisposalDetails.apply(completeReturn).initialLoss.isDefined shouldBe false
@@ -44,9 +47,12 @@ class DisposalDetailsSpec extends WordSpec  with Matchers with MockFactory with 
     "return none as initialGain and some value for initialLoss" in {
       val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(-123456))
 
-      val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
-        .copy(hasEstimatedDetailsWithCalculatedTaxDue = sample[HasEstimatedDetailsWithCalculatedTaxDue]
-          .copy(calculatedTaxDue = calculatedTaxDue)))
+      val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
+        sample[CompleteYearToDateLiabilityAnswers]
+          .copy(hasEstimatedDetailsWithCalculatedTaxDue = sample[HasEstimatedDetailsWithCalculatedTaxDue]
+            .copy(calculatedTaxDue = calculatedTaxDue)
+          )
+      )
 
       DisposalDetails.apply(completeReturn).initialGain.isDefined shouldBe false
       DisposalDetails.apply(completeReturn).initialLoss.isDefined shouldBe true
@@ -56,14 +62,16 @@ class DisposalDetailsSpec extends WordSpec  with Matchers with MockFactory with 
   "DisposalDetails improvementCosts" must {
     "return some value as improvementCosts" in {
       val completeReturn = sample[CompleteReturn].copy(acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers]
-        .copy(improvementCosts = AmountInPence(1234)))
+        .copy(improvementCosts = AmountInPence(1234))
+      )
 
       DisposalDetails.apply(completeReturn).improvementCosts.isDefined shouldBe true
     }
 
     "return none as improvementCosts" in {
       val completeReturn = sample[CompleteReturn].copy(acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers]
-        .copy(improvementCosts = AmountInPence(-1234)))
+        .copy(improvementCosts = AmountInPence(-1234))
+      )
 
       DisposalDetails.apply(completeReturn).improvementCosts.isDefined shouldBe false
     }
