@@ -70,7 +70,7 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
     val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     def expectedSubmitReturnUrl(cgtReference: String) =
-      s"""http://localhost:7022/cgt-reference/$cgtReference/return"""
+      s"""http://localhost:7022/capital-gains-tax/cgt-reference/$cgtReference/return"""
 
     "handling request to submit return" must {
 
