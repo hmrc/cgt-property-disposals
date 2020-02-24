@@ -23,7 +23,7 @@ final case class PPDReturnDetails(
   returnType: ReturnType,
   returnDetails: ReturnDetails,
   representedPersonDetails: Option[RepresentedPersonDetails],
-  disposalDetails: DisposalDetails,
+  disposalDetails: List[DisposalDetails],
   lossSummaryDetails: LossSummaryDetails,
   incomeAllowanceDetails: IncomeAllowanceDetails,
   reliefDetails: ReliefDetails
@@ -46,7 +46,7 @@ object PPDReturnDetails {
       ),
       returnDetails            = returnDetails,
       representedPersonDetails = None,
-      disposalDetails          = disposalDetails,
+      disposalDetails          = List(disposalDetails),
       lossSummaryDetails       = lossSummaryDetails,
       incomeAllowanceDetails   = incomeAllowanceDetails,
       reliefDetails            = reliefDetails
