@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import java.time.{LocalDate, LocalDateTime}
 
 import cats.data.EitherT
+import cats.instances.bigDecimal._
 import cats.instances.future._
 import cats.instances.int._
 import cats.syntax.either._
@@ -36,6 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.math.BigDecimal
 
 @ImplementedBy(classOf[DefaultCompleteReturnsService])
 trait CompleteReturnsService {
@@ -86,7 +88,8 @@ class DefaultCompleteReturnsService @Inject() (
       response.ppdReturnResponseDetails.dueDate,
       response.ppdReturnResponseDetails.chargeReference
     ) match {
-      case (None, None, None) => Right(None)
+      case (None, None, None)                               => Right(None)
+      case (Some(amount), _, _) if amount === BigDecimal(0) => Right(None)
       case (Some(amount), Some(dueDate), Some(chargeReference)) =>
         Right(Some(Charge(chargeReference, AmountInPence.fromPounds(amount), dueDate)))
       case (amount, dueDate, chargeReference) =>
@@ -105,7 +108,7 @@ object DefaultCompleteReturnsService {
 
   final case class PPDReturnResponseDetails(
     chargeReference: Option[String],
-    amount: Option[Double],
+    amount: Option[BigDecimal],
     dueDate: Option[LocalDate],
     formBundleNumber: String
   )

@@ -84,7 +84,7 @@ class CompleteReturnsServiceSpec extends WordSpec with Matchers with MockFactory
           await(draftReturnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
 
-        "there is a no charge" in {
+        "there is a no charge data" in {
           val jsonBody =
             """
               |{
@@ -101,11 +101,30 @@ class CompleteReturnsServiceSpec extends WordSpec with Matchers with MockFactory
           mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
           await(draftReturnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
+
+        "there is a zero charge" in {
+          val jsonBody =
+            """
+              |{
+              |"processingDate":"2020-02-20T09:30:47Z",
+              |"ppdReturnResponseDetails": {
+              |     "formBundleNumber":"804123737752",
+              |     "cgtReferenceNumber":"XLCGTP212487578",
+              |     "amount" : 0
+              |  }
+              |}
+              |""".stripMargin
+
+          val submitReturnResponse = SubmitReturnResponse("804123737752", None)
+          val submitReturnRequest  = sample[SubmitReturnRequest]
+          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          await(draftReturnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+        }
       }
 
       "return an error" when {
 
-        "there are charge details and " when {
+        "there are charge details for a non zero charge amount and " when {
 
           def test(jsonResponseBody: JsValue): Unit = {
             val submitReturnRequest = sample[SubmitReturnRequest]
