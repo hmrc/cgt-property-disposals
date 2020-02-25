@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.Validated.{Invalid, Valid}
-import cats.data.{EitherT, NonEmptyList, ValidatedNel}
+import cats.data.{EitherT, NonEmptyList}
 import cats.instances.future._
 import cats.instances.int._
 import cats.instances.string._
@@ -31,7 +31,7 @@ import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.{BusinessPartnerRecordConnector, SubscriptionConnector}
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, SubscriptionStatus}
@@ -39,7 +39,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, DesSubscriptionStatusResponse, Validation}
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, DesSubscriptionStatusResponse}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -187,8 +187,6 @@ class BusinessPartnerRecordServiceImpl @Inject() (
 object BusinessPartnerRecordServiceImpl {
 
   import DesBusinessPartnerRecord._
-
-  type Validation[A] = ValidatedNel[String, A]
 
   final case class DesBusinessPartnerRecord(
     address: AddressDetails,
