@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import cats.syntax.order._
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
-import cats.syntax.order._
 
 final case class ReliefDetails(
   reliefs: Boolean,
   privateResRelief: Option[BigDecimal],
-  lettingsRelief: Option[BigDecimal],
+  lettingsReflief: Option[BigDecimal], // this misspelling is intentional - DES are using the incorrect spelling
   giftHoldOverRelief: Option[BigDecimal],
   otherRelief: Option[String],
   otherReliefAmount: Option[BigDecimal]
@@ -36,7 +36,7 @@ object ReliefDetails {
     ReliefDetails(
       reliefs            = reliefs(cr),
       privateResRelief   = privateResRelief(cr),
-      lettingsRelief     = lettingsRelief(cr),
+      lettingsReflief    = lettingsRelief(cr),
       giftHoldOverRelief = None,
       otherRelief        = cr.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.name), () => None)),
       otherReliefAmount  = cr.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.amount.inPounds), () => None))
