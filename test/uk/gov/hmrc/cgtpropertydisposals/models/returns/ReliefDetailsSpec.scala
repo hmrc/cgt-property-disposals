@@ -82,14 +82,14 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       )
       val completeReturn = sample[CompleteReturn].copy(reliefDetails = reliefDetails)
 
-      ReliefDetails.apply(completeReturn).lettingsRelief shouldBe Some(amountInPounds)
+      ReliefDetails.apply(completeReturn).lettingsReflief shouldBe Some(amountInPounds)
     }
 
     "return None as letting relief value in pounds" in {
       val zeroReliefDetails = CompleteReliefDetailsAnswers(AmountInPence.zero, AmountInPence.zero, None)
       val completeReturn    = sample[CompleteReturn].copy(reliefDetails = zeroReliefDetails)
 
-      ReliefDetails.apply(completeReturn).lettingsRelief shouldBe None
+      ReliefDetails.apply(completeReturn).lettingsReflief shouldBe None
     }
   }
 
