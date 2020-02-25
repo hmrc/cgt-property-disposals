@@ -22,13 +22,13 @@ import cats.data.EitherT
 import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{Charge, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -48,47 +48,139 @@ class CompleteReturnsServiceSpec extends WordSpec with Matchers with MockFactory
       .returning(EitherT.fromEither[Future](response))
 
   "CompleteReturnsService" when {
-    val submitReturnResponse = SubmitReturnResponse(
-      chargeReference = "XCRG9448959757",
-      amount          = AmountInPence.fromPounds(11.0d),
-      dueDate         = LocalDate.parse("2020-03-11"),
-      formBundleId    = "804123737752"
-    )
 
-    "first return" should {
-      val jsonBody =
-        """
-          |{
-          |"processingDate":"2020-02-20T09:30:47Z",
-          |"ppdReturnResponseDetails": {
-          |     "chargeType": "Late Penalty",
-          |     "chargeReference":"XCRG9448959757",
-          |     "amount":11.0,
-          |     "dueDate":"2020-03-11",
-          |     "formBundleNumber":"804123737752",
-          |     "cgtReferenceNumber":"XLCGTP212487578"
-          |  }
-          |}
-          |""".stripMargin
+    "handling submitting returns" should {
 
-      "submitted successfully with 200 status" in {
-        val submitReturnRequest = sample[SubmitReturnRequest]
-        mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
-        await(draftReturnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+      "handle successful submits" when {
+
+        "there is a charge" in {
+          val jsonBody =
+            """
+              |{
+              |"processingDate":"2020-02-20T09:30:47Z",
+              |"ppdReturnResponseDetails": {
+              |     "chargeType": "Late Penalty",
+              |     "chargeReference":"XCRG9448959757",
+              |     "amount":11.0,
+              |     "dueDate":"2020-03-11",
+              |     "formBundleNumber":"804123737752",
+              |     "cgtReferenceNumber":"XLCGTP212487578"
+              |  }
+              |}
+              |""".stripMargin
+
+          val submitReturnResponse = SubmitReturnResponse(
+            "804123737752",
+            Some(
+              Charge(
+                "XCRG9448959757",
+                AmountInPence(1100L),
+                LocalDate.of(2020, 3, 11)
+              )
+            )
+          )
+          val submitReturnRequest = sample[SubmitReturnRequest]
+          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          await(draftReturnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+        }
+
+        "there is a no charge" in {
+          val jsonBody =
+            """
+              |{
+              |"processingDate":"2020-02-20T09:30:47Z",
+              |"ppdReturnResponseDetails": {
+              |     "formBundleNumber":"804123737752",
+              |     "cgtReferenceNumber":"XLCGTP212487578"
+              |  }
+              |}
+              |""".stripMargin
+
+          val submitReturnResponse = SubmitReturnResponse("804123737752", None)
+          val submitReturnRequest  = sample[SubmitReturnRequest]
+          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          await(draftReturnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+        }
       }
 
-      "fail to submit complete return" in {
-        val submitReturnRequest = sample[SubmitReturnRequest]
-        mockSubmitReturn(submitReturnRequest)(
-          Left(Error("call to submit return came back with status ${response.status}"))
-        )
-        await(draftReturnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
-      }
+      "return an error" when {
 
-      "the http call comes back with a status other than 200" in {
-        val submitReturnRequest = sample[SubmitReturnRequest]
-        mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(500)))
-        await(draftReturnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
+        "there are charge details and " when {
+
+          def test(jsonResponseBody: JsValue): Unit = {
+            val submitReturnRequest = sample[SubmitReturnRequest]
+            mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(jsonResponseBody))))
+            await(draftReturnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
+          }
+          "the charge amount is missing" in {
+            test(
+              Json.parse(
+                """{
+                  |"processingDate":"2020-02-20T09:30:47Z",
+                  |"ppdReturnResponseDetails": {
+                  |     "chargeType": "Late Penalty",
+                  |     "chargeReference":"XCRG9448959757",
+                  |     "dueDate":"2020-03-11",
+                  |     "formBundleNumber":"804123737752",
+                  |     "cgtReferenceNumber":"XLCGTP212487578"
+                  |  }
+                  |}
+                  |""".stripMargin
+              )
+            )
+          }
+
+          "the charge reference is missing" in {
+            test(
+              Json.parse(
+                """{
+                  |"processingDate":"2020-02-20T09:30:47Z",
+                  |"ppdReturnResponseDetails": {
+                  |     "chargeType": "Late Penalty",
+                  |     "amount":11.0,
+                  |     "dueDate":"2020-03-11",
+                  |     "formBundleNumber":"804123737752",
+                  |     "cgtReferenceNumber":"XLCGTP212487578"
+                  |  }
+                  |}
+                  |""".stripMargin
+              )
+            )
+          }
+
+          "the charge due date is missing" in {
+            test(
+              Json.parse(
+                """{
+                  |"processingDate":"2020-02-20T09:30:47Z",
+                  |"ppdReturnResponseDetails": {
+                  |     "chargeType": "Late Penalty",
+                  |     "chargeReference":"XCRG9448959757",
+                  |     "amount":11.0,
+                  |     "formBundleNumber":"804123737752",
+                  |     "cgtReferenceNumber":"XLCGTP212487578"
+                  |  }
+                  |}
+                  |""".stripMargin
+              )
+            )
+          }
+
+        }
+
+        "the call to submit a return fails" in {
+          val submitReturnRequest = sample[SubmitReturnRequest]
+          mockSubmitReturn(submitReturnRequest)(
+            Left(Error("call to submit return came back with status ${response.status}"))
+          )
+          await(draftReturnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
+        }
+
+        "the http call comes back with a status other than 200" in {
+          val submitReturnRequest = sample[SubmitReturnRequest]
+          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(500)))
+          await(draftReturnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
+        }
       }
     }
 
