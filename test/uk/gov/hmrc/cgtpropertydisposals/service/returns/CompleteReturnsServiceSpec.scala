@@ -53,7 +53,7 @@ class CompleteReturnsServiceSpec extends WordSpec with Matchers with MockFactory
 
       "handle successful submits" when {
 
-        "there is a charge" in {
+        "there is a positive charge" in {
           val jsonBody =
             """
               |{
@@ -78,6 +78,31 @@ class CompleteReturnsServiceSpec extends WordSpec with Matchers with MockFactory
                 LocalDate.of(2020, 3, 11)
               )
             )
+          )
+          val submitReturnRequest = sample[SubmitReturnRequest]
+          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          await(draftReturnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+        }
+
+        "there is a negative charge" in {
+          val jsonBody =
+            """
+              |{
+              |"processingDate":"2020-02-20T09:30:47Z",
+              |"ppdReturnResponseDetails": {
+              |     "chargeType": "Late Penalty",
+              |     "chargeReference":"XCRG9448959757",
+              |     "amount":-11.0,
+              |     "dueDate":"2020-03-11",
+              |     "formBundleNumber":"804123737752",
+              |     "cgtReferenceNumber":"XLCGTP212487578"
+              |  }
+              |}
+              |""".stripMargin
+
+          val submitReturnResponse = SubmitReturnResponse(
+            "804123737752",
+            None
           )
           val submitReturnRequest = sample[SubmitReturnRequest]
           mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
