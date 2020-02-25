@@ -73,12 +73,15 @@ sealed trait GenUtils {
 
   // define our own Arbitrary instance for String to generate more legible strings
   implicit val stringArb: Arbitrary[String] = Arbitrary(
-    Gen.listOfN(30, Gen.alphaChar).map(_.mkString("")))
+    for{
+      n <- Gen.choose(1, 30)
+      s <- Gen.listOfN(n, Gen.alphaChar).map(_.mkString(""))
+    } yield s
+  )
 
+  implicit val longArb: Arbitrary[Long] = Arbitrary(Gen.choose(0L, 100L))
 
-  implicit val longArb: Arbitrary[Long] = Arbitrary(Gen.choose(0.toLong, 100.toLong))
-
-  implicit val bigDecimalGen: Arbitrary[BigDecimal] = Arbitrary(Gen.choose(0L, 100.toLong).map(BigDecimal(_)))
+  implicit val bigDecimalGen: Arbitrary[BigDecimal] = Arbitrary(Gen.choose(0, 100).map(BigDecimal(_)))
 
   implicit val localDateTimeArb: Arbitrary[LocalDateTime] =
     Arbitrary(
