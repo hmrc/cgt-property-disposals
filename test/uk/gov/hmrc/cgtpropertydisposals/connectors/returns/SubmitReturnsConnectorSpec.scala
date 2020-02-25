@@ -19,10 +19,13 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.returns
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
+import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnectorImpl.DesSubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.PPDReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.NumberOfProperties.One
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
@@ -67,12 +70,22 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
   "SubmitReturnsConnectorImpl" when {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken")//, "Environment" -> desEnvironment)
 
     def expectedSubmitReturnUrl(cgtReference: String) =
       s"""http://localhost:7022/cgt-reference/$cgtReference/return"""
 
     "handling request to submit return" must {
+
+      "do a post http call and pass correct parameters" in {
+        for( a <- 1 to 10){
+          val submitReturnRequest: SubmitReturnRequest = sample[SubmitReturnRequest]
+          val ppdReturnDetails = PPDReturnDetails(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(ppdReturnDetails)
+
+          desSubmitReturnRequest
+        }
+      }
 
       "do a post http call and get the result" in {
         List(
