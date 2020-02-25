@@ -364,7 +364,7 @@
         "privateResRelief": {
           "$ref": "#/definitions/totalAmountType"
         },
-        "lettingsReflief": {
+        "lettingsRelief": {
           "$ref": "#/definitions/totalAmountType"
         },
         "giftHoldOverRelief": {

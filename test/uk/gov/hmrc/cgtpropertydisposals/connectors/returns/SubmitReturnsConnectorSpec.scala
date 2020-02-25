@@ -85,7 +85,7 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
 
         val validator = SchemaValidator(Some(Version7))
 
-        for( a <- 1 to 10000){
+        for( a <- 1 to 1000){
           val submitReturnRequest: SubmitReturnRequest =
             sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
               .copy(propertyAddress = sample[UkAddress], triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One)))
