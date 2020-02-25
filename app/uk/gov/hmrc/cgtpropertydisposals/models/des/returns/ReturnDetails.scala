@@ -76,7 +76,7 @@ object ReturnDetails {
     )
 
     if (value < AmountInPence.zero)
-      AmountInPence.zero.inPounds() -> Some(value.inPounds())
+      AmountInPence.zero.inPounds() -> Some(value.inPounds() * -1)
     else value.inPounds()           -> None
   }
 

@@ -76,7 +76,7 @@ object DisposalDetails {
     val value = calculatedTaxDue.initialGainOrLoss
 
     if (value < AmountInPence.zero)
-      None -> Some(value.inPounds())
+      None -> Some(value.inPounds() * -1)
     else
       Some(value.inPounds()) -> None
   }
