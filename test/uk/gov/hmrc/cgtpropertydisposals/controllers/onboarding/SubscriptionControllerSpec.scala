@@ -33,7 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.{ControllerSpec, onboarding}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
@@ -124,7 +124,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
   val taxEnrolmentRequestWithNonUkAddress = TaxEnrolmentRequest(
     "ggCredId",
     "XACGTP123456789",
-    Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), nonUkCountry)
+    Address.NonUkAddress("line1", None, None, None, Some(Postcode("OK11KO")), nonUkCountry)
   )
 
   "The SubscriptionController" when {
@@ -405,7 +405,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             SubscribedDetails(
               Right(IndividualName("Stephen", "Wood")),
               Email("stephen@abc.co.uk"),
-              UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
+              UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), Postcode("DH14EJ")),
               ContactName("Stephen Wood"),
               CgtReference("XDCGT123456789"),
               Some(TelephoneNumber("+44191919191919")),
@@ -472,7 +472,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(
-          Right(Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, ""))))
+          Right(Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, Postcode("")))))
         )
         val result = controller.checkSubscriptionStatus()(request)
         status(result)        shouldBe OK

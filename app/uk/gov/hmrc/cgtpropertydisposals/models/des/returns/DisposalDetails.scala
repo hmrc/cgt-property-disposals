@@ -18,14 +18,16 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import java.time.LocalDate
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import cats.syntax.order._
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 final case class DisposalDetails(
   disposalDate: LocalDate,
-  addressDetails: AddresssDetails,
+  addressDetails: AddressDetails,
   assetType: String,
   acquisitionType: String,
   landRegistry: Boolean,
@@ -47,7 +49,7 @@ final case class DisposalDetails(
 object DisposalDetails {
 
   def apply(c: CompleteReturn): DisposalDetails = {
-    val addressDetails   = AddresssDetails(c)
+    val addressDetails   = Address.toAddressDetails(c.propertyAddress)
     val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
 
     DisposalDetails(

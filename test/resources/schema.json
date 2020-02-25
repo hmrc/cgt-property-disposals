@@ -1,0 +1,834 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "84GO - API#1542 Create or Amend CGT Payment on Property Disposal Return Request Schema v1.0.0",
+  "description": "84GO - API#1542 Create or Amend CGT Payment on Property Disposal Return Request Schema v1.0.0",
+  "type": "object",
+  "properties": {
+    "ppdReturnDetails": {
+      "$ref": "#/definitions/ppdReturnDetailsType"
+    }
+  },
+  "required": [
+    "ppdReturnDetails"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "ppdReturnDetailsType": {
+      "type": "object",
+      "properties": {
+        "returnType": {
+          "$ref": "#/definitions/returnType"
+        },
+        "returnDetails": {
+          "$ref": "#/definitions/returnDetailsType"
+        },
+        "representedPersonDetails": {
+          "$ref": "#/definitions/representedPersonDetailsType"
+        },
+        "disposalDetails": {
+          "$ref": "#/definitions/disposalDetailsType"
+        },
+        "lossSummaryDetails": {
+          "$ref": "#/definitions/lossSummaryDetailsType"
+        },
+        "incomeAllowanceDetails": {
+          "$ref": "#/definitions/incomeAllowanceDetailsType"
+        },
+        "reliefDetails": {
+          "$ref": "#/definitions/reliefDetailsType"
+        },
+        "bankDetails": {
+          "$ref": "#/definitions/bankDetailsType"
+        }
+      },
+      "required": [
+        "returnType",
+        "returnDetails",
+        "disposalDetails",
+        "lossSummaryDetails"
+      ],
+      "additionalProperties": false
+    },
+    "returnType": {
+      "oneOf": [{
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "source name",
+            "pattern": "^[A-Za-z0-9 ]{1,35}$"
+          },
+          "submissionType": {
+            "type": "string",
+            "description": "Submission type New",
+            "enum": [
+              "New"
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "submissionType"
+        ],
+        "additionalProperties": false
+      },
+        {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "source name",
+              "pattern": "^[A-Za-z0-9 ]{1,35}$"
+            },
+            "submissionType": {
+              "type": "string",
+              "description": "Submission type Amend",
+              "enum": [
+                "Amend"
+              ]
+            },
+            "submissionID": {
+              "type": "string",
+              "pattern": "^[0-9]{12}$"
+            }
+          },
+          "required": [
+            "source",
+            "submissionType",
+            "submissionID"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "returnDetailsType": {
+      "type": "object",
+      "properties": {
+        "customerType": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 ]{1,105}$"
+        },
+        "completionDate": {
+          "$ref": "#/definitions/dateType"
+        },
+        "isUKResident": {
+          "type": "boolean"
+        },
+        "countryResidence": {
+          "type": "string",
+          "pattern": "^[A-Za-z ]{1,35}$"
+        },
+        "numberDisposals": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999
+        },
+        "totalTaxableGain": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "totalNetLoss": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "valueAtTaxBandDetails": {
+          "$ref": "#/definitions/valueAtTaxBandDetailsType"
+        },
+        "totalLiability": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "adjustedAmount": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "totalYTDLiability": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "entrepreneursRelief": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "estimate": {
+          "type": "boolean"
+        },
+        "repayment": {
+          "type": "boolean"
+        },
+        "attachmentUpload": {
+          "type": "boolean"
+        },
+        "attachmentID": {
+          "type": "string",
+          "pattern": "^[0-9]{1,10}$"
+        },
+        "declaration": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "customerType",
+        "completionDate",
+        "isUKResident",
+        "numberDisposals",
+        "totalTaxableGain",
+        "totalLiability",
+        "totalYTDLiability",
+        "estimate",
+        "repayment",
+        "attachmentUpload",
+        "declaration"
+      ],
+      "additionalProperties": false
+    },
+    "representedPersonDetailsType": {
+      "type": "object",
+      "properties": {
+        "capacitorPersonalRep": {
+          "type": "string",
+          "description": "Possible values: Capacitor or Personal Representative",
+          "pattern": "^[A-Za-z ]{1,35}$"
+        },
+        "firstName": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9 &`\\-\\'\\.^]{1,35}$"
+        },
+        "lastName": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9 &`\\-\\'\\.^]{1,35}$"
+        },
+        "idType": {
+          "type": "string",
+          "description": "Possible Values: ZCGT, NINO, UTR, TRN",
+          "enum": [
+            "ZCGT",
+            "NINO",
+            "UTR",
+            "TRN"
+          ]
+        },
+        "idValue": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9]{1,15}$"
+        },
+        "dateOfDeath": {
+          "$ref": "#/definitions/dateType"
+        },
+        "trustCessationDate": {
+          "$ref": "#/definitions/dateType"
+        },
+        "trustTerminationDate": {
+          "$ref": "#/definitions/dateType"
+        },
+        "addressDetails": {
+          "$ref": "#/definitions/addressType"
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 132,
+          "format": "email"
+        }
+      },
+      "required": [
+        "capacitorPersonalRep",
+        "firstName",
+        "lastName",
+        "idType",
+        "idValue"
+      ],
+      "additionalProperties": false
+    },
+    "disposalDetailsType": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "disposalDate": {
+            "$ref": "#/definitions/dateType"
+          },
+          "addressDetails": {
+            "$ref": "#/definitions/addressType"
+          },
+          "assetType": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9 ]{1,35}$"
+          },
+          "percentOwned": {
+            "$ref": "#/definitions/percentType"
+          },
+          "acquisitionType": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9 ]{1,35}$"
+          },
+          "acquiredDate": {
+            "$ref": "#/definitions/dateType"
+          },
+          "landRegistry": {
+            "type": "boolean"
+          },
+          "acquisitionPrice": {
+            "$ref": "#/definitions/totalAmountType"
+          },
+          "rebased": {
+            "type": "boolean"
+          },
+          "rebasedAmount": {
+            "$ref": "#/definitions/totalAmountType"
+          },
+          "disposalType": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9 ]{1,32}$"
+          },
+          "disposalPrice": {
+            "$ref": "#/definitions/totalAmountType"
+          },
+          "improvements": {
+            "type": "boolean"
+          },
+          "improvementCosts": {
+            "$ref": "#/definitions/totalAmountType"
+          },
+          "acquisitionFees": {
+            "$ref": "#/definitions/totalAmountType"
+          },
+          "disposalFees": {
+            "$ref": "#/definitions/totalAmountType"
+          },
+          "initialGain": {
+            "$ref": "#/definitions/totalAmountType"
+          },
+          "initialLoss": {
+            "$ref": "#/definitions/totalAmountType"
+          }
+        },
+        "required": [
+          "disposalDate",
+          "addressDetails",
+          "assetType",
+          "acquisitionType",
+          "landRegistry",
+          "acquisitionPrice",
+          "rebased",
+          "disposalPrice",
+          "improvements"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "incomeAllowanceDetailsType": {
+      "type": "object",
+      "properties": {
+        "estimatedIncome": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "personalAllowance": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "annualExemption": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "threshold": {
+          "$ref": "#/definitions/totalAmountType"
+        }
+      },
+      "required": [
+        "annualExemption"
+      ],
+      "additionalProperties": false
+    },
+    "lossSummaryDetailsType": {
+      "type": "object",
+      "properties": {
+        "inYearLoss": {
+          "type": "boolean"
+        },
+        "inYearLossUsed": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "preYearLoss": {
+          "type": "boolean"
+        },
+        "preYearLossUsed": {
+          "$ref": "#/definitions/totalAmountType"
+        }
+      },
+      "required": [
+        "inYearLoss",
+        "preYearLoss"
+      ],
+      "additionalProperties": false
+    },
+    "reliefDetailsType": {
+      "type": "object",
+      "properties": {
+        "reliefs": {
+          "type": "boolean"
+        },
+        "privateResRelief": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "lettingsReflief": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "giftHoldOverRelief": {
+          "$ref": "#/definitions/totalAmountType"
+        },
+        "otherRelief": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 ]{1,105}$"
+        },
+        "otherReliefAmount": {
+          "$ref": "#/definitions/totalAmountType"
+        }
+      },
+      "required": [
+        "reliefs"
+      ],
+      "additionalProperties": false
+    },
+    "bankDetailsType": {
+      "oneOf": [{
+        "type": "object",
+        "properties": {
+          "ukBankDetails": {
+            "$ref": "#/definitions/ukBankDetailsType"
+          }
+        },
+        "required": [
+          "ukBankDetails"
+        ],
+        "additionalProperties": false
+      },
+        {
+          "type": "object",
+          "properties": {
+            "overseasBankDetails": {
+              "$ref": "#/definitions/overseasBankDetailsType"
+            }
+          },
+          "required": [
+            "overseasBankDetails"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ukBankDetailsType": {
+      "type": "object",
+      "properties": {
+        "accountName": {
+          "type": "string",
+          "pattern": "^[a-zA-Z &`\\-\\'\\.^]{1,35}$"
+        },
+        "sortcode": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$"
+        },
+        "accountNumber": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$"
+        },
+        "bankName": {
+          "type": "string",
+          "pattern": "^[a-zA-Z &`\\-\\'\\.^]{1,35}$"
+        }
+      },
+      "required": [
+        "accountName",
+        "sortcode",
+        "accountNumber"
+      ],
+      "additionalProperties": false
+    },
+    "overseasBankDetailsType": {
+      "type": "object",
+      "properties": {
+        "iban": {
+          "type": "string",
+          "pattern": "^[0-9]{1,34}$"
+        },
+        "bankIdentifierCode": {
+          "type": "string",
+          "pattern": "^[0-9]{8,11}$"
+        },
+        "accountName": {
+          "type": "string",
+          "pattern": "^[a-zA-Z &`\\-\\'\\.^]{1,35}$"
+        }
+      },
+      "required": [
+        "iban",
+        "bankIdentifierCode",
+        "accountName"
+      ],
+      "additionalProperties": false
+    },
+    "dateType": {
+      "type": "string",
+      "pattern": "^(((19|20)([2468][048]|[13579][26]|0[48])|2000)[-]02[-]29|((19|20)[0-9]{2}[-](0[469]|11)[-](0[1-9]|1[0-9]|2[0-9]|30)|(19|20)[0-9]{2}[-](0[13578]|1[02])[-](0[1-9]|[12][0-9]|3[01])|(19|20)[0-9]{2}[-]02[-](0[1-9]|1[0-9]|2[0-8])))$"
+    },
+    "totalAmountType": {
+      "description": "Total Amount 13 digits 2 fraction digits",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 99999999999.99,
+      "multipleOf": 0.01
+    },
+    "valueAtTaxBandDetailsType": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "taxRate": {
+            "$ref": "#/definitions/percentType"
+          },
+          "valueAtTaxRate": {
+            "$ref": "#/definitions/totalAmountType"
+          }
+        },
+        "required": [
+          "taxRate",
+          "valueAtTaxRate"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "addressType": {
+      "oneOf": [{
+        "type": "object",
+        "properties": {
+          "addressLine1": {
+            "$ref": "#/definitions/addressLineType"
+          },
+          "addressLine2": {
+            "$ref": "#/definitions/addressLineType"
+          },
+          "addressLine3": {
+            "$ref": "#/definitions/addressLineType"
+          },
+          "addressLine4": {
+            "$ref": "#/definitions/addressLineType"
+          },
+          "countryCode": {
+            "type": "string",
+            "enum": [
+              "GB"
+            ]
+          },
+          "postalCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{1,2}[0-9][0-9A-Z]?\\s?[0-9][A-Z]{2}$|BFPO\\s?[0-9]{1,3}$"
+          }
+        },
+        "required": [
+          "addressLine1",
+          "countryCode",
+          "postalCode"
+        ],
+        "additionalProperties": false
+      },
+        {
+          "type": "object",
+          "properties": {
+            "addressLine1": {
+              "$ref": "#/definitions/addressLineType"
+            },
+            "addressLine2": {
+              "$ref": "#/definitions/addressLineType"
+            },
+            "addressLine3": {
+              "$ref": "#/definitions/addressLineType"
+            },
+            "addressLine4": {
+              "$ref": "#/definitions/addressLineType"
+            },
+            "countryCode": {
+              "$ref": "#/definitions/countryCodes"
+            },
+            "postalCode": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 10
+            }
+          },
+          "required": [
+            "addressLine1",
+            "countryCode"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "addressLineType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 35,
+      "pattern": "^[A-Za-z0-9 &!'‘’\"“”(),./\u2014\u2013\u2010\u002d]{1,35}$"
+    },
+    "percentType": {
+      "description": "Total Amount 5 digits 2 fraction digits",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100.00,
+      "multipleOf": 0.01
+    },
+    "countryCodes": {
+      "type": "string",
+      "description": "Country code iso 3166-1 alpha-2",
+      "enum": [
+        "AD",
+        "AE",
+        "AF",
+        "AG",
+        "AI",
+        "AL",
+        "AM",
+        "AN",
+        "AO",
+        "AQ",
+        "AR",
+        "AS",
+        "AT",
+        "AU",
+        "AW",
+        "AX",
+        "AZ",
+        "BA",
+        "BB",
+        "BD",
+        "BE",
+        "BF",
+        "BG",
+        "BH",
+        "BI",
+        "BJ",
+        "BL",
+        "BM",
+        "BN",
+        "BO",
+        "BQ",
+        "BR",
+        "BS",
+        "BT",
+        "BV",
+        "BW",
+        "BY",
+        "BZ",
+        "CA",
+        "CC",
+        "CD",
+        "CF",
+        "CG",
+        "CH",
+        "CI",
+        "CK",
+        "CL",
+        "CM",
+        "CN",
+        "CO",
+        "CR",
+        "CS",
+        "CU",
+        "CV",
+        "CW",
+        "CX",
+        "CY",
+        "CZ",
+        "DE",
+        "DJ",
+        "DK",
+        "DM",
+        "DO",
+        "DZ",
+        "EC",
+        "EE",
+        "EG",
+        "EH",
+        "ER",
+        "ES",
+        "ET",
+        "EU",
+        "FI",
+        "FJ",
+        "FK",
+        "FM",
+        "FO",
+        "FR",
+        "GA",
+        "GD",
+        "GE",
+        "GF",
+        "GG",
+        "GH",
+        "GI",
+        "GL",
+        "GM",
+        "GN",
+        "GP",
+        "GQ",
+        "GR",
+        "GS",
+        "GT",
+        "GU",
+        "GW",
+        "GY",
+        "HK",
+        "HM",
+        "HN",
+        "HR",
+        "HT",
+        "HU",
+        "ID",
+        "IE",
+        "IL",
+        "IM",
+        "IN",
+        "IO",
+        "IQ",
+        "IR",
+        "IS",
+        "IT",
+        "JE",
+        "JM",
+        "JO",
+        "JP",
+        "KE",
+        "KG",
+        "KH",
+        "KI",
+        "KM",
+        "KN",
+        "KP",
+        "KR",
+        "KW",
+        "KY",
+        "KZ",
+        "LA",
+        "LB",
+        "LC",
+        "LI",
+        "LK",
+        "LR",
+        "LS",
+        "LT",
+        "LU",
+        "LV",
+        "LY",
+        "MA",
+        "MC",
+        "MD",
+        "ME",
+        "MF",
+        "MG",
+        "MH",
+        "MK",
+        "ML",
+        "MM",
+        "MN",
+        "MO",
+        "MP",
+        "MQ",
+        "MR",
+        "MS",
+        "MT",
+        "MU",
+        "MV",
+        "MW",
+        "MX",
+        "MY",
+        "MZ",
+        "NA",
+        "NC",
+        "NE",
+        "NF",
+        "NG",
+        "NI",
+        "NL",
+        "NO",
+        "NP",
+        "NR",
+        "NT",
+        "NU",
+        "NZ",
+        "OM",
+        "PA",
+        "PE",
+        "PF",
+        "PG",
+        "PH",
+        "PK",
+        "PL",
+        "PM",
+        "PN",
+        "PR",
+        "PS",
+        "PT",
+        "PW",
+        "PY",
+        "QA",
+        "RE",
+        "RO",
+        "RS",
+        "RU",
+        "RW",
+        "SA",
+        "SB",
+        "SC",
+        "SD",
+        "SE",
+        "SG",
+        "SH",
+        "SI",
+        "SJ",
+        "SK",
+        "SL",
+        "SM",
+        "SN",
+        "SO",
+        "SR",
+        "SS",
+        "ST",
+        "SV",
+        "SX",
+        "SY",
+        "SZ",
+        "TC",
+        "TD",
+        "TF",
+        "TG",
+        "TH",
+        "TJ",
+        "TK",
+        "TL",
+        "TM",
+        "TN",
+        "TO",
+        "TP",
+        "TR",
+        "TT",
+        "TV",
+        "TW",
+        "TZ",
+        "UA",
+        "UG",
+        "UM",
+        "UN",
+        "US",
+        "UY",
+        "UZ",
+        "VA",
+        "VC",
+        "VE",
+        "VG",
+        "VI",
+        "VN",
+        "VU",
+        "WF",
+        "WS",
+        "YE",
+        "YT",
+        "ZA",
+        "ZM",
+        "ZW"
+      ]
+    }
+  }
+}

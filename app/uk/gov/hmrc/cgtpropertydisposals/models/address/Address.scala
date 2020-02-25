@@ -31,7 +31,7 @@ object Address {
     line2: Option[String],
     town: Option[String],
     county: Option[String],
-    postcode: String
+    postcode: Postcode
   ) extends Address {
     val countryCode: String = Country.uk.code
   }
@@ -41,7 +41,7 @@ object Address {
     line2: Option[String],
     line3: Option[String],
     line4: Option[String],
-    postcode: Option[String],
+    postcode: Option[Postcode],
     country: Country
   ) extends Address
 
@@ -60,7 +60,7 @@ object Address {
 
   def toVerifierFormat(address: Address): KeyValuePair =
     address match {
-      case UkAddress(line1, line2, town, county, postcode)             => KeyValuePair("Postcode", postcode)
+      case UkAddress(line1, line2, town, county, postcode)             => KeyValuePair("Postcode", postcode.value)
       case NonUkAddress(line1, line2, line3, line4, postcode, country) => KeyValuePair("CountryCode", country.code)
     }
 

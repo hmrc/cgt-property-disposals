@@ -40,7 +40,7 @@ object Country {
   private implicit val reads: Reads[InternalCountry] = Json.reads[InternalCountry]
 
   val countryCodeToCountryName: Map[CountryCode, CountryName] = {
-    val source = Source.fromInputStream(getClass.getResourceAsStream("/resources/countries.json"))
+    val source = Source.fromInputStream(getClass.getResourceAsStream("/countries.json"))
     try {
       val jsonString = source.getLines().toList.mkString("")
       val countries =

@@ -34,7 +34,7 @@ lazy val scoverageSettings =
     ScoverageKeys.coverageHighlighting := true,
     coverageEnabled.in(ThisBuild, Test, test) := true
   )
-
+resolvers += "emueller-bintray" at "http://dl.bintray.com/emueller/maven"
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(
     play.sbt.PlayScala,
