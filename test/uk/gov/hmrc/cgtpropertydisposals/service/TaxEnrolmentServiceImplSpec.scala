@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, Ve
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactory {
 

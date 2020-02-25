@@ -24,14 +24,15 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
 trait CacheRepository[A] {
   this: ReactiveRepository[A, BSONObjectID] =>
+
+  implicit val ec: ExecutionContext
 
   val cacheTtl: FiniteDuration
   val indexName: String
