@@ -32,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import org.scalacheck.ScalacheckShapeless._
+import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 
 import scala.reflect.{ClassTag, classTag}
@@ -52,7 +53,8 @@ object Generators
     with CalculatedTaxDueGen
     with GainCalculatedTaxDueGen
     with NonGainCalculatedTaxDueGen
-    with CompleteAcquisitionDetailsAnswersGen {
+    with CompleteAcquisitionDetailsAnswersGen
+    with FinancialDataRequestGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -188,5 +190,11 @@ trait CompleteAcquisitionDetailsAnswersGen { this: GenUtils =>
 
   implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] =
     gen[CompleteAcquisitionDetailsAnswers]
+
+}
+
+trait FinancialDataRequestGen { this: GenUtils =>
+
+  implicit val financialDataRequestGen: Gen[FinancialDataRequest] = gen[FinancialDataRequest]
 
 }
