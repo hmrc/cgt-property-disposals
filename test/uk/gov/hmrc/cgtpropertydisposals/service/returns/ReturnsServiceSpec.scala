@@ -408,7 +408,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "the http call returns with a status which is not 200" in {
-          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(500)))
+          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(404)))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
@@ -433,6 +433,52 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desResponseBody("GB")))))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(expectedReturns)
+
+        }
+
+      }
+
+      "return an empty list of returns" when {
+
+        "the response comes back with status 404 and a single error in the body" in {
+          mockListReturn(cgtReference, fromDate, toDate)(
+            Right(
+              HttpResponse(
+                404,
+                Some(Json.parse("""
+              |{
+              |  "code" : "NOT_FOUND",
+              |  "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+              |}
+              |""".stripMargin))
+              )
+            )
+          )
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
+
+        }
+
+        "the response comes back with status 404 and multiple error in the body" in {
+          mockListReturn(cgtReference, fromDate, toDate)(
+            Right(
+              HttpResponse(
+                404,
+                Some(Json.parse("""
+                                  |{
+                                  |  "failures" : [ 
+                                  |    {
+                                  |      "code" : "NOT_FOUND",
+                                  |      "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+                                  |    }
+                                  |  ]
+                                  |}  
+                                  |""".stripMargin))
+              )
+            )
+          )
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
 
         }
 

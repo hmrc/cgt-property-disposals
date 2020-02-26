@@ -24,26 +24,28 @@ import cats.instances.either._
 import cats.instances.future._
 import cats.instances.int._
 import cats.instances.list._
+import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
-import play.api.http.Status.OK
+import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Format, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{Charge, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math.BigDecimal
@@ -110,10 +112,28 @@ class DefaultReturnsService @Inject() (
                           .leftMap(Error(_))
           response <- listReturnResponse(desResponse)
         } yield response
+      } else if (isNoReturnsResponse(response)) {
+        Right(List.empty)
       } else {
-        Left(Error(s"call to list returns came back with status ${response.status}"))
+        Left(Error(s"call to list returns came back with unexpected status ${response.status}"))
       }
     }
+
+  private def isNoReturnsResponse(response: HttpResponse): Boolean = {
+    def isNoReturnResponse(e: SingleDesErrorResponse) =
+      e.code === "NOT_FOUND" &&
+        e.reason === "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+
+    lazy val hasNoReturnBody = response
+      .parseJSON[DesErrorResponse]()
+      .bimap(
+        _ => false,
+        _.fold(isNoReturnResponse, _.failures.exists(isNoReturnResponse))
+      )
+      .merge
+
+    response.status === NOT_FOUND && hasNoReturnBody
+  }
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
