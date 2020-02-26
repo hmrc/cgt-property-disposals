@@ -305,20 +305,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           |            "status": "aaaaaaaaaaaa",
           |            "totalCGTLiability": 12345678955.12,
           |            "totalOutstanding": 45678913.12,
-          |            "charges": [
-          |                {
-          |                	"chargeDescription": "Surcharges",
-          |                    "chargeAmount": 12345678914.12,
-          |                    "dueDate": "2018-08-13",
-          |                    "chargeReference": "XDCGTX100006"
-          |                },
-          |                {
-          |                	"chargeDescription": "Late Payment",
-          |                    "chargeAmount": 12345678915.12,
-          |                    "dueDate": "2018-09-10",
-          |                    "chargeReference": "XDCGTX100007"
-          |                }
-          |            ],
           |            "propertyAddress": {
           |                "addressLine1": "AddrLine1",
           |                "addressLine2": "AddrLine2",
@@ -379,20 +365,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             Some("AddrLine4"),
             Postcode("TF3 4ER")
           ),
-          List(
-            Charge(
-              "Surcharges",
-              "XDCGTX100006",
-              AmountInPence(1234567891412L),
-              LocalDate.of(2018, 8, 13)
-            ),
-            Charge(
-              "Late Payment",
-              "XDCGTX100007",
-              AmountInPence(1234567891512L),
-              LocalDate.of(2018, 9, 10)
-            )
-          )
+          List.empty
         )
       )
 

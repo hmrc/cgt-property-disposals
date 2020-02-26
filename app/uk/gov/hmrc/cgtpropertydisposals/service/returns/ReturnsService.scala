@@ -166,9 +166,11 @@ class DefaultReturnsService @Inject() (
               AmountInPence.fromPounds(r.totalCGTLiability),
               AmountInPence.fromPounds(r.totalOutstanding),
               address,
-              r.charges.map(c =>
-                Charge(c.chargeDescription, c.chargeReference, AmountInPence.fromPounds(c.chargeAmount), c.dueDate)
-              )
+              r.charges
+                .getOrElse(List.empty)
+                .map(c =>
+                  Charge(c.chargeDescription, c.chargeReference, AmountInPence.fromPounds(c.chargeAmount), c.dueDate)
+                )
             )
         )
         .toEither
@@ -234,7 +236,7 @@ object DefaultReturnsService {
     totalCGTLiability: BigDecimal,
     totalOutstanding: BigDecimal,
     propertyAddress: AddressDetails,
-    charges: List[DesCharge]
+    charges: Option[List[DesCharge]]
   )
 
   implicit val chargeFormat: OFormat[DesCharge]                             = Json.format
