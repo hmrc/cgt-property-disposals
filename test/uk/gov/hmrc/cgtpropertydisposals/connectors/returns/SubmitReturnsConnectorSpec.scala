@@ -21,7 +21,7 @@ import com.eclipsesource.schema.{SchemaType, SchemaValidator}
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
@@ -32,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.PPDReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.NumberOfProperties.One
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -103,10 +104,11 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
           val validationResult       = validator.validate(schemaToBeValidated, json)
 
           withClue(
-            s"****** Validating json ******" + json
-              .toString() + "****** with validation result ******" + validationResult.toString
-          ) {
-            validationResult.isSuccess shouldBe true
+            s"****** Validating json ******" + json.toString() + "******") {
+            validationResult match {
+              case JsSuccess(ps, _) => ()
+              case error: JsError => fail(s"Test failed due to validation failure ${error.prettyPrint()} ")
+            }
           }
         }
       }
