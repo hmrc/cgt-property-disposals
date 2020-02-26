@@ -24,7 +24,7 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.Validation
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 
 final case class AddressDetails(
   addressLine1: String,
@@ -51,7 +51,7 @@ object AddressDetails {
             addressDetails.addressLine2,
             addressDetails.addressLine3,
             addressDetails.addressLine4,
-            p
+            Postcode(p)
           )
         )
       )
@@ -72,7 +72,7 @@ object AddressDetails {
             addressDetails.addressLine2,
             addressDetails.addressLine3,
             addressDetails.addressLine4,
-            addressDetails.postalCode,
+            addressDetails.postalCode.map(Postcode(_)),
             c
           )
         )

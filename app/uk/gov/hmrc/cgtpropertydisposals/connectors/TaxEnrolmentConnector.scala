@@ -20,7 +20,7 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient.HttpClientOps
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -88,7 +88,7 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
     val enrolmentRequest = taxEnrolmentRequest.address match {
       case Address.UkAddress(_, _, _, _, postcode) =>
         Enrolments(
-          List(KeyValuePair("Postcode", postcode)),
+          List(KeyValuePair("Postcode", Postcode(postcode.value).value)),
           List(KeyValuePair("CGTPDRef", taxEnrolmentRequest.cgtReference))
         )
       case Address.NonUkAddress(_, _, _, _, _, countryCode) =>

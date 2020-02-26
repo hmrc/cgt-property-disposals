@@ -169,9 +169,9 @@ object SubscriptionConnectorImpl {
 
       val addressDetails = s.address match {
         case ukAddress @ Address.UkAddress(line1, line2, town, county, postcode) =>
-          AddressDetails(line1, line2, town, county, Some(postcode), ukAddress.countryCode)
+          AddressDetails(line1, line2, town, county, Some(postcode.value), ukAddress.countryCode)
         case Address.NonUkAddress(line1, line2, line3, line4, postcode, country) =>
-          AddressDetails(line1, line2, line3, line4, postcode, country.code)
+          AddressDetails(line1, line2, line3, line4, postcode.map(_.value), country.code)
       }
 
       DesSubscriptionRequest(

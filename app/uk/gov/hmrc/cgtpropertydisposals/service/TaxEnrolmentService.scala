@@ -217,7 +217,7 @@ class TaxEnrolmentServiceImpl @Inject() (
       case Address.UkAddress(_, _, _, _, newPostcode) =>
         subscribedUpdateDetails.previousDetails.address match {
           case Address.UkAddress(_, _, _, _, oldPostcode) =>
-            if (newPostcode === oldPostcode) false else true
+            if (newPostcode.equals(oldPostcode)) false else true
           case _: Address.NonUkAddress => true
         }
       case Address.NonUkAddress(_, _, _, _, _, newCountry) =>

@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
@@ -124,7 +124,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         Some("Wokingham"),
         Some("Surrey"),
         Some("London"),
-        "DH14EJ"
+        Postcode("DH14EJ")
       ),
       ContactName("Stephen Wood"),
       cgtReference,
@@ -494,7 +494,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             None,
             None,
             Some("Christchurch"),
-            Some("C11"),
+            Some(Postcode("C11")),
             Country("NZ", Some("New Zealand"))
           ),
           ContactName("Stephen Wood"),
@@ -541,7 +541,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         val subscriptionDisplayResponse = accounts.SubscribedDetails(
           Right(IndividualName("Luke", "Bishop")),
           Email("stephen@abc.co.uk"),
-          UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), "DH14EJ"),
+          UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), Postcode("DH14EJ")),
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),

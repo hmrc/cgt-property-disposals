@@ -30,6 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Postcode
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{Charge, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
@@ -346,7 +347,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             Some("AddrLine2"),
             Some("AddrLine3"),
             Some("AddrLine4"),
-            "TF3 4ER"
+            Postcode("TF3 4ER")
           ),
           List(
             Charge(
@@ -376,7 +377,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             Some("AddrLine2"),
             Some("AddrLine3"),
             Some("AddrLine4"),
-            "TF3 4ER"
+            Postcode("TF3 4ER")
           ),
           List(
             Charge(
