@@ -74,7 +74,13 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
       val registrationDetails = RegistrationDetails(
         IndividualName("name", "surname"),
         Email("email"),
-        UkAddress("addressLine1", Some("addressLine2"), Some("addressLine3"), Some("addressLine4"), Postcode("postcode"))
+        UkAddress(
+          "addressLine1",
+          Some("addressLine2"),
+          Some("addressLine3"),
+          Some("addressLine4"),
+          Postcode("postcode")
+        )
       )
       val referenceId: UUID = UUID.randomUUID()
 

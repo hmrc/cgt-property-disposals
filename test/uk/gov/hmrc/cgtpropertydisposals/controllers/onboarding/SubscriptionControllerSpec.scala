@@ -472,7 +472,9 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(
-          Right(Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, Postcode("")))))
+          Right(
+            Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, Postcode(""))))
+          )
         )
         val result = controller.checkSubscriptionStatus()(request)
         status(result)        shouldBe OK

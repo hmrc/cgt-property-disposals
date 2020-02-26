@@ -31,7 +31,7 @@ final case class AddressDetails(
   addressLine2: Option[String],
   addressLine3: Option[String],
   addressLine4: Option[String],
-  postalCode: Option[Postcode],
+  postalCode: Option[String],
   countryCode: String
 )
 
@@ -51,7 +51,7 @@ object AddressDetails {
             addressDetails.addressLine2,
             addressDetails.addressLine3,
             addressDetails.addressLine4,
-            Postcode(p.value)
+            Postcode(p)
           )
         )
       )
@@ -72,7 +72,7 @@ object AddressDetails {
             addressDetails.addressLine2,
             addressDetails.addressLine3,
             addressDetails.addressLine4,
-            addressDetails.postalCode,
+            addressDetails.postalCode.map(Postcode(_)),
             c
           )
         )

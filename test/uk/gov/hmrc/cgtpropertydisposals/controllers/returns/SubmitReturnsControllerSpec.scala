@@ -41,11 +41,11 @@ import scala.concurrent.Future
 
 class SubmitReturnsControllerSpec extends ControllerSpec {
 
-  val draftReturnsService: DraftReturnsService = mock[DraftReturnsService]
+  val draftReturnsService: DraftReturnsService       = mock[DraftReturnsService]
   val completeReturnsService: CompleteReturnsService = mock[CompleteReturnsService]
-  val auditService: AuditService = mock[AuditService]
+  val auditService: AuditService                     = mock[AuditService]
 
-  implicit val headerCarrier = HeaderCarrier()
+  implicit val headerCarrier          = HeaderCarrier()
   implicit lazy val mat: Materializer = fakeApplication.materializer
 
   val request = new AuthenticatedRequest(
@@ -58,11 +58,11 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   def fakeRequestWithJsonBody(body: JsValue) = request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
   val controller = new SubmitReturnsController(
-    authenticate        = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
-    draftReturnsService = draftReturnsService,
+    authenticate           = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
+    draftReturnsService    = draftReturnsService,
     completeReturnsService = completeReturnsService,
-    auditService        = auditService,
-    cc                  = Helpers.stubControllerComponents()
+    auditService           = auditService,
+    cc                     = Helpers.stubControllerComponents()
   )
 
   def mockSubmitReturnService(request: SubmitReturnRequest)(response: Either[Error, SubmitReturnResponse]) =
@@ -83,7 +83,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
       "return 200 for successful submission" in {
         val expectedResponseBody = sample[SubmitReturnResponse]
-        val requestBody = sample[SubmitReturnRequest]
+        val requestBody          = sample[SubmitReturnRequest]
 
         mockDeleteDraftReturnService(Right(1))
         mockSubmitReturnService(requestBody)(Right(expectedResponseBody))
@@ -99,7 +99,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         mockSubmitReturnService(requestBody)(Left(Error.apply("error while submitting return to DES")))
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
-        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
       "return 500 when deleting draft return fails" in {
@@ -109,7 +109,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         mockSubmitReturnService(requestBody)(Right(sample[SubmitReturnResponse]))
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
-        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        status(result) shouldBe INTERNAL_SERVER_ERROR
       }
     }
   }

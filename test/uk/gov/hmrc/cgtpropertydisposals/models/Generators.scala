@@ -73,7 +73,7 @@ sealed trait GenUtils {
 
   // define our own Arbitrary instance for String to generate more legible strings
   implicit val stringArb: Arbitrary[String] = Arbitrary(
-    for{
+    for {
       n <- Gen.choose(1, 30)
       s <- Gen.listOfN(n, Gen.alphaChar).map(_.mkString(""))
     } yield s
@@ -197,13 +197,15 @@ trait GainCalculatedTaxDueGen { this: GenUtils =>
 
 trait CompleteAcquisitionDetailsAnswersGen { this: GenUtils =>
 
-  implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] = gen[CompleteAcquisitionDetailsAnswers]
+  implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] =
+    gen[CompleteAcquisitionDetailsAnswers]
 
 }
 
 trait CompleteExemptionAndLossesAnswersGen { this: GenUtils =>
 
-  implicit val completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] = gen[CompleteExemptionAndLossesAnswers]
+  implicit val completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] =
+    gen[CompleteExemptionAndLossesAnswers]
 
 }
 
@@ -217,10 +219,10 @@ trait AddressGen { this: GenUtils =>
 
   implicit val addressGen: Gen[Address] = gen[Address]
 
-  implicit val postcodeGen: Gen[Postcode] =  Gen.oneOf(List(Postcode("BN11 3QY"),Postcode("BN11 4QY")))
+  implicit val postcodeGen: Gen[Postcode] = Gen.oneOf(List(Postcode("BN11 3QY"), Postcode("BN11 4QY")))
 
   implicit val ukAddressGen: Gen[UkAddress] = {
-    for{
+    for {
       a <- gen[UkAddress]
       p <- postcodeGen
     } yield a.copy(postcode = p)
@@ -235,8 +237,6 @@ trait AddressGen { this: GenUtils =>
 
 trait AddressLowerPriorityGen { this: GenUtils =>
 
-
   implicit val nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
-
 
 }

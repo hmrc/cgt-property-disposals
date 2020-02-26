@@ -21,7 +21,7 @@ import com.eclipsesource.schema.{SchemaType, SchemaValidator}
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.Json
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
@@ -63,14 +63,12 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
     )
   )
 
-
-
   val connector = new SubmitReturnsConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
   "SubmitReturnsConnectorImpl" when {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val expectedHeaders = Map("Authorization" -> s"Bearer $desBearerToken")//, "Environment" -> desEnvironment)
+    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     def expectedSubmitReturnUrl(cgtReference: String) =
       s"""http://localhost:7022/capital-gains-tax/cgt-reference/$cgtReference/return"""
@@ -79,22 +77,35 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
 
       "do a post http call and pass correct parameters" in {
         import Version7._
-        val schemaToBeValidated = Json.fromJson[SchemaType](
-          Json.parse(Source.fromInputStream(this.getClass.getResourceAsStream("/schema.json")).mkString)
-        ).get
+        val schemaToBeValidated = Json
+          .fromJson[SchemaType](
+            Json.parse(
+              Source
+                .fromInputStream(this.getClass.getResourceAsStream("/submit-return-des-schema-v-1-0-0.json"))
+                .mkString
+            )
+          )
+          .get
 
         val validator = SchemaValidator(Some(Version7))
 
-        for( a <- 1 to 1000){
+        for (a <- 1 to 1000) {
           val submitReturnRequest: SubmitReturnRequest =
             sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
-              .copy(propertyAddress = sample[UkAddress], triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One)))
-          val ppdReturnDetails = PPDReturnDetails(submitReturnRequest)
+              .copy(
+                propertyAddress = sample[UkAddress],
+                triageAnswers   = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One)
+              )
+            )
+          val ppdReturnDetails       = PPDReturnDetails(submitReturnRequest)
           val desSubmitReturnRequest = DesSubmitReturnRequest(ppdReturnDetails)
-          val json = Json.toJson(desSubmitReturnRequest)
-          val validationResult = validator.validate(schemaToBeValidated, json)
+          val json                   = Json.toJson(desSubmitReturnRequest)
+          val validationResult       = validator.validate(schemaToBeValidated, json)
 
-          withClue(s"****** Validating json ******" + json + "****** with validation result ******" + validationResult) {
+          withClue(
+            s"****** Validating json ******" + json
+              .toString() + "****** with validation result ******" + validationResult.toString
+          ) {
             validationResult.isSuccess shouldBe true
           }
         }
