@@ -28,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
@@ -288,7 +288,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             Some(name)
           )
 
-          val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
+          val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), Postcode("postcode"))
 
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
@@ -316,7 +316,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             Some(name)
           )
 
-          val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), "postcode")
+          val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), Postcode("postcode"))
 
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
@@ -430,7 +430,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
                                          |  "idValue" : "${cgtReference.value}"
                                          |}""".stripMargin)
 
-          val expectedAddress = UkAddress("line1", None, None, None, "postcode")
+          val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
 
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(bprBody))))
@@ -472,7 +472,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               )
 
               val statusBody      = Json.parse(s"""{ "subscriptionStatus" : "$subscriptionStatus"}""".stripMargin)
-              val expectedAddress = UkAddress("line1", None, None, None, "postcode")
+              val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
 
               inSequence {
                 mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(bprBody))))

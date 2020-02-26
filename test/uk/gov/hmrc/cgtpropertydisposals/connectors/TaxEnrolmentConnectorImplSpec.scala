@@ -23,7 +23,7 @@ import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, TrustName}
@@ -59,7 +59,11 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
 
   val cgtReference = CgtReference("XACGTP123456789")
   val ukTaxEnrolment =
-    TaxEnrolmentRequest("user-id", cgtReference.value, Address.UkAddress("line1", None, None, None, "OK113KO"))
+    TaxEnrolmentRequest(
+      "user-id",
+      cgtReference.value,
+      Address.UkAddress("line1", None, None, None, Postcode("OK113KO"))
+    )
   val nonUKTaxEnrolment = TaxEnrolmentRequest(
     "user-id",
     cgtReference.value,
@@ -77,7 +81,7 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
       SubscribedDetails(
         Left(TrustName("ABC Corp")),
         Email("ab@gmail.com"),
-        Address.UkAddress("line1", None, None, None, "OK113KO"),
+        Address.UkAddress("line1", None, None, None, Postcode("OK113KO")),
         ContactName("Stephen Wood"),
         cgtReference,
         None,
@@ -86,7 +90,7 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
       SubscribedDetails(
         Left(TrustName("ABC Corp")),
         Email("ab@gmail.com"),
-        Address.UkAddress("line1", None, None, None, "TF2 6NU"),
+        Address.UkAddress("line1", None, None, None, Postcode("TF2 6NU")),
         ContactName("Stephen Wood"),
         cgtReference,
         None,

@@ -16,20 +16,28 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.returns
 
+import com.eclipsesource.schema.drafts.Version7
+import com.eclipsesource.schema.{SchemaType, SchemaValidator}
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
+import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.SubmitReturnsConnectorImpl.DesSubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.PPDReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.NumberOfProperties.One
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.io.Source
 
 class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
@@ -56,12 +64,6 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
     )
   )
 
-  val submitReturnRequest: SubmitReturnRequest = {
-    sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
-      .copy(triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One))
-    )
-  }
-
   val connector = new SubmitReturnsConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
   "SubmitReturnsConnectorImpl" when {
@@ -74,7 +76,48 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
 
     "handling request to submit return" must {
 
+      "do a post http call and pass correct parameters" in {
+        import Version7._
+        val schemaToBeValidated = Json
+          .fromJson[SchemaType](
+            Json.parse(
+              Source
+                .fromInputStream(this.getClass.getResourceAsStream("/resources/submit-return-des-schema-v-1-0-0.json"))
+                .mkString
+            )
+          )
+          .get
+
+        val validator = SchemaValidator(Some(Version7))
+
+        for (a <- 1 to 1000) {
+          val submitReturnRequest: SubmitReturnRequest =
+            sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
+              .copy(
+                propertyAddress = sample[UkAddress],
+                triageAnswers   = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One)
+              )
+            )
+          val ppdReturnDetails       = PPDReturnDetails(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(ppdReturnDetails)
+          val json                   = Json.toJson(desSubmitReturnRequest)
+          val validationResult       = validator.validate(schemaToBeValidated, json)
+
+          withClue(s"****** Validating json ******" + json.toString() + "******") {
+            validationResult match {
+              case JsSuccess(ps, _) => ()
+              case error: JsError   => fail(s"Test failed due to validation failure ${error.prettyPrint()} ")
+            }
+          }
+        }
+      }
+
       "do a post http call and get the result" in {
+        val submitReturnRequest: SubmitReturnRequest = {
+          sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
+            .copy(triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One))
+          )
+        }
         List(
           HttpResponse(200),
           HttpResponse(400),
@@ -101,6 +144,11 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
       "return an error" when {
 
         "the call fails" in {
+          val submitReturnRequest: SubmitReturnRequest = {
+            sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
+              .copy(triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One))
+            )
+          }
           mockPost(
             expectedSubmitReturnUrl(submitReturnRequest.subscribedDetails.cgtReference.value),
             expectedHeaders,

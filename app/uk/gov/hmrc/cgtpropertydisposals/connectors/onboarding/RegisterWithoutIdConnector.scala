@@ -83,10 +83,10 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: Se
 
   private def toRegistrationAddress(address: Address): RegistrationAddress = address match {
     case ukAddress @ UkAddress(line1, line2, town, county, postcode) =>
-      RegistrationAddress(line1, line2, town, county, Some(postcode), ukAddress.countryCode)
+      RegistrationAddress(line1, line2, town, county, Some(postcode.value), ukAddress.countryCode)
 
     case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
-      RegistrationAddress(line1, line2, line3, line4, postcode, country.code)
+      RegistrationAddress(line1, line2, line3, line4, postcode.map(_.value), country.code)
 
   }
 

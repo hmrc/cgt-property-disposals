@@ -39,8 +39,8 @@ object LossSummaryDetails {
     )
 
   private def preYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
-    if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
-      Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
+    if (r.exemptionsAndLossesDetails.previousYearsLosses.inPounds > 0)
+      Some(r.exemptionsAndLossesDetails.previousYearsLosses.inPounds)
     else None
 
   private def inYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
