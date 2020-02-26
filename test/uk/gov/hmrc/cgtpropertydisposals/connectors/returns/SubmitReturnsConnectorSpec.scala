@@ -82,7 +82,7 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
           .fromJson[SchemaType](
             Json.parse(
               Source
-                .fromInputStream(this.getClass.getResourceAsStream("/submit-return-des-schema-v-1-0-0.json"))
+                .fromInputStream(this.getClass.getResourceAsStream("/resources/submit-return-des-schema-v-1-0-0.json"))
                 .mkString
             )
           )
@@ -103,11 +103,10 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
           val json                   = Json.toJson(desSubmitReturnRequest)
           val validationResult       = validator.validate(schemaToBeValidated, json)
 
-          withClue(
-            s"****** Validating json ******" + json.toString() + "******") {
+          withClue(s"****** Validating json ******" + json.toString() + "******") {
             validationResult match {
               case JsSuccess(ps, _) => ()
-              case error: JsError => fail(s"Test failed due to validation failure ${error.prettyPrint()} ")
+              case error: JsError   => fail(s"Test failed due to validation failure ${error.prettyPrint()} ")
             }
           }
         }
