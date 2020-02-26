@@ -21,6 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
@@ -59,6 +60,17 @@ class SubmitReturnsController @Inject() (
         },
         s => Ok(Json.toJson(s))
       )
+    }
+  }
+
+  def amendReturn(cgtReference: String): Action[JsValue] = authenticate(parse.json).async { implicit request =>
+    withJsonBody[JsValue] { json =>
+      returnsService
+        .amendReturn(CgtReference(cgtReference), json)
+        .fold({ e =>
+          logger.warn("Could not amend return", e)
+          InternalServerError
+        }, s => Ok(Json.toJson(s)))
     }
   }
 
