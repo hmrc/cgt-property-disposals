@@ -32,7 +32,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
 import play.api.http.Status.{NOT_FOUND, OK}
-import play.api.libs.json.{Format, JsValue, Json, OFormat}
+import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
@@ -65,6 +65,10 @@ trait ReturnsService {
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, JsValue]
+
+  def amendReturn(cgtReference: CgtReference, body: JsValue)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, SubmitReturnResponse]
 
 }
 
@@ -145,6 +149,24 @@ class DefaultReturnsService @Inject() (
         Left(Error(s"call to list returns came back with status ${response.status}"))
       }
     }
+
+  def amendReturn(cgtReference: CgtReference, body: JsValue)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, SubmitReturnResponse] =
+    returnsConnector
+      .amendReturn(cgtReference, JsObject(Map("ppdReturnDetails" -> body)))
+      .subflatMap { response =>
+        if (response.status === OK) {
+          for {
+            desResponse <- response
+                            .parseJSON[DesReturnResponse]()
+                            .leftMap(Error(_))
+            submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
+          } yield submitReturnResponse
+        } else {
+          Left(Error(s"call to submit return came back with status ${response.status}"))
+        }
+      }
 
   private def listReturnResponse(desListReturnsResponse: DesListReturnsResponse): Either[Error, List[ReturnSummary]] = {
     val returnSummaries = desListReturnsResponse.returnList.map { r =>

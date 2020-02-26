@@ -5,3 +5,6 @@ POST /return                                   uk.gov.hmrc.cgtpropertydisposals.
 
 GET /returns/:cgtReference/:fromDate/:toDate   uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.listReturns(cgtReference: String, fromDate: String, toDate: String)
 GET /return/:cgtReference/:submissionId        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.displayReturn(cgtReference: String, submissionId: String)
+
+## temporary
+POST /amend-return/:cgtReference               uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.amendReturn(cgtReference: String)
