@@ -1,4 +1,7 @@
-GET  /draft-returns/:cgtReference       uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturns(cgtReference:String)
-POST /draft-return                      uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturnSubmit()
+GET  /draft-returns/:cgtReference              uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturns(cgtReference:String)
+POST /draft-return                             uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturnSubmit()
 
-POST /return                            uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.submitReturn()
+POST /return                                   uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.submitReturn()
+
+GET /returns/:cgtReference/:fromDate/:toDate   uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.listReturns(cgtReference: String, fromDate: String, toDate: String)
+GET /return/:cgtReference/:submissionId        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.displayReturn(cgtReference: String, submissionId: String)

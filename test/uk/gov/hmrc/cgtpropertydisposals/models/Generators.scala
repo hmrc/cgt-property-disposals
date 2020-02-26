@@ -32,12 +32,12 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import org.scalacheck.ScalacheckShapeless._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 
 import scala.reflect.{ClassTag, classTag}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
 object Generators
     extends GenUtils
@@ -47,17 +47,7 @@ object Generators
     with BusinessPartnerRecordGen
     with TaxEnrolmentGen
     with DraftReturnGen
-    with SubmitReturnRequestGen
-    with CompleteReturnGen
-    with CompleteTriageAnswersGen
-    with CompleteYearToDateLiabilityAnswersGen
-    with HasEstimatedDetailsWithCalculatedTaxDueGen
-    with CalculatedTaxDueGen
-    with GainCalculatedTaxDueGen
-    with NonGainCalculatedTaxDueGen
-    with CompleteAcquisitionDetailsAnswersGen
-    with CompleteExemptionAndLossesAnswersGen
-    with SubmitReturnResponseGen
+    with ReturnsGen
     with AddressGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
@@ -144,74 +134,37 @@ trait DraftReturnGen { this: GenUtils =>
 
 }
 
-trait SubmitReturnRequestGen { this: GenUtils =>
-
-  implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
-
-}
-
-trait CompleteReturnGen { this: GenUtils =>
+trait ReturnsGen { this: GenUtils =>
 
   implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
-
-}
-
-trait CompleteTriageAnswersGen { this: GenUtils =>
 
   implicit val completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
     gen[CompleteSingleDisposalTriageAnswers]
 
-}
-
-trait CompleteYearToDateLiabilityAnswersGen { this: GenUtils =>
-
   implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] =
     gen[CompleteYearToDateLiabilityAnswers]
-
-}
-
-trait HasEstimatedDetailsWithCalculatedTaxDueGen { this: GenUtils =>
 
   implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
     gen[HasEstimatedDetailsWithCalculatedTaxDue]
 
-}
-
-trait CalculatedTaxDueGen { this: GenUtils =>
-
   implicit val calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
-
-}
-
-trait NonGainCalculatedTaxDueGen { this: GenUtils =>
 
   implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
 
-}
-
-trait GainCalculatedTaxDueGen { this: GenUtils =>
-
   implicit val gainCalculatedTaxDueGen: Gen[GainCalculatedTaxDue] = gen[GainCalculatedTaxDue]
-
-}
-
-trait CompleteAcquisitionDetailsAnswersGen { this: GenUtils =>
 
   implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] =
     gen[CompleteAcquisitionDetailsAnswers]
 
-}
-
-trait CompleteExemptionAndLossesAnswersGen { this: GenUtils =>
-
   implicit val completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] =
     gen[CompleteExemptionAndLossesAnswers]
 
-}
+  implicit val listReturnResponseGen: Gen[ListReturnsResponse] =
+    gen[ListReturnsResponse]
 
-trait SubmitReturnResponseGen { this: GenUtils =>
+  implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
 
-  implicit val submitReturnResponse: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
+  implicit val submitReturnResponseGen: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
 
 }
 

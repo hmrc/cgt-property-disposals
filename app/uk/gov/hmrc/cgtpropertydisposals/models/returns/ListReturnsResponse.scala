@@ -16,15 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.time.LocalDate
-
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 
-final case class Charge(chargeDescription: String, chargeReference: String, amount: AmountInPence, dueDate: LocalDate)
+final case class ListReturnsResponse(returns: List[ReturnSummary])
 
-object Charge {
+object ListReturnsResponse {
 
-  implicit val format: OFormat[Charge] = Json.format
+  implicit val format: OFormat[ListReturnsResponse] = Json.format
 
 }

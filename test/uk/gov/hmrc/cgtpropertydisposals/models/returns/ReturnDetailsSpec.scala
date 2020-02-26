@@ -93,7 +93,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
 
-      ReturnDetails.apply(submitReturnRequest).totalNetLoss shouldBe Some(amountInPounds)
+      ReturnDetails.apply(submitReturnRequest).totalNetLoss shouldBe Some(amountInPounds * -1)
     }
 
   }
