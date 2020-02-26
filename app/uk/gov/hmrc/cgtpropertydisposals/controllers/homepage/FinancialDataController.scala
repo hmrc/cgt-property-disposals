@@ -21,7 +21,7 @@ import java.time.format.DateTimeFormatter
 
 import com.google.inject.Inject
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.homepage.FinancialDataService
@@ -29,7 +29,8 @@ import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 class FinancialDataController @Inject() (
   authenticate: AuthenticateActions,
@@ -41,21 +42,48 @@ class FinancialDataController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def getFinancialData(cgtReference: String, dateFrom: String, dateTo: String): Action[AnyContent] =
+  def getFinancialData(cgtReference: String, fromDate: String, toDate: String): Action[AnyContent] =
     authenticate.async { implicit request =>
-      val df = LocalDate.parse(dateFrom, DateTimeFormatter.BASIC_ISO_DATE)
-      val dt = LocalDate.parse(dateTo, DateTimeFormatter.BASIC_ISO_DATE)
+      withFromAndToDate(fromDate, toDate) {
+        case (from, to) =>
+          val financialData = FinancialDataRequest(idType, cgtReference, regimeType, from, to)
 
-      val financialData = FinancialDataRequest("ZCGT", cgtReference, "CGT", df, dt)
-
-      financialDataService.getFinancialData(financialData).value.map {
-        case Left(error) =>
-          logger.warn(s"Error getting subscription details: $error")
-          InternalServerError
-        case Right(financialDataResponse) =>
-          Ok(Json.toJson(financialDataResponse))
+          financialDataService.getFinancialData(financialData).value.map {
+            case Left(error) =>
+              logger.warn(s"Error getting financial data: $error")
+              InternalServerError
+            case Right(financialDataResponse) =>
+              Ok(Json.toJson(financialDataResponse))
+          }
       }
 
     }
+
+  private def withFromAndToDate(fromDate: String, toDate: String)(
+    f: (LocalDate, LocalDate) => Future[Result]
+  ): Future[Result] = {
+    def parseDate(string: String): Option[LocalDate] =
+      Try(LocalDate.parse(string, DateTimeFormatter.ISO_DATE)).toOption
+
+    parseDate(fromDate) -> parseDate(toDate) match {
+      case (None, None) =>
+        logger.warn(s"Could not parse fromDate ('$fromDate') or toDate ('$toDate') ")
+        Future.successful(BadRequest)
+
+      case (None, Some(_)) =>
+        logger.warn(s"Could not parse fromDate ('$fromDate')")
+        Future.successful(BadRequest)
+
+      case (Some(_), None) =>
+        logger.warn(s"Could not parse toDate ('$toDate')")
+        Future.successful(BadRequest)
+
+      case (Some(from), Some(to)) =>
+        f(from, to)
+    }
+  }
+
+  private val idType = "ZCGT"
+  private val regimeType = "CGT"
 
 }

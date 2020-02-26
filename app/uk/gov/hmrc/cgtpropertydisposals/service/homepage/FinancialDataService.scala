@@ -65,7 +65,7 @@ class FinancialDataServiceImpl @Inject() (
           .leftMap(Error(_))
       } else {
         metrics.financialDataErrorCounter.inc()
-        Left(Error(s"call to submit return came back with status ${response.status}"))
+        Left(Error(s"call to get financial data came back with status ${response.status}"))
       }
     }
   }
