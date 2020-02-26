@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
-
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import play.api.libs.json.{Json, OFormat}
 
-final case class SubscriptionUpdateRequest(
-  subscribedDetails: SubscribedDetails
+final case class SubmitReturnResponse(
+  formBundleId: String,
+  charge: Option[Charge]
 )
 
-object SubscriptionUpdateRequest {
-  implicit val format: OFormat[SubscriptionUpdateRequest] = Json.format[SubscriptionUpdateRequest]
+object SubmitReturnResponse {
+
+  implicit val format: OFormat[SubmitReturnResponse] = Json.format
+
 }

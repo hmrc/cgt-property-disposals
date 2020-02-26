@@ -41,7 +41,7 @@ object AddressDetails {
   def fromDesAddressDetails(
     addressDetails: AddressDetails
   )(desNonIsoCountryCodes: List[CountryCode]): Validation[Address] =
-    if (addressDetails.countryCode === "GB") {
+    if (addressDetails.countryCode === Country.uk.code) {
       addressDetails.postalCode.fold[ValidatedNel[String, Address]](
         Invalid(NonEmptyList.one("Could not find postcode for UK address"))
       )(p =>

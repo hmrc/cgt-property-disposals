@@ -17,32 +17,34 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.OFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 
-sealed trait IndividualTriageAnswers extends Product with Serializable
+sealed trait SingleDisposalTriageAnswers extends Product with Serializable
 
-object IndividualTriageAnswers {
+object SingleDisposalTriageAnswers {
 
-  final case class IncompleteIndividualTriageAnswers(
+  final case class IncompleteSingleDisposalTriageAnswers(
     individualUserType: Option[IndividualUserType],
     numberOfProperties: Option[NumberOfProperties],
     disposalMethod: Option[DisposalMethod],
     wasAUKResident: Option[Boolean],
+    countryOfResidence: Option[Country],
     assetType: Option[AssetType],
     disposalDate: Option[DisposalDate],
     completionDate: Option[CompletionDate]
-  ) extends IndividualTriageAnswers
+  ) extends SingleDisposalTriageAnswers
 
-  final case class CompleteIndividualTriageAnswers(
+  final case class CompleteSingleDisposalTriageAnswers(
     individualUserType: IndividualUserType,
     numberOfProperties: NumberOfProperties,
     disposalMethod: DisposalMethod,
-    wasAUKResident: Boolean,
+    countryOfResidence: Country,
     assetType: AssetType,
     disposalDate: DisposalDate,
     completionDate: CompletionDate
-  ) extends IndividualTriageAnswers
+  ) extends SingleDisposalTriageAnswers
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[IndividualTriageAnswers] = derived.oformat()
+  implicit val format: OFormat[SingleDisposalTriageAnswers] = derived.oformat()
 
 }

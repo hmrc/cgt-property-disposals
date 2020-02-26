@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
+import java.util.UUID
+
 import cats.data.EitherT
 import cats.instances.either._
 import cats.instances.list._
@@ -27,6 +29,7 @@ import play.api.Configuration
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.Cursor
+import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -36,9 +39,8 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.mongo.ReactiveRepository
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultDraftReturnsRepository])
@@ -46,11 +48,14 @@ trait DraftReturnsRepository {
   def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]]
 
   def save(draftReturn: DraftReturn): EitherT[Future, Error, Unit]
+
+  def delete(id: UUID): EitherT[Future, Error, Int]
 }
 
 @Singleton
-class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)
-    extends ReactiveRepository[DraftReturn, BSONObjectID](
+class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(
+  implicit val ec: ExecutionContext
+) extends ReactiveRepository[DraftReturn, BSONObjectID](
       collectionName = "draft-returns",
       mongo          = component.mongoConnector.db,
       domainFormat   = DraftReturn.format
@@ -69,8 +74,16 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   override def save(draftReturn: DraftReturn): EitherT[Future, Error, Unit] =
     EitherT(set(draftReturn.id.toString, draftReturn))
 
-  private def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
-    Error(JsError(e).prettyPrint())
+  override def delete(id: UUID): EitherT[Future, Error, Int] =
+    EitherT[Future, Error, Int](
+      remove("return.id" -> id)
+        .map { result: WriteResult =>
+          Right(result.n)
+        }
+        .recover {
+          case exception => Left(Error(exception.getMessage))
+        }
+    )
 
   private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturn]]] = {
     val selector = Json.obj(key -> cgtReference.value)
@@ -88,4 +101,8 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
         case NonFatal(e) => Left(Error(e))
       }
   }
+
+  private def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
+    Error(JsError(e).prettyPrint())
+
 }
