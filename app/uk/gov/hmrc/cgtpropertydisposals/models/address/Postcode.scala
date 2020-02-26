@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.address
 
-import cats.data.NonEmptyList
-import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Format
 
-final case class Email(value: String) extends AnyVal
+final case class Postcode(value: String) extends AnyVal
 
-object Email {
+object Postcode {
 
-  implicit val format: Format[Email] =
-    implicitly[Format[String]].inmap(Email(_), _.value)
-
-  def emailValidation(
-    email: Option[String]
-  ): Validation[Email] =
-    email match {
-      case Some(emailAddress) => Valid(Email(emailAddress))
-      case None               => Invalid(NonEmptyList.one("Email address is missing"))
-    }
-
+  implicit val format: Format[Postcode] =
+    implicitly[Format[String]].inmap(Postcode(_), _.value)
 }

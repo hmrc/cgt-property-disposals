@@ -27,7 +27,7 @@ import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -74,7 +74,13 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
       val registrationDetails = RegistrationDetails(
         IndividualName("name", "surname"),
         Email("email"),
-        UkAddress("addressLine1", Some("addressLine2"), Some("addressLine3"), Some("addressLine4"), "postcode")
+        UkAddress(
+          "addressLine1",
+          Some("addressLine2"),
+          Some("addressLine3"),
+          Some("addressLine4"),
+          Postcode("postcode")
+        )
       )
       val referenceId: UUID = UUID.randomUUID()
 
@@ -137,7 +143,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
             Some("addressLine2"),
             Some("addressLine3"),
             Some("addressLine4"),
-            Some("postcode"),
+            Some(Postcode("postcode")),
             Country("HK", Some("Hong Kong"))
           )
         )

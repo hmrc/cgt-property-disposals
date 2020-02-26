@@ -38,9 +38,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.Validation
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.SubscriptionService.DesSubscriptionDisplayDetails
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -76,6 +75,9 @@ class SubscriptionServiceImpl @Inject() (
   implicit ec: ExecutionContext
 ) extends SubscriptionService
     with Logging {
+
+  val desNonIsoCountryCodes: List[CountryCode] =
+    config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails,
@@ -203,10 +205,6 @@ class SubscriptionServiceImpl @Inject() (
     desSubscriptionDisplayDetails: DesSubscriptionDisplayDetails,
     cgtReference: CgtReference
   ): Either[String, SubscribedDetails] = {
-
-    val desNonIsoCountryCodes: List[CountryCode] =
-      config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
-
     val addressValidation: Validation[Address] = AddressDetails.fromDesAddressDetails(
       desSubscriptionDisplayDetails.subscriptionDetails.addressDetails
     )(desNonIsoCountryCodes)
