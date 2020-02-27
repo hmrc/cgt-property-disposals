@@ -24,8 +24,8 @@ import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.homepage.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.{FinancialDataRequest, FinancialDataResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage._
 import play.api.http.Status.OK
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
@@ -61,7 +61,8 @@ class FinancialDataServiceImpl @Inject() (
       timer.close()
       if (response.status === OK) {
         response
-          .parseJSON[FinancialDataResponse]()
+          .parseJSON[DesFinancialDataResponse]()
+          .map(prepareFinancialDataResponse(_))
           .leftMap(Error(_))
       } else {
         metrics.financialDataErrorCounter.inc()
@@ -69,5 +70,12 @@ class FinancialDataServiceImpl @Inject() (
       }
     }
   }
+
+  def prepareFinancialDataResponse(desFinancialDataResponse: DesFinancialDataResponse): FinancialDataResponse =
+    FinancialDataResponse(
+      financialTransactions = desFinancialDataResponse.financialTransactions.map { t =>
+        FinancialTransaction(AmountInPence.fromPounds(t.outstandingAmount))
+      }
+    )
 
 }

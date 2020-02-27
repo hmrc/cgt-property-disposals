@@ -53,10 +53,6 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
       FinancialTransaction(outstandingAmount = outstandingAmount)
     )
     FinancialDataResponse(
-      idType                = idType,
-      idNumber              = idNumber,
-      regimeType            = regimeType,
-      processingDate        = today,
       financialTransactions = financialTransactions
     )
   }
@@ -94,7 +90,7 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
             financialDataRequest.idType,
             financialDataRequest.idNumber,
             financialDataRequest.regimeType,
-            AmountInPence.fromPounds(300)
+            AmountInPence.fromPounds(30000)
           )
           mockGetFinancialData(financialDataRequest)(
             Right(HttpResponse(200, Some(Json.parse(jsonBody(financialDataRequest, AmountInPence.fromPounds(30000))))))

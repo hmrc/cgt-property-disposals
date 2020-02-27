@@ -16,19 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.homepage
 
+import java.time.LocalDateTime
 import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 
-final case class FinancialDataResponse(
-  financialTransactions: List[FinancialTransaction]
+final case class DesFinancialDataResponse(
+  idType: String,
+  idNumber: String,
+  regimeType: String,
+  processingDate: LocalDateTime,
+  financialTransactions: List[DesFinancialTransaction]
 )
-object FinancialDataResponse {
-  implicit val financialDataResponseFormat: Format[FinancialDataResponse] = Json.format[FinancialDataResponse]
+
+object DesFinancialDataResponse {
+  implicit val desFinancialDataResponseFormat: Format[DesFinancialDataResponse] = Json.format[DesFinancialDataResponse]
 }
 
-final case class FinancialTransaction(
-  outstandingAmount: AmountInPence
+final case class DesFinancialTransaction(
+  outstandingAmount: BigDecimal
 )
-object FinancialTransaction {
-  implicit val financialTransactionFormat: Format[FinancialTransaction] = Json.format[FinancialTransaction]
+
+object DesFinancialTransaction {
+  implicit val financialTransactionFormat: Format[DesFinancialTransaction] = Json.format[DesFinancialTransaction]
 }
