@@ -30,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.sample
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.{FinancialDataRequest, FinancialDataResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.homepage.FinancialDataService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -44,16 +44,17 @@ import scala.concurrent.Future
 class FinancialDataControllerSpec extends ControllerSpec {
 
   val financialDataService = mock[FinancialDataService]
-  val auditService         = mock[AuditService]
 
-  val financialDataRequest = sample[FinancialDataRequest]
+  val auditService = mock[AuditService]
 
   implicit val headerCarrier = HeaderCarrier()
 
-  def mockGetFinancialData(financialData: FinancialDataRequest)(response: Either[Error, FinancialDataResponse]) =
+  def mockGetFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
+    response: Either[Error, FinancialDataResponse]
+  ) =
     (financialDataService
-      .getFinancialData(_: FinancialDataRequest)(_: HeaderCarrier))
-      .expects(financialData, *)
+      .getFinancialData(_: CgtReference, _: LocalDate, _: LocalDate)(_: HeaderCarrier))
+      .expects(cgtReference, fromDate, toDate, *)
       .returning(EitherT.fromEither[Future](response))
 
   implicit lazy val mat: Materializer = fakeApplication.materializer
@@ -103,14 +104,9 @@ class FinancialDataControllerSpec extends ControllerSpec {
 
         "there is a problem getting the financial data" in {
 
-          mockGetFinancialData(financialDataRequest)(Left(Error("")))
+          mockGetFinancialData(cgtReference, fromDate, toDate)(Left(Error("")))
 
-          val result =
-            performAction(
-              CgtReference(financialDataRequest.idNumber),
-              financialDataRequest.fromDate.toString,
-              financialDataRequest.toDate.toString
-            )
+          val result = performAction(cgtReference, fromDate.toString, toDate.toString)
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
 
@@ -120,14 +116,10 @@ class FinancialDataControllerSpec extends ControllerSpec {
 
         "financial data is successfully retrieved" in {
           val response = sample[FinancialDataResponse]
-          mockGetFinancialData(financialDataRequest)(Right(response))
+          mockGetFinancialData(cgtReference, fromDate, toDate)(Right(response))
 
-          val result =
-            performAction(
-              CgtReference(financialDataRequest.idNumber),
-              financialDataRequest.fromDate.toString,
-              financialDataRequest.toDate.toString
-            )
+          val result = performAction(cgtReference, fromDate.toString, toDate.toString)
+
           status(result)        shouldBe 200
           contentAsJson(result) shouldBe Json.toJson(response)
         }

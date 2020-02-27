@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.homepage
 
-import java.time.LocalDateTime
+import java.time.{LocalDate, LocalDateTime}
 
 import cats.data.EitherT
 import cats.instances.future._
@@ -29,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,26 +55,25 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
     )
   }
 
-  def mockGetFinancialData(financialData: FinancialDataRequest)(response: Either[Error, HttpResponse]) =
+  def mockGetFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
+    response: Either[Error, HttpResponse]
+  ) =
     (financialDataConnector
-      .getFinancialData(_: FinancialDataRequest)(_: HeaderCarrier))
-      .expects(financialData, *)
+      .getFinancialData(_: CgtReference, _: LocalDate, _: LocalDate)(_: HeaderCarrier))
+      .expects(cgtReference, fromDate, toDate, *)
       .returning(EitherT.fromEither[Future](response))
 
-  def jsonBody(financialDataRequest: FinancialDataRequest, outstandingAmount: AmountInPence): String =
+  def jsonBody(outstandingAmount: AmountInPence): String =
     s"""
        |{
-       |   "idType": "ZCGT",
-       |   "idNumber": "${financialDataRequest.idNumber}",
-       |    "regimeType": "CGT",
-       |    "processingDate": "$today",
        |    "financialTransactions": [{
        |        "outstandingAmount":${outstandingAmount.inPounds}
        |    }]
        |}
        |""".stripMargin
 
-  val financialDataRequest = sample[FinancialDataRequest]
+  val cgtReference       = sample[CgtReference]
+  val (fromDate, toDate) = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
 
   "FinancialDataService" when {
 
@@ -86,24 +86,23 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
           val fdResponse = financialDataResponse(
             AmountInPence.fromPounds(30000)
           )
-          mockGetFinancialData(financialDataRequest)(
-            Right(HttpResponse(200, Some(Json.parse(jsonBody(financialDataRequest, AmountInPence.fromPounds(30000))))))
+          mockGetFinancialData(cgtReference, fromDate, toDate)(
+            Right(HttpResponse(200, Some(Json.parse(jsonBody(AmountInPence.fromPounds(30000))))))
           )
 
-          await(financialDataService.getFinancialData(financialDataRequest).value) shouldBe Right(fdResponse)
+          await(financialDataService.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(fdResponse)
         }
 
         "there is no total left to pay" in {
 
-          val financialDataRequest = sample[FinancialDataRequest]
           val fdResponse = financialDataResponse(
             AmountInPence.fromPounds(0)
           )
-          mockGetFinancialData(financialDataRequest)(
-            Right(HttpResponse(200, Some(Json.parse(jsonBody(financialDataRequest, AmountInPence.zero)))))
+          mockGetFinancialData(cgtReference, fromDate, toDate)(
+            Right(HttpResponse(200, Some(Json.parse(jsonBody(AmountInPence.zero)))))
           )
 
-          await(financialDataService.getFinancialData(financialDataRequest).value) shouldBe Right(fdResponse)
+          await(financialDataService.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(fdResponse)
         }
 
       }
@@ -111,18 +110,18 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
       "return an error" when {
 
         "the http call comes back with a status other than 200" in {
-          mockGetFinancialData(financialDataRequest)(Right(HttpResponse(500)))
-          await(financialDataService.getFinancialData(financialDataRequest).value).isLeft shouldBe true
+          mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(500)))
+          await(financialDataService.getFinancialData(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
-          mockGetFinancialData(financialDataRequest)(Right(HttpResponse(200)))
-          await(financialDataService.getFinancialData(financialDataRequest).value).isLeft shouldBe true
+          mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(200)))
+          await(financialDataService.getFinancialData(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
-          mockGetFinancialData(financialDataRequest)(Right(HttpResponse(200, Some(JsNumber(1)))))
-          await(financialDataService.getFinancialData(financialDataRequest).value).isLeft shouldBe true
+          mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(JsNumber(1)))))
+          await(financialDataService.getFinancialData(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
 
       }

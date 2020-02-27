@@ -18,13 +18,12 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.homepage
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -34,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[FinancialDataConnectorImpl])
 trait FinancialDataConnector {
 
-  def getFinancialData(financialData: FinancialDataRequest)(
+  def getFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -47,18 +46,20 @@ class FinancialDataConnectorImpl @Inject() (http: HttpClient, val config: Servic
 
   val baseUrl: String = config.baseUrl("returns")
 
-  def financialDataUrl(f: FinancialDataRequest): String =
-    s"$baseUrl/enterprise/financial-data/ZCGT/${f.idNumber}/CGT"
+  def financialDataUrl(cgtReference: CgtReference): String =
+    s"$baseUrl/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT"
 
   override def getFinancialData(
-    financialData: FinancialDataRequest
+    cgtReference: CgtReference,
+    fromDate: LocalDate,
+    toDate: LocalDate
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
 
-    val fromDate = financialData.fromDate.format(DateTimeFormatter.ISO_DATE)
-    val toDate   = financialData.toDate.format(DateTimeFormatter.ISO_DATE)
+    val from = fromDate.format(DateTimeFormatter.ISO_DATE)
+    val to   = toDate.format(DateTimeFormatter.ISO_DATE)
 
-    val fdUrl       = financialDataUrl(financialData)
-    val queryParams = Map("dateFrom" -> fromDate, "dateTo" -> toDate)
+    val fdUrl       = financialDataUrl(cgtReference)
+    val queryParams = Map("dateFrom" -> from, "dateTo" -> to)
 
     EitherT[Future, Error, HttpResponse](
       http

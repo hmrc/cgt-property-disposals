@@ -18,12 +18,11 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.homepage
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
 import com.google.inject.Inject
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.service.homepage.FinancialDataService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -42,13 +41,11 @@ class FinancialDataController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def getFinancialData(cgtReference: String, fromDate: String, toDate: String): Action[AnyContent] =
+  def getFinancialData(cgtRef: String, fromDate: String, toDate: String): Action[AnyContent] =
     authenticate.async { implicit request =>
       withFromAndToDate(fromDate, toDate) {
         case (from, to) =>
-          val financialData = FinancialDataRequest(cgtReference, from, to)
-
-          financialDataService.getFinancialData(financialData).value.map {
+          financialDataService.getFinancialData(CgtReference(cgtRef), from, to).value.map {
             case Left(error) =>
               logger.warn(s"Error getting financial data: $error")
               InternalServerError

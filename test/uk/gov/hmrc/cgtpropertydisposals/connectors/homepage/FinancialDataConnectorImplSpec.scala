@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.homepage
 
+import java.time.LocalDate
+
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -54,20 +56,21 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
     )
   )
 
-  val financialDataRequest: FinancialDataRequest = sample[FinancialDataRequest]
-
   val connector = new FinancialDataConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
-  def queryParams(financialData: FinancialDataRequest): Map[String, String] =
-    Map("dateFrom" -> financialData.fromDate.toString, "dateTo" -> financialData.toDate.toString)
+  def queryParams(fromDate: LocalDate, toDate: LocalDate): Map[String, String] =
+    Map("dateFrom" -> fromDate.toString, "dateTo" -> toDate.toString)
+
+  val cgtReference       = sample[CgtReference]
+  val (fromDate, toDate) = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
 
   "FinancialDataConnectorImpl" when {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
-    def expectedFinancialDataUrl(f: FinancialDataRequest): String =
-      s"http://localhost:7022/enterprise/financial-data/ZCGT/${f.idNumber}/CGT"
+    def expectedFinancialDataUrl(cgtReference: CgtReference): String =
+      s"http://localhost:7022/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT"
 
     "handling request to get financial data" must {
 
@@ -84,14 +87,14 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
-              expectedFinancialDataUrl(financialDataRequest),
-              queryParams(financialDataRequest),
+              expectedFinancialDataUrl(cgtReference),
+              queryParams(fromDate, toDate),
               expectedHeaders
             )(
               Some(httpResponse)
             )
 
-            await(connector.getFinancialData(financialDataRequest).value) shouldBe Right(httpResponse)
+            await(connector.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(httpResponse)
           }
         }
 
@@ -103,12 +106,12 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
 
       "the call fails" in {
         mockGet(
-          expectedFinancialDataUrl(financialDataRequest),
-          queryParams(financialDataRequest),
+          expectedFinancialDataUrl(cgtReference),
+          queryParams(fromDate, toDate),
           expectedHeaders
         )(None)
 
-        await(connector.getFinancialData(financialDataRequest).value).isLeft shouldBe true
+        await(connector.getFinancialData(cgtReference, fromDate, toDate).value).isLeft shouldBe true
       }
     }
 

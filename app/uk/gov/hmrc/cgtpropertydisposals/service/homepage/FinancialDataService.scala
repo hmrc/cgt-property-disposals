@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.homepage
 
+import java.time.LocalDate
+
 import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
@@ -29,6 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -39,7 +42,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[FinancialDataServiceImpl])
 trait FinancialDataService {
 
-  def getFinancialData(financialData: FinancialDataRequest)(
+  def getFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, FinancialDataResponse]
 
@@ -55,11 +58,13 @@ class FinancialDataServiceImpl @Inject() (
     with Logging {
 
   override def getFinancialData(
-    financialData: FinancialDataRequest
+    cgtReference: CgtReference,
+    fromDate: LocalDate,
+    toDate: LocalDate
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, FinancialDataResponse] = {
     val timer = metrics.financialDataTimer.time()
 
-    financialDataConnector.getFinancialData(financialData).subflatMap { response =>
+    financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
       timer.close()
       if (response.status === OK) {
         response
