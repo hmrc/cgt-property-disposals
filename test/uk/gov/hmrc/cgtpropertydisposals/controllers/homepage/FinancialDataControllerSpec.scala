@@ -79,8 +79,8 @@ class FinancialDataControllerSpec extends ControllerSpec {
       idType     = "ZCGT",
       idNumber   = r.idNumber,
       regimeType = "CGT",
-      fromDate   = LocalDate.now(),
-      toDate     = LocalDate.now()
+      fromDate   = r.fromDate,
+      toDate     = r.toDate
     )
 
   val request2 = getFinancialDataRequest(financialDataRequest)
@@ -116,7 +116,8 @@ class FinancialDataControllerSpec extends ControllerSpec {
 
           mockGetFinancialData(request2)(Left(Error("")))
 
-          val result = performAction(CgtReference(request2.idNumber), "2020-01-31", "2020-11-02")
+          val result =
+            performAction(CgtReference(request2.idNumber), request2.fromDate.toString, request2.toDate.toString)
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
 
@@ -128,7 +129,8 @@ class FinancialDataControllerSpec extends ControllerSpec {
           val response = sample[FinancialDataResponse]
           mockGetFinancialData(request2)(Right(response))
 
-          val result = performAction(CgtReference(request2.idNumber), "2020-01-31", "2020-11-02")
+          val result =
+            performAction(CgtReference(request2.idNumber), request2.fromDate.toString, request2.toDate.toString)
           status(result)        shouldBe 200
           contentAsJson(result) shouldBe Json.toJson(response)
         }

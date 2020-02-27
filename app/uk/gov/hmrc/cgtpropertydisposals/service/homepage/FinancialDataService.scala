@@ -30,7 +30,6 @@ import play.api.http.Status.OK
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataResponse._
 
 import scala.concurrent.{ExecutionContext, Future}
 
