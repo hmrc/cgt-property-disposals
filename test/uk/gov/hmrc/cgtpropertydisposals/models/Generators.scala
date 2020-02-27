@@ -37,6 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import scala.reflect.{ClassTag, classTag}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
 object Generators
@@ -48,7 +49,8 @@ object Generators
     with TaxEnrolmentGen
     with DraftReturnGen
     with ReturnsGen
-    with AddressGen {
+    with AddressGen
+    with FinancialDataGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -191,5 +193,11 @@ trait AddressGen { this: GenUtils =>
 trait AddressLowerPriorityGen { this: GenUtils =>
 
   implicit val nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
+
+}
+
+trait FinancialDataGen { this: GenUtils =>
+
+  implicit val financialDataResponseGen: Gen[FinancialDataResponse] = gen[FinancialDataResponse]
 
 }
