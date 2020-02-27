@@ -26,6 +26,7 @@ final case class RepresentedPersonDetails(
   idType: String, //TODO: "ZCGT","NINO","UTR","TRN"
   idValue: String,
   dateOfBirth: Option[String],
+  dateOfDeath: Option[String],
   trustCessationDate: Option[String],
   trustTerminationDate: Option[String],
   addressDetails: Option[AddressDetails],

@@ -19,68 +19,89 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import java.time.LocalDate
 
 import cats.syntax.order._
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalMethod.{Gifted, Sold}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
-final case class DisposalDetails(
-  disposalDate: LocalDate,
-  addressDetails: AddressDetails,
-  assetType: String,
-  acquisitionType: String,
-  landRegistry: Boolean,
-  acquisitionPrice: BigDecimal,
-  rebased: Boolean,
-  disposalPrice: BigDecimal,
-  improvements: Boolean,
-  percentOwned: Option[BigDecimal],
-  acquiredDate: Option[LocalDate],
-  rebasedAmount: Option[BigDecimal],
-  disposalType: Option[String],
-  improvementCosts: Option[BigDecimal],
-  acquisitionFees: Option[BigDecimal],
-  disposalFees: Option[BigDecimal],
-  initialGain: Option[BigDecimal],
-  initialLoss: Option[BigDecimal]
-)
+sealed trait DisposalDetails extends Product with Serializable
 
 object DisposalDetails {
+
+  final case class SingleDisposalDetails(
+    disposalDate: LocalDate,
+    addressDetails: AddressDetails,
+    assetType: String,
+    acquisitionType: String,
+    landRegistry: Boolean,
+    acquisitionPrice: BigDecimal,
+    rebased: Boolean,
+    rebasedAmount: Option[BigDecimal],
+    disposalPrice: BigDecimal,
+    improvements: Boolean,
+    improvementCosts: Option[BigDecimal],
+    percentOwned: BigDecimal,
+    acquiredDate: LocalDate,
+    disposalType: String,
+    acquisitionFees: BigDecimal,
+    disposalFees: BigDecimal,
+    initialGain: BigDecimal,
+    initialLoss: BigDecimal
+  ) extends DisposalDetails
+
+  final case class MultipleDisposalDetails(
+    disposalDate: LocalDate,
+    addressDetails: AddressDetails,
+    assetType: String,
+    acquisitionType: String,
+    landRegistry: Boolean,
+    acquisitionPrice: BigDecimal,
+    disposalPrice: BigDecimal,
+    initialGain: BigDecimal,
+    initialLoss: BigDecimal,
+    rebased: Boolean = false
+  ) extends DisposalDetails
 
   def apply(c: CompleteReturn): DisposalDetails = {
     val addressDetails   = Address.toAddressDetails(c.propertyAddress)
     val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
 
-    DisposalDetails(
+    SingleDisposalDetails(
       disposalDate     = c.triageAnswers.disposalDate.value,
       addressDetails   = addressDetails,
       assetType        = AssetType(c),
       acquisitionType  = AcquisitionMethod(c),
       landRegistry     = false,
-      acquisitionPrice = c.acquisitionDetails.acquisitionPrice.inPounds,
+      acquisitionPrice = c.acquisitionDetails.acquisitionPrice.inPounds(),
       rebased          = c.acquisitionDetails.rebasedAcquisitionPrice.isDefined,
-      disposalPrice    = c.disposalDetails.disposalPrice.inPounds,
+      rebasedAmount    = c.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds()),
+      disposalPrice    = c.disposalDetails.disposalPrice.inPounds(),
       improvements     = c.acquisitionDetails.improvementCosts > AmountInPence.zero,
-      percentOwned     = Some(c.disposalDetails.shareOfProperty.percentageValue),
-      acquiredDate     = Some(c.acquisitionDetails.acquisitionDate.value),
-      rebasedAmount    = c.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds),
-      disposalType     = DisposalMethod(c),
       improvementCosts = improvementCosts(c),
-      acquisitionFees  = Some(c.acquisitionDetails.acquisitionFees.inPounds),
-      disposalFees     = Some(c.disposalDetails.disposalFees.inPounds),
+      percentOwned     = c.disposalDetails.shareOfProperty.percentageValue,
+      acquiredDate     = c.acquisitionDetails.acquisitionDate.value,
+      disposalType     = disposalType(c),
+      acquisitionFees  = c.acquisitionDetails.acquisitionFees.inPounds(),
+      disposalFees     = c.disposalDetails.disposalFees.inPounds(),
       initialGain      = getInitialGainOrLoss(calculatedTaxDue)._1,
       initialLoss      = getInitialGainOrLoss(calculatedTaxDue)._2
     )
   }
 
-  private def getInitialGainOrLoss(calculatedTaxDue: CalculatedTaxDue): (Option[BigDecimal], Option[BigDecimal]) = {
+  private def disposalType(cr: CompleteReturn): String = cr.triageAnswers.disposalMethod match {
+    case Sold   => "Sold"
+    case Gifted => "Gifted"
+  }
+
+  private def getInitialGainOrLoss(calculatedTaxDue: CalculatedTaxDue): (BigDecimal, BigDecimal) = {
     val value = calculatedTaxDue.initialGainOrLoss
 
     if (value < AmountInPence.zero)
-      None -> Some(value.inPounds() * -1)
+      BigDecimal(0) -> (value.inPounds() * -1)
     else
-      Some(value.inPounds()) -> None
+      value.inPounds() -> BigDecimal(0)
   }
 
   private def improvementCosts(c: CompleteReturn): Option[BigDecimal] =
@@ -88,6 +109,17 @@ object DisposalDetails {
       Some(c.acquisitionDetails.improvementCosts.inPounds())
     else None
 
-  implicit val disposalDetailsFormat: OFormat[DisposalDetails] = Json.format[DisposalDetails]
+  implicit val singleDisposalDetailsFormat: OFormat[SingleDisposalDetails]      = Json.format
+  implicit val multipleDisposalsDetailsFormat: OFormat[MultipleDisposalDetails] = Json.format
+  implicit val disposalDetailsFormat: OFormat[DisposalDetails] = OFormat(
+    { json: JsValue =>
+      singleDisposalDetailsFormat.reads(json).orElse(multipleDisposalsDetailsFormat.reads(json))
+    }, { d: DisposalDetails =>
+      d match {
+        case s: SingleDisposalDetails   => singleDisposalDetailsFormat.writes(s)
+        case m: MultipleDisposalDetails => multipleDisposalsDetailsFormat.writes(m)
+      }
+    }
+  )
 
 }

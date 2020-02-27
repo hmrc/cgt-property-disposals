@@ -22,11 +22,19 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
 
 class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+
+  def testSingleDisposalDetails(disposalDetails: DisposalDetails)(f: SingleDisposalDetails => Unit) =
+    disposalDetails match {
+      case s: SingleDisposalDetails => f(s)
+      case m: MultipleDisposalDetails =>
+        fail(s"Expected single disposal details but got multiple disposal details: $m")
+    }
 
   "DisposalDetails getInitialGainOrLoss" must {
 
@@ -40,8 +48,10 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
           )
       )
 
-      DisposalDetails.apply(completeReturn).initialGain.isDefined shouldBe true
-      DisposalDetails.apply(completeReturn).initialLoss.isDefined shouldBe false
+      testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
+        details.initialGain shouldBe BigDecimal("1234.56")
+        details.initialLoss shouldBe BigDecimal("0")
+      }
     }
 
     "return none as initialGain and some value for initialLoss" in {
@@ -54,8 +64,10 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
           )
       )
 
-      DisposalDetails.apply(completeReturn).initialGain.isDefined shouldBe false
-      DisposalDetails.apply(completeReturn).initialLoss.isDefined shouldBe true
+      testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
+        details.initialLoss shouldBe BigDecimal("1234.56")
+        details.initialGain shouldBe BigDecimal("0")
+      }
     }
   }
 
@@ -65,7 +77,10 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
         .copy(improvementCosts = AmountInPence(1234))
       )
 
-      DisposalDetails.apply(completeReturn).improvementCosts.isDefined shouldBe true
+      testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
+        details.improvementCosts shouldBe Some(BigDecimal("12.34"))
+        details.improvements     shouldBe true
+      }
     }
 
     "return none as improvementCosts" in {
@@ -73,7 +88,10 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
         .copy(improvementCosts = AmountInPence(-1234))
       )
 
-      DisposalDetails.apply(completeReturn).improvementCosts.isDefined shouldBe false
+      testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
+        details.improvementCosts shouldBe None
+        details.improvements     shouldBe false
+      }
     }
 
   }

@@ -32,12 +32,12 @@ final case class PPDReturnDetails(
 object PPDReturnDetails {
 
   def apply(submitReturnRequest: SubmitReturnRequest): PPDReturnDetails = {
-    val c                      = submitReturnRequest.completeReturn
+    val completeReturn         = submitReturnRequest.completeReturn
     val returnDetails          = ReturnDetails(submitReturnRequest)
-    val lossSummaryDetails     = LossSummaryDetails(c)
-    val reliefDetails          = ReliefDetails(c)
-    val incomeAllowanceDetails = IncomeAllowanceDetails(c)
-    val disposalDetails        = DisposalDetails(c)
+    val lossSummaryDetails     = LossSummaryDetails(completeReturn)
+    val reliefDetails          = ReliefDetails(completeReturn)
+    val incomeAllowanceDetails = IncomeAllowanceDetails(completeReturn)
+    val disposalDetails        = DisposalDetails(completeReturn)
 
     PPDReturnDetails(
       returnType = CreateReturnType(

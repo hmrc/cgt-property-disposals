@@ -71,10 +71,10 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       .expects(request, *)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockDeleteDraftReturnService(response: Either[Error, Int]) =
+  def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Int]) =
     (draftReturnsService
       .deleteDraftReturn(_: UUID))
-      .expects(*)
+      .expects(id)
       .returning(EitherT.fromEither[Future](response))
 
   "SubmitReturnsController" when {
@@ -85,8 +85,10 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         val expectedResponseBody = sample[SubmitReturnResponse]
         val requestBody          = sample[SubmitReturnRequest]
 
-        mockDeleteDraftReturnService(Right(1))
-        mockSubmitReturnService(requestBody)(Right(expectedResponseBody))
+        inSequence {
+          mockSubmitReturnService(requestBody)(Right(expectedResponseBody))
+          mockDeleteDraftReturnService(requestBody.id)(Right(1))
+        }
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result)        shouldBe OK
@@ -105,8 +107,10 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       "return 500 when deleting draft return fails" in {
         val requestBody = sample[SubmitReturnRequest]
 
-        mockDeleteDraftReturnService(Left(Error.apply("error while deleting draft return")))
-        mockSubmitReturnService(requestBody)(Right(sample[SubmitReturnResponse]))
+        inSequence {
+          mockSubmitReturnService(requestBody)(Right(sample[SubmitReturnResponse]))
+          mockDeleteDraftReturnService(requestBody.id)(Left(Error.apply("error while deleting draft return")))
+        }
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result) shouldBe INTERNAL_SERVER_ERROR

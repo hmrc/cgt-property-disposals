@@ -27,11 +27,6 @@ object DisposalMethod {
 
   case object Gifted extends DisposalMethod
 
-  def apply(cr: CompleteReturn): Option[String] = cr.triageAnswers.disposalMethod match {
-    case Sold   => Some("Sold")
-    case Gifted => Some("Gifted")
-  }
-
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[DisposalMethod] = derived.oformat()
 
