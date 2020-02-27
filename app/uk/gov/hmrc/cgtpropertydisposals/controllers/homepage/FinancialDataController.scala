@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.homepage
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import com.google.inject.Inject
+
+import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
@@ -31,6 +32,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
+@Singleton
 class FinancialDataController @Inject() (
   authenticate: AuthenticateActions,
   financialDataService: FinancialDataService,
