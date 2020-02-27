@@ -26,7 +26,7 @@ import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.homepage.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -47,10 +47,10 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
     idType: String,
     idNumber: String,
     regimeType: String,
-    outstandingAmount: Double
+    outstandingAmount: AmountInPence
   ): FinancialDataResponse = {
     val financialTransactions = List(
-      FinancialTransaction(outstandingAmount = BigDecimal(outstandingAmount))
+      FinancialTransaction(outstandingAmount = outstandingAmount)
     )
     FinancialDataResponse(
       idType                = idType,
@@ -67,7 +67,7 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
       .expects(financialData, *)
       .returning(EitherT.fromEither[Future](response))
 
-  def jsonBody(financialDataRequest: FinancialDataRequest, outstandingAmount: Double): String =
+  def jsonBody(financialDataRequest: FinancialDataRequest, outstandingAmount: AmountInPence): String =
     s"""
        |{
        |   "idType": "${financialDataRequest.idType}",
@@ -75,7 +75,7 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
        |    "regimeType": "${financialDataRequest.regimeType}",
        |    "processingDate": "$today",
        |    "financialTransactions": [{
-       |        "outstandingAmount":$outstandingAmount
+       |        "outstandingAmount":${outstandingAmount.inPounds}
        |    }]
        |}
        |""".stripMargin
@@ -94,10 +94,10 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
             financialDataRequest.idType,
             financialDataRequest.idNumber,
             financialDataRequest.regimeType,
-            30000d
+            AmountInPence.fromPounds(300)
           )
           mockGetFinancialData(financialDataRequest)(
-            Right(HttpResponse(200, Some(Json.parse(jsonBody(financialDataRequest, 30000)))))
+            Right(HttpResponse(200, Some(Json.parse(jsonBody(financialDataRequest, AmountInPence.fromPounds(30000))))))
           )
 
           await(financialDataService.getFinancialData(financialDataRequest).value) shouldBe Right(fdResponse)
@@ -110,10 +110,10 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
             financialDataRequest.idType,
             financialDataRequest.idNumber,
             financialDataRequest.regimeType,
-            0d
+            AmountInPence.fromPounds(0)
           )
           mockGetFinancialData(financialDataRequest)(
-            Right(HttpResponse(200, Some(Json.parse(jsonBody(financialDataRequest, 0)))))
+            Right(HttpResponse(200, Some(Json.parse(jsonBody(financialDataRequest, AmountInPence.zero)))))
           )
 
           await(financialDataService.getFinancialData(financialDataRequest).value) shouldBe Right(fdResponse)

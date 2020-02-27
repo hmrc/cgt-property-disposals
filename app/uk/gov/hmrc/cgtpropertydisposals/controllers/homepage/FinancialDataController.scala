@@ -83,7 +83,7 @@ class FinancialDataController @Inject() (
     }
   }
 
-  private val idType = "ZCGT"
+  private val idType     = "ZCGT"
   private val regimeType = "CGT"
 
 }

@@ -24,8 +24,8 @@ final case class FinancialDataRequest(
   idType: String,
   idNumber: String,
   regimeType: String,
-  dateFrom: LocalDate,
-  dateTo: LocalDate
+  fromDate: LocalDate,
+  toDate: LocalDate
 )
 
 object FinancialDataRequest {

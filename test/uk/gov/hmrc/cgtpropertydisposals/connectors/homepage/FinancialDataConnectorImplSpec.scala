@@ -59,7 +59,7 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
   val connector = new FinancialDataConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
   def queryParams(financialData: FinancialDataRequest): Map[String, String] =
-    Map("dateFrom" -> financialData.dateFrom.toString, "dateTo" -> financialData.dateTo.toString)
+    Map("dateFrom" -> financialData.fromDate.toString, "dateTo" -> financialData.toDate.toString)
 
   "FinancialDataConnectorImpl" when {
 

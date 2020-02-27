@@ -53,7 +53,7 @@ class FinancialDataConnectorImpl @Inject() (http: HttpClient, val config: Servic
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
 
     val fdUrl       = financialDataUrl(financialData)
-    val queryParams = Map("dateFrom" -> financialData.dateFrom.toString, "dateTo" -> financialData.dateTo.toString)
+    val queryParams = Map("dateFrom" -> financialData.fromDate.toString, "dateTo" -> financialData.toDate.toString)
 
     EitherT[Future, Error, HttpResponse](
       http
