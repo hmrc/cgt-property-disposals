@@ -50,6 +50,10 @@ trait ReturnsConnector {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
+  def amendReturn(cgtReference: CgtReference, body: JsValue)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse]
+
 }
 
 @Singleton
@@ -107,6 +111,23 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
     EitherT[Future, Error, HttpResponse](
       http
         .get(url, headers       = headers)(
+          hc.copy(authorization = None),
+          ec
+        )
+        .map(Right(_))
+        .recover { case e => Left(Error(e)) }
+    )
+  }
+
+  def amendReturn(cgtReference: CgtReference, body: JsValue)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, HttpResponse] = {
+    val returnUrl: String = s"$baseUrl/capital-gains-tax/cgt-reference/${cgtReference.value}/return"
+
+    EitherT[Future, Error, HttpResponse](
+      http
+        .post(returnUrl, body, headers)(
+          implicitly[Writes[JsValue]],
           hc.copy(authorization = None),
           ec
         )

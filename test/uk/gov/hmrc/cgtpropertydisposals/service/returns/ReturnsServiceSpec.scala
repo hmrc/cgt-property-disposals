@@ -305,20 +305,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           |            "status": "aaaaaaaaaaaa",
           |            "totalCGTLiability": 12345678955.12,
           |            "totalOutstanding": 45678913.12,
-          |            "charges": [
-          |                {
-          |                	"chargeDescription": "Surcharges",
-          |                    "chargeAmount": 12345678914.12,
-          |                    "dueDate": "2018-08-13",
-          |                    "chargeReference": "XDCGTX100006"
-          |                },
-          |                {
-          |                	"chargeDescription": "Late Payment",
-          |                    "chargeAmount": 12345678915.12,
-          |                    "dueDate": "2018-09-10",
-          |                    "chargeReference": "XDCGTX100007"
-          |                }
-          |            ],
           |            "propertyAddress": {
           |                "addressLine1": "AddrLine1",
           |                "addressLine2": "AddrLine2",
@@ -379,20 +365,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             Some("AddrLine4"),
             Postcode("TF3 4ER")
           ),
-          List(
-            Charge(
-              "Surcharges",
-              "XDCGTX100006",
-              AmountInPence(1234567891412L),
-              LocalDate.of(2018, 8, 13)
-            ),
-            Charge(
-              "Late Payment",
-              "XDCGTX100007",
-              AmountInPence(1234567891512L),
-              LocalDate.of(2018, 9, 10)
-            )
-          )
+          List.empty
         )
       )
 
@@ -408,7 +381,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "the http call returns with a status which is not 200" in {
-          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(500)))
+          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(404)))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
@@ -433,6 +406,52 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desResponseBody("GB")))))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(expectedReturns)
+
+        }
+
+      }
+
+      "return an empty list of returns" when {
+
+        "the response comes back with status 404 and a single error in the body" in {
+          mockListReturn(cgtReference, fromDate, toDate)(
+            Right(
+              HttpResponse(
+                404,
+                Some(Json.parse("""
+              |{
+              |  "code" : "NOT_FOUND",
+              |  "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+              |}
+              |""".stripMargin))
+              )
+            )
+          )
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
+
+        }
+
+        "the response comes back with status 404 and multiple error in the body" in {
+          mockListReturn(cgtReference, fromDate, toDate)(
+            Right(
+              HttpResponse(
+                404,
+                Some(Json.parse("""
+                                  |{
+                                  |  "failures" : [ 
+                                  |    {
+                                  |      "code" : "NOT_FOUND",
+                                  |      "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+                                  |    }
+                                  |  ]
+                                  |}  
+                                  |""".stripMargin))
+              )
+            )
+          )
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
 
         }
 
