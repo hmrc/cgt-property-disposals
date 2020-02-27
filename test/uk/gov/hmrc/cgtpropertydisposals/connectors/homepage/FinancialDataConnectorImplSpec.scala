@@ -67,7 +67,7 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
     val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     def expectedFinancialDataUrl(f: FinancialDataRequest): String =
-      s"http://localhost:7022/enterprise/financial-data/${f.idType}/${f.idNumber}/${f.regimeType}"
+      s"http://localhost:7022/enterprise/financial-data/ZCGT/${f.idNumber}/CGT"
 
     "handling request to get financial data" must {
 

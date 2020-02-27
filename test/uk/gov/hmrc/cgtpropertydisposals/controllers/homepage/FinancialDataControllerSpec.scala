@@ -74,17 +74,6 @@ class FinancialDataControllerSpec extends ControllerSpec {
     cc                   = Helpers.stubControllerComponents()
   )
 
-  def getFinancialDataRequest(r: FinancialDataRequest) =
-    FinancialDataRequest(
-      idType     = "ZCGT",
-      idNumber   = r.idNumber,
-      regimeType = "CGT",
-      fromDate   = r.fromDate,
-      toDate     = r.toDate
-    )
-
-  val request2 = getFinancialDataRequest(financialDataRequest)
-
   "FinancialDataController" when {
 
     "handling requests to get financial data" must {
@@ -114,10 +103,14 @@ class FinancialDataControllerSpec extends ControllerSpec {
 
         "there is a problem getting the financial data" in {
 
-          mockGetFinancialData(request2)(Left(Error("")))
+          mockGetFinancialData(financialDataRequest)(Left(Error("")))
 
           val result =
-            performAction(CgtReference(request2.idNumber), request2.fromDate.toString, request2.toDate.toString)
+            performAction(
+              CgtReference(financialDataRequest.idNumber),
+              financialDataRequest.fromDate.toString,
+              financialDataRequest.toDate.toString
+            )
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
 
@@ -127,10 +120,14 @@ class FinancialDataControllerSpec extends ControllerSpec {
 
         "financial data is successfully retrieved" in {
           val response = sample[FinancialDataResponse]
-          mockGetFinancialData(request2)(Right(response))
+          mockGetFinancialData(financialDataRequest)(Right(response))
 
           val result =
-            performAction(CgtReference(request2.idNumber), request2.fromDate.toString, request2.toDate.toString)
+            performAction(
+              CgtReference(financialDataRequest.idNumber),
+              financialDataRequest.fromDate.toString,
+              financialDataRequest.toDate.toString
+            )
           status(result)        shouldBe 200
           contentAsJson(result) shouldBe Json.toJson(response)
         }

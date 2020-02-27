@@ -46,7 +46,7 @@ class FinancialDataController @Inject() (
     authenticate.async { implicit request =>
       withFromAndToDate(fromDate, toDate) {
         case (from, to) =>
-          val financialData = FinancialDataRequest(idType, cgtReference, regimeType, from, to)
+          val financialData = FinancialDataRequest(cgtReference, from, to)
 
           financialDataService.getFinancialData(financialData).value.map {
             case Left(error) =>
@@ -82,8 +82,5 @@ class FinancialDataController @Inject() (
         f(from, to)
     }
   }
-
-  private val idType     = "ZCGT"
-  private val regimeType = "CGT"
 
 }

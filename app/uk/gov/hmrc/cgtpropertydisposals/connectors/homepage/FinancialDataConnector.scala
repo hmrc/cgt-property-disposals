@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.homepage
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
@@ -45,14 +48,17 @@ class FinancialDataConnectorImpl @Inject() (http: HttpClient, val config: Servic
   val baseUrl: String = config.baseUrl("returns")
 
   def financialDataUrl(f: FinancialDataRequest): String =
-    s"$baseUrl/enterprise/financial-data/${f.idType}/${f.idNumber}/${f.regimeType}"
+    s"$baseUrl/enterprise/financial-data/ZCGT/${f.idNumber}/CGT"
 
   override def getFinancialData(
     financialData: FinancialDataRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
 
+    val fromDate = financialData.fromDate.format(DateTimeFormatter.ISO_DATE)
+    val toDate   = financialData.toDate.format(DateTimeFormatter.ISO_DATE)
+
     val fdUrl       = financialDataUrl(financialData)
-    val queryParams = Map("dateFrom" -> financialData.fromDate.toString, "dateTo" -> financialData.toDate.toString)
+    val queryParams = Map("dateFrom" -> fromDate, "dateTo" -> toDate)
 
     EitherT[Future, Error, HttpResponse](
       http

@@ -44,9 +44,6 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
   val today = LocalDateTime.now()
 
   private def financialDataResponse(
-    idType: String,
-    idNumber: String,
-    regimeType: String,
     outstandingAmount: AmountInPence
   ): FinancialDataResponse = {
     val financialTransactions = List(
@@ -66,9 +63,9 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
   def jsonBody(financialDataRequest: FinancialDataRequest, outstandingAmount: AmountInPence): String =
     s"""
        |{
-       |   "idType": "${financialDataRequest.idType}",
+       |   "idType": "ZCGT",
        |   "idNumber": "${financialDataRequest.idNumber}",
-       |    "regimeType": "${financialDataRequest.regimeType}",
+       |    "regimeType": "CGT",
        |    "processingDate": "$today",
        |    "financialTransactions": [{
        |        "outstandingAmount":${outstandingAmount.inPounds}
@@ -87,9 +84,6 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
         "there is a total left to pay" in {
 
           val fdResponse = financialDataResponse(
-            financialDataRequest.idType,
-            financialDataRequest.idNumber,
-            financialDataRequest.regimeType,
             AmountInPence.fromPounds(30000)
           )
           mockGetFinancialData(financialDataRequest)(
@@ -103,9 +97,6 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
 
           val financialDataRequest = sample[FinancialDataRequest]
           val fdResponse = financialDataResponse(
-            financialDataRequest.idType,
-            financialDataRequest.idNumber,
-            financialDataRequest.regimeType,
             AmountInPence.fromPounds(0)
           )
           mockGetFinancialData(financialDataRequest)(

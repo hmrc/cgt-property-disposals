@@ -20,10 +20,6 @@ import java.time.LocalDateTime
 import play.api.libs.json.{Format, Json}
 
 final case class DesFinancialDataResponse(
-  idType: String,
-  idNumber: String,
-  regimeType: String,
-  processingDate: LocalDateTime,
   financialTransactions: List[DesFinancialTransaction]
 )
 

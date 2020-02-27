@@ -19,17 +19,20 @@ package uk.gov.hmrc.cgtpropertydisposals.service.homepage
 import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
+import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.api.http.Status.{NOT_FOUND, OK}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.homepage.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage._
-import play.api.http.Status.OK
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -63,11 +66,29 @@ class FinancialDataServiceImpl @Inject() (
           .parseJSON[DesFinancialDataResponse]()
           .map(prepareFinancialDataResponse(_))
           .leftMap(Error(_))
+      } else if (isNoReturnsResponse(response)) {
+        Right(FinancialDataResponse(List.empty))
       } else {
         metrics.financialDataErrorCounter.inc()
         Left(Error(s"call to get financial data came back with status ${response.status}"))
       }
     }
+  }
+
+  private def isNoReturnsResponse(response: HttpResponse): Boolean = {
+    def isNoReturnResponse(e: SingleDesErrorResponse) =
+      e.code === "NOT_FOUND" &&
+        e.reason === "The remote endpoint has indicated that no data can be found."
+
+    lazy val hasNoReturnBody = response
+      .parseJSON[DesErrorResponse]()
+      .bimap(
+        _ => false,
+        _.fold(isNoReturnResponse, _.failures.exists(isNoReturnResponse))
+      )
+      .merge
+
+    response.status === NOT_FOUND && hasNoReturnBody
   }
 
   def prepareFinancialDataResponse(desFinancialDataResponse: DesFinancialDataResponse): FinancialDataResponse =

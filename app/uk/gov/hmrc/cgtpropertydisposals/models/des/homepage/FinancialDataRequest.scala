@@ -21,9 +21,7 @@ import java.time.LocalDate
 import play.api.libs.json.{Json, Writes}
 
 final case class FinancialDataRequest(
-  idType: String,
   idNumber: String,
-  regimeType: String,
   fromDate: LocalDate,
   toDate: LocalDate
 )
