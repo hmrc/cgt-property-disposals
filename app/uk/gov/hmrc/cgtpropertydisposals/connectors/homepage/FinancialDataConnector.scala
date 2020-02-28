@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.homepage
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
@@ -63,7 +64,10 @@ class FinancialDataConnectorImpl @Inject() (http: HttpClient, val config: Servic
 
     EitherT[Future, Error, HttpResponse](
       http
-        .get(fdUrl, queryParams, headers)
+        .get(fdUrl, queryParams, headers)(
+          hc.copy(authorization = None),
+          ec
+        )
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
