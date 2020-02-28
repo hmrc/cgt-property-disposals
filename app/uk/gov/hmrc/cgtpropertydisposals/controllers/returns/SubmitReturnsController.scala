@@ -45,12 +45,10 @@ class SubmitReturnsController @Inject() (
 
   def submitReturn: Action[JsValue] = authenticate(parse.json).async { implicit request =>
     withJsonBody[SubmitReturnRequest] { returnRequest =>
-      val draftReturnId = returnRequest.completeReturn.id
-
       val result =
         for {
           submissionResult <- returnsService.submitReturn(returnRequest)
-          _                <- draftReturnsService.deleteDraftReturn(draftReturnId)
+          _                <- draftReturnsService.deleteDraftReturn(returnRequest.id)
         } yield submissionResult
 
       result.fold(
