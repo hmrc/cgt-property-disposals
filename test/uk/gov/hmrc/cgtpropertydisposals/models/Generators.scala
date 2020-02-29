@@ -32,12 +32,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import org.scalacheck.ScalacheckShapeless._
+import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.FinancialDataResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 
 import scala.reflect.{ClassTag, classTag}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
 object Generators
@@ -199,5 +200,7 @@ trait AddressLowerPriorityGen { this: GenUtils =>
 trait FinancialDataGen { this: GenUtils =>
 
   implicit val financialDataResponseGen: Gen[FinancialDataResponse] = gen[FinancialDataResponse]
+
+  implicit val financialTransactionGen: Gen[FinancialTransaction] = gen[FinancialTransaction]
 
 }

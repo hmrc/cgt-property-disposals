@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.controllers.homepage
+package uk.gov.hmrc.cgtpropertydisposals.controllers.account
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 import com.google.inject.{Inject, Singleton}
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.FinancialDataResponse
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.service.homepage.FinancialDataService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
@@ -51,8 +53,8 @@ class FinancialDataController @Inject() (
             case Left(error) =>
               logger.warn(s"Error getting financial data: $error")
               InternalServerError
-            case Right(financialDataResponse) =>
-              Ok(Json.toJson(financialDataResponse))
+            case Right(financialTransactions) =>
+              Ok(Json.toJson(FinancialDataResponse(financialTransactions)))
           }
       }
 
@@ -82,4 +84,13 @@ class FinancialDataController @Inject() (
     }
   }
 
+}
+
+object FinancialDataController {
+
+  final case class FinancialDataResponse(
+    financialTransactions: List[FinancialTransaction]
+  )
+
+  implicit val financialDataResponseFormat: Format[FinancialDataResponse] = Json.format[FinancialDataResponse]
 }

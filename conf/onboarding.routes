@@ -5,4 +5,4 @@ GET      /subscription/:cgtReference                uk.gov.hmrc.cgtpropertydispo
 POST     /register-without-id                       uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.registerWithoutId()
 GET      /check-subscription-status                 uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.checkSubscriptionStatus()
 
-GET      /financial-data/:cgtReference/:dateFrom/:dateTo  uk.gov.hmrc.cgtpropertydisposals.controllers.homepage.FinancialDataController.getFinancialData(cgtReference: String, dateFrom: String, dateTo: String)
+GET      /financial-data/:cgtReference/:dateFrom/:dateTo  uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.getFinancialData(cgtReference: String, dateFrom: String, dateTo: String)

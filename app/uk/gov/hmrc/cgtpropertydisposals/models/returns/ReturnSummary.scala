@@ -19,8 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import java.time.LocalDate
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
 
 final case class ReturnSummary(
   submissionId: String,

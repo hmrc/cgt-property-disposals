@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 final case class TaxableAmountOfMoney(
   taxRate: BigDecimal,

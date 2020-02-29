@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 import java.time.LocalDate
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 final case class TaxYear(
   startDateInclusive: LocalDate,
