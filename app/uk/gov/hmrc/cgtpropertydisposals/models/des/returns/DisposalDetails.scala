@@ -33,8 +33,8 @@ object DisposalDetails {
   final case class SingleDisposalDetails(
     disposalDate: LocalDate,
     addressDetails: AddressDetails,
-    assetType: String,
-    acquisitionType: String,
+    assetType: DesAssetType,
+    acquisitionType: DesAcquisitionType,
     landRegistry: Boolean,
     acquisitionPrice: BigDecimal,
     rebased: Boolean,
@@ -44,7 +44,7 @@ object DisposalDetails {
     improvementCosts: Option[BigDecimal],
     percentOwned: BigDecimal,
     acquiredDate: LocalDate,
-    disposalType: String,
+    disposalType: DesDisposalType,
     acquisitionFees: BigDecimal,
     disposalFees: BigDecimal,
     initialGain: BigDecimal,
@@ -54,8 +54,8 @@ object DisposalDetails {
   final case class MultipleDisposalDetails(
     disposalDate: LocalDate,
     addressDetails: AddressDetails,
-    assetType: String,
-    acquisitionType: String,
+    assetType: DesAssetType,
+    acquisitionType: DesAcquisitionType,
     landRegistry: Boolean,
     acquisitionPrice: BigDecimal,
     disposalPrice: BigDecimal,
@@ -66,13 +66,13 @@ object DisposalDetails {
 
   def apply(c: CompleteReturn): DisposalDetails = {
     val addressDetails   = Address.toAddressDetails(c.propertyAddress)
-    val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
+    val calculatedTaxDue = c.yearToDateLiabilityAnswers.calculatedTaxDue
 
     SingleDisposalDetails(
       disposalDate     = c.triageAnswers.disposalDate.value,
       addressDetails   = addressDetails,
-      assetType        = AssetType(c),
-      acquisitionType  = AcquisitionMethod(c),
+      assetType        = DesAssetType(c),
+      acquisitionType  = DesAcquisitionType(c),
       landRegistry     = false,
       acquisitionPrice = c.acquisitionDetails.acquisitionPrice.inPounds(),
       rebased          = c.acquisitionDetails.rebasedAcquisitionPrice.isDefined,
@@ -82,17 +82,12 @@ object DisposalDetails {
       improvementCosts = improvementCosts(c),
       percentOwned     = c.disposalDetails.shareOfProperty.percentageValue,
       acquiredDate     = c.acquisitionDetails.acquisitionDate.value,
-      disposalType     = disposalType(c),
+      disposalType     = DesDisposalType(c),
       acquisitionFees  = c.acquisitionDetails.acquisitionFees.inPounds(),
       disposalFees     = c.disposalDetails.disposalFees.inPounds(),
       initialGain      = getInitialGainOrLoss(calculatedTaxDue)._1,
       initialLoss      = getInitialGainOrLoss(calculatedTaxDue)._2
     )
-  }
-
-  private def disposalType(cr: CompleteReturn): String = cr.triageAnswers.disposalMethod match {
-    case Sold   => "Sold"
-    case Gifted => "Gifted"
   }
 
   private def getInitialGainOrLoss(calculatedTaxDue: CalculatedTaxDue): (BigDecimal, BigDecimal) = {

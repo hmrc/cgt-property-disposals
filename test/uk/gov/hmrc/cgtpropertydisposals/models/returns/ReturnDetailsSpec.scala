@@ -53,9 +53,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One),
         exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss    = None),
         yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
-          .copy(hasEstimatedDetailsWithCalculatedTaxDue =
-            sample[HasEstimatedDetailsWithCalculatedTaxDue].copy(calculatedTaxDue = calculatedTaxDue)
-          )
+          .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
 
@@ -70,9 +68,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One),
         exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss    = None),
         yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
-          .copy(hasEstimatedDetailsWithCalculatedTaxDue =
-            sample[HasEstimatedDetailsWithCalculatedTaxDue].copy(calculatedTaxDue = calculatedTaxDue)
-          )
+          .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
 
@@ -87,9 +83,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One),
         exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss    = None),
         yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
-          .copy(hasEstimatedDetailsWithCalculatedTaxDue =
-            sample[HasEstimatedDetailsWithCalculatedTaxDue].copy(calculatedTaxDue = calculatedTaxDue)
-          )
+          .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
 

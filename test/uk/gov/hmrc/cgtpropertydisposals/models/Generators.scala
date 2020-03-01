@@ -38,8 +38,10 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import scala.reflect.{ClassTag, classTag}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, FinancialTransaction}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 
 object Generators
     extends GenUtils
@@ -51,7 +53,7 @@ object Generators
     with DraftReturnGen
     with ReturnsGen
     with AddressGen
-    with FinancialDataGen {
+    with MoneyGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -144,11 +146,16 @@ trait ReturnsGen { this: GenUtils =>
   implicit val completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
     gen[CompleteSingleDisposalTriageAnswers]
 
+  implicit val completeDisposalDetailsAnswersGen: Gen[CompleteDisposalDetailsAnswers] =
+    gen[CompleteDisposalDetailsAnswers]
+
   implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] =
     gen[CompleteYearToDateLiabilityAnswers]
 
   implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
     gen[HasEstimatedDetailsWithCalculatedTaxDue]
+
+  implicit val otherReliefsGen: Gen[OtherReliefs] = gen[OtherReliefs]
 
   implicit val calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
 
@@ -168,6 +175,10 @@ trait ReturnsGen { this: GenUtils =>
   implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
 
   implicit val submitReturnResponseGen: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
+
+  implicit val taxYearGen: Gen[TaxYear] = gen[TaxYear]
+
+  implicit val disposalDateGen: Gen[DisposalDate] = gen[DisposalDate]
 
 }
 
@@ -197,7 +208,9 @@ trait AddressLowerPriorityGen { this: GenUtils =>
 
 }
 
-trait FinancialDataGen { this: GenUtils =>
+trait MoneyGen { this: GenUtils =>
+
+  implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
 
   implicit val financialDataResponseGen: Gen[FinancialDataResponse] = gen[FinancialDataResponse]
 

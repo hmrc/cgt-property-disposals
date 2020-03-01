@@ -25,9 +25,10 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscribe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 final case class ReturnDetails(
-  customerType: String,
+  customerType: CustomerType,
   completionDate: LocalDate,
   isUKResident: Boolean,
+  countryResidence: Option[String],
   numberDisposals: Int,
   totalTaxableGain: BigDecimal,
   totalLiability: BigDecimal,
@@ -36,7 +37,6 @@ final case class ReturnDetails(
   repayment: Boolean,
   attachmentUpload: Boolean,
   declaration: Boolean,
-  countryResidence: Option[String],
   attachmentID: Option[String],
   entrepreneursRelief: Option[BigDecimal],
   valueAtTaxBandDetails: Option[List[ValueAtTaxBandDetails]],
@@ -48,24 +48,24 @@ object ReturnDetails {
 
   def apply(submitReturnRequest: SubmitReturnRequest): ReturnDetails = {
     val c                = submitReturnRequest.completeReturn
-    val calculatedTaxDue = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue
+    val calculatedTaxDue = c.yearToDateLiabilityAnswers.calculatedTaxDue
 
     ReturnDetails(
-      customerType          = SubscribedDetails(submitReturnRequest),
+      customerType          = CustomerType(submitReturnRequest.subscribedDetails),
       completionDate        = c.triageAnswers.completionDate.value,
       isUKResident          = c.triageAnswers.countryOfResidence.isUk(),
+      countryResidence      = Some(c.triageAnswers.countryOfResidence).filter(!_.isUk()).map(_.code),
       numberDisposals       = NumberOfProperties(c),
       totalTaxableGain      = getTaxableGainOrNetLoss(c)._1,
       totalNetLoss          = getTaxableGainOrNetLoss(c)._2,
       valueAtTaxBandDetails = ValueAtTaxBandDetails(calculatedTaxDue),
-      totalLiability        = c.yearToDateLiabilityAnswers.taxDue.inPounds,
-      totalYTDLiability     = calculatedTaxDue.yearToDateLiability.inPounds,
-      estimate              = c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.hasEstimatedDetails,
+      totalLiability        = c.yearToDateLiabilityAnswers.taxDue.inPounds(),
+      totalYTDLiability     = c.yearToDateLiabilityAnswers.taxDue.inPounds(),
+      estimate              = c.yearToDateLiabilityAnswers.hasEstimatedDetails,
       repayment             = false,
-      attachmentUpload      = false, //TODO
+      attachmentUpload      = false,
       declaration           = true,
       adjustedAmount        = None,
-      countryResidence      = None,
       attachmentID          = None,
       entrepreneursRelief   = None
     )
@@ -73,7 +73,7 @@ object ReturnDetails {
 
   private def getTaxableGainOrNetLoss(c: CompleteReturn): (BigDecimal, Option[BigDecimal]) = {
     val value = c.exemptionsAndLossesDetails.taxableGainOrLoss.getOrElse(
-      c.yearToDateLiabilityAnswers.hasEstimatedDetailsWithCalculatedTaxDue.calculatedTaxDue.taxableGainOrNetLoss
+      c.yearToDateLiabilityAnswers.calculatedTaxDue.taxableGainOrNetLoss
     )
 
     if (value < AmountInPence.zero)

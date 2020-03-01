@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import cats.Eq
 import julienrf.json.derived
 import play.api.libs.json.OFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAssetType
 
 sealed trait AssetType extends Product with Serializable
 
@@ -28,12 +28,16 @@ object AssetType {
 
   case object NonResidential extends AssetType
 
-  def apply(cr: CompleteReturn): String = cr.triageAnswers.assetType match {
-    case Residential    => "Residential"
-    case NonResidential => "NonResidential"
-  }
+  case object IndirectDisposal extends AssetType
 
-  implicit val eq: Eq[AssetType] = Eq.fromUniversalEquals
+  case object MixedUse extends AssetType
+
+  def apply(desAssetType: DesAssetType): AssetType = desAssetType match {
+    case DesAssetType.Residential      => Residential
+    case DesAssetType.NonResidential   => NonResidential
+    case DesAssetType.MixedUse         => MixedUse
+    case DesAssetType.IndirectDisposal => IndirectDisposal
+  }
 
   implicit val format: OFormat[AssetType] = derived.oformat()
 

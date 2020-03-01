@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAcquisitionType
 
 sealed trait AcquisitionMethod extends Product with Serializable
 
@@ -31,13 +32,12 @@ object AcquisitionMethod {
 
   final case class Other(value: String) extends AcquisitionMethod
 
-  def apply(cr: CompleteReturn): String = cr.acquisitionDetails.acquisitionMethod match {
-    case Bought       => "Bought"
-    case Inherited    => "Inherited"
-    case Gifted       => "Gifted"
-    case Other(value) => value
+  def apply(desAcquisitionType: DesAcquisitionType): AcquisitionMethod = desAcquisitionType match {
+    case DesAcquisitionType.Bought       => Bought
+    case DesAcquisitionType.Inherited    => Inherited
+    case DesAcquisitionType.Gifted       => Gifted
+    case DesAcquisitionType.Other(value) => Other(value)
   }
-
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[AcquisitionMethod] = derived.oformat()
 

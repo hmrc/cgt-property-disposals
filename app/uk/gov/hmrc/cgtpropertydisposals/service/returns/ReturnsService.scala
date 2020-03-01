@@ -95,7 +95,7 @@ class DefaultReturnsService @Inject() (
       if (response.status === OK) {
         for {
           desResponse <- response
-                          .parseJSON[DesReturnResponse]()
+                          .parseJSON[DesSubmitReturnResponse]()
                           .leftMap(Error(_))
           submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
         } yield submitReturnResponse
@@ -160,7 +160,7 @@ class DefaultReturnsService @Inject() (
         if (response.status === OK) {
           for {
             desResponse <- response
-                            .parseJSON[DesReturnResponse]()
+                            .parseJSON[DesSubmitReturnResponse]()
                             .leftMap(Error(_))
             submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
           } yield submitReturnResponse
@@ -202,7 +202,7 @@ class DefaultReturnsService @Inject() (
     returnSummaries.sequence[Either[Error, ?], ReturnSummary]
   }
 
-  private def prepareSubmitReturnResponse(response: DesReturnResponse): Either[Error, SubmitReturnResponse] = {
+  private def prepareSubmitReturnResponse(response: DesSubmitReturnResponse): Either[Error, SubmitReturnResponse] = {
     val charge = (
       response.ppdReturnResponseDetails.amount,
       response.ppdReturnResponseDetails.dueDate,
@@ -226,16 +226,16 @@ class DefaultReturnsService @Inject() (
 
 object DefaultReturnsService {
 
-  final case class PPDReturnResponseDetails(
+  final case class DesSubmitReturnResponseDetails(
     chargeReference: Option[String],
     amount: Option[BigDecimal],
     dueDate: Option[LocalDate],
     formBundleNumber: String
   )
 
-  final case class DesReturnResponse(
+  final case class DesSubmitReturnResponse(
     processingDate: LocalDateTime,
-    ppdReturnResponseDetails: PPDReturnResponseDetails
+    ppdReturnResponseDetails: DesSubmitReturnResponseDetails
   )
 
   final case class DesListReturnsResponse(
@@ -266,7 +266,8 @@ object DefaultReturnsService {
   implicit val returnFormat: OFormat[DesReturnSummary]                      = Json.format
   implicit val desListReturnResponseFormat: OFormat[DesListReturnsResponse] = Json.format
 
-  implicit val ppdReturnResponseDetailsFormat: Format[PPDReturnResponseDetails] = Json.format[PPDReturnResponseDetails]
-  implicit val desReturnResponseFormat: Format[DesReturnResponse]               = Json.format[DesReturnResponse]
+  implicit val ppdReturnResponseDetailsFormat: Format[DesSubmitReturnResponseDetails] =
+    Json.format[DesSubmitReturnResponseDetails]
+  implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse] = Json.format[DesSubmitReturnResponse]
 
 }
