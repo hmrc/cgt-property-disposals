@@ -30,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.sample
-import uk.gov.hmrc.cgtpropertydisposals.service.homepage.FinancialDataService
+import uk.gov.hmrc.cgtpropertydisposals.service.account.FinancialDataService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.http.HeaderCarrier
 import play.api.test.{FakeRequest, Helpers}

@@ -26,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataControl
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.service.homepage.FinancialDataService
+import uk.gov.hmrc.cgtpropertydisposals.service.account.FinancialDataService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
