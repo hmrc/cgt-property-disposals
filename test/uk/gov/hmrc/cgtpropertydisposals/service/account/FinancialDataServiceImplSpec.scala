@@ -59,10 +59,12 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
         val paymentsJson =
           if (t.payments.isEmpty) ""
           else
-            t.payments.map(payment => s"""|{
-          | "amount": ${payment.amount.inPounds()},
-          | "clearingDate" : "${payment.clearingDate.format(DateTimeFormatter.ISO_DATE)}"
-          |}""".stripMargin).mkString(", ")
+            // check items with no clearing dates are ignored
+            s"""{"amount" : 123 }${if (t.payments.nonEmpty) ", " else ""}""" +
+              t.payments.map(payment => s"""|{
+                                       | "amount": ${payment.amount.inPounds()},
+                                       | "clearingDate" : "${payment.clearingDate.format(DateTimeFormatter.ISO_DATE)}"
+                                       |}""".stripMargin).mkString(", ")
 
         s"""
        |{
