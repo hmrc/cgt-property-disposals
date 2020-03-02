@@ -41,8 +41,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErr
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -62,10 +63,9 @@ trait ReturnsService {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]]
 
-  // TODO: convert response to complete return
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, JsValue]
+  ): EitherT[Future, Error, CompleteReturn]
 
   def amendReturn(cgtReference: CgtReference, body: JsValue)(
     implicit hc: HeaderCarrier
@@ -76,6 +76,7 @@ trait ReturnsService {
 @Singleton
 class DefaultReturnsService @Inject() (
   returnsConnector: ReturnsConnector,
+  returnTransformerService: ReturnTransformerService,
   config: Configuration,
   metrics: Metrics
 )(implicit ec: ExecutionContext)
@@ -142,10 +143,15 @@ class DefaultReturnsService @Inject() (
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, JsValue] =
+  ): EitherT[Future, Error, CompleteReturn] =
     returnsConnector.displayReturn(cgtReference, submissionId).subflatMap { response =>
       if (response.status === OK) {
-        response.parseJSON[JsValue]().leftMap(Error(_))
+        for {
+          desReturn <- response
+                        .parseJSON[DesReturnDetails]()
+                        .leftMap(Error(_))
+          completeReturn <- returnTransformerService.toCompleteReturn(desReturn)
+        } yield completeReturn
       } else {
         Left(Error(s"call to list returns came back with status ${response.status}"))
       }

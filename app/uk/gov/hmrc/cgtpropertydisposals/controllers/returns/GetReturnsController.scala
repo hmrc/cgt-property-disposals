@@ -64,10 +64,13 @@ class GetReturnsController @Inject() (
     implicit request =>
       returnsService
         .displayReturn(CgtReference(cgtReference), submissionId)
-        .fold({ e =>
-          logger.warn(s"Could not get return for cgt reference $cgtReference and submission id $submissionId", e)
-          InternalServerError
-        }, Ok(_))
+        .fold(
+          { e =>
+            logger.warn(s"Could not get return for cgt reference $cgtReference and submission id $submissionId", e)
+            InternalServerError
+          },
+          completeReturn => Ok(Json.toJson(completeReturn))
+        )
   }
 
   private def withFromAndToDate(fromDate: String, toDate: String)(

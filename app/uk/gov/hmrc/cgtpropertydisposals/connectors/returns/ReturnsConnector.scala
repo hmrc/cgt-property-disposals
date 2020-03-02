@@ -142,12 +142,12 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
 
 object ReturnsConnectorImpl {
 
-  final case class DesSubmitReturnRequest(ppdReturnDetails: PPDReturnDetails)
+  final case class DesSubmitReturnRequest(ppdReturnDetails: DesReturnDetails)
 
   object DesSubmitReturnRequest {
 
     def apply(submitReturnRequest: SubmitReturnRequest): DesSubmitReturnRequest = {
-      val ppdReturnDetails = PPDReturnDetails(submitReturnRequest)
+      val ppdReturnDetails = DesReturnDetails(submitReturnRequest)
       DesSubmitReturnRequest(ppdReturnDetails)
     }
 
