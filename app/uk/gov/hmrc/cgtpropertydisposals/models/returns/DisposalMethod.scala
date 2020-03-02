@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesDisposalType
 
 sealed trait DisposalMethod extends Product with Serializable
 
@@ -26,6 +27,11 @@ object DisposalMethod {
   case object Sold extends DisposalMethod
 
   case object Gifted extends DisposalMethod
+
+  def apply(desDisposalType: DesDisposalType): DisposalMethod = desDisposalType match {
+    case DesDisposalType.Sold   => Sold
+    case DesDisposalType.Gifted => Gifted
+  }
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[DisposalMethod] = derived.oformat()

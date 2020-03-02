@@ -14,30 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
 import java.time.LocalDate
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
 
-final case class ReturnSummary(
-  submissionId: String,
-  submissionDate: LocalDate,
-  completionDate: LocalDate,
-  lastUpdatedDate: Option[LocalDate],
-  taxYear: String,
-  totalCGTLiability: AmountInPence,
-  totalOutstanding: AmountInPence,
-  propertyAddress: UkAddress,
-  charges: List[Charge]
-)
+final case class Charge(chargeDescription: String, chargeReference: String, amount: AmountInPence, dueDate: LocalDate)
 
-object ReturnSummary {
+object Charge {
 
-  implicit val ukAddressFormat: OFormat[UkAddress] = Json.format
-
-  implicit val format: OFormat[ReturnSummary] = Json.format
+  implicit val format: OFormat[Charge] = Json.format
 
 }

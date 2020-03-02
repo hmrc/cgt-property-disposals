@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.service.homepage
+package uk.gov.hmrc.cgtpropertydisposals.service.account
 
+import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime}
 
 import cats.data.EitherT
@@ -24,11 +25,11 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.homepage.FinancialDataConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage._
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -44,17 +45,6 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
 
   val today = LocalDateTime.now()
 
-  private def financialDataResponse(
-    outstandingAmount: AmountInPence
-  ): FinancialDataResponse = {
-    val financialTransactions = List(
-      FinancialTransaction(outstandingAmount = outstandingAmount)
-    )
-    FinancialDataResponse(
-      financialTransactions = financialTransactions
-    )
-  }
-
   def mockGetFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     response: Either[Error, HttpResponse]
   ) =
@@ -63,14 +53,30 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
       .expects(cgtReference, fromDate, toDate, *)
       .returning(EitherT.fromEither[Future](response))
 
-  def jsonBody(outstandingAmount: AmountInPence): String =
-    s"""
+  def jsonBody(transactions: List[FinancialTransaction]): String = {
+    val transactionsJson = transactions
+      .map { t =>
+        val paymentsJson =
+          if (t.payments.isEmpty) ""
+          else
+            t.payments.map(payment => s"""|{
+          | "amount": ${payment.amount.inPounds()},
+          | "clearingDate" : "${payment.clearingDate.format(DateTimeFormatter.ISO_DATE)}"
+          |}""".stripMargin).mkString(", ")
+
+        s"""
        |{
-       |    "financialTransactions": [{
-       |        "outstandingAmount":${outstandingAmount.inPounds}
-       |    }]
-       |}
-       |""".stripMargin
+       | "chargeReference" : "${t.chargeReference}",
+       | "originalAmount" : ${t.originalAmount.inPounds()},
+       | "outstandingAmount" : ${t.outstandingAmount.inPounds()} ${if (paymentsJson.isEmpty) ""
+           else
+             s""", "items": [ $paymentsJson ]"""}
+       |}""".stripMargin
+      }
+      .mkString(", ")
+
+    s"""{ "financialTransactions": [ $transactionsJson ] }"""
+  }
 
   val cgtReference       = sample[CgtReference]
   val (fromDate, toDate) = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
@@ -81,28 +87,16 @@ class FinancialDataServiceImplSpec extends WordSpec with Matchers with MockFacto
 
       "handle successful results" when {
 
-        "there is a total left to pay" in {
+        "the JSON can be parsed" in {
+          val transactions = List.fill(3)(sample[FinancialTransaction])
 
-          val fdResponse = financialDataResponse(
-            AmountInPence.fromPounds(30000)
-          )
           mockGetFinancialData(cgtReference, fromDate, toDate)(
-            Right(HttpResponse(200, Some(Json.parse(jsonBody(AmountInPence.fromPounds(30000))))))
+            Right(HttpResponse(200, Some(Json.parse(jsonBody(transactions)))))
           )
 
-          await(financialDataService.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(fdResponse)
-        }
-
-        "there is no total left to pay" in {
-
-          val fdResponse = financialDataResponse(
-            AmountInPence.fromPounds(0)
+          await(financialDataService.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(
+            transactions
           )
-          mockGetFinancialData(cgtReference, fromDate, toDate)(
-            Right(HttpResponse(200, Some(Json.parse(jsonBody(AmountInPence.zero)))))
-          )
-
-          await(financialDataService.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(fdResponse)
         }
 
       }

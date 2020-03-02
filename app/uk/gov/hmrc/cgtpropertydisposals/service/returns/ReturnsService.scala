@@ -39,9 +39,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, Uk
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{Charge, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -61,10 +63,9 @@ trait ReturnsService {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]]
 
-  // TODO: convert response to complete return
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, JsValue]
+  ): EitherT[Future, Error, CompleteReturn]
 
   def amendReturn(cgtReference: CgtReference, body: JsValue)(
     implicit hc: HeaderCarrier
@@ -75,6 +76,7 @@ trait ReturnsService {
 @Singleton
 class DefaultReturnsService @Inject() (
   returnsConnector: ReturnsConnector,
+  returnTransformerService: ReturnTransformerService,
   config: Configuration,
   metrics: Metrics
 )(implicit ec: ExecutionContext)
@@ -94,7 +96,7 @@ class DefaultReturnsService @Inject() (
       if (response.status === OK) {
         for {
           desResponse <- response
-                          .parseJSON[DesReturnResponse]()
+                          .parseJSON[DesSubmitReturnResponse]()
                           .leftMap(Error(_))
           submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
         } yield submitReturnResponse
@@ -141,10 +143,15 @@ class DefaultReturnsService @Inject() (
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, JsValue] =
+  ): EitherT[Future, Error, CompleteReturn] =
     returnsConnector.displayReturn(cgtReference, submissionId).subflatMap { response =>
       if (response.status === OK) {
-        response.parseJSON[JsValue]().leftMap(Error(_))
+        for {
+          desReturn <- response
+                        .parseJSON[DesReturnDetails]()
+                        .leftMap(Error(_))
+          completeReturn <- returnTransformerService.toCompleteReturn(desReturn)
+        } yield completeReturn
       } else {
         Left(Error(s"call to list returns came back with status ${response.status}"))
       }
@@ -159,7 +166,7 @@ class DefaultReturnsService @Inject() (
         if (response.status === OK) {
           for {
             desResponse <- response
-                            .parseJSON[DesReturnResponse]()
+                            .parseJSON[DesSubmitReturnResponse]()
                             .leftMap(Error(_))
             submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
           } yield submitReturnResponse
@@ -201,7 +208,7 @@ class DefaultReturnsService @Inject() (
     returnSummaries.sequence[Either[Error, ?], ReturnSummary]
   }
 
-  private def prepareSubmitReturnResponse(response: DesReturnResponse): Either[Error, SubmitReturnResponse] = {
+  private def prepareSubmitReturnResponse(response: DesSubmitReturnResponse): Either[Error, SubmitReturnResponse] = {
     val charge = (
       response.ppdReturnResponseDetails.amount,
       response.ppdReturnResponseDetails.dueDate,
@@ -225,16 +232,16 @@ class DefaultReturnsService @Inject() (
 
 object DefaultReturnsService {
 
-  final case class PPDReturnResponseDetails(
+  final case class DesSubmitReturnResponseDetails(
     chargeReference: Option[String],
     amount: Option[BigDecimal],
     dueDate: Option[LocalDate],
     formBundleNumber: String
   )
 
-  final case class DesReturnResponse(
+  final case class DesSubmitReturnResponse(
     processingDate: LocalDateTime,
-    ppdReturnResponseDetails: PPDReturnResponseDetails
+    ppdReturnResponseDetails: DesSubmitReturnResponseDetails
   )
 
   final case class DesListReturnsResponse(
@@ -265,7 +272,8 @@ object DefaultReturnsService {
   implicit val returnFormat: OFormat[DesReturnSummary]                      = Json.format
   implicit val desListReturnResponseFormat: OFormat[DesListReturnsResponse] = Json.format
 
-  implicit val ppdReturnResponseDetailsFormat: Format[PPDReturnResponseDetails] = Json.format[PPDReturnResponseDetails]
-  implicit val desReturnResponseFormat: Format[DesReturnResponse]               = Json.format[DesReturnResponse]
+  implicit val ppdReturnResponseDetailsFormat: Format[DesSubmitReturnResponseDetails] =
+    Json.format[DesSubmitReturnResponseDetails]
+  implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse] = Json.format[DesSubmitReturnResponse]
 
 }

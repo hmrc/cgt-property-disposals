@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.connectors.homepage
+package uk.gov.hmrc.cgtpropertydisposals.connectors.account
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter

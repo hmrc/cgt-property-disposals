@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.Charge
 
 final case class SubmitReturnResponse(
   formBundleId: String,

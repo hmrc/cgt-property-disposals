@@ -32,13 +32,16 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import org.scalacheck.ScalacheckShapeless._
+import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.FinancialDataResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 
 import scala.reflect.{ClassTag, classTag}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, FinancialTransaction}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 
 object Generators
     extends GenUtils
@@ -50,7 +53,7 @@ object Generators
     with DraftReturnGen
     with ReturnsGen
     with AddressGen
-    with FinancialDataGen {
+    with MoneyGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -136,12 +139,15 @@ trait DraftReturnGen { this: GenUtils =>
 
 }
 
-trait ReturnsGen { this: GenUtils =>
+trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
   implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
 
   implicit val completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
     gen[CompleteSingleDisposalTriageAnswers]
+
+  implicit val completeDisposalDetailsAnswersGen: Gen[CompleteDisposalDetailsAnswers] =
+    gen[CompleteDisposalDetailsAnswers]
 
   implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteYearToDateLiabilityAnswers] =
     gen[CompleteYearToDateLiabilityAnswers]
@@ -149,9 +155,9 @@ trait ReturnsGen { this: GenUtils =>
   implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
     gen[HasEstimatedDetailsWithCalculatedTaxDue]
 
-  implicit val calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
+  implicit val otherReliefsGen: Gen[OtherReliefs] = gen[OtherReliefs]
 
-  implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
+  implicit val calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
 
   implicit val gainCalculatedTaxDueGen: Gen[GainCalculatedTaxDue] = gen[GainCalculatedTaxDue]
 
@@ -167,6 +173,19 @@ trait ReturnsGen { this: GenUtils =>
   implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
 
   implicit val submitReturnResponseGen: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
+
+  implicit val taxYearGen: Gen[TaxYear] = gen[TaxYear]
+
+  implicit val disposalDateGen: Gen[DisposalDate] = gen[DisposalDate]
+
+  implicit val calculateCgtTaxDueRequestGen: Gen[CalculateCgtTaxDueRequest] =
+    gen[CalculateCgtTaxDueRequest]
+
+}
+
+trait LowerPriorityReturnsGen { this: GenUtils =>
+
+  implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
 
 }
 
@@ -196,8 +215,12 @@ trait AddressLowerPriorityGen { this: GenUtils =>
 
 }
 
-trait FinancialDataGen { this: GenUtils =>
+trait MoneyGen { this: GenUtils =>
+
+  implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
 
   implicit val financialDataResponseGen: Gen[FinancialDataResponse] = gen[FinancialDataResponse]
+
+  implicit val financialTransactionGen: Gen[FinancialTransaction] = gen[FinancialTransaction]
 
 }

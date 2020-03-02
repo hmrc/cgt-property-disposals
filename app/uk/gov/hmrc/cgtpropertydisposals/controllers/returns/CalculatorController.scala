@@ -16,48 +16,41 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import cats.instances.future._
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculateCgtTaxDueRequest, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, DraftReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SubmitReturnsController @Inject() (
+class CalculatorController @Inject() (
   authenticate: AuthenticateActions,
-  draftReturnsService: DraftReturnsService,
-  returnsService: ReturnsService,
-  auditService: AuditService,
+  calculatorService: CgtCalculationService,
   cc: ControllerComponents
 )(
   implicit ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
-  def submitReturn: Action[JsValue] = authenticate(parse.json).async { implicit request =>
-    withJsonBody[SubmitReturnRequest] { returnRequest =>
-      val result =
-        for {
-          submissionResult <- returnsService.submitReturn(returnRequest)
-          _                <- draftReturnsService.deleteDraftReturn(returnRequest.id)
-        } yield submissionResult
-
-      result.fold(
-        { e =>
-          logger.warn("Could not submit return", e)
-          InternalServerError
-        },
-        s => Ok(Json.toJson(s))
+  def calculate: Action[JsValue] = authenticate(parse.json).async { implicit request =>
+    withJsonBody[CalculateCgtTaxDueRequest] { calculationRequest =>
+      val result = calculatorService.calculateTaxDue(
+        calculationRequest.triageAnswers,
+        calculationRequest.disposalDetails,
+        calculationRequest.acquisitionDetails,
+        calculationRequest.reliefDetails,
+        calculationRequest.exemptionAndLosses,
+        calculationRequest.estimatedIncome,
+        calculationRequest.personalAllowance
       )
+
+      Future.successful(Ok(Json.toJson(result)))
     }
   }
 

@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import cats.syntax.order._
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 
 final case class ReliefDetails(
@@ -38,8 +38,8 @@ object ReliefDetails {
       privateResRelief   = privateResRelief(cr),
       lettingsReflief    = lettingsRelief(cr),
       giftHoldOverRelief = None,
-      otherRelief        = cr.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.name), () => None)),
-      otherReliefAmount  = cr.reliefDetails.otherReliefs.flatMap(_.fold(r => Some(r.amount.inPounds), () => None))
+      otherRelief        = cr.reliefDetails.otherReliefs.map(_.fold(r => r.name, () => "none")),
+      otherReliefAmount  = cr.reliefDetails.otherReliefs.map(_.fold(r => r.amount.inPounds(), () => 0))
     )
 
   private def reliefs(cr: CompleteReturn): Boolean =
@@ -49,12 +49,12 @@ object ReliefDetails {
 
   private def privateResRelief(cr: CompleteReturn): Option[BigDecimal] =
     if (cr.reliefDetails.privateResidentsRelief > AmountInPence.zero)
-      Some(cr.reliefDetails.privateResidentsRelief.inPounds)
+      Some(cr.reliefDetails.privateResidentsRelief.inPounds())
     else None
 
   private def lettingsRelief(cr: CompleteReturn): Option[BigDecimal] =
     if (cr.reliefDetails.lettingsRelief > AmountInPence.zero)
-      Some(cr.reliefDetails.lettingsRelief.inPounds)
+      Some(cr.reliefDetails.lettingsRelief.inPounds())
     else None
 
   implicit val reliefDetailsFormat: OFormat[ReliefDetails] = Json.format[ReliefDetails]

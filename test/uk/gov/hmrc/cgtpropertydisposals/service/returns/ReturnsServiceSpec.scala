@@ -31,9 +31,12 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Postcode
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{Charge, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,6 +46,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   val returnsConnector = mock[ReturnsConnector]
 
+  val mockReturnTransformerService = mock[ReturnTransformerService]
+
   val config = Configuration(
     ConfigFactory.parseString(
       """
@@ -51,7 +56,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
     )
   )
 
-  val returnsService = new DefaultReturnsService(returnsConnector, config, MockMetrics.metrics)
+  val returnsService =
+    new DefaultReturnsService(returnsConnector, mockReturnTransformerService, config, MockMetrics.metrics)
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -74,6 +80,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .displayReturn(_: CgtReference, _: String)(_: HeaderCarrier))
       .expects(cgtReference, submissionId, *)
       .returning(EitherT.fromEither[Future](response))
+
+  def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, CompleteReturn]) =
+    (mockReturnTransformerService
+      .toCompleteReturn(_: DesReturnDetails))
+      .expects(desReturn)
+      .returning(result)
 
   "CompleteReturnsService" when {
 
@@ -461,7 +473,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
     "handling requests to display a return" must {
 
-      val desResponseBody = Json.parse(
+      val desResponseBodyString = Json.parse(
         s"""
            |{
            |	"returnType": {
@@ -470,11 +482,11 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
            |		"submissionDate": "2009-08-13"
            |	},
            |	"returnDetails": {
-           |		"customerType": "Individual",
+           |		"customerType": "individual",
            |		"completionDate": "2009-09-13",
            |		"isUKResident": true,
-           |		"countryResidence": "France",
-           |		"numberDisposals": 3,
+           |		"countryResidence": "FR",
+           |		"numberDisposals": 1,
            |		"totalTaxableGain": 12345678912.12,
            |		"totalNetLoss": 12345678913.12,
            |		"valueAtTaxBandDetails": [
@@ -527,15 +539,15 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
            |				"countryCode": "GB",
            |				"postalCode": "TF34NT"
            |			},
-           |			"assetType": "Residential",
+           |			"assetType": "residential",
            |			"percentOwned": 99.00,
-           |			"acquisitionType": "Bought",
+           |			"acquisitionType": "bought",
            |			"acquiredDate": "2017-06-13",
            |			"landRegistry": true,
            |			"acquisitionPrice": 12345678916.13,
            |			"rebased": true,
            |			"rebasedAmount": 12345678917.14,
-           |			"disposalType": "Cash",
+           |			"disposalType": "sold",
            |			"disposalPrice": 12345678918.15,
            |			"improvements": true,
            |			"improvementCosts": 12345678919.16,
@@ -568,6 +580,9 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
            |}
            |""".stripMargin
       )
+      val desReturnDetails = desResponseBodyString
+        .validate[DesReturnDetails]
+        .getOrElse(sys.error("Could not parse json as DesReturnDetails"))
 
       val cgtReference = sample[CgtReference]
       val submissionId = "id"
@@ -592,14 +607,28 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           await(returnsService.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
         }
 
+        "there is an error transforming the des return" in {
+          inSequence {
+            mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(200, Some(desResponseBodyString))))
+            mockTransformReturn(desReturnDetails)(Left(Error("")))
+          }
+
+          await(returnsService.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
+        }
+
       }
 
       "return a list of returns" when {
 
         "the response body can be parsed and converted" in {
-          mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(200, Some(desResponseBody))))
+          val completeReturn = sample[CompleteReturn]
 
-          await(returnsService.displayReturn(cgtReference, submissionId).value) shouldBe Right(desResponseBody)
+          inSequence {
+            mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(200, Some(desResponseBodyString))))
+            mockTransformReturn(desReturnDetails)(Right(completeReturn))
+          }
+
+          await(returnsService.displayReturn(cgtReference, submissionId).value) shouldBe Right(completeReturn)
         }
 
       }

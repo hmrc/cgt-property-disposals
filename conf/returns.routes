@@ -1,10 +1,10 @@
 GET  /draft-returns/:cgtReference              uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturns(cgtReference:String)
 POST /draft-return                             uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturnSubmit()
 
+GET  /tax-year/:date                        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.taxYear(date: String)
+POST /calculate-tax-due                        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculate()
+
 POST /return                                   uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.submitReturn()
 
 GET /returns/:cgtReference/:fromDate/:toDate   uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.listReturns(cgtReference: String, fromDate: String, toDate: String)
 GET /return/:cgtReference/:submissionId        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.displayReturn(cgtReference: String, submissionId: String)
-
-## temporary
-POST /amend-return/:cgtReference               uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.amendReturn(cgtReference: String)

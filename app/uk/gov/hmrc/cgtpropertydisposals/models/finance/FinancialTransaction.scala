@@ -14,21 +14,29 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.des.homepage
+package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
-import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import java.time.LocalDate
 
-final case class FinancialDataResponse(
-  financialTransactions: List[FinancialTransaction]
-)
-object FinancialDataResponse {
-  implicit val financialDataResponseFormat: Format[FinancialDataResponse] = Json.format[FinancialDataResponse]
-}
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction.Payment
 
 final case class FinancialTransaction(
-  outstandingAmount: AmountInPence
+  chargeReference: String,
+  originalAmount: AmountInPence,
+  outstandingAmount: AmountInPence,
+  payments: List[Payment]
 )
+
 object FinancialTransaction {
-  implicit val financialTransactionFormat: Format[FinancialTransaction] = Json.format[FinancialTransaction]
+
+  final case class Payment(
+    amount: AmountInPence,
+    clearingDate: LocalDate
+  )
+
+  implicit val paymentFormat: OFormat[Payment] = Json.format
+
+  implicit val financialTransactionFormat: OFormat[FinancialTransaction] = Json.format[FinancialTransaction]
+
 }

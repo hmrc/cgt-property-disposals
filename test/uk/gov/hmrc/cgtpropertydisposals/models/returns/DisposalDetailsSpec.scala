@@ -19,10 +19,10 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
@@ -42,10 +42,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
       val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(123456))
 
       val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
-        sample[CompleteYearToDateLiabilityAnswers]
-          .copy(hasEstimatedDetailsWithCalculatedTaxDue = sample[HasEstimatedDetailsWithCalculatedTaxDue]
-            .copy(calculatedTaxDue = calculatedTaxDue)
-          )
+        sample[CompleteYearToDateLiabilityAnswers].copy(calculatedTaxDue = calculatedTaxDue)
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
@@ -59,9 +56,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
 
       val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
         sample[CompleteYearToDateLiabilityAnswers]
-          .copy(hasEstimatedDetailsWithCalculatedTaxDue = sample[HasEstimatedDetailsWithCalculatedTaxDue]
-            .copy(calculatedTaxDue = calculatedTaxDue)
-          )
+          .copy(calculatedTaxDue = calculatedTaxDue)
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>

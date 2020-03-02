@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.controllers.homepage
+package uk.gov.hmrc.cgtpropertydisposals.controllers.account
 
 import java.time.{LocalDate, LocalDateTime}
 
@@ -30,12 +30,13 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.sample
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage.FinancialDataResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.homepage.FinancialDataService
+import uk.gov.hmrc.cgtpropertydisposals.service.account.FinancialDataService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.http.HeaderCarrier
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.FinancialDataResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -50,7 +51,7 @@ class FinancialDataControllerSpec extends ControllerSpec {
   implicit val headerCarrier = HeaderCarrier()
 
   def mockGetFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
-    response: Either[Error, FinancialDataResponse]
+    response: Either[Error, List[FinancialTransaction]]
   ) =
     (financialDataService
       .getFinancialData(_: CgtReference, _: LocalDate, _: LocalDate)(_: HeaderCarrier))
@@ -116,7 +117,7 @@ class FinancialDataControllerSpec extends ControllerSpec {
 
         "financial data is successfully retrieved" in {
           val response = sample[FinancialDataResponse]
-          mockGetFinancialData(cgtReference, fromDate, toDate)(Right(response))
+          mockGetFinancialData(cgtReference, fromDate, toDate)(Right(response.financialTransactions))
 
           val result = performAction(cgtReference, fromDate.toString, toDate.toString)
 

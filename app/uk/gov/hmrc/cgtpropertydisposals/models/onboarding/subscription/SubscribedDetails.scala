@@ -17,12 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
 
 import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.cgtpropertydisposals.models.TelephoneNumber
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.Email
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
 final case class SubscribedDetails(
@@ -36,9 +34,6 @@ final case class SubscribedDetails(
 )
 
 object SubscribedDetails {
-
-  def apply(submitReturnRequest: SubmitReturnRequest): String =
-    submitReturnRequest.subscribedDetails.name.fold(_ => "trust", _ => "individual")
 
   implicit val format: Format[SubscribedDetails] = Json.format[SubscribedDetails]
 

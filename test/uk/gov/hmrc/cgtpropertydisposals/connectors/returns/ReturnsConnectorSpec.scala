@@ -30,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnectorImpl.DesSubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.PPDReturnDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.NumberOfProperties.One
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
@@ -105,7 +105,7 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
                   triageAnswers   = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One)
                 )
               )
-            val ppdReturnDetails       = PPDReturnDetails(submitReturnRequest)
+            val ppdReturnDetails       = DesReturnDetails(submitReturnRequest)
             val desSubmitReturnRequest = DesSubmitReturnRequest(ppdReturnDetails)
             val json                   = Json.toJson(desSubmitReturnRequest)
             val validationResult       = validator.validate(schemaToBeValidated, json)

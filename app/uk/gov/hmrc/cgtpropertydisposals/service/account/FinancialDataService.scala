@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.service.homepage
+package uk.gov.hmrc.cgtpropertydisposals.service.account
 
 import java.time.LocalDate
 
@@ -26,13 +26,14 @@ import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.{NOT_FOUND, OK}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.homepage.FinancialDataConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesErrorResponse, DesFinancialDataResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.models.des.homepage._
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, FinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.{AmountInPence, Error}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction.Payment
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -44,7 +45,7 @@ trait FinancialDataService {
 
   def getFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, FinancialDataResponse]
+  ): EitherT[Future, Error, List[FinancialTransaction]]
 
 }
 
@@ -61,7 +62,7 @@ class FinancialDataServiceImpl @Inject() (
     cgtReference: CgtReference,
     fromDate: LocalDate,
     toDate: LocalDate
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, FinancialDataResponse] = {
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, List[FinancialTransaction]] = {
     val timer = metrics.financialDataTimer.time()
 
     financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
@@ -72,7 +73,7 @@ class FinancialDataServiceImpl @Inject() (
           .map(prepareFinancialDataResponse(_))
           .leftMap(Error(_))
       } else if (isNoReturnsResponse(response)) {
-        Right(FinancialDataResponse(List.empty))
+        Right(List.empty)
       } else {
         metrics.financialDataErrorCounter.inc()
         Left(Error(s"call to get financial data came back with status ${response.status}"))
@@ -96,11 +97,21 @@ class FinancialDataServiceImpl @Inject() (
     response.status === NOT_FOUND && hasNoReturnBody
   }
 
-  def prepareFinancialDataResponse(desFinancialDataResponse: DesFinancialDataResponse): FinancialDataResponse =
-    FinancialDataResponse(
-      financialTransactions = desFinancialDataResponse.financialTransactions.map { t =>
-        FinancialTransaction(AmountInPence.fromPounds(t.outstandingAmount))
-      }
-    )
+  def prepareFinancialDataResponse(desFinancialDataResponse: DesFinancialDataResponse): List[FinancialTransaction] =
+    desFinancialDataResponse.financialTransactions.map { t =>
+      FinancialTransaction(
+        t.chargeReference,
+        AmountInPence.fromPounds(t.originalAmount),
+        AmountInPence.fromPounds(t.outstandingAmount),
+        t.items.fold(List.empty[Payment])(
+          _.map(i =>
+            Payment(
+              AmountInPence.fromPounds(i.amount),
+              i.clearingDate
+            )
+          )
+        )
+      )
+    }
 
 }

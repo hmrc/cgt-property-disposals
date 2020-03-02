@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
+import cats.instances.bigDecimal._
+import cats.syntax.eq._
+
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 
@@ -34,6 +37,11 @@ object ShareOfProperty {
   }
 
   final case class Other(percentageValue: BigDecimal) extends ShareOfProperty
+
+  def apply(percentage: BigDecimal): ShareOfProperty =
+    if (percentage === BigDecimal("50")) Half
+    else if (percentage === BigDecimal("100")) Full
+    else Other(percentage)
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ShareOfProperty] = derived.oformat()

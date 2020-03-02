@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.des.homepage
+package uk.gov.hmrc.cgtpropertydisposals.models.des
 
-import java.time.LocalDateTime
-import play.api.libs.json.{Format, Json}
+import java.time.LocalDate
+
+import play.api.libs.json.{Format, Json, OFormat}
 
 final case class DesFinancialDataResponse(
   financialTransactions: List[DesFinancialTransaction]
@@ -28,9 +29,21 @@ object DesFinancialDataResponse {
 }
 
 final case class DesFinancialTransaction(
-  outstandingAmount: BigDecimal
+  chargeReference: String,
+  originalAmount: BigDecimal,
+  outstandingAmount: BigDecimal,
+  items: Option[List[DesFinancialTransactionItem]]
 )
 
 object DesFinancialTransaction {
   implicit val financialTransactionFormat: Format[DesFinancialTransaction] = Json.format[DesFinancialTransaction]
+}
+
+final case class DesFinancialTransactionItem(
+  amount: BigDecimal,
+  clearingDate: LocalDate
+)
+
+object DesFinancialTransactionItem {
+  implicit val format: OFormat[DesFinancialTransactionItem] = Json.format
 }

@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.LocalDate
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import cats.Order
 
-final case class Charge(chargeDescription: String, chargeReference: String, amount: AmountInPence, dueDate: LocalDate)
+object LocalDateUtils {
 
-object Charge {
-
-  implicit val format: OFormat[Charge] = Json.format
+  implicit val order: Order[LocalDate] = Order.from(_ compareTo _)
 
 }

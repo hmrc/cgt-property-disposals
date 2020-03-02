@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals
 
-import cats.data.ValidatedNel
+import cats.data.Validated.Invalid
+import cats.data.{NonEmptyList, ValidatedNel}
 
 package object models {
 
   type Validation[A] = ValidatedNel[String, A]
+
+  def invalid[A](error: String): Validation[A] = Invalid(NonEmptyList.one(error))
 
 }
