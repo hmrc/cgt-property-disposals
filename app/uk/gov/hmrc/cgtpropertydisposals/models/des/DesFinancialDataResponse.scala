@@ -41,7 +41,7 @@ object DesFinancialTransaction {
 
 final case class DesFinancialTransactionItem(
   amount: BigDecimal,
-  clearingDate: LocalDate
+  clearingDate: Option[LocalDate]
 )
 
 object DesFinancialTransactionItem {

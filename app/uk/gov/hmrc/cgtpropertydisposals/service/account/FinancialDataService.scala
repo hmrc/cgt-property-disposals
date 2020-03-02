@@ -28,7 +28,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.{NOT_FOUND, OK}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesErrorResponse, DesFinancialDataResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesErrorResponse, DesFinancialDataResponse, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, FinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -104,12 +104,10 @@ class FinancialDataServiceImpl @Inject() (
         AmountInPence.fromPounds(t.originalAmount),
         AmountInPence.fromPounds(t.outstandingAmount),
         t.items.fold(List.empty[Payment])(
-          _.map(i =>
-            Payment(
-              AmountInPence.fromPounds(i.amount),
-              i.clearingDate
-            )
-          )
+          _.collect {
+            case DesFinancialTransactionItem(amount, Some(clearingDate)) =>
+              Payment(AmountInPence.fromPounds(amount), clearingDate)
+          }
         )
       )
     }
