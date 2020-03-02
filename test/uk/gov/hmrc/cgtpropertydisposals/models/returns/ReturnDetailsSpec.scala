@@ -35,7 +35,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
     "return totalTaxableGain value when exemptionsAndLossesDetails.taxableGainOrLoss exist" in {
       val amountInPounds = BigDecimal(1000)
       val completeReturn = sample[CompleteReturn].copy(
-        triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One),
+        triageAnswers = sample[CompleteSingleDisposalTriageAnswers],
         exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers]
           .copy(taxableGainOrLoss = Some(AmountInPence.fromPounds(amountInPounds))),
         yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
@@ -50,8 +50,8 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       val calculatedTaxDue =
         sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.fromPounds(amountInPounds))
       val completeReturn = sample[CompleteReturn].copy(
-        triageAnswers              = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One),
-        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss    = None),
+        triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
+        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss = None),
         yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
@@ -65,8 +65,8 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       val calculatedTaxDue =
         sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.fromPounds(amountInPounds))
       val completeReturn = sample[CompleteReturn].copy(
-        triageAnswers              = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One),
-        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss    = None),
+        triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
+        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss = None),
         yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
@@ -80,8 +80,8 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       val calculatedTaxDue =
         sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.fromPounds(amountInPounds))
       val completeReturn = sample[CompleteReturn].copy(
-        triageAnswers              = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One),
-        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss    = None),
+        triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
+        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss = None),
         yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )

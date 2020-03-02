@@ -102,7 +102,7 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
               sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
                 .copy(
                   propertyAddress = sample[UkAddress],
-                  triageAnswers   = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One)
+                  triageAnswers   = sample[CompleteSingleDisposalTriageAnswers]
                 )
               )
             val ppdReturnDetails       = DesReturnDetails(submitReturnRequest)
@@ -122,7 +122,7 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
         "do a post http call and get the result" in {
           val submitReturnRequest: SubmitReturnRequest = {
             sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
-              .copy(triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One))
+              .copy(triageAnswers = sample[CompleteSingleDisposalTriageAnswers])
             )
           }
           List(
@@ -153,7 +153,7 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
           "the call fails" in {
             val submitReturnRequest: SubmitReturnRequest = {
               sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
-                .copy(triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One))
+                .copy(triageAnswers = sample[CompleteSingleDisposalTriageAnswers])
               )
             }
             mockPost(

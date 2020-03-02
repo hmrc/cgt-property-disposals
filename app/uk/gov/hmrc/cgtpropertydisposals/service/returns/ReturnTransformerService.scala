@@ -120,7 +120,6 @@ class ReturnTransformerServiceImpl @Inject() (
           IndividualUserType.PersonalRepresentative
         )
       ),
-      NumberOfProperties.One,
       DisposalMethod(singleDisposalDetails.disposalType),
       country,
       AssetType(singleDisposalDetails.assetType),
