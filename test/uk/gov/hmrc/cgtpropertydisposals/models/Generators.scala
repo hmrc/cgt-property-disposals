@@ -139,7 +139,7 @@ trait DraftReturnGen { this: GenUtils =>
 
 }
 
-trait ReturnsGen { this: GenUtils =>
+trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
   implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
 
@@ -159,8 +159,6 @@ trait ReturnsGen { this: GenUtils =>
 
   implicit val calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
 
-  implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
-
   implicit val gainCalculatedTaxDueGen: Gen[GainCalculatedTaxDue] = gen[GainCalculatedTaxDue]
 
   implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] =
@@ -179,6 +177,15 @@ trait ReturnsGen { this: GenUtils =>
   implicit val taxYearGen: Gen[TaxYear] = gen[TaxYear]
 
   implicit val disposalDateGen: Gen[DisposalDate] = gen[DisposalDate]
+
+  implicit val calculateCgtTaxDueRequestGen: Gen[CalculateCgtTaxDueRequest] =
+    gen[CalculateCgtTaxDueRequest]
+
+}
+
+trait LowerPriorityReturnsGen { this: GenUtils =>
+
+  implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
 
 }
 
