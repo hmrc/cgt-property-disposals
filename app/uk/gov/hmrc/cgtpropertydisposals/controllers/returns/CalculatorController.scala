@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import com.google.inject.Inject
+import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
@@ -28,11 +28,10 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
+@Singleton
 class CalculatorController @Inject() (
   authenticate: AuthenticateActions,
-  draftReturnsService: DraftReturnsService,
   calculatorService: CgtCalculationService,
-  auditService: AuditService,
   cc: ControllerComponents
 )(
   implicit ec: ExecutionContext
