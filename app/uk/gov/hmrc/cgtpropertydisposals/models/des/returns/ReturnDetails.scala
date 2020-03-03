@@ -55,7 +55,7 @@ object ReturnDetails {
       completionDate        = c.triageAnswers.completionDate.value,
       isUKResident          = c.triageAnswers.countryOfResidence.isUk(),
       countryResidence      = Some(c.triageAnswers.countryOfResidence).filter(!_.isUk()).map(_.code),
-      numberDisposals       = NumberOfProperties(c),
+      numberDisposals       = 1,
       totalTaxableGain      = getTaxableGainOrNetLoss(c)._1,
       totalNetLoss          = getTaxableGainOrNetLoss(c)._2,
       valueAtTaxBandDetails = ValueAtTaxBandDetails(calculatedTaxDue),

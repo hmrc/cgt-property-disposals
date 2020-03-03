@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionDate, AcquisitionMethod, AssetType, CompleteReturn, CompletionDate, DisposalDate, DisposalMethod, IndividualUserType, NumberOfProperties, OtherReliefsOption, ShareOfProperty}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionDate, AcquisitionMethod, AssetType, CompleteReturn, CompletionDate, DisposalDate, DisposalMethod, IndividualUserType, OtherReliefsOption, ShareOfProperty}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -120,7 +120,6 @@ class ReturnTransformerServiceImpl @Inject() (
           IndividualUserType.PersonalRepresentative
         )
       ),
-      NumberOfProperties.One,
       DisposalMethod(singleDisposalDetails.disposalType),
       country,
       AssetType(singleDisposalDetails.assetType),
@@ -227,7 +226,7 @@ class ReturnTransformerServiceImpl @Inject() (
       case (Some(other), None) => invalid(s"Found other relief name '$other' but could not find amount'")
       case (None, Some(amount)) =>
         invalid(s"Found other relief amount '$amount' but could not find other relief name'")
-      case (Some("none"), Some(amount)) if (amount === BigDecimal("0")) =>
+      case (Some("none"), Some(amount)) if amount === BigDecimal("0") =>
         Valid(Some(OtherReliefsOption.NoOtherReliefs))
       case (Some(name), Some(amount)) =>
         Valid(Some(OtherReliefsOption.OtherReliefs(name, AmountInPence.fromPounds(amount))))
