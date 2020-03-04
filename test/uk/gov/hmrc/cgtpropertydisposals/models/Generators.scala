@@ -23,6 +23,8 @@ import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, ReliefDetails, RepresentedPersonDetails, ReturnDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -57,7 +59,8 @@ object Generators
     with DmsSubmissionGen
     with ReturnsGen
     with AddressGen
-    with MoneyGen {
+    with MoneyGen
+    with DesReturnsGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -219,7 +222,23 @@ trait LowerPriorityReturnsGen { this: GenUtils =>
 
 }
 
-trait AddressGen { this: GenUtils =>
+trait DesReturnsGen { this: GenUtils =>
+
+  implicit val desReturnDetailsGen: Gen[DesReturnDetails] = gen[DesReturnDetails]
+
+  implicit val desSingleDisposalDetailsGen: Gen[SingleDisposalDetails] = gen[SingleDisposalDetails]
+
+  implicit val desMultipleDisposaslDetailsGen: Gen[MultipleDisposalDetails] = gen[MultipleDisposalDetails]
+
+  implicit val returnDetailsGen: Gen[ReturnDetails] = gen[ReturnDetails]
+
+  implicit val desReliefDetailsGen: Gen[ReliefDetails] = gen[ReliefDetails]
+
+  implicit val representedPersonDetailsGen: Gen[RepresentedPersonDetails] = gen[RepresentedPersonDetails]
+
+}
+
+trait AddressGen extends AddressLowerPriorityGen { this: GenUtils =>
 
   implicit val addressGen: Gen[Address] = gen[Address]
 

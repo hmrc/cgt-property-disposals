@@ -163,7 +163,7 @@ class ReturnTransformerServiceImpl @Inject() (
     val totalTaxableGainOrNetLoss: AmountInPence =
       (desReturn.returnDetails.totalNetLoss, desReturn.returnDetails.totalTaxableGain) match {
         case (Some(netLoss), _) => AmountInPence.fromPounds(-netLoss)
-        case (None, gain)       => AmountInPence.fromPounds(gain)
+        case (_, gain)          => AmountInPence.fromPounds(gain)
       }
     CompleteExemptionAndLossesAnswers(
       zeroOrAmountInPenceFromPounds(desReturn.lossSummaryDetails.inYearLossUsed),
