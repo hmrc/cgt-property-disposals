@@ -46,6 +46,8 @@ class UpscanConnectorImpl @Inject() (playHttpClient: PlayHttpClient, config: Ser
     with HttpErrorFunctions {
 
   private lazy val userAgent: String = config.getConfString("appName", "cgt-property-disposal")
+  private lazy val timeout: Duration =
+    config.getDuration("dms.s3-file-download-timeout")
 
   private val headers: Seq[(String, String)] = Seq(USER_AGENT -> userAgent)
 
@@ -53,7 +55,7 @@ class UpscanConnectorImpl @Inject() (playHttpClient: PlayHttpClient, config: Ser
     upscanCallBack.downloadUrl match {
       case Some(url) => {
         playHttpClient
-          .get(url, headers, 2 minutes)
+          .get(url, headers, timeout)
           .map {
             case AhcWSResponse(underlying) =>
               underlying.status match {

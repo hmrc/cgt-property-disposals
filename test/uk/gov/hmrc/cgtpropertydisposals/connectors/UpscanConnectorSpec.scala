@@ -33,7 +33,6 @@ import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
@@ -47,10 +46,9 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
   val config = Configuration(
     ConfigFactory.parseString(
       """
-        |microservice {
-        |  services {
-        |  }
-        |}
+        | dms = {
+        |   s3-file-download-timeout = 2 minutes
+        | }
         |""".stripMargin
     )
   )
