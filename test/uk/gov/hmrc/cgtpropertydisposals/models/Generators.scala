@@ -21,12 +21,11 @@ import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import akka.util.ByteString
 import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
-import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.FinancialDataResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, FinancialTransaction}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
@@ -208,6 +207,8 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
   implicit val calculateCgtTaxDueRequestGen: Gen[CalculateCgtTaxDueRequest] =
     gen[CalculateCgtTaxDueRequest]
 
+  implicit val returnSummaryGen: Gen[ReturnSummary] = gen[ReturnSummary]
+
 }
 
 trait LowerPriorityReturnsGen { this: GenUtils =>
@@ -245,9 +246,5 @@ trait AddressLowerPriorityGen { this: GenUtils =>
 trait MoneyGen { this: GenUtils =>
 
   implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
-
-  implicit val financialDataResponseGen: Gen[FinancialDataResponse] = gen[FinancialDataResponse]
-
-  implicit val financialTransactionGen: Gen[FinancialTransaction] = gen[FinancialTransaction]
 
 }

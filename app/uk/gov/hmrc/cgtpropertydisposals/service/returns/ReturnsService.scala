@@ -18,33 +18,31 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import java.time.{LocalDate, LocalDateTime}
 
-import cats.data.Validated.{Invalid, Valid}
-import cats.data.{EitherT, NonEmptyList}
-import cats.instances.either._
+import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
-import cats.instances.list._
 import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.eq._
-import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json._
+import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -76,7 +74,9 @@ trait ReturnsService {
 @Singleton
 class DefaultReturnsService @Inject() (
   returnsConnector: ReturnsConnector,
+  financialDataConnector: FinancialDataConnector,
   returnTransformerService: ReturnTransformerService,
+  returnSummaryListTransformerService: ReturnSummaryListTransformerService,
   config: Configuration,
   metrics: Metrics
 )(implicit ec: ExecutionContext)
@@ -109,21 +109,58 @@ class DefaultReturnsService @Inject() (
 
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, List[ReturnSummary]] =
-    returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
-      if (response.status === OK) {
-        for {
-          desResponse <- response
-                          .parseJSON[DesListReturnsResponse]()
-                          .leftMap(Error(_))
-          response <- listReturnResponse(desResponse)
-        } yield response
-      } else if (isNoReturnsResponse(response)) {
-        Right(List.empty)
-      } else {
-        Left(Error(s"call to list returns came back with unexpected status ${response.status}"))
+  ): EitherT[Future, Error, List[ReturnSummary]] = {
+    lazy val desFinancialData =
+      financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
+        if (response.status === OK) {
+          response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
+        } else if (isNoFinancialDataResponse(response)) {
+          Right(DesFinancialDataResponse(List.empty))
+        } else {
+          Left(Error(s"call to get financial data came back with unexpected status ${response.status}"))
+        }
       }
-    }
+
+    lazy val desReturnList =
+      returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
+        if (response.status === OK) {
+          response.parseJSON[DesListReturnsResponse]().leftMap(Error(_))
+        } else if (isNoReturnsResponse(response)) {
+          Right(DesListReturnsResponse(List.empty))
+        } else {
+          Left(Error(s"call to list returns came back with unexpected status ${response.status}"))
+        }
+      }
+
+    for {
+      desReturnList <- desReturnList
+      desFinancialData <- if (desReturnList.returnList.nonEmpty) desFinancialData
+                         else EitherT.pure(DesFinancialDataResponse(List.empty))
+      returnSummaries <- EitherT.fromEither(
+                          if (desReturnList.returnList.nonEmpty)
+                            returnSummaryListTransformerService
+                              .toReturnSummaryList(desReturnList.returnList, desFinancialData.financialTransactions)
+                          else
+                            Right(List.empty)
+                        )
+    } yield returnSummaries
+  }
+
+  def isNoFinancialDataResponse(response: HttpResponse): Boolean = {
+    def isNoReturnResponse(e: SingleDesErrorResponse) =
+      e.code === "NOT_FOUND" &&
+        e.reason === "The remote endpoint has indicated that no data can be found."
+
+    lazy val hasNoReturnBody = response
+      .parseJSON[DesErrorResponse]()
+      .bimap(
+        _ => false,
+        _.fold(isNoReturnResponse, _.failures.exists(isNoReturnResponse))
+      )
+      .merge
+
+    response.status === NOT_FOUND && hasNoReturnBody
+  }
 
   private def isNoReturnsResponse(response: HttpResponse): Boolean = {
     def isNoReturnResponse(e: SingleDesErrorResponse) =
@@ -175,39 +212,6 @@ class DefaultReturnsService @Inject() (
         }
       }
 
-  private def listReturnResponse(desListReturnsResponse: DesListReturnsResponse): Either[Error, List[ReturnSummary]] = {
-    val returnSummaries = desListReturnsResponse.returnList.map { r =>
-      val addressValidation = AddressDetails.fromDesAddressDetails(r.propertyAddress)(desNonIsoCountryCodes).andThen {
-        case a: UkAddress    => Valid(a)
-        case _: NonUkAddress => Invalid(NonEmptyList.one("Expected uk address but found non-uk address"))
-      }
-
-      addressValidation
-        .bimap(
-          e => Error(e.toList.mkString("; ")),
-          address =>
-            ReturnSummary(
-              r.submissionId,
-              r.submissionDate,
-              r.completionDate,
-              r.lastUpdatedDate,
-              r.taxYear,
-              AmountInPence.fromPounds(r.totalCGTLiability),
-              AmountInPence.fromPounds(r.totalOutstanding),
-              address,
-              r.charges
-                .getOrElse(List.empty)
-                .map(c =>
-                  Charge(c.chargeDescription, c.chargeReference, AmountInPence.fromPounds(c.chargeAmount), c.dueDate)
-                )
-            )
-        )
-        .toEither
-    }
-
-    returnSummaries.sequence[Either[Error, ?], ReturnSummary]
-  }
-
   private def prepareSubmitReturnResponse(response: DesSubmitReturnResponse): Either[Error, SubmitReturnResponse] = {
     val charge = (
       response.ppdReturnResponseDetails.amount,
@@ -217,7 +221,15 @@ class DefaultReturnsService @Inject() (
       case (None, None, None)                              => Right(None)
       case (Some(amount), _, _) if amount <= BigDecimal(0) => Right(None)
       case (Some(amount), Some(dueDate), Some(chargeReference)) =>
-        Right(Some(Charge("charge from return submission", chargeReference, AmountInPence.fromPounds(amount), dueDate)))
+        Right(
+          Some(
+            ReturnCharge(
+              chargeReference,
+              AmountInPence.fromPounds(amount),
+              dueDate
+            )
+          )
+        )
       case (amount, dueDate, chargeReference) =>
         Left(
           Error(

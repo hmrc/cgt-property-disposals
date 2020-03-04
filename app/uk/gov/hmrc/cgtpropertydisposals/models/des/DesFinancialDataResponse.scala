@@ -40,7 +40,8 @@ object DesFinancialTransaction {
 }
 
 final case class DesFinancialTransactionItem(
-  amount: BigDecimal,
+  paymentAmount: Option[BigDecimal],
+  paymentMethod: Option[String],
   clearingDate: Option[LocalDate]
 )
 

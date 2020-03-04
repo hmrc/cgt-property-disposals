@@ -20,7 +20,13 @@ import java.time.LocalDate
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class Charge(chargeDescription: String, chargeReference: String, amount: AmountInPence, dueDate: LocalDate)
+final case class Charge(
+  chargeType: ChargeType,
+  chargeReference: String,
+  amount: AmountInPence,
+  dueDate: LocalDate,
+  payments: List[Payment]
+)
 
 object Charge {
 
