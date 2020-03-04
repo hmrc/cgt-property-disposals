@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
 import cats.Order
+import cats.syntax.order._
 import cats.instances.long._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Format
@@ -29,6 +30,21 @@ object AmountInPence {
 
   implicit class AmountInPenceOps(private val a: AmountInPence) extends AnyVal {
     def inPounds(): BigDecimal = a.value / BigDecimal("100")
+
+    def ++(other: AmountInPence): AmountInPence = AmountInPence(a.value + other.value)
+
+    def --(other: AmountInPence): AmountInPence = AmountInPence(a.value - other.value)
+
+    def withFloorZero: AmountInPence = if (a.value < 0L) AmountInPence.zero else a
+
+    def withCeilingZero: AmountInPence = if (a.value > 0L) AmountInPence.zero else a
+
+    def isNegative: Boolean = a < AmountInPence.zero
+
+    def isZero: Boolean = a.value === 0L
+
+    def abs(): AmountInPence = if (a.isNegative) AmountInPence(-a.value) else a
+
   }
 
   implicit val order: Order[AmountInPence] = Order.by[AmountInPence, Long](_.value)

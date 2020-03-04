@@ -17,23 +17,25 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.instances.future._
-import com.google.inject.Inject
+import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CompleteReturnsService, DraftReturnsService}
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext
 
+@Singleton
 class SubmitReturnsController @Inject() (
   authenticate: AuthenticateActions,
   draftReturnsService: DraftReturnsService,
-  completeReturnsService: CompleteReturnsService,
+  returnsService: ReturnsService,
   auditService: AuditService,
   cc: ControllerComponents
 )(
@@ -43,12 +45,10 @@ class SubmitReturnsController @Inject() (
 
   def submitReturn: Action[JsValue] = authenticate(parse.json).async { implicit request =>
     withJsonBody[SubmitReturnRequest] { returnRequest =>
-      val draftReturnId = returnRequest.completeReturn.id
-
       val result =
         for {
-          submissionResult <- completeReturnsService.submitReturn(returnRequest)
-          _                <- draftReturnsService.deleteDraftReturn(draftReturnId)
+          submissionResult <- returnsService.submitReturn(returnRequest)
+          _                <- draftReturnsService.deleteDraftReturn(returnRequest.id)
         } yield submissionResult
 
       result.fold(

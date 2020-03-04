@@ -16,23 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{Json, OFormat}
 
-sealed trait NumberOfProperties extends Product with Serializable
+final case class ListReturnsResponse(returns: List[ReturnSummary])
 
-object NumberOfProperties {
+object ListReturnsResponse {
 
-  case object One extends NumberOfProperties
-
-  case object MoreThanOne extends NumberOfProperties
-
-  def apply(cr: CompleteReturn): Int = cr.triageAnswers.numberOfProperties match {
-    case One         => 1
-    case MoreThanOne => sys.error("MoreThanOneDisposal")
-  }
-
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[NumberOfProperties] = derived.oformat()
+  implicit val format: OFormat[ListReturnsResponse] = Json.format
 
 }

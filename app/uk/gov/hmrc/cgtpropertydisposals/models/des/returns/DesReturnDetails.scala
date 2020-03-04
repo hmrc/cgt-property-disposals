@@ -19,34 +19,34 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 
-final case class PPDReturnDetails(
+final case class DesReturnDetails(
   returnType: ReturnType,
   returnDetails: ReturnDetails,
   representedPersonDetails: Option[RepresentedPersonDetails],
-  disposalDetails: DisposalDetails,
+  disposalDetails: List[DisposalDetails],
   lossSummaryDetails: LossSummaryDetails,
   incomeAllowanceDetails: IncomeAllowanceDetails,
   reliefDetails: ReliefDetails
 )
 
-object PPDReturnDetails {
+object DesReturnDetails {
 
-  def apply(submitReturnRequest: SubmitReturnRequest): PPDReturnDetails = {
-    val c                      = submitReturnRequest.completeReturn
+  def apply(submitReturnRequest: SubmitReturnRequest): DesReturnDetails = {
+    val completeReturn         = submitReturnRequest.completeReturn
     val returnDetails          = ReturnDetails(submitReturnRequest)
-    val lossSummaryDetails     = LossSummaryDetails(c)
-    val reliefDetails          = ReliefDetails(c)
-    val incomeAllowanceDetails = IncomeAllowanceDetails(c)
-    val disposalDetails        = DisposalDetails(c)
+    val lossSummaryDetails     = LossSummaryDetails(completeReturn)
+    val reliefDetails          = ReliefDetails(completeReturn)
+    val incomeAllowanceDetails = IncomeAllowanceDetails(completeReturn)
+    val disposalDetails        = DisposalDetails(completeReturn)
 
-    PPDReturnDetails(
+    DesReturnDetails(
       returnType = CreateReturnType(
         source         = getSource(submitReturnRequest),
         submissionType = SubmissionType.New
       ),
       returnDetails            = returnDetails,
       representedPersonDetails = None,
-      disposalDetails          = disposalDetails,
+      disposalDetails          = List(disposalDetails),
       lossSummaryDetails       = lossSummaryDetails,
       incomeAllowanceDetails   = incomeAllowanceDetails,
       reliefDetails            = reliefDetails
@@ -56,6 +56,6 @@ object PPDReturnDetails {
   private def getSource(submitReturnRequest: SubmitReturnRequest): String =
     submitReturnRequest.agentReferenceNumber.fold("self digital")(_ => "agent digital")
 
-  implicit val ppdReturnDetailsFormat: OFormat[PPDReturnDetails] = Json.format[PPDReturnDetails]
+  implicit val ppdReturnDetailsFormat: OFormat[DesReturnDetails] = Json.format[DesReturnDetails]
 
 }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import cats.syntax.order._
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 
 final case class LossSummaryDetails(
@@ -39,8 +39,8 @@ object LossSummaryDetails {
     )
 
   private def preYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
-    if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
-      Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
+    if (r.exemptionsAndLossesDetails.previousYearsLosses.inPounds > 0)
+      Some(r.exemptionsAndLossesDetails.previousYearsLosses.inPounds)
     else None
 
   private def inYearLossUsed(r: CompleteReturn): Option[BigDecimal] =

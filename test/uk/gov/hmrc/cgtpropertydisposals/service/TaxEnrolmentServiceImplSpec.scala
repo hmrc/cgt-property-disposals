@@ -23,7 +23,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName}
@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, Ve
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
@@ -122,13 +123,13 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
   val taxEnrolmentRequestWithNonUkAddress = TaxEnrolmentRequest(
     "ggCredId",
     cgtReference,
-    Address.NonUkAddress("line1", None, None, None, Some("OK11KO"), nonUkCountry)
+    Address.NonUkAddress("line1", None, None, None, Some(Postcode("OK11KO")), nonUkCountry)
   )
 
   val taxEnrolmentRequestWithUkAddress = TaxEnrolmentRequest(
     "ggCredId",
     cgtReference,
-    Address.UkAddress("line1", None, None, None, "OK11KO")
+    Address.UkAddress("line1", None, None, None, Postcode("OK11KO"))
   )
 
   val noAddressChange = UpdateVerifiersRequest(
@@ -142,7 +143,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           Some("Wokingham"),
           Some("Surrey"),
           Some("London"),
-          "DH14EJ"
+          Postcode("DH14EJ")
         ),
         ContactName("Stephen Wood"),
         CgtReference(cgtReference),
@@ -157,7 +158,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           Some("Wokingham"),
           Some("Surrey"),
           Some("London"),
-          "DH14EJ"
+          Postcode("DH14EJ")
         ),
         ContactName("Stephen Wood"),
         CgtReference(cgtReference),
@@ -178,7 +179,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           Some("Wokingham"),
           Some("Surrey"),
           Some("London"),
-          "DH14EJ"
+          Postcode("DH14EJ")
         ),
         ContactName("Stephen Wood"),
         CgtReference(cgtReference),
@@ -193,7 +194,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           Some("Wokingham"),
           Some("Surrey"),
           Some("London"),
-          "BN114JB"
+          Postcode("BN114JB")
         ),
         ContactName("Stephen Wood"),
         CgtReference(cgtReference),

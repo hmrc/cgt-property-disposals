@@ -20,7 +20,6 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Format
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.Validation
 
 final case class Email(value: String) extends AnyVal
 

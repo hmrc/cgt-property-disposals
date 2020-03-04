@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit
 
 import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
-import cats.effect.IO
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}

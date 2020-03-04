@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 
 final case class RepresentedPersonDetails(
   capacitorPersonalRep: String,
@@ -25,9 +26,10 @@ final case class RepresentedPersonDetails(
   idType: String, //TODO: "ZCGT","NINO","UTR","TRN"
   idValue: String,
   dateOfBirth: Option[String],
+  dateOfDeath: Option[String],
   trustCessationDate: Option[String],
   trustTerminationDate: Option[String],
-  addressDetails: Option[AddresssDetails],
+  addressDetails: Option[AddressDetails],
   email: Option[String]
 )
 

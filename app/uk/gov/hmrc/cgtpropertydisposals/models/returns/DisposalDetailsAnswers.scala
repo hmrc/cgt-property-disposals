@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 sealed trait DisposalDetailsAnswers extends Product with Serializable
 

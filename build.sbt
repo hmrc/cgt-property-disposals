@@ -1,3 +1,4 @@
+import sbt.Keys.resolvers
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.SbtArtifactory
@@ -65,7 +66,8 @@ lazy val microservice = Project(appName, file("."))
   .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
-  .settings(resolvers += Resolver.jcenterRepo)
+  .settings(resolvers ++= Seq(Resolver.jcenterRepo, "emueller-bintray" at "http://dl.bintray.com/emueller/maven"))
+  .settings(Test / resourceDirectory := baseDirectory.value / "/conf/resources")
   .settings(wartremoverSettings: _*)
   .settings(scoverageSettings: _*)
   .settings(PlayKeys.playDefaultPort := 7021)

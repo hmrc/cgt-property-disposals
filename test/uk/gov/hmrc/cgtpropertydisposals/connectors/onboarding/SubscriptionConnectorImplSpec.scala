@@ -26,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
@@ -81,7 +81,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           Some("Wokingham"),
           Some("Surrey"),
           Some("London"),
-          "DH14EJ"
+          Postcode("DH14EJ")
         ),
         ContactName("Stephen Wood"),
         cgtReference,
@@ -165,7 +165,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
             Some("Wokingama"),
             Some("Surre"),
             Some("Londono"),
-            Some("DH14EJ"),
+            Some(Postcode("DH14EJ")),
             Country("IT", Some("Italy"))
           ),
           ContactName("Stefano Bosco"),
@@ -278,7 +278,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
         Right(IndividualName("name", "surname")),
         ContactName("contact"),
         Email("email"),
-        UkAddress("line1", Some("line2"), Some("town"), Some("county"), "postcode"),
+        UkAddress("line1", Some("line2"), Some("town"), Some("county"), Postcode("postcode")),
         SapNumber("sap")
       )
 
@@ -348,7 +348,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
           Some("line2"),
           Some("line3"),
           Some("line4"),
-          Some("postcode"),
+          Some(Postcode("postcode")),
           Country("HK", Some("Hong Kong"))
         ),
         SapNumber("sap")

@@ -34,8 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.{TaxEnrolmentRepository, Ve
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
 trait TaxEnrolmentService {
@@ -59,7 +58,8 @@ class TaxEnrolmentServiceImpl @Inject() (
   taxEnrolmentRepository: TaxEnrolmentRepository,
   verifiersRepository: VerifiersRepository,
   metrics: Metrics
-) extends TaxEnrolmentService
+)(implicit ec: ExecutionContext)
+    extends TaxEnrolmentService
     with Logging {
 
   def makeES8call(
@@ -214,16 +214,16 @@ class TaxEnrolmentServiceImpl @Inject() (
 
   private def hasChangedAddress(subscribedUpdateDetails: SubscribedUpdateDetails): Boolean =
     subscribedUpdateDetails.newDetails.address match {
-      case Address.UkAddress(line1, line2, town, county, newPostcode) =>
+      case Address.UkAddress(_, _, _, _, newPostcode) =>
         subscribedUpdateDetails.previousDetails.address match {
-          case Address.UkAddress(line1, line2, town, county, oldPostcode) =>
-            if (newPostcode === oldPostcode) false else true
-          case Address.NonUkAddress(line1, line2, line3, line4, postcode, country) => true
+          case Address.UkAddress(_, _, _, _, oldPostcode) =>
+            if (newPostcode.equals(oldPostcode)) false else true
+          case _: Address.NonUkAddress => true
         }
-      case Address.NonUkAddress(line1, line2, line3, line4, postcode, newCountry) =>
+      case Address.NonUkAddress(_, _, _, _, _, newCountry) =>
         subscribedUpdateDetails.previousDetails.address match {
-          case Address.UkAddress(line1, line2, town, county, postcode) => true
-          case Address.NonUkAddress(line1, line2, line3, line4, postcode, previousCountry) =>
+          case _: Address.UkAddress => true
+          case Address.NonUkAddress(_, _, _, _, _, previousCountry) =>
             if (newCountry === previousCountry) false else true
         }
     }

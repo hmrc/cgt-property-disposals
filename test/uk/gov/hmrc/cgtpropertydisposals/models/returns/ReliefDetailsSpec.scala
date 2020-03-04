@@ -19,9 +19,9 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.ReliefDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 
@@ -82,14 +82,14 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       )
       val completeReturn = sample[CompleteReturn].copy(reliefDetails = reliefDetails)
 
-      ReliefDetails.apply(completeReturn).lettingsRelief shouldBe Some(amountInPounds)
+      ReliefDetails.apply(completeReturn).lettingsReflief shouldBe Some(amountInPounds)
     }
 
     "return None as letting relief value in pounds" in {
       val zeroReliefDetails = CompleteReliefDetailsAnswers(AmountInPence.zero, AmountInPence.zero, None)
       val completeReturn    = sample[CompleteReturn].copy(reliefDetails = zeroReliefDetails)
 
-      ReliefDetails.apply(completeReturn).lettingsRelief shouldBe None
+      ReliefDetails.apply(completeReturn).lettingsReflief shouldBe None
     }
   }
 

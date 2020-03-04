@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.connectors.returns
+package uk.gov.hmrc.cgtpropertydisposals.connectors.account
+
+import java.time.LocalDate
 
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.test.Helpers.{await, _}
+import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.NumberOfProperties.One
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -56,25 +56,26 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
     )
   )
 
-  val submitReturnRequest: SubmitReturnRequest = {
-    sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
-      .copy(triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(numberOfProperties = One))
-    )
-  }
+  val connector = new FinancialDataConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
-  val connector = new SubmitReturnsConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  def queryParams(fromDate: LocalDate, toDate: LocalDate): Map[String, String] =
+    Map("dateFrom" -> fromDate.toString, "dateTo" -> toDate.toString)
 
-  "SubmitReturnsConnectorImpl" when {
+  val cgtReference       = sample[CgtReference]
+  val (fromDate, toDate) = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
+
+  "FinancialDataConnectorImpl" when {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
-    def expectedSubmitReturnUrl(cgtReference: String) =
-      s"""http://localhost:7022/cgt-reference/$cgtReference/return"""
+    def expectedFinancialDataUrl(cgtReference: CgtReference): String =
+      s"http://localhost:7022/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT"
 
-    "handling request to submit return" must {
+    "handling request to get financial data" must {
 
-      "do a post http call and get the result" in {
+      "do a GET http call and get the result" in {
+
         List(
           HttpResponse(200),
           HttpResponse(400),
@@ -85,32 +86,35 @@ class SubmitReturnsConnectorSpec extends WordSpec with Matchers with MockFactory
           HttpResponse(503)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(
-              expectedSubmitReturnUrl(submitReturnRequest.subscribedDetails.cgtReference.value),
-              expectedHeaders,
-              *
+            mockGet(
+              expectedFinancialDataUrl(cgtReference),
+              queryParams(fromDate, toDate),
+              expectedHeaders
             )(
               Some(httpResponse)
             )
 
-            await(connector.submit(submitReturnRequest).value) shouldBe Right(httpResponse)
+            await(connector.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(httpResponse)
           }
         }
-      }
 
-      "return an error" when {
-
-        "the call fails" in {
-          mockPost(
-            expectedSubmitReturnUrl(submitReturnRequest.subscribedDetails.cgtReference.value),
-            expectedHeaders,
-            *
-          )(None)
-
-          await(connector.submit(submitReturnRequest).value).isLeft shouldBe true
-        }
       }
 
     }
+
+    "return an error" when {
+
+      "the call fails" in {
+        mockGet(
+          expectedFinancialDataUrl(cgtReference),
+          queryParams(fromDate, toDate),
+          expectedHeaders
+        )(None)
+
+        await(connector.getFinancialData(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+      }
+    }
+
   }
+
 }

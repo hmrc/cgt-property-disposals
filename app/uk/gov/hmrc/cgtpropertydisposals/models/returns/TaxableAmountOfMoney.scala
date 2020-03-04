@@ -17,7 +17,9 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+
+import scala.math.BigDecimal.RoundingMode
 
 final case class TaxableAmountOfMoney(
   taxRate: BigDecimal,
@@ -25,6 +27,16 @@ final case class TaxableAmountOfMoney(
 )
 
 object TaxableAmountOfMoney {
+
+  implicit class TaxableAmountOfMoneyOps(private val t: TaxableAmountOfMoney) extends AnyVal {
+
+    def taxDue(): AmountInPence = {
+      val result = (BigDecimal(t.taxableAmount.value.toString) * (BigDecimal(t.taxRate.toString))) / BigDecimal("100")
+
+      AmountInPence(result.setScale(0, RoundingMode.DOWN).longValue())
+    }
+
+  }
 
   implicit val format: OFormat[TaxableAmountOfMoney] = Json.format
 
