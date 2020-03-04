@@ -45,6 +45,7 @@ trait HttpSupport { this: MockFactory with Matchers ⇒
         true
       })
       .returning(response.fold(Future.failed[A](new Exception("Test exception message")))(Future.successful))
+
   def mockPost[A](url: String, headers: Map[String, String], body: A)(result: Option[HttpResponse]): Unit =
     (mockHttp
       .POST(_: String, _: A, _: Seq[(String, String)])(

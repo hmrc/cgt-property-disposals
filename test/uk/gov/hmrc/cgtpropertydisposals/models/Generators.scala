@@ -18,8 +18,15 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 
+import akka.util.ByteString
+import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.FinancialDataResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, FinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
@@ -28,20 +35,16 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscript
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
-import org.scalacheck.ScalacheckShapeless._
-import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.FinancialDataResponse
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-
-import scala.reflect.{ClassTag, classTag}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, FinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptor, UpscanCallBack, UpscanFileDescriptor}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+
+import scala.reflect.{ClassTag, classTag}
 
 object Generators
     extends GenUtils
@@ -51,6 +54,8 @@ object Generators
     with BusinessPartnerRecordGen
     with TaxEnrolmentGen
     with DraftReturnGen
+    with UpscanGen
+    with DmsSubmissionGen
     with ReturnsGen
     with AddressGen
     with MoneyGen {
@@ -88,6 +93,13 @@ sealed trait GenUtils {
   implicit val localDateArb: Arbitrary[LocalDate] = Arbitrary(
     Gen.chooseNum(0, 10000L).map(LocalDate.ofEpochDay(_))
   )
+
+  implicit val byteStringArb: Arbitrary[ByteString] =
+    Arbitrary(
+      Gen
+        .choose(0L, Long.MaxValue)
+        .map(s => ByteString(s))
+    )
 
 }
 
@@ -137,6 +149,21 @@ trait DraftReturnGen { this: GenUtils =>
 
   implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 
+}
+
+trait UpscanGen { this: GenUtils =>
+
+  implicit val upscanMetaGen: Gen[FileDescriptor]         = gen[FileDescriptor]
+  implicit val upscanUploadGen: Gen[UpscanFileDescriptor] = gen[UpscanFileDescriptor]
+  implicit val upscanCallBackGen: Gen[UpscanCallBack]     = gen[UpscanCallBack]
+
+}
+
+trait DmsSubmissionGen {
+  this: GenUtils =>
+  implicit val dmsMetadataGen: Gen[DmsMetadata]                   = gen[DmsMetadata]
+  implicit val fileAttachmentGen: Gen[FileAttachment]             = gen[FileAttachment]
+  implicit val dmsSubmissionPayloadGen: Gen[DmsSubmissionPayload] = gen[DmsSubmissionPayload]
 }
 
 trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>

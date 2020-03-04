@@ -14,25 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.util
+package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.Logger
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import play.api.libs.json._
 
-trait Logging {
+final case class UploadRequest(
+  href: String,
+  fields: Map[String, String]
+)
 
-  val logger: Logger = Logger(this.getClass)
-
+object UploadRequest {
+  implicit val format = Json.format[UploadRequest]
 }
 
-object Logging {
+final case class FileDescriptor(
+  reference: String,
+  uploadRequest: UploadRequest
+)
 
-  implicit class LoggerOps(private val l: Logger) extends AnyVal {
-    def warn(msg: => String, e: => Error): Unit = {
-      val idString = e.identifiers.map { case (k, v) => s"[$k: $v]" }.mkString(" ")
-      e.value.fold(e => l.warn(s"$idString $msg: $e"), e => l.warn(s"$idString $msg", e))
-    }
-
-  }
-
+object FileDescriptor {
+  implicit val format = Json.format[FileDescriptor]
 }

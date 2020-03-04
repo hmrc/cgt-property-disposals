@@ -37,7 +37,7 @@ object BusinessPartnerRecordRequest {
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[BusinessPartnerRecordRequest] = derived.oformat()
 
-  implicit class BusinessPartnerRecordRequestOps(val r: BusinessPartnerRecordRequest) extends AnyVal {
+  implicit class BusinessPartnerRecordRequestOps(private val r: BusinessPartnerRecordRequest) extends AnyVal {
 
     def fold[A](
       ifTrust: TrustBusinessPartnerRecordRequest => A,

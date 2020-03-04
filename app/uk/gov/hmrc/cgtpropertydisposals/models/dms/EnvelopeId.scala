@@ -14,25 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.util
+package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
-import play.api.Logger
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import play.api.libs.json.{Json, OFormat}
 
-trait Logging {
+final case class EnvelopeId(value: String) extends AnyVal
 
-  val logger: Logger = Logger(this.getClass)
-
-}
-
-object Logging {
-
-  implicit class LoggerOps(private val l: Logger) extends AnyVal {
-    def warn(msg: => String, e: => Error): Unit = {
-      val idString = e.identifiers.map { case (k, v) => s"[$k: $v]" }.mkString(" ")
-      e.value.fold(e => l.warn(s"$idString $msg: $e"), e => l.warn(s"$idString $msg", e))
-    }
-
-  }
-
+object EnvelopeId {
+  implicit val format: OFormat[EnvelopeId] = Json.format[EnvelopeId]
 }
