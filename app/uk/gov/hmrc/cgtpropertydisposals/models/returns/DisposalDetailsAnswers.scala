@@ -30,27 +30,12 @@ object DisposalDetailsAnswers {
     disposalFees: Option[AmountInPence]
   ) extends DisposalDetailsAnswers
 
-  object IncompleteDisposalDetailsAnswers {
-    val empty: IncompleteDisposalDetailsAnswers = IncompleteDisposalDetailsAnswers(None, None, None)
-  }
-
   final case class CompleteDisposalDetailsAnswers(
     shareOfProperty: ShareOfProperty,
     disposalPrice: AmountInPence,
     disposalFees: AmountInPence
   ) extends DisposalDetailsAnswers
 
-  implicit class DisposalDetailsAnswersOps(private val i: DisposalDetailsAnswers) extends AnyVal {
-
-    def fold[A](
-      ifIncomplete: IncompleteDisposalDetailsAnswers => A,
-      ifComplete: CompleteDisposalDetailsAnswers => A
-    ): A = i match {
-      case incomplete: IncompleteDisposalDetailsAnswers => ifIncomplete(incomplete)
-      case complete: CompleteDisposalDetailsAnswers     => ifComplete(complete)
-    }
-
-  }
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[DisposalDetailsAnswers] = derived.oformat[DisposalDetailsAnswers]()
 

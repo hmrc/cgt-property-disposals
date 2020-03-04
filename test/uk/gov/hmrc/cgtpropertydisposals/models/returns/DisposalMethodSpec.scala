@@ -14,13 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.name
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json.{Json, OFormat}
+import org.scalatest.{Matchers, WordSpec}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesDisposalType
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalMethod._
 
-final case class IndividualName(firstName: String, lastName: String)
+class DisposalMethodSpec extends WordSpec with Matchers {
 
-object IndividualName {
+  "DisposalMethod" must {
 
-  implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
+    "have a method" which {
+
+      "which converts from DesDisposalType" in {
+        DisposalMethod(DesDisposalType.Sold)   shouldBe Sold
+        DisposalMethod(DesDisposalType.Gifted) shouldBe Gifted
+
+      }
+
+    }
+
+  }
+
 }

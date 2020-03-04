@@ -14,13 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.name
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json.{Json, OFormat}
+import org.scalatest.{Matchers, WordSpec}
 
-final case class IndividualName(firstName: String, lastName: String)
+class ShareOfPropertySpec extends WordSpec with Matchers {
 
-object IndividualName {
+  "ShareOfProperty" must {
 
-  implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
+    "have a method" which {
+
+      "converts from BigDecimal" in {
+        ShareOfProperty(BigDecimal("100"))   shouldBe ShareOfProperty.Full
+        ShareOfProperty(BigDecimal("100.0")) shouldBe ShareOfProperty.Full
+        ShareOfProperty(BigDecimal("50"))    shouldBe ShareOfProperty.Half
+        ShareOfProperty(BigDecimal("34"))    shouldBe ShareOfProperty.Other(BigDecimal("34"))
+      }
+
+    }
+
+  }
+
 }

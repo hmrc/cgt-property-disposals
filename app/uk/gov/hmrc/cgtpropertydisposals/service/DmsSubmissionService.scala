@@ -69,7 +69,7 @@ class DefaultDmsSubmissionService @Inject() (
       upscanSnapshot <- upscanService.getUpscanSnapshot(cgtReference)
       callbacks      <- upscanService.getAllUpscanCallBacks(cgtReference)
       attachments    <- upscanService.downloadFilesFromS3(upscanSnapshot, callbacks)
-      ff             <- EitherT.fromEither[Future](attachments.sequence)
+      ff             <- EitherT.fromEither[Future](attachments.sequence[Either[Error, ?], FileAttachment])
       envId <- gFormConnector.submitToDms(
                 DmsSubmissionPayload(html, ff, DmsMetadata(formBundleId, cgtReference.value, ct, ba))
               )

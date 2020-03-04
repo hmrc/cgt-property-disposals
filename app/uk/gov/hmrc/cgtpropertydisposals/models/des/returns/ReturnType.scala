@@ -18,54 +18,52 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json._
 
-sealed trait SubmissionType extends Product with Serializable
-
-object SubmissionType {
-
-  final case object New extends SubmissionType
-
-  final case object Amend extends SubmissionType
-
-  implicit val format: Format[SubmissionType] = new Format[SubmissionType] {
-    override def reads(json: JsValue): JsResult[SubmissionType] =
-      json match {
-        case JsString("New")   => JsSuccess(New)
-        case JsString("Amend") => JsSuccess(Amend)
-        case JsString(other)   => JsError(s"could not recognise submission type: $other")
-        case other             => JsError(s"Expected type string for submission type but found $other")
-      }
-
-    override def writes(o: SubmissionType): JsValue = o match {
-      case New   => JsString("New")
-      case Amend => JsString("Amend")
-    }
-  }
+sealed trait ReturnType extends Product with Serializable {
+  val source: String
+  val submissionType: SubmissionType
 }
 
-sealed trait ReturnType extends Product with Serializable
-
 final case class CreateReturnType(
-  source: String,
-  submissionType: SubmissionType
-) extends ReturnType
+  source: String
+) extends ReturnType {
+  val submissionType: SubmissionType = SubmissionType.New
+}
 
 final case class AmendReturnType(
   source: String,
-  submissionType: SubmissionType,
   submissionID: String
-) extends ReturnType
+) extends ReturnType {
+  val submissionType: SubmissionType = SubmissionType.Amend
+}
 
 object ReturnType {
-  implicit val createReturnTypeFormat: OFormat[CreateReturnType] = Json.format[CreateReturnType]
-  implicit val amendReturnTypeFormat: OFormat[AmendReturnType]   = Json.format[AmendReturnType]
   implicit val returnTypeFormat: OFormat[ReturnType] = {
     OFormat[ReturnType](
       { json =>
-        createReturnTypeFormat.reads(json).orElse(amendReturnTypeFormat.reads(json))
+        for {
+          source         <- (json \ "source").validate[String]
+          submissionType <- (json \ "submissionType").validate[SubmissionType]
+          submissionId   <- (json \ "submissionID").validateOpt[String]
+          result <- submissionType match {
+                     case SubmissionType.New => JsSuccess(CreateReturnType(source))
+                     case SubmissionType.Amend =>
+                       submissionId.fold[JsResult[AmendReturnType]](
+                         JsError("Could not find submission id for amend return type")
+                       )(id => JsSuccess(AmendReturnType(source, id)))
+                   }
+        } yield result
       }, { r: ReturnType =>
         r match {
-          case c: CreateReturnType => createReturnTypeFormat.writes(c)
-          case a: AmendReturnType  => amendReturnTypeFormat.writes(a)
+          case c: CreateReturnType =>
+            JsObject(Map("source" -> JsString(c.source), "submissionType" -> Json.toJson(c.submissionType)))
+          case a: AmendReturnType =>
+            JsObject(
+              Map(
+                "source"         -> JsString(a.source),
+                "submissionType" -> Json.toJson(a.submissionType),
+                "submissionID"   -> JsString(a.submissionID)
+              )
+            )
         }
       }
     )
