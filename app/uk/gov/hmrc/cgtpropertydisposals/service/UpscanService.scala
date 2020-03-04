@@ -18,8 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service
 
 import java.time.LocalDateTime
 
-import cats.data.{EitherT, NonEmptyList}
-import cats.effect.{ContextShift, IO}
+import cats.data.EitherT
 import cats.implicits._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.Configs
@@ -30,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -42,7 +42,7 @@ trait UpscanService {
 
   def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit]
 
-  def storeCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit]
+  def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit]
 
   def getFileDescriptor(
     cgtReference: CgtReference,
@@ -59,6 +59,7 @@ trait UpscanService {
     snapshot: UpscanSnapshot,
     urls: List[UpscanCallBack]
   ): EitherT[Future, Error, List[Either[Error, FileAttachment]]]
+
 }
 
 @Singleton
@@ -99,7 +100,7 @@ class UpscanServiceImpl @Inject() (
   override def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit] =
     upscanFileDescriptorRepository.insert(fd)
 
-  override def storeCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit] =
+  override def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit] =
     upscanCallBackRepository.insert(cb)
 
   override def getFileDescriptor(
@@ -111,28 +112,18 @@ class UpscanServiceImpl @Inject() (
   override def downloadFilesFromS3(
     snapshot: UpscanSnapshot,
     urls: List[UpscanCallBack]
-  ): EitherT[Future, Error, List[Either[Error, FileAttachment]]] = {
-    implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-    if ((snapshot.fileUploadCount === urls.size) && urls.forall(p => p.fileStatus === UPLOADED)) {
-      val maybeNonEmptyList: Option[NonEmptyList[UpscanCallBack]] = NonEmptyList.fromList(urls)
-
-      val maybeDownloads: Option[IO[NonEmptyList[Either[Error, FileAttachment]]]] = maybeNonEmptyList map { urls =>
-        urls.parTraverse(url => upscanConnector.downloadFile(url))
-      }
-
-      val ss: Option[Future[List[Either[Error, FileAttachment]]]] =
-        maybeDownloads.map(io => io.unsafeToFuture().map(s => s.toList))
-
-      ss match {
-        case Some(value) => EitherT.liftF[Future, Error, List[Either[Error, FileAttachment]]](value)
-        case None        => EitherT.leftT[Future, List[Either[Error, FileAttachment]]](Error("failed to get some downloads"))
-      }
+  ): EitherT[Future, Error, List[Either[Error, FileAttachment]]] =
+    if ((snapshot.fileUploadCount === urls.size) && urls.forall(p => p.fileStatus === READY)) {
+      EitherT[Future, Error, List[Either[Error, FileAttachment]]](
+        Future.traverse(urls)(url => upscanConnector.downloadFile(url)).map { s =>
+          Right(s)
+        }
+      )
     } else {
-      EitherT.leftT[Future, List[Either[Error, FileAttachment]]](
+      EitherT.leftT(
         Error("All upscan callbacks have not been received or some files are infected")
       )
     }
-  }
 
   private def computeUpscanSnapshot(upscanFileDescriptor: List[UpscanFileDescriptor]): Either[Error, UpscanSnapshot] = {
     val validFiles = upscanFileDescriptor

@@ -16,19 +16,58 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
+import cats.Eq
 import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.{FAILED, READY}
+
+sealed trait UpscanStatus
+object UpscanStatus {
+  case object READY extends UpscanStatus
+  case object FAILED extends UpscanStatus
+
+  implicit val eq: Eq[UpscanStatus]          = Eq.fromUniversalEquals
+  implicit val format: OFormat[UpscanStatus] = derived.oformat()
+}
 
 final case class UpscanCallBack(
   cgtReference: CgtReference,
   reference: String,
-  fileStatus: UpscanFileDescriptorStatus,
-  downloadUrl: String,
-  uploadDetails: Map[String, String]
+  fileStatus: UpscanStatus,
+  downloadUrl: Option[String],
+  details: Map[String, String]
 )
 
 object UpscanCallBack {
   implicit val format: OFormat[UpscanCallBack] = derived.oformat()
+}
+
+final case class UpscanCallBackEvent(
+  reference: String,
+  fileStatus: String,
+  downloadUrl: Option[String],
+  uploadDetails: Option[Map[String, String]],
+  failureDetails: Option[Map[String, String]]
+)
+
+object UpscanCallBackEvent {
+
+  def toUpscanCallBack(cgtReference: CgtReference, upscanCallBackEvent: UpscanCallBackEvent): UpscanCallBack =
+    UpscanCallBack(
+      cgtReference = cgtReference,
+      reference    = upscanCallBackEvent.reference,
+      fileStatus   = convertFileStatus(upscanCallBackEvent.fileStatus),
+      downloadUrl  = upscanCallBackEvent.downloadUrl,
+      details = upscanCallBackEvent.uploadDetails.getOrElse(Map.empty) ++ upscanCallBackEvent.failureDetails.getOrElse(
+        Map.empty
+      )
+    )
+
+  def convertFileStatus(status: String): UpscanStatus = status match {
+    case "READY"  => READY
+    case "FAILED" => FAILED
+  }
+
+  implicit val format = Json.format[UpscanCallBackEvent]
 }

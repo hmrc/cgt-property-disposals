@@ -17,7 +17,3 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
 final case class DmsSubmissionPayload(b64Html: B64Html, attachments: List[FileAttachment], dmsMetadata: DmsMetadata)
-//
-//object DmsSubmissionPayload {
-//  implicit val format: OFormat[DmsSubmissionPayload] = Json.format[DmsSubmissionPayload]
-//}

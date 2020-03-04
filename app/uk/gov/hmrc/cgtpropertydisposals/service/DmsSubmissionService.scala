@@ -32,8 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultDmsSubmissionService])
 trait DmsSubmissionService {
@@ -49,7 +48,8 @@ class DefaultDmsSubmissionService @Inject() (
   gFormConnector: GFormConnector,
   upscanService: UpscanService,
   configuration: Configuration
-) extends DmsSubmissionService
+)(implicit ec: ExecutionContext)
+    extends DmsSubmissionService
     with Logging {
 
   @SuppressWarnings(Array("org.wartremover.warts.Any"))

@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import java.util.UUID
 
 import akka.util.ByteString
-import cats.effect.{ContextShift, IO}
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.HeaderNames.USER_AGENT
 import play.api.libs.ws.ahc.AhcWSResponse
@@ -31,12 +30,12 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HttpErrorFunctions
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[UpscanConnectorImpl])
 trait UpscanConnector {
-  def downloadFile(url: UpscanCallBack): IO[Either[Error, FileAttachment]]
+  def downloadFile(url: UpscanCallBack): Future[Either[Error, FileAttachment]]
 }
 
 @Singleton
@@ -50,13 +49,11 @@ class UpscanConnectorImpl @Inject() (playHttpClient: PlayHttpClient, config: Ser
 
   private val headers: Seq[(String, String)] = Seq(USER_AGENT -> userAgent)
 
-  implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-
-  override def downloadFile(upscanCallBack: UpscanCallBack): IO[Either[Error, FileAttachment]] =
-    IO.fromFuture(
-      IO(
+  override def downloadFile(upscanCallBack: UpscanCallBack): Future[Either[Error, FileAttachment]] =
+    upscanCallBack.downloadUrl match {
+      case Some(url) => {
         playHttpClient
-          .get(upscanCallBack.downloadUrl, headers, 2 minutes)
+          .get(url, headers, 2 minutes)
           .map {
             case AhcWSResponse(underlying) =>
               underlying.status match {
@@ -64,13 +61,15 @@ class UpscanConnectorImpl @Inject() (playHttpClient: PlayHttpClient, config: Ser
                 case _                        => makeFileAttachment(upscanCallBack, underlying.bodyAsBytes)
               }
           }
-      )
-    )
+      }
+      case None => Future.successful(Left(Error("No download url")))
+    }
 
   private def makeFileAttachment(upscanCallBack: UpscanCallBack, data: ByteString): Either[Error, FileAttachment] =
-    (upscanCallBack.uploadDetails.get("filename"), upscanCallBack.uploadDetails.get("fileMimeType")) match {
+    (upscanCallBack.details.get("filename"), upscanCallBack.details.get("fileMimeType")) match {
       case (Some(filename), Some(mimeType)) =>
         Right(FileAttachment(UUID.randomUUID().toString, filename, Some(mimeType), data))
       case _ => Left(Error("missing file descriptors"))
     }
+
 }

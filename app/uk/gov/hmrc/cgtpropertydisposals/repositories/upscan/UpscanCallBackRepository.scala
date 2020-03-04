@@ -81,7 +81,7 @@ class DefaultUpscanCallBackRepository @Inject() (mongo: ReactiveMongoComponent)(
     )
 
   override def count(cgtReference: CgtReference): EitherT[Future, Error, Long] = {
-    val query = Json.obj("cgtReference" -> cgtReference)
+    val query = Json.obj("cgtReference" -> Some(cgtReference))
     EitherT[Future, Error, Long](
       collection
         .count(Some(query), limit = None, skip = 0, hint = None, readConcern = defaultReadConcern)
@@ -96,7 +96,7 @@ class DefaultUpscanCallBackRepository @Inject() (mongo: ReactiveMongoComponent)(
 
   override def getAll(cgtReference: CgtReference): EitherT[Future, Error, List[UpscanCallBack]] =
     EitherT[Future, Error, List[UpscanCallBack]](
-      find("cgtReference" -> cgtReference)
+      find("cgtReference" -> Some(cgtReference))
         .map[Either[Error, List[UpscanCallBack]]] { c =>
           Right(c)
         }

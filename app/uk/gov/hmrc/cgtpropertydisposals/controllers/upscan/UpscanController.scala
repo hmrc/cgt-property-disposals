@@ -22,7 +22,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBackEvent._
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBackEvent, UpscanFileDescriptor, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -110,24 +111,20 @@ class UpscanController @Inject() (
     }
   }
 
-  def saveUpscanCallBack(): Action[JsValue] = authenticate(parse.json).async { implicit request =>
-    request.body
-      .asOpt[UpscanCallBack] match {
-      case Some(cb) =>
-        upscanService
-          .storeCallBackData(cb)
-          .fold(
-            e => {
-              logger.warn(s"failed to save upscan call back details: $e")
-              InternalServerError
-            },
-            _ => Ok
-          )
-      case None => {
-        logger.warn(s"failed to parse call back JSON payload")
-        Future.successful(BadRequest)
-      }
+  def callback(cgtReference: CgtReference): Action[JsValue] =
+    Action.async(parse.json) { implicit request =>
+      request.body
+        .validate[UpscanCallBackEvent]
+        .fold(
+          error => Future.successful(BadRequest(s"failed to parse upscan call back result response: $error")),
+          upscanResult =>
+            upscanService.saveCallBackData(toUpscanCallBack(cgtReference, upscanResult)).value.map {
+              case Left(error) =>
+                logger.warn(s"failed to save upscan call back result response $error")
+                InternalServerError
+              case Right(_) => NoContent
+            }
+        )
     }
-  }
 
 }

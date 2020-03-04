@@ -34,6 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
 
@@ -96,7 +97,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
     (mockUpscanConnector
       .downloadFile(_: UpscanCallBack))
       .expects(upscanCallBack)
-      .returning(IO[Either[Error, FileAttachment]](response))
+      .returning(Future[Either[Error, FileAttachment]](response))
 
   def mockUpdateFileDescriptorStatus(upscanFileDescriptor: UpscanFileDescriptor)(
     response: Either[Error, Boolean]
@@ -128,12 +129,12 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
     (mockUpscanConnector
       .downloadFile(_: UpscanCallBack))
       .expects(upscanCallBack)
-      .returning(IO[Either[Error, FileAttachment]](response))
+      .returning(Future[Either[Error, FileAttachment]](response))
 
   val cgtReference         = sample[CgtReference]
   val ts                   = java.time.Instant.ofEpochSecond(1000)
   val upscanFileDescriptor = sample[UpscanFileDescriptor]
-  val upscanCallBack       = sample[UpscanCallBack].copy(fileStatus = UPLOADED)
+  val upscanCallBack       = sample[UpscanCallBack]
   val s3Url                = "http://aws.s3.com/file"
 
   "Upscan Service" when {
@@ -188,13 +189,13 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       "return an error" when {
         "there is a mongo exception" in {
           mockStoreUpscanCallBackRepository(upscanCallBack)(Left(Error("Connection error")))
-          await(service.storeCallBackData(upscanCallBack).value).isLeft shouldBe true
+          await(service.saveCallBackData(upscanCallBack).value).isLeft shouldBe true
         }
       }
       "return unit" when {
         "it successfully stores the data" in {
           mockStoreUpscanCallBackRepository(upscanCallBack)(Right(()))
-          await(service.storeCallBackData(upscanCallBack).value) shouldBe Right(())
+          await(service.saveCallBackData(upscanCallBack).value) shouldBe Right(())
         }
       }
     }
@@ -203,13 +204,13 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       "return an error" when {
         "there is a mongo exception" in {
           mockStoreUpscanCallBackRepository(upscanCallBack)(Left(Error("Connection error")))
-          await(service.storeCallBackData(upscanCallBack).value).isLeft shouldBe true
+          await(service.saveCallBackData(upscanCallBack).value).isLeft shouldBe true
         }
       }
       "return an upscan file descriptor" when {
         "it successfully stores the data" in {
           mockStoreUpscanCallBackRepository(upscanCallBack)(Right(()))
-          await(service.storeCallBackData(upscanCallBack).value) shouldBe Right(())
+          await(service.saveCallBackData(upscanCallBack).value) shouldBe Right(())
         }
       }
     }
@@ -234,16 +235,15 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
     "it receives a request to download a S3 file" must {
       "return an error" when {
         "all upscan call backs have not been received" in {
-          //mockDownloadS3Urls(upscanCallBack)(Left(Error("http error")))
           await(service.downloadFilesFromS3(UpscanSnapshot(3), List(upscanCallBack)).value).isLeft shouldBe true
         }
       }
       "return a file attachment" when {
         "it successfully downloads the file" in {
-          mockDownloadS3Urls(upscanCallBack)(
+          mockDownloadS3Urls(upscanCallBack.copy(fileStatus = READY))(
             Right(FileAttachment(UUID.randomUUID().toString, "filename", Some("pdf"), ByteString(1)))
           )
-          await(service.downloadFilesFromS3(UpscanSnapshot(1), List(upscanCallBack)).value).isRight shouldBe true
+          await(service.downloadFilesFromS3(UpscanSnapshot(1), List(upscanCallBack.copy(fileStatus = READY))).value).isRight shouldBe true
         }
       }
     }

@@ -17,14 +17,15 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import org.scalatest.{Matchers, WordSpec}
+import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
-
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UpscanCallBackRepositorySpec extends WordSpec with Matchers with MongoSupport {
+class UpscanResultRepositoryFailureSpec extends WordSpec with Matchers with MongoSupport {
 
   val repository = new DefaultUpscanCallBackRepository(reactiveMongoComponent)
   val ts         = java.time.Instant.ofEpochSecond(1000)
@@ -32,27 +33,22 @@ class UpscanCallBackRepositorySpec extends WordSpec with Matchers with MongoSupp
   val cb = sample[UpscanCallBack]
 
   "Upscan Call Back Repository" when {
-    "inserting" should {
-      "create a new record" in {
-        await(repository.insert(cb).value) shouldBe Right(())
+    reactiveMongoComponent.mongoConnector.helper.driver.close()
+    "inserting into a broken repo" should {
+      "return an error" in {
+        await(repository.insert(cb).value).isLeft shouldBe true
       }
     }
 
-    "counting" should {
-      "return number of file descriptors" in {
-        await(repository.insert(cb).value)             shouldBe Right(())
-        await(repository.insert(cb).value)             shouldBe Right(())
-        await(repository.insert(cb).value)             shouldBe Right(())
-        await(repository.count(cb.cgtReference).value) shouldBe Right(3)
+    "counting in a broken repo" should {
+      "return an error" in {
+        await(repository.count(cb.cgtReference).value).isLeft shouldBe true
       }
     }
 
-    "getting all" should {
-      "return all the call back events for a cgt reference" in {
-        await(repository.insert(cb).value)              shouldBe Right(())
-        await(repository.insert(cb).value)              shouldBe Right(())
-        await(repository.insert(cb).value)              shouldBe Right(())
-        await(repository.getAll(cb.cgtReference).value) shouldBe Right(List(cb, cb, cb))
+    "getting all in a broken repo" should {
+      "return an error" in {
+        await(repository.getAll(cb.cgtReference).value).isLeft shouldBe true
       }
     }
   }

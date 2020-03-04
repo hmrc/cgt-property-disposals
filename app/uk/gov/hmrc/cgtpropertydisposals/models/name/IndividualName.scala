@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.name
 
-import java.time.LocalDateTime
-
 import play.api.libs.json.{Json, OFormat}
 
 final case class IndividualName(firstName: String, lastName: String)
@@ -29,9 +27,4 @@ object IndividualName {
   }
 
   implicit val format: OFormat[IndividualName] = Json.format[IndividualName]
-}
-
-final case class Foo(s: LocalDateTime)
-object Foo {
-  implicit val format = Json.format[Foo]
 }
