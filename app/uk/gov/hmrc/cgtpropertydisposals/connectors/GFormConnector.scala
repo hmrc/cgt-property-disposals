@@ -100,13 +100,17 @@ object GFormConnector {
 
   private def suffix(contentType: Option[String]): String =
     contentType match {
-      case Some("application/pdf")  => ".pdf"
-      case Some("application/xml")  => ".xml"
-      case Some("application/json") => ".json"
-      case Some("image/jpeg")       => ".jpeg"
-      case Some("text/xml")         => ".xml"
-      case Some(_)                  => ".txt"
-      case None                     => ".txt"
+      case Some("application/pdf")                                                   => ".pdf"
+      case Some("application/xml")                                                   => ".xml"
+      case Some("application/json")                                                  => ".json"
+      case Some("image/jpeg")                                                        => ".jpeg"
+      case Some("image/png")                                                         => ".png"
+      case Some("text/xml")                                                          => ".xml"
+      case Some("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") => ".xlsx"
+      case Some("application/vnd.ms-excel")                                          => ".xls"
+      case Some("application/msword")                                                => ".doc"
+      case Some(_)                                                                   => ".txt"
+      case None                                                                      => ".txt"
     }
 
   def createTempFile(prefix: String, suffix: String, data: Array[Byte]): Option[Path] =
