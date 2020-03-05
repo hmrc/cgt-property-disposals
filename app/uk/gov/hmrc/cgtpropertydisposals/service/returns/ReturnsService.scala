@@ -240,7 +240,6 @@ object DefaultReturnsService {
 
   final case class DesCharge(
     chargeDescription: String,
-    chargeAmount: BigDecimal,
     dueDate: LocalDate,
     chargeReference: String
   )
@@ -251,9 +250,6 @@ object DefaultReturnsService {
     completionDate: LocalDate,
     lastUpdatedDate: Option[LocalDate],
     taxYear: String,
-    status: Option[String],
-    totalCGTLiability: BigDecimal,
-    totalOutstanding: BigDecimal,
     propertyAddress: AddressDetails,
     charges: Option[List[DesCharge]]
   )

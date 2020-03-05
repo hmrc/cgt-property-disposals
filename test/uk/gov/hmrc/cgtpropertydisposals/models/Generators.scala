@@ -23,6 +23,7 @@ import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialTransaction
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, ReliefDetails, RepresentedPersonDetails, ReturnDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
@@ -44,6 +45,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptor, UpscanCallBack, UpscanFileDescriptor}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -235,6 +237,10 @@ trait DesReturnsGen { this: GenUtils =>
   implicit val desReliefDetailsGen: Gen[ReliefDetails] = gen[ReliefDetails]
 
   implicit val representedPersonDetailsGen: Gen[RepresentedPersonDetails] = gen[RepresentedPersonDetails]
+
+  implicit val desReturnSummaryGen: Gen[DesReturnSummary] = gen[DesReturnSummary]
+
+  implicit val desFinancialTransactionGen: Gen[DesFinancialTransaction] = gen[DesFinancialTransaction]
 
 }
 
