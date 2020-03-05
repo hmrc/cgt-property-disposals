@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
+import java.time.LocalDate
 import java.util.UUID
 
 import play.api.libs.json.{Json, OFormat}
@@ -31,7 +32,8 @@ final case class DraftReturn(
   acquisitionDetailsAnswers: Option[AcquisitionDetailsAnswers],
   reliefDetailsAnswers: Option[ReliefDetailsAnswers],
   exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
-  yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers]
+  yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
+  lastUpdatedDate: LocalDate
 )
 
 object DraftReturn {
