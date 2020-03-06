@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.finance
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.time.LocalDate
+import org.scalatest.{Matchers, WordSpec}
 
-import play.api.libs.json.{Json, OFormat}
+class ShareOfPropertySpec extends WordSpec with Matchers {
 
-final case class Charge(
-  chargeType: ChargeType,
-  chargeReference: String,
-  amount: AmountInPence,
-  dueDate: LocalDate,
-  payments: List[Payment]
-)
+  "ShareOfProperty" must {
 
-object Charge {
+    "have a method" which {
 
-  implicit val format: OFormat[Charge] = Json.format
+      "converts from BigDecimal" in {
+        ShareOfProperty(BigDecimal("100"))   shouldBe ShareOfProperty.Full
+        ShareOfProperty(BigDecimal("100.0")) shouldBe ShareOfProperty.Full
+        ShareOfProperty(BigDecimal("50"))    shouldBe ShareOfProperty.Half
+        ShareOfProperty(BigDecimal("34"))    shouldBe ShareOfProperty.Other(BigDecimal("34"))
+      }
+
+    }
+
+  }
 
 }

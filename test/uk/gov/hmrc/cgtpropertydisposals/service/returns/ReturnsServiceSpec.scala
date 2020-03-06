@@ -24,19 +24,21 @@ import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
-import play.api.libs.json.{JsString, JsValue, Json}
+import play.api.libs.json.{JsNumber, JsString, JsValue, Json}
 import play.api.test.Helpers._
+import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Postcode
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, DesFinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesListReturnsResponse, DesReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -46,7 +48,11 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   val returnsConnector = mock[ReturnsConnector]
 
+  val mockFinancialDataConnector = mock[FinancialDataConnector]
+
   val mockReturnTransformerService = mock[ReturnTransformerService]
+
+  val mockReturnListSummaryTransformerService = mock[ReturnSummaryListTransformerService]
 
   val config = Configuration(
     ConfigFactory.parseString(
@@ -57,7 +63,14 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
   )
 
   val returnsService =
-    new DefaultReturnsService(returnsConnector, mockReturnTransformerService, config, MockMetrics.metrics)
+    new DefaultReturnsService(
+      returnsConnector,
+      mockFinancialDataConnector,
+      mockReturnTransformerService,
+      mockReturnListSummaryTransformerService,
+      config,
+      MockMetrics.metrics
+    )
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -81,10 +94,26 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(cgtReference, submissionId, *)
       .returning(EitherT.fromEither[Future](response))
 
+  def mockGetFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
+    response: Either[Error, HttpResponse]
+  ) =
+    (mockFinancialDataConnector
+      .getFinancialData(_: CgtReference, _: LocalDate, _: LocalDate)(_: HeaderCarrier))
+      .expects(cgtReference, fromDate, toDate, *)
+      .returning(EitherT.fromEither[Future](response))
+
   def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, CompleteReturn]) =
     (mockReturnTransformerService
       .toCompleteReturn(_: DesReturnDetails))
       .expects(desReturn)
+      .returning(result)
+
+  def mockTransformReturnsList(returns: List[DesReturnSummary], financialData: List[DesFinancialTransaction])(
+    result: Either[Error, List[ReturnSummary]]
+  ) =
+    (mockReturnListSummaryTransformerService
+      .toReturnSummaryList(_: List[DesReturnSummary], _: List[DesFinancialTransaction]))
+      .expects(returns, financialData)
       .returning(result)
 
   "CompleteReturnsService" when {
@@ -112,8 +141,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           val submitReturnResponse = SubmitReturnResponse(
             "804123737752",
             Some(
-              Charge(
-                "charge from return submission",
+              ReturnCharge(
                 "XCRG9448959757",
                 AmountInPence(1100L),
                 LocalDate.of(2020, 3, 11)
@@ -271,141 +299,285 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
     "handling requests to list returns" must {
 
-      def desResponseBody(countryCode: String) = Json.parse(
+      val desListReturnResponseBody = Json.parse(
         s"""
+           |{
+           |  "processingDate": "2020-03-02T16:09:28Z",
+           |  "returnList": [
+           |    {
+           |      "totalOutstanding": 12913,
+           |      "submissionDate": "2020-02-27",
+           |      "submissionId": "130000000581",
+           |      "propertyAddress": {
+           |        "addressLine1": "49 Argyll Road",
+           |        "addressLine3": "LLANBADOC",
+           |        "countryCode": "GB",
+           |        "postalCode": "NP5 4SW"
+           |      },
+           |      "completionDate": "2020-01-05",
+           |      "taxYear": "2020",
+           |      "charges": [
+           |        {
+           |          "chargeDescription": "CGT PPD Return Non UK Resident",
+           |          "chargeAmount": 12813,
+           |          "dueDate": "2020-02-04",
+           |          "chargeReference": "XD002610151722"
+           |        },
+           |        {
+           |          "chargeDescription": "CGT PPD Late Filing Penalty",
+           |          "chargeAmount": 100,
+           |          "dueDate": "2020-04-01",
+           |          "chargeReference": "XH002610151822"
+           |        }
+           |      ],
+           |      "lastUpdatedDate": "2020-02-27",
+           |      "status": "Pending",
+           |      "totalCGTLiability": 12913
+           |    },
+           |    {
+           |      "totalOutstanding": 0,
+           |      "submissionDate": "2020-02-28",
+           |      "submissionId": "130000000589",
+           |      "propertyAddress": {
+           |        "addressLine1": "The Farm",
+           |        "addressLine4": "Buckinghamshire",
+           |        "addressLine3": "Royal Madeuptown",
+           |        "postalCode": "ZZ9Z 9TT",
+           |        "countryCode": "GB"
+           |      },
+           |      "completionDate": "2020-02-02",
+           |      "taxYear": "2020",
+           |      "charges": [
+           |        {
+           |          "chargeDescription": "CGT PPD Return UK Resident",
+           |          "chargeAmount": 0,
+           |          "dueDate": "2020-03-03",
+           |          "chargeReference": "XL002610151760"
+           |        }
+           |      ],
+           |      "lastUpdatedDate": "2020-02-28",
+           |      "status": "Paid",
+           |      "totalCGTLiability": 0
+           |    },
+           |    {
+           |      "totalOutstanding": 103039,
+           |      "submissionDate": "2020-03-02",
+           |      "submissionId": "130000000593",
+           |      "propertyAddress": {
+           |        "addressLine1": "6 Testing Lane",
+           |        "addressLine4": "Buckinghamshire",
+           |        "addressLine3": "Royal Madeuptown",
+           |        "postalCode": "ZZ9Z 9TT",
+           |        "countryCode": "GB"
+           |      },
+           |      "completionDate": "2020-02-01",
+           |      "taxYear": "2020",
+           |      "charges": [
+           |        {
+           |          "chargeDescription": "CGT PPD Return UK Resident",
+           |          "chargeAmount": 103039,
+           |          "dueDate": "2020-03-02",
+           |          "chargeReference": "XR002610151861"
+           |        }
+           |      ],
+           |      "lastUpdatedDate": "2020-03-02",
+           |      "status": "Pending",
+           |      "totalCGTLiability": 103039
+           |    }
+           |  ]
+           |}
+          |""".stripMargin
+      )
+
+      val desFinancialDataResponse = Json.parse(
+        """
           |{
-          |    "processingDate": "2018-11-06T09:30:47Z",
-          |    "returnList": [
+          |  "idType": "ZCGT",
+          |  "processingDate": "2020-03-02T16:09:29Z",
+          |  "idNumber": "XZCGTP001000257",
+          |  "regimeType": "CGT",
+          |  "financialTransactions": [
+          |    {
+          |      "sapDocumentNumberItem": "0001",
+          |      "contractObjectType": "CGTP",
+          |      "originalAmount": -12812,
+          |      "contractObject": "00000250000000000259",
+          |      "businessPartner": "0100276998",
+          |      "mainTransaction": "5470",
+          |      "taxPeriodTo": "2020-04-05",
+          |      "periodKey": "19CY",
+          |      "items": [
           |        {
-          |            "submissionId": "09765432111",
-          |            "submissionDate": "2018-04-05",
-          |            "completionDate": "2018-07-31",
-          |            "lastUpdatedDate": "2018-08-31",
-          |            "taxYear": "2018",
-          |            "status": "aaaaaaaaaaaa",
-          |            "totalCGTLiability": 12345678912.12,
-          |            "totalOutstanding": 12345678913.12,
-          |            "charges": [
-          |                {
-          |                	"chargeDescription": "Late Payment",
-          |                    "chargeAmount": 12345678914.12,
-          |                    "dueDate": "2018-08-13",
-          |                    "chargeReference": "XDCGTX100004"
-          |                },
-          |                {
-          |                	"chargeDescription": "Interest",
-          |                    "chargeAmount": 12345678915.12,
-          |                    "dueDate": "2018-09-10",
-          |                    "chargeReference": "XDCGTX100005"
-          |                }
-          |            ],
-          |            "propertyAddress": {
-          |                "addressLine1": "AddrLine1",
-          |                "addressLine2": "AddrLine2",
-          |                "addressLine3": "AddrLine3",
-          |                "addressLine4": "AddrLine4",
-          |                "countryCode": "$countryCode",
-          |                "postalCode": "TF3 4ER"
-          |            }
-          |        },
-          |        {
-          |            "submissionId": "09765432112",
-          |            "submissionDate": "2018-04-05",
-          |            "completionDate": "2018-07-31",
-          |            "lastUpdatedDate": "2018-08-31",
-          |            "taxYear": "2018",
-          |            "status": "aaaaaaaaaaaa",
-          |            "totalCGTLiability": 12345678955.12,
-          |            "totalOutstanding": 45678913.12,
-          |            "propertyAddress": {
-          |                "addressLine1": "AddrLine1",
-          |                "addressLine2": "AddrLine2",
-          |                "addressLine3": "AddrLine3",
-          |                "addressLine4": "AddrLine4",
-          |                "countryCode": "$countryCode",
-          |                "postalCode": "TF3 4ER"
-          |            }
+          |          "subItem": "000",
+          |          "dueDate": "2020-03-03",
+          |          "amount": -12812
           |        }
-          |    ]
+          |      ],
+          |      "subTransaction": "1060",
+          |      "mainType": "CGT PPD Return UK Resident",
+          |      "chargeReference": "XL002610151760",
+          |      "contractAccount": "000016001259",
+          |      "chargeType": "CGT PPD Return UK Resident",
+          |      "taxPeriodFrom": "2019-04-06",
+          |      "sapDocumentNumber": "003070004278",
+          |      "contractAccountCategory": "16",
+          |      "outstandingAmount": -12812,
+          |      "periodKeyDescription": "CGT Annual 2019/2020"
+          |    },
+          |    {
+          |      "sapDocumentNumberItem": "0001",
+          |      "contractObjectType": "CGTP",
+          |      "originalAmount": 103039,
+          |      "contractObject": "00000250000000000259",
+          |      "businessPartner": "0100276998",
+          |      "mainTransaction": "5470",
+          |      "taxPeriodTo": "2020-04-05",
+          |      "periodKey": "19CY",
+          |      "items": [
+          |        {
+          |          "subItem": "000",
+          |          "dueDate": "2020-03-02",
+          |          "amount": 103039
+          |        }
+          |      ],
+          |      "subTransaction": "1060",
+          |      "mainType": "CGT PPD Return UK Resident",
+          |      "chargeReference": "XR002610151861",
+          |      "contractAccount": "000016001259",
+          |      "chargeType": "CGT PPD Return UK Resident",
+          |      "taxPeriodFrom": "2019-04-06",
+          |      "sapDocumentNumber": "003100004253",
+          |      "contractAccountCategory": "16",
+          |      "outstandingAmount": 103039,
+          |      "periodKeyDescription": "CGT Annual 2019/2020"
+          |    },
+          |    {
+          |      "sapDocumentNumberItem": "0001",
+          |      "contractObjectType": "CGTP",
+          |      "originalAmount": 12813,
+          |      "contractObject": "00000250000000000259",
+          |      "businessPartner": "0100276998",
+          |      "mainTransaction": "5480",
+          |      "taxPeriodTo": "2020-04-05",
+          |      "periodKey": "19CY",
+          |      "items": [
+          |        {
+          |          "subItem": "000",
+          |          "dueDate": "2020-02-04",
+          |          "amount": 12813
+          |        }
+          |      ],
+          |      "subTransaction": "1060",
+          |      "mainType": "CGT PPD Return Non UK Resident",
+          |      "chargeReference": "XD002610151722",
+          |      "contractAccount": "000016001259",
+          |      "chargeType": "CGT PPD Return Non UK Resident",
+          |      "taxPeriodFrom": "2019-04-06",
+          |      "sapDocumentNumber": "003350004262",
+          |      "contractAccountCategory": "16",
+          |      "outstandingAmount": 12813,
+          |      "periodKeyDescription": "CGT Annual 2019/2020"
+          |    },
+          |    {
+          |      "sapDocumentNumberItem": "0001",
+          |      "contractObjectType": "CGTP",
+          |      "originalAmount": 100,
+          |      "contractObject": "00000250000000000259",
+          |      "businessPartner": "0100276998",
+          |      "mainTransaction": "5510",
+          |      "taxPeriodTo": "2020-04-05",
+          |      "periodKey": "19CY",
+          |      "items": [
+          |        {
+          |          "subItem": "000",
+          |          "dueDate": "2020-04-01",
+          |          "amount": 100
+          |        }
+          |      ],
+          |      "subTransaction": "1080",
+          |      "mainType": "CGT PPD Late Filing penalty",
+          |      "chargeReference": "XH002610151822",
+          |      "contractAccount": "000016001259",
+          |      "chargeType": "CGT PPD Late Filing Penalty",
+          |      "taxPeriodFrom": "2019-04-06",
+          |      "sapDocumentNumber": "003460004233",
+          |      "contractAccountCategory": "16",
+          |      "outstandingAmount": 100,
+          |      "periodKeyDescription": "CGT Annual 2019/2020"
+          |    }
+          |  ]
           |}
           |""".stripMargin
       )
 
-      val expectedReturns = List(
-        ReturnSummary(
-          "09765432111",
-          LocalDate.of(2018, 4, 5),
-          LocalDate.of(2018, 7, 31),
-          Some(LocalDate.of(2018, 8, 31)),
-          "2018",
-          AmountInPence(1234567891212L),
-          AmountInPence(1234567891312L),
-          UkAddress(
-            "AddrLine1",
-            Some("AddrLine2"),
-            Some("AddrLine3"),
-            Some("AddrLine4"),
-            Postcode("TF3 4ER")
-          ),
-          List(
-            Charge(
-              "Late Payment",
-              "XDCGTX100004",
-              AmountInPence(1234567891412L),
-              LocalDate.of(2018, 8, 13)
-            ),
-            Charge(
-              "Interest",
-              "XDCGTX100005",
-              AmountInPence(1234567891512L),
-              LocalDate.of(2018, 9, 10)
-            )
-          )
-        ),
-        ReturnSummary(
-          "09765432112",
-          LocalDate.of(2018, 4, 5),
-          LocalDate.of(2018, 7, 31),
-          Some(LocalDate.of(2018, 8, 31)),
-          "2018",
-          AmountInPence(1234567895512L),
-          AmountInPence(4567891312L),
-          UkAddress(
-            "AddrLine1",
-            Some("AddrLine2"),
-            Some("AddrLine3"),
-            Some("AddrLine4"),
-            Postcode("TF3 4ER")
-          ),
-          List.empty
-        )
-      )
+      val desReturnSummaries = desListReturnResponseBody
+        .validate[DesListReturnsResponse]
+        .getOrElse(sys.error("Could not parse des list returns response"))
+
+      val desFinancialData = desFinancialDataResponse
+        .validate[DesFinancialDataResponse]
+        .getOrElse(sys.error("Could not parse des financial data response"))
 
       val cgtReference       = sample[CgtReference]
       val (fromDate, toDate) = LocalDate.now().minusDays(1L) -> LocalDate.now()
 
       "return an error " when {
 
-        "the http call fails" in {
+        "the http call to get the list of returns fails" in {
           mockListReturn(cgtReference, fromDate, toDate)(Left(Error("")))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
 
-        "the http call returns with a status which is not 200" in {
+        "the http call to get the list of returns returns with a status which is not 200" in {
           mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(404)))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
 
-        "the response body cannot be parsed" in {
+        "the response body when getting the list of returns cannot be parsed" in {
           mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(JsString("Hi!")))))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
 
-        "the address in a return is a non uk address" in {
-          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desResponseBody("HK")))))
+        "the call to get financial data fails" in {
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockGetFinancialData(cgtReference, fromDate, toDate)(Left(Error("")))
+          }
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+        }
+
+        "the http call to get financial data returns with a status which is not 200" in {
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(400)))
+          }
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+        }
+
+        "the response body when getting financial data cannot be parsed" in {
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(JsNumber(1)))))
+          }
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+        }
+
+        "the data cannot be transformed" in {
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockGetFinancialData(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, Some(desFinancialDataResponse)))
+            )
+            mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions)(
+              Left(Error(""))
+            )
+          }
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
@@ -415,27 +587,36 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       "return a list of returns" when {
 
         "the response body can be parsed and converted" in {
-          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desResponseBody("GB")))))
+          val summaries = List(sample[ReturnSummary])
 
-          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(expectedReturns)
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockGetFinancialData(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, Some(desFinancialDataResponse)))
+            )
+            mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions)(
+              Right(summaries)
+            )
+          }
 
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(summaries)
         }
 
       }
 
       "return an empty list of returns" when {
 
-        "the response comes back with status 404 and a single error in the body" in {
+        "the response to list returns comes back with status 404 and a single error in the body" in {
           mockListReturn(cgtReference, fromDate, toDate)(
             Right(
               HttpResponse(
                 404,
                 Some(Json.parse("""
-              |{
-              |  "code" : "NOT_FOUND",
-              |  "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
-              |}
-              |""".stripMargin))
+                      |{
+                      |  "code" : "NOT_FOUND",
+                      |  "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+                      |}
+                      |""".stripMargin))
               )
             )
           )
@@ -444,7 +625,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         }
 
-        "the response comes back with status 404 and multiple error in the body" in {
+        "the response to list returns comes back with status 404 and multiple errors in the body" in {
           mockListReturn(cgtReference, fromDate, toDate)(
             Right(
               HttpResponse(
@@ -464,7 +645,59 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           )
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
+        }
 
+        "the response to get financial data comes back with status 404 and a single error in the body" in {
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockGetFinancialData(cgtReference, fromDate, toDate)(
+              Right(
+                HttpResponse(
+                  404,
+                  Some(Json.parse("""
+                                    |{
+                                    |  "code" : "NOT_FOUND",
+                                    |  "reason" : "The remote endpoint has indicated that no data can be found."
+                                    |}
+                                    |""".stripMargin))
+                )
+              )
+            )
+            mockTransformReturnsList(desReturnSummaries.returnList, List.empty)(
+              Right(List.empty)
+            )
+          }
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
+
+        }
+
+        "the response to get financial data comes back with status 404 and multiple errors in the body" in {
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockGetFinancialData(cgtReference, fromDate, toDate)(
+              Right(
+                HttpResponse(
+                  404,
+                  Some(Json.parse("""
+                                    |{
+                                    |  "failures" : [ 
+                                    |    {
+                                    |      "code" : "NOT_FOUND",
+                                    |      "reason" : "The remote endpoint has indicated that no data can be found."
+                                    |    }
+                                    |  ]
+                                    |}  
+                                    |""".stripMargin))
+                )
+              )
+            )
+            mockTransformReturnsList(desReturnSummaries.returnList, List.empty)(
+              Right(List.empty)
+            )
+          }
+
+          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
         }
 
       }

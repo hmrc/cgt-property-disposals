@@ -20,9 +20,8 @@ import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculateCgtTaxDueRequest, SubmitReturnRequest}
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, DraftReturnsService}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculateCgtTaxDueRequest
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.CgtCalculationService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 

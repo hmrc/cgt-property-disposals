@@ -16,27 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.time.LocalDate
+import org.scalatest.{Matchers, WordSpec}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAssetType
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType._
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
+class AssetTypeSpec extends WordSpec with Matchers {
 
-final case class ReturnSummary(
-  submissionId: String,
-  submissionDate: LocalDate,
-  completionDate: LocalDate,
-  lastUpdatedDate: Option[LocalDate],
-  taxYear: String,
-  mainReturnChargeAmount: AmountInPence,
-  propertyAddress: UkAddress,
-  charges: List[Charge]
-)
+  "AssetType" must {
 
-object ReturnSummary {
+    "have a method" which {
 
-  implicit val ukAddressFormat: OFormat[UkAddress] = Json.format
+      "converts from DesAssetType" in {
+        AssetType(DesAssetType.Residential)      shouldBe Residential
+        AssetType(DesAssetType.NonResidential)   shouldBe NonResidential
+        AssetType(DesAssetType.MixedUse)         shouldBe MixedUse
+        AssetType(DesAssetType.IndirectDisposal) shouldBe IndirectDisposal
+      }
 
-  implicit val format: OFormat[ReturnSummary] = Json.format
+    }
+
+  }
 
 }

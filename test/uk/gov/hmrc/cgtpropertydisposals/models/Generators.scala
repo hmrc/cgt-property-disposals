@@ -21,17 +21,19 @@ import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import akka.util.ByteString
 import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
-import uk.gov.hmrc.cgtpropertydisposals.controllers.account.FinancialDataController.FinancialDataResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialTransaction
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, ReliefDetails, RepresentedPersonDetails, ReturnDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, FinancialTransaction}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
@@ -43,6 +45,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptor, UpscanCallBack, UpscanFileDescriptor}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -58,7 +61,8 @@ object Generators
     with DmsSubmissionGen
     with ReturnsGen
     with AddressGen
-    with MoneyGen {
+    with MoneyGen
+    with DesReturnsGen {
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -126,6 +130,8 @@ trait OnboardingGen { this: GenUtils =>
   implicit val subscriptionDetailsGen: Gen[SubscriptionDetails] = gen[SubscriptionDetails]
 
   implicit val subscriptionSuccessfulGen: Gen[SubscriptionSuccessful] = gen[SubscriptionSuccessful]
+
+  implicit val subscribedDetailsGen: Gen[SubscribedDetails] = gen[SubscribedDetails]
 
 }
 
@@ -208,6 +214,8 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
   implicit val calculateCgtTaxDueRequestGen: Gen[CalculateCgtTaxDueRequest] =
     gen[CalculateCgtTaxDueRequest]
 
+  implicit val returnSummaryGen: Gen[ReturnSummary] = gen[ReturnSummary]
+
 }
 
 trait LowerPriorityReturnsGen { this: GenUtils =>
@@ -216,7 +224,27 @@ trait LowerPriorityReturnsGen { this: GenUtils =>
 
 }
 
-trait AddressGen { this: GenUtils =>
+trait DesReturnsGen { this: GenUtils =>
+
+  implicit val desReturnDetailsGen: Gen[DesReturnDetails] = gen[DesReturnDetails]
+
+  implicit val desSingleDisposalDetailsGen: Gen[SingleDisposalDetails] = gen[SingleDisposalDetails]
+
+  implicit val desMultipleDisposaslDetailsGen: Gen[MultipleDisposalDetails] = gen[MultipleDisposalDetails]
+
+  implicit val returnDetailsGen: Gen[ReturnDetails] = gen[ReturnDetails]
+
+  implicit val desReliefDetailsGen: Gen[ReliefDetails] = gen[ReliefDetails]
+
+  implicit val representedPersonDetailsGen: Gen[RepresentedPersonDetails] = gen[RepresentedPersonDetails]
+
+  implicit val desReturnSummaryGen: Gen[DesReturnSummary] = gen[DesReturnSummary]
+
+  implicit val desFinancialTransactionGen: Gen[DesFinancialTransaction] = gen[DesFinancialTransaction]
+
+}
+
+trait AddressGen extends AddressLowerPriorityGen { this: GenUtils =>
 
   implicit val addressGen: Gen[Address] = gen[Address]
 
@@ -245,9 +273,5 @@ trait AddressLowerPriorityGen { this: GenUtils =>
 trait MoneyGen { this: GenUtils =>
 
   implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
-
-  implicit val financialDataResponseGen: Gen[FinancialDataResponse] = gen[FinancialDataResponse]
-
-  implicit val financialTransactionGen: Gen[FinancialTransaction] = gen[FinancialTransaction]
 
 }

@@ -19,24 +19,15 @@ package uk.gov.hmrc.cgtpropertydisposals.models.finance
 import java.time.LocalDate
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction.Payment
 
-final case class FinancialTransaction(
-  chargeReference: String,
-  originalAmount: AmountInPence,
-  outstandingAmount: AmountInPence,
-  payments: List[Payment]
+final case class Payment(
+  amount: AmountInPence,
+  method: PaymentMethod,
+  clearingDate: LocalDate
 )
 
-object FinancialTransaction {
+object Payment {
 
-  final case class Payment(
-    amount: AmountInPence,
-    clearingDate: LocalDate
-  )
-
-  implicit val paymentFormat: OFormat[Payment] = Json.format
-
-  implicit val financialTransactionFormat: OFormat[FinancialTransaction] = Json.format[FinancialTransaction]
+  implicit val format: OFormat[Payment] = Json.format
 
 }
