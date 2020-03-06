@@ -37,7 +37,7 @@ object ChargeType {
 
   def fromString(s: String): Either[String, ChargeType] = s match {
     case "CGT PPD Return UK Resident"     => Right(UkResidentReturn)
-    case "CGT PPD Return non UK Resident" => Right(NonUkResidentReturn)
+    case "CGT PPD Return Non UK Resident" => Right(NonUkResidentReturn)
     case "CGT PPD Interest"               => Right(Interest)
     case "CGT PPD Late Filing penalty"    => Right(LateFilingPenalty)
     case "CGT PPD 6 Mth LFP"              => Right(SixMonthLateFilingPenalty)

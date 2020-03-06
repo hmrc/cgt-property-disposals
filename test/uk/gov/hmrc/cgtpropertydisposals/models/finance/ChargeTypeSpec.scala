@@ -25,7 +25,7 @@ class ChargeTypeSpec extends WordSpec with Matchers {
 
     "have a method which converts strings to a ChargeType" in {
       ChargeType.fromString("CGT PPD Return UK Resident")     shouldBe Right(UkResidentReturn)
-      ChargeType.fromString("CGT PPD Return non UK Resident") shouldBe Right(NonUkResidentReturn)
+      ChargeType.fromString("CGT PPD Return Non UK Resident") shouldBe Right(NonUkResidentReturn)
       ChargeType.fromString("CGT PPD Interest")               shouldBe Right(Interest)
       ChargeType.fromString("CGT PPD Late Filing penalty")    shouldBe Right(LateFilingPenalty)
       ChargeType.fromString("CGT PPD 6 Mth LFP")              shouldBe Right(SixMonthLateFilingPenalty)
