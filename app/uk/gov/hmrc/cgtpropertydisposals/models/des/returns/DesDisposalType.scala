@@ -23,11 +23,11 @@ sealed trait DesDisposalType extends Product with Serializable
 
 object DesDisposalType {
 
-  final case object Sold extends DesDisposalType
+  case object Sold extends DesDisposalType
 
-  final case object Gifted extends DesDisposalType
+  case object Gifted extends DesDisposalType
 
-  final case object Other extends DesDisposalType
+  case object Other extends DesDisposalType
 
   def apply(cr: CompleteReturn): DesDisposalType = cr.triageAnswers.disposalMethod match {
     case DisposalMethod.Sold   => Sold
