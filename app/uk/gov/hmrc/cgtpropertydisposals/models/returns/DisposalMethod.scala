@@ -28,9 +28,12 @@ object DisposalMethod {
 
   case object Gifted extends DisposalMethod
 
+  case object Other extends DisposalMethod
+
   def apply(desDisposalType: DesDisposalType): DisposalMethod = desDisposalType match {
     case DesDisposalType.Sold   => Sold
     case DesDisposalType.Gifted => Gifted
+    case DesDisposalType.Other  => Other
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))

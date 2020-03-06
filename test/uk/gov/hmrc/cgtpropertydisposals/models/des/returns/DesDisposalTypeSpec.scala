@@ -34,11 +34,13 @@ class DesDisposalTypeSpec extends WordSpec with Matchers {
 
         test(Sold, JsString("sold"))
         test(Gifted, JsString("gifted"))
+        test(Other, JsString("other"))
       }
 
       "can read JSON properly" in {
         JsString("sold").validate[DesDisposalType]   shouldBe JsSuccess(Sold)
         JsString("gifted").validate[DesDisposalType] shouldBe JsSuccess(Gifted)
+        JsString("other").validate[DesDisposalType]  shouldBe JsSuccess(Other)
         JsString("???").validate[DesDisposalType]    shouldBe a[JsError]
         JsNumber(1).validate[DesDisposalType]        shouldBe a[JsError]
       }
