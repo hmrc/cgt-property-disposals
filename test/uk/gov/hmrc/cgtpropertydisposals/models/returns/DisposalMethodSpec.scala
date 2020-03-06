@@ -29,7 +29,7 @@ class DisposalMethodSpec extends WordSpec with Matchers {
       "which converts from DesDisposalType" in {
         DisposalMethod(DesDisposalType.Sold)   shouldBe Sold
         DisposalMethod(DesDisposalType.Gifted) shouldBe Gifted
-
+        DisposalMethod(DesDisposalType.Other)  shouldBe Other
       }
 
     }
