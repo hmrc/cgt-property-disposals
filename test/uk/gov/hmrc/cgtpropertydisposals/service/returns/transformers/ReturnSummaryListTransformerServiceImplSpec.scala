@@ -308,6 +308,26 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
           )
         }
 
+        "finding the main charge return amount when a nil return is found" in {
+          val result = transformer.toReturnSummaryList(
+            List(
+              validDesReturnSummary1.copy(
+                totalCGTLiability = BigDecimal("0"),
+                charges           = None
+              )
+            ),
+            List(sample[DesFinancialTransaction].copy(items = None))
+          )
+
+          result match {
+            case Right(r :: Nil) =>
+              r.mainReturnChargeAmount shouldBe AmountInPence.zero
+              r.charges                shouldBe List.empty
+            case other => fail(s"Expected one return summary but got $other")
+          }
+
+        }
+
       }
 
     }

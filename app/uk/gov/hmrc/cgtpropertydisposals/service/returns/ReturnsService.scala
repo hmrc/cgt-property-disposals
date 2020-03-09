@@ -251,6 +251,7 @@ object DefaultReturnsService {
     lastUpdatedDate: Option[LocalDate],
     taxYear: String,
     propertyAddress: AddressDetails,
+    totalCGTLiability: BigDecimal,
     charges: Option[List[DesCharge]]
   )
 

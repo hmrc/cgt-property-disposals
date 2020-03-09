@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated}
+import cats.instances.bigDecimal._
 import cats.instances.list._
 import cats.syntax.apply._
 import cats.syntax.either._
@@ -76,28 +77,31 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
         case _: NonUkAddress => invalid("Expected uk address but found non-uk address")
       }
 
-    val mainChargeValidation: Validation[Charge] = chargesValidation.andThen { charges =>
-      charges.filter(c =>
-        c.chargeType === ChargeType.UkResidentReturn || c.chargeType === ChargeType.NonUkResidentReturn
-      ) match {
-        case mainReturnCharge :: Nil => Valid(mainReturnCharge)
-        case Nil =>
-          invalid(
-            s"Could not find charge with main return type. Found charge types ${charges.map(_.chargeType).toString}"
-          )
-        case _ => invalid(s"Found more than one charge with a main return type")
-      }
+    val mainReturnChargeAmountValidation: Validation[AmountInPence] = chargesValidation.andThen { charges =>
+      if (returnSummary.totalCGTLiability === BigDecimal("0") && charges.isEmpty)
+        Valid(AmountInPence.zero)
+      else
+        charges.filter(c =>
+          c.chargeType === ChargeType.UkResidentReturn || c.chargeType === ChargeType.NonUkResidentReturn
+        ) match {
+          case mainReturnCharge :: Nil => Valid(mainReturnCharge.amount)
+          case Nil =>
+            invalid(
+              s"Could not find charge with main return type. Found charge types ${charges.map(_.chargeType).toString}"
+            )
+          case _ => invalid(s"Found more than one charge with a main return type")
+        }
     }
 
-    (chargesValidation, addressValidation, mainChargeValidation).mapN {
-      case (charges, address, mainReturnCharge) =>
+    (chargesValidation, addressValidation, mainReturnChargeAmountValidation).mapN {
+      case (charges, address, mainReturnChargeAmount) =>
         ReturnSummary(
           returnSummary.submissionId,
           returnSummary.submissionDate,
           returnSummary.completionDate,
           returnSummary.lastUpdatedDate,
           returnSummary.taxYear,
-          mainReturnCharge.amount,
+          mainReturnChargeAmount,
           address,
           charges
         )
