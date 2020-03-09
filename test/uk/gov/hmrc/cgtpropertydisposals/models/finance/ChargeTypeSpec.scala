@@ -27,7 +27,7 @@ class ChargeTypeSpec extends WordSpec with Matchers {
       ChargeType.fromString("CGT PPD Return UK Resident")     shouldBe Right(UkResidentReturn)
       ChargeType.fromString("CGT PPD Return Non UK Resident") shouldBe Right(NonUkResidentReturn)
       ChargeType.fromString("CGT PPD Interest")               shouldBe Right(Interest)
-      ChargeType.fromString("CGT PPD Late Filing penalty")    shouldBe Right(LateFilingPenalty)
+      ChargeType.fromString("CGT PPD Late Filing Penalty")    shouldBe Right(LateFilingPenalty)
       ChargeType.fromString("CGT PPD 6 Mth LFP")              shouldBe Right(SixMonthLateFilingPenalty)
       ChargeType.fromString("CGT PPD 12 Mth LFP")             shouldBe Right(TwelveMonthLateFilingPenalty)
       ChargeType.fromString("CGT PPD Late Payment Penalty")   shouldBe Right(LatePaymentPenalty)

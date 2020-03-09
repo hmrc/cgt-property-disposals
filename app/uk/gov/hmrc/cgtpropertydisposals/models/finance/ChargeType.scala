@@ -39,7 +39,7 @@ object ChargeType {
     case "CGT PPD Return UK Resident"     => Right(UkResidentReturn)
     case "CGT PPD Return Non UK Resident" => Right(NonUkResidentReturn)
     case "CGT PPD Interest"               => Right(Interest)
-    case "CGT PPD Late Filing penalty"    => Right(LateFilingPenalty)
+    case "CGT PPD Late Filing Penalty"    => Right(LateFilingPenalty)
     case "CGT PPD 6 Mth LFP"              => Right(SixMonthLateFilingPenalty)
     case "CGT PPD 12 Mth LFP"             => Right(TwelveMonthLateFilingPenalty)
     case "CGT PPD Late Payment Penalty"   => Right(LatePaymentPenalty)

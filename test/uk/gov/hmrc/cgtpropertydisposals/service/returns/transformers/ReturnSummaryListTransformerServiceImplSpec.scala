@@ -181,7 +181,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
               "reference2"
             ),
             DesCharge(
-              "CGT PPD Late Filing penalty",
+              "CGT PPD Late Filing Penalty",
               LocalDate.ofEpochDay(3),
               "reference3"
             )
