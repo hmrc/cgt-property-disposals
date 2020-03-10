@@ -24,7 +24,7 @@ import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialTransaction
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, ReliefDetails, RepresentedPersonDetails, ReturnDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest, ReliefDetails, RepresentedPersonDetails, ReturnDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
@@ -241,6 +241,8 @@ trait DesReturnsGen { this: GenUtils =>
   implicit val desReturnSummaryGen: Gen[DesReturnSummary] = gen[DesReturnSummary]
 
   implicit val desFinancialTransactionGen: Gen[DesFinancialTransaction] = gen[DesFinancialTransaction]
+
+  implicit val desSubmitReturnRequestGen: Gen[DesSubmitReturnRequest] = gen[DesSubmitReturnRequest]
 
 }
 

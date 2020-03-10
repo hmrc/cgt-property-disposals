@@ -22,7 +22,6 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
@@ -35,7 +34,6 @@ class SubmitReturnsController @Inject() (
   authenticate: AuthenticateActions,
   draftReturnsService: DraftReturnsService,
   returnsService: ReturnsService,
-  auditService: AuditService,
   cc: ControllerComponents
 )(
   implicit ec: ExecutionContext

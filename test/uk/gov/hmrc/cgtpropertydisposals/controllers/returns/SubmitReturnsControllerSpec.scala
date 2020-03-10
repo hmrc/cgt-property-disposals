@@ -23,7 +23,7 @@ import akka.stream.Materializer
 import cats.data.EitherT
 import cats.instances.future._
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Headers
+import play.api.mvc.{Headers, Request}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
@@ -32,7 +32,6 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnResponse}
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -43,7 +42,6 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
   val draftReturnsService: DraftReturnsService = mock[DraftReturnsService]
   val returnsService: ReturnsService           = mock[ReturnsService]
-  val auditService: AuditService               = mock[AuditService]
 
   implicit val headerCarrier          = HeaderCarrier()
   implicit lazy val mat: Materializer = fakeApplication.materializer
@@ -61,14 +59,13 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     authenticate        = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     draftReturnsService = draftReturnsService,
     returnsService      = returnsService,
-    auditService        = auditService,
     cc                  = Helpers.stubControllerComponents()
   )
 
   def mockSubmitReturnService(request: SubmitReturnRequest)(response: Either[Error, SubmitReturnResponse]) =
     (returnsService
-      .submitReturn(_: SubmitReturnRequest)(_: HeaderCarrier))
-      .expects(request, *)
+      .submitReturn(_: SubmitReturnRequest)(_: HeaderCarrier, _: Request[_]))
+      .expects(request, *, *)
       .returning(EitherT.fromEither[Future](response))
 
   def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Int]) =

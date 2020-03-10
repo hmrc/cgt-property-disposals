@@ -24,19 +24,23 @@ import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
-import play.api.libs.json.{JsNumber, JsString, JsValue, Json}
+import play.api.libs.json._
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, DesFinancialTransaction}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesListReturnsResponse, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -54,6 +58,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   val mockReturnListSummaryTransformerService = mock[ReturnSummaryListTransformerService]
 
+  val mockAuditService = mock[AuditService]
+
   val config = Configuration(
     ConfigFactory.parseString(
       """
@@ -68,16 +74,21 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       mockFinancialDataConnector,
       mockReturnTransformerService,
       mockReturnListSummaryTransformerService,
+      mockAuditService,
       config,
       MockMetrics.metrics
     )
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  def mockSubmitReturn(returnRequest: SubmitReturnRequest)(response: Either[Error, HttpResponse]) =
+  implicit val request: Request[_] = FakeRequest()
+
+  def mockSubmitReturn(cgtReference: CgtReference, returnRequest: DesSubmitReturnRequest)(
+    response: Either[Error, HttpResponse]
+  ) =
     (returnsConnector
-      .submit(_: SubmitReturnRequest)(_: HeaderCarrier))
-      .expects(returnRequest, hc)
+      .submit(_: CgtReference, _: DesSubmitReturnRequest)(_: HeaderCarrier))
+      .expects(cgtReference, returnRequest, hc)
       .returning(EitherT.fromEither[Future](response))
 
   def mockListReturn(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
@@ -116,6 +127,47 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(returns, financialData)
       .returning(result)
 
+  def mockAuditSubmitReturnEvent(
+    cgtReference: CgtReference,
+    submitReturnRequest: DesSubmitReturnRequest,
+    agentReferenceNumber: Option[AgentReferenceNumber]
+  ) =
+    (mockAuditService
+      .sendEvent(_: String, _: SubmitReturnEvent, _: String)(
+        _: HeaderCarrier,
+        _: Writes[SubmitReturnEvent],
+        _: Request[_]
+      ))
+      .expects(
+        "submitReturn",
+        SubmitReturnEvent(submitReturnRequest, cgtReference.value, agentReferenceNumber.map(_.value)),
+        "submit-return",
+        *,
+        *,
+        *
+      )
+      .returning(())
+
+  def mockAuditSubmitReturnResponseEvent(httpStatus: Int, responseBody: Option[JsValue]) =
+    (mockAuditService
+      .sendEvent(_: String, _: SubmitReturnResponseEvent, _: String)(
+        _: HeaderCarrier,
+        _: Writes[SubmitReturnResponseEvent],
+        _: Request[_]
+      ))
+      .expects(
+        "submitReturnResponse",
+        SubmitReturnResponseEvent(
+          httpStatus,
+          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: null" }"""))
+        ),
+        "submit-return-response",
+        *,
+        *,
+        *
+      )
+      .returning(())
+
   "CompleteReturnsService" when {
 
     "handling submitting returns" should {
@@ -123,8 +175,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       "handle successful submits" when {
 
         "there is a positive charge" in {
-          val jsonBody =
-            """
+          val responseJsonBody =
+            Json.parse("""
               |{
               |"processingDate":"2020-02-20T09:30:47Z",
               |"ppdReturnResponseDetails": {
@@ -136,8 +188,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |     "cgtReferenceNumber":"XLCGTP212487578"
               |  }
               |}
-              |""".stripMargin
-
+              |""".stripMargin)
           val submitReturnResponse = SubmitReturnResponse(
             "804123737752",
             Some(
@@ -148,14 +199,28 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               )
             )
           )
-          val submitReturnRequest = sample[SubmitReturnRequest]
-          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+          }
+
           await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
 
         "there is a negative charge" in {
-          val jsonBody =
-            """
+          val responseJsonBody =
+            Json.parse("""
               |{
               |"processingDate":"2020-02-20T09:30:47Z",
               |"ppdReturnResponseDetails": {
@@ -167,20 +232,34 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |     "cgtReferenceNumber":"XLCGTP212487578"
               |  }
               |}
-              |""".stripMargin
+              |""".stripMargin)
 
           val submitReturnResponse = SubmitReturnResponse(
             "804123737752",
             None
           )
-          val submitReturnRequest = sample[SubmitReturnRequest]
-          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+          }
+
           await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
 
         "there is a no charge data" in {
-          val jsonBody =
-            """
+          val responseJsonBody =
+            Json.parse("""
               |{
               |"processingDate":"2020-02-20T09:30:47Z",
               |"ppdReturnResponseDetails": {
@@ -188,17 +267,31 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |     "cgtReferenceNumber":"XLCGTP212487578"
               |  }
               |}
-              |""".stripMargin
+              |""".stripMargin)
 
-          val submitReturnResponse = SubmitReturnResponse("804123737752", None)
-          val submitReturnRequest  = sample[SubmitReturnRequest]
-          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          val submitReturnResponse   = SubmitReturnResponse("804123737752", None)
+          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+          }
+
           await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
 
         "there is a zero charge" in {
-          val jsonBody =
-            """
+          val responseJsonBody =
+            Json.parse("""
               |{
               |"processingDate":"2020-02-20T09:30:47Z",
               |"ppdReturnResponseDetails": {
@@ -207,11 +300,25 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |     "amount" : 0
               |  }
               |}
-              |""".stripMargin
+              |""".stripMargin)
 
-          val submitReturnResponse = SubmitReturnResponse("804123737752", None)
-          val submitReturnRequest  = sample[SubmitReturnRequest]
-          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          val submitReturnResponse   = SubmitReturnResponse("804123737752", None)
+          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+          }
+
           await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
       }
@@ -221,10 +328,25 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         "there are charge details for a non zero charge amount and " when {
 
           def test(jsonResponseBody: JsValue): Unit = {
-            val submitReturnRequest = sample[SubmitReturnRequest]
-            mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(200, Some(jsonResponseBody))))
+            val submitReturnRequest    = sample[SubmitReturnRequest]
+            val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+
+            inSequence {
+              mockAuditSubmitReturnEvent(
+                submitReturnRequest.subscribedDetails.cgtReference,
+                desSubmitReturnRequest,
+                submitReturnRequest.agentReferenceNumber
+              )
+              mockSubmitReturn(
+                submitReturnRequest.subscribedDetails.cgtReference,
+                desSubmitReturnRequest
+              )(Right(HttpResponse(200, Some(jsonResponseBody))))
+              mockAuditSubmitReturnResponseEvent(200, Some(jsonResponseBody))
+            }
+
             await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
           }
+
           "the charge amount is missing" in {
             test(
               Json.parse(
@@ -282,16 +404,41 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "the call to submit a return fails" in {
-          val submitReturnRequest = sample[SubmitReturnRequest]
-          mockSubmitReturn(submitReturnRequest)(
-            Left(Error("oh no!"))
-          )
+          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(
+              Left(Error("oh no!"))
+            )
+          }
           await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
         }
 
         "the http call comes back with a status other than 200" in {
-          val submitReturnRequest = sample[SubmitReturnRequest]
-          mockSubmitReturn(submitReturnRequest)(Right(HttpResponse(500)))
+          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(500)))
+            mockAuditSubmitReturnResponseEvent(500, None)
+          }
           await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
         }
       }

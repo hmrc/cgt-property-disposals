@@ -23,12 +23,10 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnectorImpl.DesSubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -38,7 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[ReturnsConnectorImpl])
 trait ReturnsConnector {
 
-  def submit(returnRequest: SubmitReturnRequest)(
+  def submit(cgtReference: CgtReference, submitReturnRequest: DesSubmitReturnRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -64,16 +62,14 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
   val baseUrl: String = config.baseUrl("returns")
 
   override def submit(
-    returnRequest: SubmitReturnRequest
+    cgtReference: CgtReference,
+    submitReturnRequest: DesSubmitReturnRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
-    val cgtReferenceNumber = returnRequest.subscribedDetails.cgtReference.value
-    val returnUrl: String  = s"$baseUrl/capital-gains-tax/cgt-reference/$cgtReferenceNumber/return"
-
-    val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest)
+    val returnUrl: String = s"$baseUrl/capital-gains-tax/cgt-reference/${cgtReference.value}/return"
 
     EitherT[Future, Error, HttpResponse](
       http
-        .post(returnUrl, Json.toJson(desSubmitReturnRequest), headers)(
+        .post(returnUrl, Json.toJson(submitReturnRequest), headers)(
           implicitly[Writes[JsValue]],
           hc.copy(authorization = None),
           ec
@@ -137,21 +133,5 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
   }
 
   private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE
-
-}
-
-object ReturnsConnectorImpl {
-
-  final case class DesSubmitReturnRequest(ppdReturnDetails: DesReturnDetails)
-
-  object DesSubmitReturnRequest {
-
-    def apply(submitReturnRequest: SubmitReturnRequest): DesSubmitReturnRequest = {
-      val ppdReturnDetails = DesReturnDetails(submitReturnRequest)
-      DesSubmitReturnRequest(ppdReturnDetails)
-    }
-
-    implicit val desSubmitReturnRequestFormat: OFormat[DesSubmitReturnRequest] = Json.format[DesSubmitReturnRequest]
-  }
 
 }
