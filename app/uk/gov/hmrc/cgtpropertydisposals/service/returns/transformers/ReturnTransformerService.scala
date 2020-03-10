@@ -26,8 +26,8 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesReturnDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
@@ -112,21 +112,31 @@ class ReturnTransformerServiceImpl @Inject() (
     singleDisposalDetails: SingleDisposalDetails,
     country: Country,
     disposalDate: DisposalDate
-  ): CompleteSingleDisposalTriageAnswers =
-    CompleteSingleDisposalTriageAnswers(
-      desReturn.representedPersonDetails.fold[IndividualUserType](
-        IndividualUserType.Self
-      )(
-        _.dateOfDeath.fold[IndividualUserType](IndividualUserType.Capacitor)(_ =>
-          IndividualUserType.PersonalRepresentative
+  ): CompleteSingleDisposalTriageAnswers = {
+    val individualUserType = desReturn.returnDetails.customerType match {
+      case CustomerType.Trust =>
+        None
+      case CustomerType.Individual =>
+        Some(
+          desReturn.representedPersonDetails.fold[IndividualUserType](
+            IndividualUserType.Self
+          )(
+            _.dateOfDeath.fold[IndividualUserType](IndividualUserType.Capacitor)(_ =>
+              IndividualUserType.PersonalRepresentative
+            )
+          )
         )
-      ),
+    }
+
+    CompleteSingleDisposalTriageAnswers(
+      individualUserType,
       DisposalMethod(singleDisposalDetails.disposalType),
       country,
       AssetType(singleDisposalDetails.assetType),
       disposalDate,
       CompletionDate(desReturn.returnDetails.completionDate)
     )
+  }
 
   private def constructDisposalDetailsAnswers(
     singleDisposalDetails: SingleDisposalDetails
