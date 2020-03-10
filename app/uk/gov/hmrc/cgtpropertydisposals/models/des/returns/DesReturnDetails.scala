@@ -40,10 +40,7 @@ object DesReturnDetails {
     val disposalDetails        = DisposalDetails(completeReturn)
 
     DesReturnDetails(
-      returnType = CreateReturnType(
-        source         = getSource(submitReturnRequest),
-        submissionType = SubmissionType.New
-      ),
+      returnType               = CreateReturnType(getSource(submitReturnRequest)),
       returnDetails            = returnDetails,
       representedPersonDetails = None,
       disposalDetails          = List(disposalDetails),

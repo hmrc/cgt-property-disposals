@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.{READY_TO_UPLOAD, UPLOADED}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService

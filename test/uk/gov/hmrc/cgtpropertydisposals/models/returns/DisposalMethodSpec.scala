@@ -14,22 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.finance
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.time.LocalDate
+import org.scalatest.{Matchers, WordSpec}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesDisposalType
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalMethod._
 
-import play.api.libs.json.{Json, OFormat}
+class DisposalMethodSpec extends WordSpec with Matchers {
 
-final case class Charge(
-  chargeType: ChargeType,
-  chargeReference: String,
-  amount: AmountInPence,
-  dueDate: LocalDate,
-  payments: List[Payment]
-)
+  "DisposalMethod" must {
 
-object Charge {
+    "have a method" which {
 
-  implicit val format: OFormat[Charge] = Json.format
+      "which converts from DesDisposalType" in {
+        DisposalMethod(DesDisposalType.Sold)   shouldBe Sold
+        DisposalMethod(DesDisposalType.Gifted) shouldBe Gifted
+        DisposalMethod(DesDisposalType.Other)  shouldBe Other
+      }
+
+    }
+
+  }
 
 }

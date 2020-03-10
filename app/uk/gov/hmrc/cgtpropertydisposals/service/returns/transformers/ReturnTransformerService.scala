@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.service.returns
+package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, ValidatedNel}
@@ -37,6 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
 
 @ImplementedBy(classOf[ReturnTransformerServiceImpl])
 trait ReturnTransformerService {
@@ -172,7 +173,7 @@ class ReturnTransformerServiceImpl @Inject() (
     val totalTaxableGainOrNetLoss: AmountInPence =
       (desReturn.returnDetails.totalNetLoss, desReturn.returnDetails.totalTaxableGain) match {
         case (Some(netLoss), _) => AmountInPence.fromPounds(-netLoss)
-        case (None, gain)       => AmountInPence.fromPounds(gain)
+        case (_, gain)          => AmountInPence.fromPounds(gain)
       }
     CompleteExemptionAndLossesAnswers(
       zeroOrAmountInPenceFromPounds(desReturn.lossSummaryDetails.inYearLossUsed),

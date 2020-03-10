@@ -20,7 +20,7 @@ import java.time.{LocalDate, LocalDateTime}
 
 import cats.data.EitherT
 import cats.instances.future._
-import play.api.libs.json.{JsString, JsValue, Json}
+import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
