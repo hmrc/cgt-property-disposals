@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import java.util.UUID
 
+import akka.stream.Materializer
 import cats.data.EitherT
 import cats.instances.either._
 import cats.instances.list._
@@ -28,6 +29,7 @@ import configs.syntax._
 import play.api.Configuration
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.akkastream.cursorProducer
 import reactivemongo.api.Cursor
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.bson.BSONObjectID
@@ -54,7 +56,8 @@ trait DraftReturnsRepository {
 
 @Singleton
 class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(
-  implicit val ec: ExecutionContext
+  implicit val ec: ExecutionContext,
+  materializer: Materializer
 ) extends ReactiveRepository[DraftReturn, BSONObjectID](
       collectionName = "draft-returns",
       mongo          = component.mongoConnector.db,
@@ -67,6 +70,12 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   val indexName: String        = "draft-return-cache-ttl"
   val objName: String          = "return"
   val key: String              = "return.cgtReference.value"
+
+  collection.watch[JsValue]().cursor.foldWhile(()) {
+    case (_, d) =>
+      println(s"$d\n\n\n\n\n")
+      Cursor.Cont(())
+  }
 
   override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
     EitherT(get(cgtReference))
