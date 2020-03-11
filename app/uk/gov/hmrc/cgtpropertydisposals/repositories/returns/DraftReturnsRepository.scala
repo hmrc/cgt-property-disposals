@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import java.util.UUID
 
-import akka.stream.Materializer
 import cats.data.EitherT
 import cats.instances.either._
 import cats.instances.list._
@@ -76,6 +75,7 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
         logger.info(s"Got item $d\n\n\n")
         Cursor.Cont(())
     }
+    ()
   } catch {
     case NonFatal(e) =>
       logger.warn("Could not watch", e)
