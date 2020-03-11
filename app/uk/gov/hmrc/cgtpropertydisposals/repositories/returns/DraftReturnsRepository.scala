@@ -70,10 +70,15 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   val objName: String          = "return"
   val key: String              = "return.cgtReference.value"
 
-  collection.watch[JsValue]().cursor.foldWhile(()) {
-    case (_, d) =>
-      println(s"$d\n\n\n\n\n")
-      Cursor.Cont(())
+  try {
+    collection.watch[JsValue]().cursor.foldWhile(()) {
+      case (_, d) =>
+        logger.info(s"Got item $d\n\n\n")
+        Cursor.Cont(())
+    }
+  } catch {
+    case NonFatal(e) =>
+      logger.warn("Could not watch", e)
   }
 
   override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
