@@ -19,22 +19,24 @@ package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 import java.util.UUID
 
 import cats.data.EitherT
-import org.scalacheck.ScalacheckShapeless._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsNumber, Json}
+import play.api.libs.json.{JsNumber, JsValue, Json, Writes}
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnector
-import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.routes
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.RegistrationResponseEvent
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
+import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockFactory {
 
@@ -58,26 +60,41 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
       .expects(expectedRegistrationDetails, expectedReferenceId, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockAuditRegistrationResponse(httpStatus: Int, httpBody: String, path: String) =
+  def mockAuditRegistrationResponse(httpStatus: Int, responseBody: Option[JsValue]) =
     (mockAuditService
-      .sendRegistrationResponse(_: Int, _: String, _: String)(_: HeaderCarrier, _: ExecutionContext))
-      .expects(httpStatus, *, path, *, *)
+      .sendEvent(_: String, _: RegistrationResponseEvent, _: String)(
+        _: HeaderCarrier,
+        _: Writes[RegistrationResponseEvent],
+        _: Request[_]
+      ))
+      .expects(
+        "registrationResponse",
+        RegistrationResponseEvent(
+          httpStatus,
+          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: null" }"""))
+        ),
+        "registration-response",
+        *,
+        *,
+        *
+      )
       .returning(())
 
   "RegisterWithoutIdServiceImpl" when {
 
     "handling requests to register without id" must {
 
-      implicit val hc: HeaderCarrier = HeaderCarrier()
-      val registrationDetails        = sample[RegistrationDetails]
-      val referenceId                = UUID.randomUUID()
+      implicit val hc: HeaderCarrier   = HeaderCarrier()
+      implicit val request: Request[_] = FakeRequest()
+      val registrationDetails          = sample[RegistrationDetails]
+      val referenceId                  = UUID.randomUUID()
 
       "return an error" when {
         "the http call comes back with a status other than 200" in {
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(500)))
-            mockAuditRegistrationResponse(500, "", routes.SubscriptionController.registerWithoutId().url)
+            mockAuditRegistrationResponse(500, None)
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -87,7 +104,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200)))
-            mockAuditRegistrationResponse(200, "", routes.SubscriptionController.registerWithoutId().url)
+            mockAuditRegistrationResponse(200, None)
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -97,7 +114,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
           inSequence {
             mockGenerateUUID(referenceId)
             mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(JsNumber(1)))))
-            mockAuditRegistrationResponse(200, "1", routes.SubscriptionController.registerWithoutId().url)
+            mockAuditRegistrationResponse(200, Some(JsNumber(1)))
           }
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
@@ -116,12 +133,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
         inSequence {
           mockGenerateUUID(referenceId)
           mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(jsonBody))))
-          mockAuditRegistrationResponse(
-            200,
-            jsonBody.toString,
-            routes.SubscriptionController.registerWithoutId().url
-          )
-
+          mockAuditRegistrationResponse(200, Some(jsonBody))
         }
 
         await(service.registerWithoutId(registrationDetails).value) shouldBe Right(SapNumber(sapNumber))

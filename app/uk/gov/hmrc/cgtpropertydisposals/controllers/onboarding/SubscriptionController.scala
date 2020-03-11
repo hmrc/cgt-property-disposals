@@ -34,7 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscript
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{AuditService, RegisterWithoutIdService, SubscriptionService}
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdService, SubscriptionService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -45,7 +45,6 @@ class SubscriptionController @Inject() (
   authenticate: AuthenticateActions,
   subscriptionService: SubscriptionService,
   taxEnrolmentService: TaxEnrolmentService,
-  auditService: AuditService,
   registerWithoutIdService: RegisterWithoutIdService,
   cc: ControllerComponents
 )(
@@ -57,7 +56,7 @@ class SubscriptionController @Inject() (
     val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
       for {
         subscriptionDetails <- EitherT.fromEither[Future](extractRequest[SubscriptionDetails](request))
-        subscriptionResponse <- subscribeAndEnrol(subscriptionDetails, routes.SubscriptionController.subscribe().url)
+        subscriptionResponse <- subscribeAndEnrol(subscriptionDetails)
                                  .leftMap[SubscriptionError](BackendError)
       } yield subscriptionResponse
 
@@ -70,10 +69,8 @@ class SubscriptionController @Inject() (
           logger.warn("Error while trying to subscribe:", e)
           InternalServerError
       }, {
-        case successful: SubscriptionSuccessful => {
-          Ok(Json.toJson(successful))
-        }
-        case AlreadySubscribed => Conflict
+        case successful: SubscriptionSuccessful => Ok(Json.toJson(successful))
+        case AlreadySubscribed                  => Conflict
       }
     )
   }
@@ -160,11 +157,10 @@ class SubscriptionController @Inject() (
       )
 
   private def subscribeAndEnrol(
-    subscriptionDetails: SubscriptionDetails,
-    path: String
+    subscriptionDetails: SubscriptionDetails
   )(implicit request: AuthenticatedRequest[_]): EitherT[Future, Error, SubscriptionResponse] =
     for {
-      subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails, path)
+      subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails)
       _ <- subscriptionResponse match {
             case SubscriptionSuccessful(cgtReferenceNumber) =>
               taxEnrolmentService

@@ -29,18 +29,21 @@ import configs.syntax._
 import play.api.Configuration
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json._
+import play.api.mvc.Request
 import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
@@ -49,12 +52,14 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math.BigDecimal
+import scala.util.Try
 
 @ImplementedBy(classOf[DefaultReturnsService])
 trait ReturnsService {
 
   def submitReturn(returnRequest: SubmitReturnRequest)(
-    implicit hc: HeaderCarrier
+    implicit hc: HeaderCarrier,
+    request: Request[_]
   ): EitherT[Future, Error, SubmitReturnResponse]
 
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
@@ -73,6 +78,7 @@ class DefaultReturnsService @Inject() (
   financialDataConnector: FinancialDataConnector,
   returnTransformerService: ReturnTransformerService,
   returnSummaryListTransformerService: ReturnSummaryListTransformerService,
+  auditService: AuditService,
   config: Configuration,
   metrics: Metrics
 )(implicit ec: ExecutionContext)
@@ -84,23 +90,41 @@ class DefaultReturnsService @Inject() (
 
   override def submitReturn(
     returnRequest: SubmitReturnRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] = {
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
+    val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest)
+    auditService.sendEvent(
+      "submitReturn",
+      SubmitReturnEvent(
+        desSubmitReturnRequest,
+        returnRequest.subscribedDetails.cgtReference.value,
+        returnRequest.agentReferenceNumber.map(_.value)
+      ),
+      "submit-return"
+    )
+
     val timer = metrics.submitReturnTimer.time()
 
-    returnsConnector.submit(returnRequest).subflatMap { response =>
-      timer.close()
-      if (response.status === OK) {
-        for {
-          desResponse <- response
-                          .parseJSON[DesSubmitReturnResponse]()
-                          .leftMap(Error(_))
-          submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
-        } yield submitReturnResponse
-      } else {
-        metrics.submitReturnErrorCounter.inc()
-        Left(Error(s"call to submit return came back with status ${response.status}"))
+    returnsConnector
+      .submit(
+        returnRequest.subscribedDetails.cgtReference,
+        desSubmitReturnRequest
+      )
+      .subflatMap { response =>
+        timer.close()
+        auditSubmitReturnResponse(response.status, response.body)
+
+        if (response.status === OK) {
+          for {
+            desResponse <- response
+                            .parseJSON[DesSubmitReturnResponse]()
+                            .leftMap(Error(_))
+            submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
+          } yield submitReturnResponse
+        } else {
+          metrics.submitReturnErrorCounter.inc()
+          Left(Error(s"call to submit return came back with status ${response.status}"))
+        }
       }
-    }
   }
 
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
@@ -216,6 +240,19 @@ class DefaultReturnsService @Inject() (
         )
     }
     charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, _))
+  }
+
+  private def auditSubmitReturnResponse(
+    httpStatus: Int,
+    body: String
+  )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
+    val json = Try(Json.parse(body)).getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $body" }"""))
+
+    auditService.sendEvent(
+      "submitReturnResponse",
+      SubmitReturnResponseEvent(httpStatus, json),
+      "submit-return-response"
+    )
   }
 
 }
