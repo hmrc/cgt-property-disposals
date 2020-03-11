@@ -28,6 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class DraftReturnsRepositoryFailureSpec extends WordSpec with Matchers with MongoSupport with MockFactory {
+
   val config = Configuration(
     ConfigFactory.parseString(
       """

@@ -56,8 +56,7 @@ trait DraftReturnsRepository {
 
 @Singleton
 class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(
-  implicit val ec: ExecutionContext,
-  materializer: Materializer
+  implicit val ec: ExecutionContext
 ) extends ReactiveRepository[DraftReturn, BSONObjectID](
       collectionName = "draft-returns",
       mongo          = component.mongoConnector.db,
