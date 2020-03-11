@@ -121,7 +121,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
       ).foreach { httpResponse =>
         withClue(s"For http response [${httpResponse.toString}]") {
           mockPost(
-            "http://localhost:9196/dms/submit-with-attachments",
+            "http://localhost:9196/gform/dms/submit-with-attachments",
             hc.headers,
             payload
           )(Future.successful(httpResponse))
@@ -166,7 +166,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
       ).foreach { httpResponse =>
         withClue(s"For http response [${httpResponse.toString}]") {
           mockPost(
-            "http://localhost:9196/dms/submit-with-attachments",
+            "http://localhost:9196/gform/dms/submit-with-attachments",
             hc.headers,
             payload
           )(Future.successful(httpResponse))

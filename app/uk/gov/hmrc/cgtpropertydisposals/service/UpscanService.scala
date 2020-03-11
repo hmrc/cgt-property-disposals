@@ -83,9 +83,9 @@ class UpscanServiceImpl @Inject() (
     cgtReference: CgtReference
   ): EitherT[Future, Error, UpscanSnapshot] =
     for {
-      fds <- upscanFileDescriptorRepository.getAll(cgtReference)
-      d   <- EitherT.fromEither[Future](computeUpscanSnapshot(fds))
-    } yield d
+      fileDescriptors <- upscanFileDescriptorRepository.getAll(cgtReference)
+      upscanSnapshot  <- EitherT.fromEither[Future](computeUpscanSnapshot(fileDescriptors))
+    } yield upscanSnapshot
 
   override def updateUpscanFileDescriptorStatus(
     upscanFileDescriptor: UpscanFileDescriptor
@@ -126,9 +126,14 @@ class UpscanServiceImpl @Inject() (
     }
 
   private def computeUpscanSnapshot(upscanFileDescriptor: List[UpscanFileDescriptor]): Either[Error, UpscanSnapshot] = {
+    logger.info(s"stored upscan file descriptors: $upscanFileDescriptor ")
+
     val validFiles = upscanFileDescriptor
       .filter(fd => fd.timestamp.isAfter(LocalDateTime.now().minusDays(s3UrlExpiryTime)))
       .filter(fd => fd.status === UPLOADED)
+
+    logger.info(s"filtered upscan file descriptors: $upscanFileDescriptor ")
+
     Right(
       UpscanSnapshot(
         validFiles.size

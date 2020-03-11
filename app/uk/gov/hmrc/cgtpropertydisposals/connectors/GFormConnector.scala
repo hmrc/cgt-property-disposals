@@ -23,7 +23,7 @@ import akka.stream.scaladsl.{FileIO, Source}
 import akka.util.ByteString
 import cats.data.EitherT
 import cats.implicits._
-import com.google.inject.Inject
+import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.DefaultWriteables
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.mvc.MultipartFormData
@@ -39,19 +39,21 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
+@ImplementedBy(classOf[GFormConnectorImpl])
 trait GFormConnector {
   def submitToDms(dmsSubmission: DmsSubmissionPayload)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId]
 }
 
+@Singleton
 class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConfig: ServicesConfig)(
   implicit ex: ExecutionContext
 ) extends DefaultWriteables
     with GFormConnector
     with Logging {
 
-  val gformUrl: String = s"${servicesConfig.baseUrl("gform")}/dms/submit-with-attachments"
+  val gformUrl: String = s"${servicesConfig.baseUrl("gform")}/gform/dms/submit-with-attachments"
 
   @SuppressWarnings(
     Array("org.wartremover.warts.Var", "org.wartremover.warts.Any", "org.wartremover.warts.PublicInference")
@@ -61,11 +63,11 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, EnvelopeId] = {
 
     def sendFormdata(
-      p: Source[MultipartFormData.Part[Source[ByteString, _]], _]
+      multipartFormData: Source[MultipartFormData.Part[Source[ByteString, _]], _]
     ): EitherT[Future, Error, EnvelopeId] =
       EitherT[Future, Error, EnvelopeId](
         playHttpClient
-          .post(gformUrl, hc.headers, p)
+          .post(gformUrl, hc.headers, multipartFormData)
           .map { response =>
             response.status match {
               case 200 => Right(EnvelopeId(response.body))
@@ -100,18 +102,18 @@ object GFormConnector {
 
   private def suffix(contentType: Option[String]): String =
     contentType match {
-      case Some("application/pdf")                                => ".pdf"
-      case Some("application/xml")                                => ".xml"
-      case Some("application/json")                               => ".json"
-      case Some("image/jpeg")                                     => ".jpeg"
-      case Some("image/png")                                      => ".png"
-      case Some("text/xml")                                       => ".xml"
-      case Some("application/vnd.oasis.opendocument.spreadsheet") => ".ods"
-      case Some("application/vnd.oasis.opendocument.text")        => ".odt"
-      case Some("application/vnd.ms-excel")                       => ".xls"
-      case Some("application/msword")                             => ".doc"
-      case Some(_)                                                => ".txt"
-      case None                                                   => ".txt"
+      case Some("application/vnd.ms-excel")                                                => ".xls"
+      case Some("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")       => ".xlsx"
+      case Some("application/msword")                                                      => ".doc"
+      case Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document") => ".docx"
+      case Some("application/vnd.oasis.opendocument.spreadsheet")                          => ".ods"
+      case Some("application/vnd.oasis.opendocument.text")                                 => ".odt"
+      case Some("image/png")                                                               => ".png"
+      case Some("image/jpeg")                                                              => ".jpg"
+      case Some("application/pdf")                                                         => ".pdf"
+      case Some("text/plain")                                                              => ".txt"
+      case Some(_)                                                                         => ".txt"
+      case None                                                                            => ".txt"
     }
 
   def createTempFile(prefix: String, suffix: String, data: Array[Byte]): Option[Path] =
