@@ -41,6 +41,10 @@ trait DmsSubmissionService {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId]
 
+  def testSubmitToDms(html: B64Html, cgtReference: CgtReference, formBundleId: String)(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, EnvelopeId]
+
 }
 
 @Singleton
@@ -53,7 +57,11 @@ class DefaultDmsSubmissionService @Inject() (
     with Logging {
 
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
-  override def submitToDms(html: B64Html, cgtReference: CgtReference, formBundleId: String)(
+  override def submitToDms(
+    html: B64Html,
+    cgtReference: CgtReference,
+    formBundleId: String
+  )(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId] = {
 
@@ -62,21 +70,43 @@ class DefaultDmsSubmissionService @Inject() (
         .get[A](s"microservice.services.upscan-initiate.dms.$key")
         .value
 
-    val ct: String = getDmsMetaConfig[String]("classification-type")
-    val ba: String = getDmsMetaConfig[String]("business-area")
+    val queue: String        = getDmsMetaConfig[String]("classification-type")
+    val businessArea: String = getDmsMetaConfig[String]("business-area")
 
     val fileUploadResult: EitherT[Future, Error, EnvelopeId] = for {
-      upscanSnapshot <- upscanService.getUpscanSnapshot(cgtReference)
-      callbacks      <- upscanService.getAllUpscanCallBacks(cgtReference)
-      attachments    <- upscanService.downloadFilesFromS3(upscanSnapshot, callbacks)
-      ff             <- EitherT.fromEither[Future](attachments.sequence[Either[Error, ?], FileAttachment])
+      upscanSnapshot  <- upscanService.getUpscanSnapshot(cgtReference)
+      callbacks       <- upscanService.getAllUpscanCallBacks(cgtReference)
+      attachments     <- upscanService.downloadFilesFromS3(upscanSnapshot, callbacks)
+      fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
       envId <- gFormConnector.submitToDms(
-                DmsSubmissionPayload(html, ff, DmsMetadata(formBundleId, cgtReference.value, ct, ba))
+                DmsSubmissionPayload(
+                  html,
+                  fileAttachments,
+                  DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
+                )
               )
     } yield envId
 
     fileUploadResult
 
   }
+
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
+  override def testSubmitToDms(
+    html: B64Html,
+    cgtReference: CgtReference,
+    formBundleId: String
+  )(
+    implicit hc: HeaderCarrier
+  ): EitherT[Future, Error, EnvelopeId] =
+    for {
+      envId <- gFormConnector.submitToDms(
+                DmsSubmissionPayload(
+                  html,
+                  List.empty,
+                  DmsMetadata(formBundleId, cgtReference.value, "psa-sa return 1", "PT Operations")
+                )
+              )
+    } yield envId
 
 }
