@@ -452,7 +452,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
            |  "processingDate": "2020-03-02T16:09:28Z",
            |  "returnList": [
            |    {
-           |      "totalOutstanding": 12913,
            |      "submissionDate": "2020-02-27",
            |      "submissionId": "130000000581",
            |      "propertyAddress": {
@@ -482,7 +481,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
            |      "totalCGTLiability": 12913
            |    },
            |    {
-           |      "totalOutstanding": 0,
            |      "submissionDate": "2020-02-28",
            |      "submissionId": "130000000589",
            |      "propertyAddress": {
@@ -507,7 +505,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
            |      "totalCGTLiability": 0
            |    },
            |    {
-           |      "totalOutstanding": 103039,
            |      "submissionDate": "2020-03-02",
            |      "submissionId": "130000000593",
            |      "propertyAddress": {

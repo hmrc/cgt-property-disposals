@@ -31,7 +31,6 @@ object DesFinancialDataResponse {
 final case class DesFinancialTransaction(
   chargeReference: String,
   originalAmount: BigDecimal,
-  outstandingAmount: BigDecimal,
   items: Option[List[DesFinancialTransactionItem]]
 )
 
