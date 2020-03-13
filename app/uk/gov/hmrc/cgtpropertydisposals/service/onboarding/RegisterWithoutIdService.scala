@@ -24,24 +24,29 @@ import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.OK
 import play.api.libs.json.{Json, Reads}
+import play.api.mvc.Request
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnector
 import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding._
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.RegistrationResponseEvent
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
+import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.RegisterWithoutIdServiceImpl.RegisterWithoutIdResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @ImplementedBy(classOf[RegisterWithoutIdServiceImpl])
 trait RegisterWithoutIdService {
 
   def registerWithoutId(registrationDetails: RegistrationDetails)(
-    implicit hc: HeaderCarrier
+    implicit hc: HeaderCarrier,
+    request: Request[_]
   ): EitherT[Future, Error, SapNumber]
 
 }
@@ -57,17 +62,17 @@ class RegisterWithoutIdServiceImpl @Inject() (
     with Logging {
 
   def registerWithoutId(registrationDetails: RegistrationDetails)(
-    implicit hc: HeaderCarrier
+    implicit hc: HeaderCarrier,
+    request: Request[_]
   ): EitherT[Future, Error, SapNumber] = {
     val referenceId = uuidGenerator.nextId()
     val timer       = metrics.registerWithoutIdTimer.time()
 
     connector.registerWithoutId(registrationDetails, referenceId).subflatMap { response =>
       timer.close()
-      auditService.sendRegistrationResponse(
+      sendRegistrationAuditEvent(
         response.status,
-        response.body,
-        routes.SubscriptionController.registerWithoutId().url
+        response.body
       )
 
       if (response.status === OK) {
@@ -89,6 +94,22 @@ class RegisterWithoutIdServiceImpl @Inject() (
         Left(Error(s"call to register with id with reference id $referenceId came back with status ${response.status}"))
       }
     }
+  }
+
+  private def sendRegistrationAuditEvent(
+    httpStatus: Int,
+    body: String
+  )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
+    val json = Try(Json.parse(body)).getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $body" }"""))
+
+    auditService.sendEvent(
+      "registrationResponse",
+      RegistrationResponseEvent(
+        httpStatus,
+        json
+      ),
+      "registration-response"
+    )
   }
 
 }

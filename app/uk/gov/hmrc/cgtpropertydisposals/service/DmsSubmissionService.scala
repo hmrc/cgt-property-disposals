@@ -96,7 +96,7 @@ class DefaultDmsSubmissionService @Inject() (
     html: B64Html,
     cgtReference: CgtReference,
     formBundleId: String
-  )( //FIXME; this formbundleid needs to be passed in the dms submission payload
+  )(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId] =
     for {

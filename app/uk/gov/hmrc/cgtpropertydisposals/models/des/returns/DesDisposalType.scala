@@ -23,13 +23,17 @@ sealed trait DesDisposalType extends Product with Serializable
 
 object DesDisposalType {
 
-  final case object Sold extends DesDisposalType
+  case object Sold extends DesDisposalType
 
-  final case object Gifted extends DesDisposalType
+  case object Gifted extends DesDisposalType
+
+  case object Other extends DesDisposalType
 
   def apply(cr: CompleteReturn): DesDisposalType = cr.triageAnswers.disposalMethod match {
     case DisposalMethod.Sold   => Sold
     case DisposalMethod.Gifted => Gifted
+    case DisposalMethod.Other  => Other
+
   }
 
   implicit val format: Format[DesDisposalType] =
@@ -38,6 +42,7 @@ object DesDisposalType {
         json match {
           case JsString("sold")   => JsSuccess(Sold)
           case JsString("gifted") => JsSuccess(Gifted)
+          case JsString("other")  => JsSuccess(Other)
           case JsString(other)    => JsError(s"Could not parse disposal type $other")
           case other              => JsError(s"Expected string for acquisition type but got $other")
         }
@@ -45,7 +50,7 @@ object DesDisposalType {
         disposalType match {
           case Sold   => JsString("sold")
           case Gifted => JsString("gifted")
-
+          case Other  => JsString("other")
         }
       }
     )

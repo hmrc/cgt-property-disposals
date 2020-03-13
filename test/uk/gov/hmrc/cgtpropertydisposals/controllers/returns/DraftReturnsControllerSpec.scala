@@ -32,7 +32,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -42,7 +41,6 @@ import scala.concurrent.Future
 class DraftReturnsControllerSpec extends ControllerSpec {
 
   val draftReturnsService = mock[DraftReturnsService]
-  val auditService        = mock[AuditService]
 
   implicit val headerCarrier = HeaderCarrier()
 
@@ -74,7 +72,6 @@ class DraftReturnsControllerSpec extends ControllerSpec {
   val controller = new DraftReturnsController(
     authenticate        = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     draftReturnsService = draftReturnsService,
-    auditService        = auditService,
     cc                  = Helpers.stubControllerComponents()
   )
 

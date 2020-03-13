@@ -14,29 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.finance
-
-import java.time.LocalDate
+package uk.gov.hmrc.cgtpropertydisposals.models.returns.audit
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.FinancialTransaction.Payment
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesSubmitReturnRequest
 
-final case class FinancialTransaction(
-  chargeReference: String,
-  originalAmount: AmountInPence,
-  outstandingAmount: AmountInPence,
-  payments: List[Payment]
+final case class SubmitReturnEvent(
+  request: DesSubmitReturnRequest,
+  cgtReference: String,
+  agentReferenceNumber: Option[String]
 )
 
-object FinancialTransaction {
+object SubmitReturnEvent {
 
-  final case class Payment(
-    amount: AmountInPence,
-    clearingDate: LocalDate
-  )
-
-  implicit val paymentFormat: OFormat[Payment] = Json.format
-
-  implicit val financialTransactionFormat: OFormat[FinancialTransaction] = Json.format[FinancialTransaction]
+  implicit val format: OFormat[SubmitReturnEvent] = Json.format
 
 }

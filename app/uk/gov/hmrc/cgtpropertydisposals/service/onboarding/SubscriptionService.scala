@@ -27,6 +27,8 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
 import play.api.http.Status.{ACCEPTED, FORBIDDEN, OK}
+import play.api.libs.json.Json
+import play.api.mvc.Request
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
@@ -36,9 +38,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.{SubscriptionConfirmationEmailSentEvent, SubscriptionResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, Validation}
+import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.SubscriptionService.DesSubscriptionDisplayDetails
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
@@ -47,12 +51,14 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @ImplementedBy(classOf[SubscriptionServiceImpl])
 trait SubscriptionService {
 
-  def subscribe(subscriptionDetails: SubscriptionDetails, path: String)(
-    implicit hc: HeaderCarrier
+  def subscribe(subscriptionDetails: SubscriptionDetails)(
+    implicit hc: HeaderCarrier,
+    request: Request[_]
   ): EitherT[Future, Error, SubscriptionResponse]
 
   def getSubscription(cgtReference: CgtReference)(
@@ -80,22 +86,20 @@ class SubscriptionServiceImpl @Inject() (
     config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
   override def subscribe(
-    subscriptionDetails: SubscriptionDetails,
-    path: String
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] =
+    subscriptionDetails: SubscriptionDetails
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubscriptionResponse] =
     for {
-      subscriptionResponse <- sendSubscriptionRequest(subscriptionDetails, path)
+      subscriptionResponse <- sendSubscriptionRequest(subscriptionDetails)
       _ <- subscriptionResponse match {
             case successful: SubscriptionSuccessful =>
-              sendSubscriptionConfirmationEmail(subscriptionDetails, successful, path)
+              sendSubscriptionConfirmationEmail(subscriptionDetails, successful)
             case _ => EitherT.pure[Future, Error](())
           }
     } yield subscriptionResponse
 
   private def sendSubscriptionRequest(
-    subscriptionDetails: SubscriptionDetails,
-    path: String
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubscriptionResponse] = {
+    subscriptionDetails: SubscriptionDetails
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubscriptionResponse] = {
     def isAlreadySubscribedResponse(response: HttpResponse): Boolean =
       response.status === FORBIDDEN && response
         .parseJSON[DesErrorResponse]()
@@ -106,7 +110,7 @@ class SubscriptionServiceImpl @Inject() (
 
     subscriptionConnector.subscribe(subscriptionDetails).subflatMap { response =>
       timer.close()
-      auditService.sendSubscriptionResponse(response.status, response.body, path)
+      auditSubscriptionResponse(response.status, response.body)
       if (response.status === OK) {
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
       } else if (isAlreadySubscribedResponse(response)) {
@@ -120,18 +124,16 @@ class SubscriptionServiceImpl @Inject() (
 
   private def sendSubscriptionConfirmationEmail(
     subscriptionDetails: SubscriptionDetails,
-    subscriptionSuccessful: SubscriptionSuccessful,
-    path: String
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Unit] = {
+    subscriptionSuccessful: SubscriptionSuccessful
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] = {
     val timer = metrics.subscriptionConfirmationEmailTimer.time()
     emailConnector
       .sendSubscriptionConfirmationEmail(subscriptionDetails, CgtReference(subscriptionSuccessful.cgtReferenceNumber))
       .map { httpResponse =>
         timer.close()
-        auditService.sendSubscriptionConfirmationEmailSentEvent(
+        auditSubscriptionConfirmationEmailSent(
           subscriptionDetails.emailAddress.value,
-          subscriptionSuccessful.cgtReferenceNumber,
-          path
+          subscriptionSuccessful.cgtReferenceNumber
         )
 
         if (httpResponse.status =!= ACCEPTED) {
@@ -233,6 +235,32 @@ class SubscriptionServiceImpl @Inject() (
       .toEither
       .leftMap(errors => s"Could not read DES response: ${errors.toList.mkString("; ")}")
   }
+
+  private def auditSubscriptionResponse(
+    httpStatus: Int,
+    body: String
+  )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
+    val json = Try(Json.parse(body)).getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $body" }"""))
+
+    auditService.sendEvent(
+      "subscriptionResponse",
+      SubscriptionResponseEvent(httpStatus, json),
+      "subscription-response"
+    )
+  }
+
+  private def auditSubscriptionConfirmationEmailSent(
+    emailAddress: String,
+    cgtReference: String
+  )(implicit hc: HeaderCarrier, request: Request[_]): Unit =
+    auditService.sendEvent(
+      "subscriptionConfirmationEmailSent",
+      SubscriptionConfirmationEmailSentEvent(
+        emailAddress,
+        cgtReference
+      ),
+      "subscription-confirmation-email-sent"
+    )
 
 }
 

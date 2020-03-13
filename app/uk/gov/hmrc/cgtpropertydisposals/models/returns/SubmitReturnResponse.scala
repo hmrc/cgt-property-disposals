@@ -15,15 +15,26 @@
  */
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
+import java.time.LocalDate
+
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.Charge
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 
 final case class SubmitReturnResponse(
   formBundleId: String,
-  charge: Option[Charge]
+  charge: Option[ReturnCharge]
 )
 
 object SubmitReturnResponse {
+
+  final case class ReturnCharge(
+    chargeReference: String,
+    amount: AmountInPence,
+    dueDate: LocalDate
+  )
+
+  implicit val returnChargeFormat: OFormat[ReturnCharge] = Json.format
 
   implicit val format: OFormat[SubmitReturnResponse] = Json.format
 

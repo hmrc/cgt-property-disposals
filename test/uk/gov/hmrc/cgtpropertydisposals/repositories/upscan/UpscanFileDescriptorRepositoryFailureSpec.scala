@@ -17,9 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 

@@ -38,6 +38,7 @@ object AcquisitionMethod {
     case DesAcquisitionType.Gifted       => Gifted
     case DesAcquisitionType.Other(value) => Other(value)
   }
+
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[AcquisitionMethod] = derived.oformat()
 

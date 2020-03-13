@@ -28,8 +28,7 @@ final case class ReturnSummary(
   completionDate: LocalDate,
   lastUpdatedDate: Option[LocalDate],
   taxYear: String,
-  totalCGTLiability: AmountInPence,
-  totalOutstanding: AmountInPence,
+  mainReturnChargeAmount: AmountInPence,
   propertyAddress: UkAddress,
   charges: List[Charge]
 )
