@@ -11,4 +11,5 @@
 
 # Add all the application routes to the prod.routes file
 ->          /                           prod.Routes
-GET         /dms-test                   uk.gov.hmrc.cgtpropertydisposals.controllers.testonly.DmsController.testSubmitToDms()
+
+GET         /cgt-property-disposals/dms-test                   uk.gov.hmrc.cgtpropertydisposals.controllers.testonly.DmsController.testSubmitToDms()
