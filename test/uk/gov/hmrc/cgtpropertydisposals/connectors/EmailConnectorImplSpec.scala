@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
+import java.time.LocalDate
+
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
@@ -24,7 +26,11 @@ import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge, ChargeType, MoneyUtils}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -32,8 +38,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
-  val (accountCreatedTemplateId, accountCreatedSignInUrl) =
-    "template" -> "sign-in"
+  val (accountCreatedTemplateId, accountCreatedSignInUrl, returnSubmittedTemplateId) =
+    ("template", "sign-in", "template-return-submitted")
 
   val config = Configuration(
     ConfigFactory.parseString(
@@ -53,6 +59,9 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
         |        template-id = "$accountCreatedTemplateId"
         |        sign-in-url = "$accountCreatedSignInUrl"
         |    }
+        |    return-submitted {
+        |        template-id = "$returnSubmittedTemplateId"
+        |    }
         |}
         |""".stripMargin
     )
@@ -69,7 +78,6 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
       val cgtReference = sample[CgtReference]
 
       val subscriptionDetails = sample[SubscriptionDetails]
-
       val expectedRequestBody = Json.parse(
         s"""{
            |  "to": ["${subscriptionDetails.emailAddress.value}"],
@@ -114,6 +122,120 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
           )(None)
 
           await(connector.sendSubscriptionConfirmationEmail(subscriptionDetails, cgtReference).value).isLeft shouldBe true
+        }
+      }
+    }
+
+    "it receives a request to send a return submitted confirmation email with SOME charge" must {
+
+      val taxDue               = AmountInPence(50)
+      val chargeRef            = "CHARGE_REF"
+      val submissionId         = "submissionId"
+      val dueDate              = LocalDate.of(2020, 7, 1)
+      val charge               = ReturnCharge(chargeRef, taxDue, dueDate)
+      val submitReturnResponse = sample[SubmitReturnResponse].copy(formBundleId = submissionId, charge = Some(charge))
+      val subscribedDetails    = sample[SubscribedDetails]
+      val expectedRequestBody = Json.parse(
+        s"""{
+           |  "to": ["${subscribedDetails.emailAddress.value}"],
+           |  "templateId": "$returnSubmittedTemplateId",
+           |  "parameters": {
+           |    "name": "${subscribedDetails.contactName.value}",
+           |    "submissionId": "$submissionId",
+           |    "taxDue": "${MoneyUtils.formatAmountOfMoneyWithPoundSign(taxDue.value)}",
+           |    "chargeRef": "$chargeRef",
+           |    "dueDate": "${LocalDateUtils.govDisplayFormat(dueDate)}"
+           |  },
+           |  "force": false
+           |}
+           |""".stripMargin
+      )
+
+      "make a http put call and return a result" in {
+        List(
+          HttpResponse(204),
+          HttpResponse(401),
+          HttpResponse(400)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+
+            mockPost(
+              s"http://host:123/hmrc/email",
+              Map.empty,
+              expectedRequestBody
+            )(Some(httpResponse))
+
+            await(connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value) shouldBe Right(
+              httpResponse
+            )
+          }
+        }
+      }
+
+      "return an error" when {
+
+        "the call fails" in {
+          mockPost(
+            s"http://host:123/hmrc/email",
+            Map.empty,
+            expectedRequestBody
+          )(None)
+
+          await(connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value).isLeft shouldBe true
+        }
+      }
+    }
+    "it receives a request to send a return submitted confirmation email with NO charge" must {
+
+      val taxDue               = AmountInPence(0)
+      val submissionId         = "submissionId"
+      val submitReturnResponse = sample[SubmitReturnResponse].copy(formBundleId = submissionId, charge = None)
+      val subscribedDetails    = sample[SubscribedDetails]
+      val expectedRequestBody = Json.parse(
+        s"""{
+           |  "to": ["${subscribedDetails.emailAddress.value}"],
+           |  "templateId": "$returnSubmittedTemplateId",
+           |  "parameters": {
+           |    "name": "${subscribedDetails.contactName.value}",
+           |    "submissionId": "$submissionId",
+           |    "taxDue": "${MoneyUtils.formatAmountOfMoneyWithPoundSign(taxDue.value)}"
+           |  },
+           |  "force": false
+           |}
+           |""".stripMargin
+      )
+
+      "make a http put call and return a result" in {
+        List(
+          HttpResponse(204),
+          HttpResponse(401),
+          HttpResponse(400)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+
+            mockPost(
+              s"http://host:123/hmrc/email",
+              Map.empty,
+              expectedRequestBody
+            )(Some(httpResponse))
+
+            await(connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value) shouldBe Right(
+              httpResponse
+            )
+          }
+        }
+      }
+
+      "return an error" when {
+
+        "the call fails" in {
+          mockPost(
+            s"http://host:123/hmrc/email",
+            Map.empty,
+            expectedRequestBody
+          )(None)
+
+          await(connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value).isLeft shouldBe true
         }
       }
     }

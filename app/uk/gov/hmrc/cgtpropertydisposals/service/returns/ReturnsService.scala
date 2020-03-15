@@ -27,27 +27,29 @@ import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
-import play.api.http.Status.{NOT_FOUND, OK}
+import play.api.http.Status.{ACCEPTED, NOT_FOUND, OK}
 import play.api.libs.json._
 import play.api.mvc.Request
+import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest, ReturnDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -78,6 +80,7 @@ class DefaultReturnsService @Inject() (
   financialDataConnector: FinancialDataConnector,
   returnTransformerService: ReturnTransformerService,
   returnSummaryListTransformerService: ReturnSummaryListTransformerService,
+  emailConnector: EmailConnector,
   auditService: AuditService,
   config: Configuration,
   metrics: Metrics
@@ -92,6 +95,7 @@ class DefaultReturnsService @Inject() (
     returnRequest: SubmitReturnRequest
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
     val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest)
+
     auditService.sendEvent(
       "submitReturn",
       SubmitReturnEvent(
@@ -109,23 +113,84 @@ class DefaultReturnsService @Inject() (
         returnRequest.subscribedDetails.cgtReference,
         desSubmitReturnRequest
       )
-      .subflatMap { response =>
+      .map { httpResponse =>
         timer.close()
-        auditSubmitReturnResponse(response.status, response.body)
+        auditSubmitReturnResponse(httpResponse.status, httpResponse.body)
+        httpResponse
+      }
+      .subflatMap(httpResponse =>
+        httpResponse match {
+          case HttpResponse(OK, _, _, _) => Right(httpResponse)
+          case _ => {
+            metrics.submitReturnErrorCounter.inc()
+            Left(Error(s"call to submit return came back with status ${httpResponse.status}"))
+          }
+        }
+      )
+      .subflatMap(response => parseResponse(response))
+      .subflatMap { desResponse =>
+        prepareSubmitReturnResponse(desResponse)
+      }
+      .flatMap { submitReturnResponse =>
+        sendReturnConfirmationEmail(returnRequest, submitReturnResponse)
+      }
+      .flatMap { submitReturnResponse =>
+        auditSubscriptionConfirmationEmailSent(returnRequest, submitReturnResponse)
+      }
 
-        if (response.status === OK) {
-          for {
-            desResponse <- response
-                            .parseJSON[DesSubmitReturnResponse]()
-                            .leftMap(Error(_))
-            submitReturnResponse <- prepareSubmitReturnResponse(desResponse)
-          } yield submitReturnResponse
-        } else {
-          metrics.submitReturnErrorCounter.inc()
-          Left(Error(s"call to submit return came back with status ${response.status}"))
+  }
+
+  private def sendReturnConfirmationEmail(
+    returnRequest: SubmitReturnRequest,
+    submitReturnResponse: SubmitReturnResponse
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] =
+    emailConnector
+      .sendReturnSubmitConfirmationEmail(
+        submitReturnResponse,
+        returnRequest.subscribedDetails
+      )
+      .map { httpResponse =>
+        httpResponse match {
+          case HttpResponse(ACCEPTED, _, _, _) => submitReturnResponse
+          case _ => {
+            metrics.submitReturnErrorCounter.inc()
+            logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
+            submitReturnResponse
+          }
         }
       }
-  }
+      .leftFlatMap { e =>
+        metrics.submitReturnErrorCounter.inc()
+        logger.warn("Could not send confirmation email", e)
+        EitherT.pure[Future, Error](submitReturnResponse)
+      }
+
+  private def parseResponse(response: HttpResponse): Either[Error, DesSubmitReturnResponse] =
+    response.parseJSON[DesSubmitReturnResponse]() match {
+      case Right(response) => response.asRight[Error]
+      case Left(error) => {
+        logger.warn(s"Call to send return confirmation email audit event ${response.status}")
+        Error(error).asLeft[DesSubmitReturnResponse]
+      }
+    }
+
+  private def auditSubscriptionConfirmationEmailSent(
+    returnRequest: SubmitReturnRequest,
+    submitReturnResponse: SubmitReturnResponse
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] =
+    EitherT
+      .pure[Future, Error](
+        auditService.sendEvent(
+          "returnConfirmationEmailSent",
+          ReturnConfirmationEmailSentEvent(
+            returnRequest.subscribedDetails.emailAddress.value,
+            returnRequest.subscribedDetails.cgtReference.value,
+            submitReturnResponse.formBundleId
+          ),
+          "return-confirmation-email-sent"
+        )
+      )
+      .map(_ => submitReturnResponse)
 
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     implicit hc: HeaderCarrier
