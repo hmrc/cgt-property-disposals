@@ -46,10 +46,10 @@ class DraftReturnsControllerSpec extends ControllerSpec {
 
   val draftReturn = sample[DraftReturn]
 
-  def mockStoreDraftReturnsService(df: DraftReturn)(response: Either[Error, Unit]) =
+  def mockStoreDraftReturnsService(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
     (draftReturnsService
-      .saveDraftReturn(_: DraftReturn))
-      .expects(df)
+      .saveDraftReturn(_: DraftReturn, _: CgtReference))
+      .expects(df, cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
   def mockGetDraftReturnsService(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
@@ -79,10 +79,12 @@ class DraftReturnsControllerSpec extends ControllerSpec {
 
     "handling requests to store a draft return" must {
 
-      "return a 200 response if the draft returned was stored successfully" in {
-        mockStoreDraftReturnsService(draftReturn)(Right(()))
+      val cgtReference = sample[CgtReference]
 
-        val result = controller.draftReturnSubmit()(fakeRequestWithJsonBody(Json.toJson(draftReturn)))
+      "return a 200 response if the draft returned was stored successfully" in {
+        mockStoreDraftReturnsService(draftReturn, cgtReference)(Right(()))
+
+        val result = controller.storeDraftReturn(cgtReference.value)(fakeRequestWithJsonBody(Json.toJson(draftReturn)))
         status(result) shouldBe OK
       }
 
@@ -91,9 +93,10 @@ class DraftReturnsControllerSpec extends ControllerSpec {
           Error(new Exception("oh no!")),
           Error("oh no!")
         ).foreach { e =>
-          mockStoreDraftReturnsService(draftReturn)(Left(e))
+          mockStoreDraftReturnsService(draftReturn, cgtReference)(Left(e))
 
-          val result = controller.draftReturnSubmit()(fakeRequestWithJsonBody(Json.toJson(draftReturn)))
+          val result =
+            controller.storeDraftReturn(cgtReference.value)(fakeRequestWithJsonBody(Json.toJson(draftReturn)))
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
       }

@@ -19,14 +19,18 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import java.time.LocalDate
 import java.util.UUID
 
+import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 
-final case class DraftReturn(
+sealed trait DraftReturn extends Product with Serializable {
+  val id: UUID
+}
+
+final case class SingleDisposalDraftReturn(
   id: UUID,
-  cgtReference: CgtReference,
   triageAnswers: SingleDisposalTriageAnswers,
   propertyAddress: Option[UkAddress],
   disposalDetailsAnswers: Option[DisposalDetailsAnswers],
@@ -36,12 +40,19 @@ final case class DraftReturn(
   yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
   initialGainOrLoss: Option[AmountInPence],
   lastUpdatedDate: LocalDate
-)
+) extends DraftReturn
+
+final case class MultipleDisposalsDraftReturn(
+  id: UUID,
+  triageAnswers: MultipleDisposalsTriageAnswers,
+  lastUpdatedDate: LocalDate
+) extends DraftReturn
 
 object DraftReturn {
 
   implicit val ukAddressFormat: OFormat[UkAddress] = Json.format[UkAddress]
 
-  implicit val format: OFormat[DraftReturn] = Json.format[DraftReturn]
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  implicit val format: OFormat[DraftReturn] = derived.oformat()
 
 }
