@@ -155,6 +155,8 @@ trait DraftReturnGen { this: GenUtils =>
 
   implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 
+  implicit val singleDisposalDraftReturnGen: Gen[SingleDisposalDraftReturn] = gen[SingleDisposalDraftReturn]
+
 }
 
 trait UpscanGen { this: GenUtils =>

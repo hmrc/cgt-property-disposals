@@ -52,10 +52,10 @@ class DraftReturnsController @Inject() (
       )
   }
 
-  def draftReturnSubmit: Action[JsValue] = authenticate(parse.json).async { implicit request =>
+  def storeDraftReturn(cgtReference: String): Action[JsValue] = authenticate(parse.json).async { implicit request =>
     withJsonBody[DraftReturn] { draftReturn =>
       draftReturnsService
-        .saveDraftReturn(draftReturn)
+        .saveDraftReturn(draftReturn, CgtReference(cgtReference))
         .fold(
           { e =>
             logger.warn("Could not store draft return", e)

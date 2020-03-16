@@ -38,10 +38,10 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  def mockStoreDraftReturn(draftReturn: DraftReturn)(response: Either[Error, Unit]) =
+  def mockStoreDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
     (draftReturnRepository
-      .save(_: DraftReturn))
-      .expects(draftReturn)
+      .save(_: DraftReturn, _: CgtReference))
+      .expects(draftReturn, cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
   def mockGetDraftReturn(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
@@ -52,16 +52,18 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   "DraftReturnsRepository" when {
     "Store" should {
+      val cgtReference = sample[CgtReference]
+
       "create a new draft return successfully" in {
         val draftReturn = sample[DraftReturn]
-        mockStoreDraftReturn(draftReturn)(Right(()))
-        await(draftReturnsService.saveDraftReturn(draftReturn).value) shouldBe Right(())
+        mockStoreDraftReturn(draftReturn, cgtReference)(Right(()))
+        await(draftReturnsService.saveDraftReturn(draftReturn, cgtReference).value) shouldBe Right(())
       }
 
       "fail to create a new draft return" in {
         val draftReturn = sample[DraftReturn]
-        mockStoreDraftReturn(draftReturn)(Left(Error("Could not store draft return: $error")))
-        await(draftReturnsService.saveDraftReturn(draftReturn).value).isLeft shouldBe true
+        mockStoreDraftReturn(draftReturn, cgtReference)(Left(Error("Could not store draft return: $error")))
+        await(draftReturnsService.saveDraftReturn(draftReturn, cgtReference).value).isLeft shouldBe true
       }
     }
 

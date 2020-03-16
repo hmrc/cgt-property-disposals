@@ -22,6 +22,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
@@ -39,20 +40,21 @@ class DraftReturnsRepositoryFailureSpec extends WordSpec with Matchers with Mong
 
   val repository = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
 
-  val draftReturn = sample[DraftReturn]
+  val draftReturn  = sample[DraftReturn]
+  val cgtReference = sample[CgtReference]
 
   "DraftReturnsRepository" when {
     reactiveMongoComponent.mongoConnector.helper.driver.close()
 
     "inserting" should {
       "create a new draft return successfully" in {
-        await(repository.save(draftReturn).value).isLeft shouldBe true
+        await(repository.save(draftReturn, cgtReference).value).isLeft shouldBe true
       }
     }
 
     "getting" should {
       "retrieve an existing record" in {
-        await(repository.fetch(draftReturn.cgtReference).value).isLeft shouldBe true
+        await(repository.fetch(cgtReference).value).isLeft shouldBe true
       }
     }
   }

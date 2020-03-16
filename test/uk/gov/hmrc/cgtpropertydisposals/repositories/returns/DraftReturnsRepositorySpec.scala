@@ -22,7 +22,8 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, SingleDisposalDraftReturn}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,24 +38,25 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
     )
   )
 
-  val repository  = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
-  val draftReturn = sample[DraftReturn]
+  val repository   = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
+  val draftReturn  = sample[DraftReturn]
+  val cgtReference = sample[CgtReference]
 
   "DraftReturnsRepository" when {
+
     "inserting" should {
       "create a new draft return successfully" in {
-        await(repository.save(draftReturn).value) shouldBe Right(())
+        await(repository.save(draftReturn, cgtReference).value) shouldBe Right(())
       }
     }
 
     "getting" should {
       "retrieve an existing record" in {
-        val draftReturn2 = sample[DraftReturn].copy(cgtReference = draftReturn.cgtReference)
+        val draftReturn2 = sample[SingleDisposalDraftReturn]
 
-        await(repository.save(draftReturn).value)  shouldBe Right(())
-        await(repository.save(draftReturn2).value) shouldBe Right(())
-
-        await(repository.fetch(draftReturn.cgtReference).value).map(_.toSet) shouldBe Right(
+        await(repository.save(draftReturn, cgtReference).value)  shouldBe Right(())
+        await(repository.save(draftReturn2, cgtReference).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
           Set(draftReturn, draftReturn2)
         )
       }

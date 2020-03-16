@@ -20,6 +20,7 @@ import java.util.UUID
 
 import cats.data.EitherT
 import cats.instances.either._
+import cats.instances.future._
 import cats.instances.list._
 import cats.syntax.either._
 import cats.syntax.traverse._
@@ -36,6 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
+import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.mongo.ReactiveRepository
 
@@ -47,7 +49,7 @@ import scala.util.control.NonFatal
 trait DraftReturnsRepository {
   def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]]
 
-  def save(draftReturn: DraftReturn): EitherT[Future, Error, Unit]
+  def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit]
 
   def delete(id: UUID): EitherT[Future, Error, Int]
 }
@@ -55,13 +57,13 @@ trait DraftReturnsRepository {
 @Singleton
 class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(
   implicit val ec: ExecutionContext
-) extends ReactiveRepository[DraftReturn, BSONObjectID](
+) extends ReactiveRepository[DraftReturnWithCgtReference, BSONObjectID](
       collectionName = "draft-returns",
       mongo          = component.mongoConnector.db,
-      domainFormat   = DraftReturn.format
+      domainFormat   = DraftReturnWithCgtReference.format
     )
     with DraftReturnsRepository
-    with CacheRepository[DraftReturn] {
+    with CacheRepository[DraftReturnWithCgtReference] {
   val cacheTtl: FiniteDuration = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
   val maxDraftReturns: Int     = config.underlying.get[Int]("mongodb.draft-returns.max-draft-returns").value
   val indexName: String        = "draft-return-cache-ttl"
@@ -69,14 +71,14 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   val key: String              = "return.cgtReference.value"
 
   override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
-    EitherT(get(cgtReference))
+    EitherT(get(cgtReference)).map(_.map(_.draftReturn))
 
-  override def save(draftReturn: DraftReturn): EitherT[Future, Error, Unit] =
-    EitherT(set(draftReturn.id.toString, draftReturn))
+  override def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =
+    EitherT(set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id)))
 
   override def delete(id: UUID): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
-      remove("return.id" -> id)
+      remove("return.draftId" -> id)
         .map { result: WriteResult =>
           Right(result.n)
         }
@@ -85,17 +87,17 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
         }
     )
 
-  private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturn]]] = {
+  private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] = {
     val selector = Json.obj(key -> cgtReference.value)
     collection
       .find(selector, None)
       .cursor[JsValue]()
       .collect[List](maxDraftReturns, Cursor.FailOnError[List[JsValue]]())
       .map { l =>
-        val p: List[Either[Error, DraftReturn]] = l.map { json =>
-          (json \ objName).validate[DraftReturn].asEither.leftMap(toError)
+        val p: List[Either[Error, DraftReturnWithCgtReference]] = l.map { json =>
+          (json \ objName).validate[DraftReturnWithCgtReference].asEither.leftMap(toError)
         }
-        p.sequence[Either[Error, ?], DraftReturn]
+        p.sequence[Either[Error, ?], DraftReturnWithCgtReference]
       }
       .recover {
         case NonFatal(e) => Left(Error(e))
@@ -105,4 +107,15 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   private def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
     Error(JsError(e).prettyPrint())
 
+}
+
+object DefaultDraftReturnsRepository {
+
+  final case class DraftReturnWithCgtReference(draftReturn: DraftReturn, cgtReference: CgtReference, draftId: UUID)
+
+  object DraftReturnWithCgtReference {
+
+    implicit val format: OFormat[DraftReturnWithCgtReference] = Json.format
+
+  }
 }
