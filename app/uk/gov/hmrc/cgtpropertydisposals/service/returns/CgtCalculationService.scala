@@ -101,7 +101,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       if (gainOrLossAfterLosses > AmountInPence.zero)
         (gainOrLossAfterLosses -- exemptionAndLosses.annualExemptAmount).withFloorZero
       else
-        gainOrLossAfterReliefs
+        gainOrLossAfterLosses
 
     if (taxableGain <= AmountInPence.zero)
       NonGainCalculatedTaxDue(
