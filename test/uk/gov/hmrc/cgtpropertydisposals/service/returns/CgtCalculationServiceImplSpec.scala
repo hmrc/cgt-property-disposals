@@ -506,15 +506,17 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           val result = calculate(
             disposalDetails    = zeroDisposalDetails,
             acquisitionDetails = acquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails      = zeroReliefDetails.copy(privateResidentsRelief = AmountInPence(2L)),
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              annualExemptAmount = AmountInPence(1L)
+              inYearLosses = AmountInPence(1L)
             )
           )
 
-          result                             shouldBe a[NonGainCalculatedTaxDue]
-          result.gainOrLossAfterLosses.value shouldBe -100L
-          result.taxableGainOrNetLoss.value  shouldBe -100L
+          result                              shouldBe a[NonGainCalculatedTaxDue]
+          result.initialGainOrLoss.value      shouldBe -100L
+          result.gainOrLossAfterReliefs.value shouldBe -98L
+          result.gainOrLossAfterLosses.value  shouldBe -97L
+          result.taxableGainOrNetLoss.value   shouldBe -97L
         }
 
         "the gain or loss after losses is zero" in {
