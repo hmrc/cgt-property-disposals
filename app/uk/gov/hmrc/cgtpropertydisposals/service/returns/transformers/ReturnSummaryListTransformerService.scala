@@ -108,37 +108,46 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     }
   }
 
+  // get a List of DesCharges with unique charge references. The charges in the return summary can
+  // include charges with the same charge reference if payments have been made on a charge
+  private def uniqueCharges(returnSummary: DesReturnSummary): List[DesCharge] = {
+    val chargeReferenceToCharges: Map[String, List[DesCharge]] =
+      returnSummary.charges.getOrElse(List.empty[DesCharge]).groupBy(_.chargeReference)
+
+    chargeReferenceToCharges.values.map(_.headOption).collect { case Some(charge) => charge }.toList
+  }
+
   private def validateCharges(
     returnSummary: DesReturnSummary,
     chargeReferenceToFinancialData: Map[String, DesFinancialTransaction]
   ): Validation[List[Charge]] = {
-    val charges: List[Validation[Charge]] = returnSummary.charges
-      .getOrElse(List.empty[DesCharge])
-      .map { returnSummaryCharge =>
-        val chargeTypeValidation: Validation[ChargeType] =
-          ChargeType.fromString(returnSummaryCharge.chargeDescription).toValidatedNel
-        val financialDataValidation: Validation[(DesFinancialTransaction, List[Payment])] =
-          Either
-            .fromOption(
-              chargeReferenceToFinancialData.get(returnSummaryCharge.chargeReference),
-              s"Could not find financial data for charge with charge reference ${returnSummaryCharge.chargeReference}"
-            )
-            .toValidatedNel
-            .andThen { t =>
-              validatePayments(t).map(t -> _)
-            }
+    val charges: List[Validation[Charge]] =
+      uniqueCharges(returnSummary)
+        .map { returnSummaryCharge =>
+          val chargeTypeValidation: Validation[ChargeType] =
+            ChargeType.fromString(returnSummaryCharge.chargeDescription).toValidatedNel
+          val financialDataValidation: Validation[(DesFinancialTransaction, List[Payment])] =
+            Either
+              .fromOption(
+                chargeReferenceToFinancialData.get(returnSummaryCharge.chargeReference),
+                s"Could not find financial data for charge with charge reference ${returnSummaryCharge.chargeReference}"
+              )
+              .toValidatedNel
+              .andThen { t =>
+                validatePayments(t).map(t -> _)
+              }
 
-        (chargeTypeValidation, financialDataValidation).mapN {
-          case (chargeType, (financialData, payments)) =>
-            Charge(
-              chargeType,
-              returnSummaryCharge.chargeReference,
-              AmountInPence.fromPounds(financialData.originalAmount),
-              returnSummaryCharge.dueDate,
-              payments
-            )
+          (chargeTypeValidation, financialDataValidation).mapN {
+            case (chargeType, (financialData, payments)) =>
+              Charge(
+                chargeType,
+                returnSummaryCharge.chargeReference,
+                AmountInPence.fromPounds(financialData.originalAmount),
+                returnSummaryCharge.dueDate,
+                payments
+              )
+          }
         }
-      }
     charges.sequence[Validated[NonEmptyList[String], ?], Charge]
   }
 
