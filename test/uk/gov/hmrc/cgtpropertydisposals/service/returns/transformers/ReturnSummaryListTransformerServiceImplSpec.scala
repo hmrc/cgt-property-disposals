@@ -151,13 +151,19 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
         }
 
         "a return summary is found with more than one UkResidentReturn or NonUkResidentReturn charge type" in {
+          val otherChargeReference = s"${validDesCharge.chargeReference}-copy"
           val result = transformer.toReturnSummaryList(
             List(
               validDesReturnSummary.copy(
-                charges = Some(List(validDesCharge, validDesCharge))
+                charges = Some(
+                  List(validDesCharge, validDesCharge.copy(chargeReference = otherChargeReference))
+                )
               )
             ),
-            List(validDesFinancialTransaction)
+            List(
+              validDesFinancialTransaction,
+              validDesFinancialTransaction.copy(chargeReference = otherChargeReference)
+            )
           )
 
           result.isLeft shouldBe true
@@ -191,7 +197,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
           (
             sample[DesReturnSummary].copy(
               propertyAddress = Address.toAddressDetails(ukAddress1),
-              charges         = Some(List(mainCharge1))
+              charges         = Some(List(mainCharge1, mainCharge1))
             ),
             sample[DesReturnSummary].copy(
               propertyAddress = Address.toAddressDetails(ukAddress2),
