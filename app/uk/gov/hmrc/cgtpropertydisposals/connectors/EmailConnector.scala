@@ -66,7 +66,7 @@ class EmailConnectorImpl @Inject() (
 
   val lang: Lang = Lang.defaultLang
 
-  implicit val messages: Messages = MessagesImpl(lang, messagesApi)
+  implicit val messages: Messages = messagesApi.preferred(Seq(lang))
 
   override def sendSubscriptionConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
