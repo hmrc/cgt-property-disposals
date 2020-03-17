@@ -25,7 +25,7 @@ sealed trait MultipleDisposalsTriageAnswers
 
 object MultipleDisposalsTriageAnswers {
 
-  final case class IncompleteMultipleDisposalsAnswers(
+  final case class IncompleteMultipleDisposalsTriageAnswers(
     individualUserType: Option[IndividualUserType],
     numberOfProperties: Option[Int],
     wasAUKResident: Option[Boolean],
@@ -37,7 +37,7 @@ object MultipleDisposalsTriageAnswers {
     completionDate: Option[CompletionDate]
   ) extends MultipleDisposalsTriageAnswers
 
-  final case class CompleteMultipleDisposalsAnswers(
+  final case class CompleteMultipleDisposalsTriageAnswers(
     individualUserType: Option[IndividualUserType],
     numberOfProperties: Int,
     countryOfResidence: Country,
