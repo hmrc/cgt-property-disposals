@@ -58,7 +58,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
     )
   )
   implicit val messagesApi                        = Helpers.stubMessagesApi(monthNames)
-  implicit val lang: Lang                         = Lang.defaultLang
+  implicit val lang: Lang                         = Lang.apply("en-GB")
   implicit val messagesProvider: MessagesProvider = MessagesImpl(lang, messagesApi)
 
   val (accountCreatedTemplateId, accountCreatedSignInUrl, returnSubmittedTemplateId) =
