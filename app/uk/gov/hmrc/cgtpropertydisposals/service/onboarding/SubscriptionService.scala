@@ -131,14 +131,15 @@ class SubscriptionServiceImpl @Inject() (
       .sendSubscriptionConfirmationEmail(subscriptionDetails, CgtReference(subscriptionSuccessful.cgtReferenceNumber))
       .map { httpResponse =>
         timer.close()
-        auditSubscriptionConfirmationEmailSent(
-          subscriptionDetails.emailAddress.value,
-          subscriptionSuccessful.cgtReferenceNumber
-        )
 
         if (httpResponse.status =!= ACCEPTED) {
           metrics.subscriptionCreateErrorCounter.inc()
           logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
+        } else {
+          auditSubscriptionConfirmationEmailSent(
+            subscriptionDetails.emailAddress.value,
+            subscriptionSuccessful.cgtReferenceNumber
+          )
         }
       }
       .leftFlatMap { e =>

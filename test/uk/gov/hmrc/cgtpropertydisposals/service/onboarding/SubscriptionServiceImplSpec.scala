@@ -649,7 +649,6 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
               mockSubscribe(subscriptionDetails)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
               mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody))
               mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(status)))
-              mockAuditSubscriptionEmailEvent(subscriptionDetails.emailAddress.value, cgtReference.value)
             }
             await(service.subscribe(subscriptionDetails).value) shouldBe Right(
               SubscriptionSuccessful(cgtReference.value)

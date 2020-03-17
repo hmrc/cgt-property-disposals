@@ -14,18 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.returns.audit
 
-import java.time.LocalDate
+import play.api.libs.json.{Json, OFormat}
 
-import cats.Order
-import play.api.i18n.Messages
+final case class ReturnConfirmationEmailSentEvent(emailAddress: String, cgtReferenceId: String, submissionId: String)
 
-object LocalDateUtils {
-
-  def govDisplayFormat(date: LocalDate)(implicit messages: Messages): String =
-    s"""${date.getDayOfMonth()} ${messages(s"date.${date.getMonthValue()}")} ${date.getYear()}"""
-
-  implicit val order: Order[LocalDate] = Order.from(_ compareTo _)
-
+object ReturnConfirmationEmailSentEvent {
+  implicit val format: OFormat[ReturnConfirmationEmailSentEvent] =
+    Json.format[ReturnConfirmationEmailSentEvent]
 }

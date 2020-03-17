@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models
+package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
-import java.time.LocalDate
+import java.util.Locale
 
-import cats.Order
-import play.api.i18n.Messages
+import cats.instances.char._
+import cats.syntax.either._
+import cats.syntax.eq._
+import play.api.data.Forms.{mapping, of}
+import play.api.data.format.Formatter
+import play.api.data.{Form, FormError}
 
-object LocalDateUtils {
+import scala.util.Try
 
-  def govDisplayFormat(date: LocalDate)(implicit messages: Messages): String =
-    s"""${date.getDayOfMonth()} ${messages(s"date.${date.getMonthValue()}")} ${date.getYear()}"""
+object MoneyUtils {
 
-  implicit val order: Order[LocalDate] = Order.from(_ compareTo _)
+  private val currencyFormatter = java.text.NumberFormat.getCurrencyInstance(Locale.UK)
+
+  def formatAmountOfMoneyWithPoundSign(d: BigDecimal): String = currencyFormatter.format(d).stripSuffix(".00")
 
 }
