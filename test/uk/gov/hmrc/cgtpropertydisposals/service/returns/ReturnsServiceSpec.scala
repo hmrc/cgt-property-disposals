@@ -214,7 +214,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       "handle successful submits" when {
 
         "there is a positive charge" in {
-          val formBundleId = "804123737752"
+          val formBundleId    = "804123737752"
           val chargeReference = "XCRG9448959757"
           val responseJsonBody =
             Json.parse(s"""
@@ -395,8 +395,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
-        "there is a positive charge and email call returns 500" in {
-          val formBundleId = "804123737752"
+        "there is a positive charge and email call returns 500 and the EmailSent event won't be sent" in {
+          val formBundleId    = "804123737752"
           val chargeReference = "XCRG9448959757"
           val responseJsonBody =
             Json.parse(s"""
@@ -438,11 +438,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(500))
-            )
-            mockAuditReturnConfirmationEmailEvent(
-              submitReturnRequest.subscribedDetails.emailAddress.value,
-              submitReturnRequest.subscribedDetails.cgtReference.value,
-              formBundleId
             )
           }
 

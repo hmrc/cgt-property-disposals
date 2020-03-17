@@ -24,6 +24,8 @@ import cats.instances.int._
 import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.eq._
+import com.codahale.metrics.Timer
+import com.codahale.metrics.Timer.Context
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
@@ -96,29 +98,45 @@ class DefaultReturnsService @Inject() (
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
     val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest)
 
-    auditService.sendEvent(
-      "submitReturn",
-      SubmitReturnEvent(
-        desSubmitReturnRequest,
-        returnRequest.subscribedDetails.cgtReference.value,
-        returnRequest.agentReferenceNumber.map(_.value)
-      ),
-      "submit-return"
+    for {
+      _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)
+      returnHttpResponse <- submitReturnAndAudit(returnRequest, desSubmitReturnRequest)
+      desResponse        <- parseResponse(returnHttpResponse)
+      returnResponse     <- prepareSubmitReturnResponse(desResponse)
+      _                  <- sendEmailAndAudit(returnRequest, returnResponse)
+    } yield returnResponse
+  }
+
+  private def auditReturnBeforeSubmit(
+    returnRequest: SubmitReturnRequest,
+    desSubmitReturnRequest: DesSubmitReturnRequest
+  )(implicit hc: HeaderCarrier, request: Request[_]) =
+    EitherT.pure[Future, Error](
+      auditService.sendEvent(
+        "submitReturn",
+        SubmitReturnEvent(
+          desSubmitReturnRequest,
+          returnRequest.subscribedDetails.cgtReference.value,
+          returnRequest.agentReferenceNumber.map(_.value)
+        ),
+        "submit-return"
+      )
     )
 
-    val timer = metrics.submitReturnTimer.time()
-
+  private def submitReturnAndAudit(
+    returnRequest: SubmitReturnRequest,
+    desSubmitReturnRequest: DesSubmitReturnRequest
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, HttpResponse] = {
+    val timer: Context = metrics.submitReturnTimer.time()
     returnsConnector
       .submit(
         returnRequest.subscribedDetails.cgtReference,
         desSubmitReturnRequest
       )
-      .map { httpResponse =>
+      .subflatMap { httpResponse =>
         timer.close()
         auditSubmitReturnResponse(httpResponse.status, httpResponse.body)
-        httpResponse
-      }
-      .subflatMap(httpResponse =>
+
         httpResponse match {
           case HttpResponse(OK, _, _, _) => Right(httpResponse)
           case _ => {
@@ -126,19 +144,28 @@ class DefaultReturnsService @Inject() (
             Left(Error(s"call to submit return came back with status ${httpResponse.status}"))
           }
         }
-      )
-      .subflatMap(response => parseResponse(response))
-      .subflatMap { desResponse =>
-        prepareSubmitReturnResponse(desResponse)
       }
-      .flatMap { submitReturnResponse =>
-        sendReturnConfirmationEmail(returnRequest, submitReturnResponse)
-      }
-      .flatMap { submitReturnResponse =>
-        auditSubscriptionConfirmationEmailSent(returnRequest, submitReturnResponse)
-      }
-
   }
+
+  private def sendEmailAndAudit(
+    returnRequest: SubmitReturnRequest,
+    returnResponse: SubmitReturnResponse
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
+    val response = for {
+      _ <- sendReturnConfirmationEmail(returnRequest, returnResponse)
+      _ <- auditSubscriptionConfirmationEmailSent(returnRequest, returnResponse)
+    } yield returnResponse
+    response.leftFlatMap(_ => EitherT.pure[Future, Error](returnResponse))
+  }
+
+  private def parseResponse(response: HttpResponse): EitherT[Future, Error, DesSubmitReturnResponse] =
+    EitherT.fromEither[Future](response.parseJSON[DesSubmitReturnResponse]() match {
+      case Right(response) => response.asRight[Error]
+      case Left(error) => {
+        logger.warn(s"Call to send return confirmation email audit event ${response.status}")
+        Error(error).asLeft[DesSubmitReturnResponse]
+      }
+    })
 
   private def sendReturnConfirmationEmail(
     returnRequest: SubmitReturnRequest,
@@ -149,30 +176,20 @@ class DefaultReturnsService @Inject() (
         submitReturnResponse,
         returnRequest.subscribedDetails
       )
-      .map { httpResponse =>
+      .subflatMap { httpResponse =>
         httpResponse match {
-          case HttpResponse(ACCEPTED, _, _, _) => submitReturnResponse
+          case HttpResponse(ACCEPTED, _, _, _) => Right(submitReturnResponse)
           case _ => {
-            metrics.submitReturnErrorCounter.inc()
             logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
-            submitReturnResponse
+            Left(Error(s"Call to send confirmation email came back with status ${httpResponse.status}"))
           }
         }
       }
-      .leftFlatMap { e =>
+      .leftMap { e =>
         metrics.submitReturnErrorCounter.inc()
         logger.warn("Could not send confirmation email", e)
-        EitherT.pure[Future, Error](submitReturnResponse)
+        e
       }
-
-  private def parseResponse(response: HttpResponse): Either[Error, DesSubmitReturnResponse] =
-    response.parseJSON[DesSubmitReturnResponse]() match {
-      case Right(response) => response.asRight[Error]
-      case Left(error) => {
-        logger.warn(s"Call to send return confirmation email audit event ${response.status}")
-        Error(error).asLeft[DesSubmitReturnResponse]
-      }
-    }
 
   private def auditSubscriptionConfirmationEmailSent(
     returnRequest: SubmitReturnRequest,
@@ -279,33 +296,36 @@ class DefaultReturnsService @Inject() (
       }
     }
 
-  private def prepareSubmitReturnResponse(response: DesSubmitReturnResponse): Either[Error, SubmitReturnResponse] = {
-    val charge = (
-      response.ppdReturnResponseDetails.amount,
-      response.ppdReturnResponseDetails.dueDate,
-      response.ppdReturnResponseDetails.chargeReference
-    ) match {
-      case (None, None, None)                              => Right(None)
-      case (Some(amount), _, _) if amount <= BigDecimal(0) => Right(None)
-      case (Some(amount), Some(dueDate), Some(chargeReference)) =>
-        Right(
-          Some(
-            ReturnCharge(
-              chargeReference,
-              AmountInPence.fromPounds(amount),
-              dueDate
+  private def prepareSubmitReturnResponse(
+    response: DesSubmitReturnResponse
+  ): EitherT[Future, Error, SubmitReturnResponse] =
+    EitherT.fromEither[Future] {
+      val charge = (
+        response.ppdReturnResponseDetails.amount,
+        response.ppdReturnResponseDetails.dueDate,
+        response.ppdReturnResponseDetails.chargeReference
+      ) match {
+        case (None, None, None)                              => Right(None)
+        case (Some(amount), _, _) if amount <= BigDecimal(0) => Right(None)
+        case (Some(amount), Some(dueDate), Some(chargeReference)) =>
+          Right(
+            Some(
+              ReturnCharge(
+                chargeReference,
+                AmountInPence.fromPounds(amount),
+                dueDate
+              )
             )
           )
-        )
-      case (amount, dueDate, chargeReference) =>
-        Left(
-          Error(
-            s"Found some charge details but not all of them: (amount: $amount, dueDate: $dueDate, chargeReference: $chargeReference)"
+        case (amount, dueDate, chargeReference) =>
+          Left(
+            Error(
+              s"Found some charge details but not all of them: (amount: $amount, dueDate: $dueDate, chargeReference: $chargeReference)"
+            )
           )
-        )
+      }
+      charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, _))
     }
-    charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, _))
-  }
 
   private def auditSubmitReturnResponse(
     httpStatus: Int,

@@ -18,10 +18,13 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import java.time.LocalDate
 
+import com.google.inject.Inject
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.i18n.{DefaultLangs, Lang, Langs, Messages, MessagesApi, MessagesImpl, MessagesProvider}
 import play.api.libs.json.Json
+import play.api.test.Helpers
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -37,6 +40,26 @@ import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+  val messagesKeys = Map()
+  val monthNames: Map[String, Map[String, String]] = Map(
+    "en-GB" -> Map(
+      "date.1"  -> "January",
+      "date.2"  -> "February",
+      "date.3"  -> "March",
+      "date.4"  -> "April",
+      "date.5"  -> "May",
+      "date.6"  -> "June",
+      "date.7"  -> "July",
+      "date.8"  -> "August",
+      "date.9"  -> "September",
+      "date.10" -> "October",
+      "date.11" -> "November",
+      "date.12" -> "December"
+    )
+  )
+  implicit val messagesApi                        = Helpers.stubMessagesApi(monthNames)
+  implicit val lang: Lang                         = Lang.defaultLang
+  implicit val messagesProvider: MessagesProvider = MessagesImpl(lang, messagesApi)
 
   val (accountCreatedTemplateId, accountCreatedSignInUrl, returnSubmittedTemplateId) =
     ("template", "sign-in", "template-return-submitted")
@@ -69,7 +92,8 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val connector = new EmailConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector =
+    new EmailConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)), messagesApi)
 
   "EmailConnectorImpl" when {
 
@@ -144,7 +168,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
            |    "submissionId": "$submissionId",
            |    "taxDue": "${MoneyUtils.formatAmountOfMoneyWithPoundSign(taxDue.value)}",
            |    "chargeRef": "$chargeRef",
-           |    "dueDate": "${LocalDateUtils.govDisplayFormat(dueDate)}"
+           |    "dueDate": "1 July 2020"
            |  },
            |  "force": false
            |}

@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import cats.data.EitherT
 import cats.syntax.either._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.api.i18n.{DefaultLangs, Lang, Langs, Messages, MessagesApi, MessagesImpl, MessagesProvider}
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnectorImpl.SendEmailRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
@@ -49,14 +50,23 @@ trait EmailConnector {
 }
 
 @Singleton
-class EmailConnectorImpl @Inject() (http: HttpClient, servicesConfig: ServicesConfig)(implicit ec: ExecutionContext)
-    extends EmailConnector {
+class EmailConnectorImpl @Inject() (
+  http: HttpClient,
+  servicesConfig: ServicesConfig,
+  messagesApi: MessagesApi
+)(
+  implicit ec: ExecutionContext
+) extends EmailConnector {
 
   val sendEmailUrl: String = s"${servicesConfig.baseUrl("email")}/hmrc/email"
 
   val accountCreatedTemplateId: String = servicesConfig.getString("email.account-created.template-id")
 
   val returnSubmittedTemplateId: String = servicesConfig.getString("email.return-submitted.template-id")
+
+  val lang: Lang = Lang.defaultLang
+
+  implicit val messages: Messages = MessagesImpl(lang, messagesApi)
 
   override def sendSubscriptionConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(
     implicit hc: HeaderCarrier

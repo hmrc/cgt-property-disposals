@@ -29,12 +29,8 @@ import scala.util.Try
 
 object MoneyUtils {
 
-  val maxAmountOfPounds: BigDecimal = BigDecimal("5e10")
-
   private val currencyFormatter = java.text.NumberFormat.getCurrencyInstance(Locale.UK)
 
   def formatAmountOfMoneyWithPoundSign(d: BigDecimal): String = currencyFormatter.format(d).stripSuffix(".00")
 
-  def formatAmountOfMoneyWithoutPoundSign(d: BigDecimal): String =
-    formatAmountOfMoneyWithPoundSign(d).replaceAllLiterally("£", "")
 }
