@@ -24,7 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CalculatedTaxDue, DisposalDate, OtherReliefsOption, TaxableAmountOfMoney}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, AssetType, CalculatedTaxDue, DisposalDate, OtherReliefsOption, TaxableAmountOfMoney}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -62,13 +62,14 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
       )
 
       def calculate(
-        triageAnswers: CompleteSingleDisposalTriageAnswers    = completeTriageAnswers,
-        disposalDetails: CompleteDisposalDetailsAnswers       = zeroDisposalDetails,
-        acquisitionDetails: CompleteAcquisitionDetailsAnswers = zeroAcquisitionDetails,
-        reliefDetails: CompleteReliefDetailsAnswers           = zeroReliefDetails,
-        exemptionAndLosses: CompleteExemptionAndLossesAnswers = zeroExemptionsAndLosses,
-        estimatedIncome: AmountInPence                        = sample[AmountInPence],
-        personalAllowance: AmountInPence                      = sample[AmountInPence]
+        triageAnswers: CompleteSingleDisposalTriageAnswers      = completeTriageAnswers,
+        disposalDetails: CompleteDisposalDetailsAnswers         = zeroDisposalDetails,
+        acquisitionDetails: CompleteAcquisitionDetailsAnswers   = zeroAcquisitionDetails,
+        reliefDetails: CompleteReliefDetailsAnswers             = zeroReliefDetails,
+        exemptionAndLosses: CompleteExemptionAndLossesAnswers   = zeroExemptionsAndLosses,
+        estimatedIncome: AmountInPence                          = sample[AmountInPence],
+        personalAllowance: AmountInPence                        = sample[AmountInPence],
+        initialGainOrLossCheck: Option[AmountInPenceWithSource] = None
       ) =
         service.calculateTaxDue(
           triageAnswers,
@@ -77,7 +78,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           reliefDetails,
           exemptionAndLosses,
           estimatedIncome,
-          personalAllowance
+          personalAllowance,
+          initialGainOrLossCheck
         )
 
       "calculate disposal amount less costs correctly" in {
@@ -135,7 +137,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           (disposalDetails: CompleteDisposalDetailsAnswers, acquisitionDetails: CompleteAcquisitionDetailsAnswers) =>
             val result = calculate(disposalDetails = disposalDetails, acquisitionDetails = acquisitionDetails)
 
-            result.initialGainOrLoss.value shouldBe (result.disposalAmountLessCosts.value - result.acquisitionAmountPlusCosts.value)
+            result.initialGainOrLoss.amount.value shouldBe (result.disposalAmountLessCosts.value - result.acquisitionAmountPlusCosts.value)
         }
       }
 
@@ -199,8 +201,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               reliefDetails      = reliefDetails
             )
 
-            result.initialGainOrLoss.value      shouldBe 100L
-            result.gainOrLossAfterReliefs.value shouldBe 98L
+            result.initialGainOrLoss.amount.value shouldBe 100L
+            result.gainOrLossAfterReliefs.value   shouldBe 98L
           }
 
           "the initial gain is less than the total reliefs" in {
@@ -215,8 +217,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               reliefDetails      = reliefDetails
             )
 
-            result.initialGainOrLoss.value      shouldBe 100L
-            result.gainOrLossAfterReliefs.value shouldBe 0L
+            result.initialGainOrLoss.amount.value shouldBe 100L
+            result.gainOrLossAfterReliefs.value   shouldBe 0L
           }
         }
         "there is an initial loss and" when {
@@ -237,8 +239,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               reliefDetails      = reliefDetails
             )
 
-            result.initialGainOrLoss.value      shouldBe -100L
-            result.gainOrLossAfterReliefs.value shouldBe -98L
+            result.initialGainOrLoss.amount.value shouldBe -100L
+            result.gainOrLossAfterReliefs.value   shouldBe -98L
           }
 
           "the absolute value of the initial loss is less than the total reliefs" in {
@@ -253,8 +255,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               reliefDetails      = reliefDetails
             )
 
-            result.initialGainOrLoss.value      shouldBe -100L
-            result.gainOrLossAfterReliefs.value shouldBe 0L
+            result.initialGainOrLoss.amount.value shouldBe -100L
+            result.gainOrLossAfterReliefs.value   shouldBe 0L
           }
         }
         "there is neither an initial gain or less" in {
@@ -269,8 +271,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             reliefDetails      = reliefDetails
           )
 
-          result.initialGainOrLoss.value      shouldBe 0L
-          result.gainOrLossAfterReliefs.value shouldBe 0L
+          result.initialGainOrLoss.amount.value shouldBe 0L
+          result.gainOrLossAfterReliefs.value   shouldBe 0L
         }
 
       }
@@ -511,11 +513,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             )
           )
 
-          result                              shouldBe a[NonGainCalculatedTaxDue]
-          result.initialGainOrLoss.value      shouldBe -100L
-          result.gainOrLossAfterReliefs.value shouldBe -98L
-          result.gainOrLossAfterLosses.value  shouldBe -97L
-          result.taxableGainOrNetLoss.value   shouldBe -97L
+          result                                shouldBe a[NonGainCalculatedTaxDue]
+          result.initialGainOrLoss.amount.value shouldBe -100L
+          result.gainOrLossAfterReliefs.value   shouldBe -98L
+          result.gainOrLossAfterLosses.value    shouldBe -97L
+          result.taxableGainOrNetLoss.value     shouldBe -97L
         }
 
         "the gain or loss after losses is zero" in {

@@ -278,4 +278,6 @@ trait MoneyGen { this: GenUtils =>
 
   implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
 
+  implicit val amountInPenceWithSourceGen: Gen[AmountInPenceWithSource] = gen[AmountInPenceWithSource]
+
 }

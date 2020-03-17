@@ -17,13 +17,34 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+
+final case class AmountInPenceWithSource(
+  amount: AmountInPence,
+  source: Source
+)
+
+object AmountInPenceWithSource {
+
+  implicit val format: OFormat[AmountInPenceWithSource] = Json.format
+
+}
+
+sealed trait Source
+
+object Source {
+
+  case object UserSupplied extends Source
+  case object Calculated extends Source
+  implicit val format: OFormat[Source] = derived.oformat()
+
+}
 
 sealed trait CalculatedTaxDue extends Product with Serializable {
   val disposalAmountLessCosts: AmountInPence
   val acquisitionAmountPlusCosts: AmountInPence
-  val initialGainOrLoss: AmountInPence
+  val initialGainOrLoss: AmountInPenceWithSource
   val totalReliefs: AmountInPence
   val gainOrLossAfterReliefs: AmountInPence
   val totalLosses: AmountInPence
@@ -37,7 +58,7 @@ object CalculatedTaxDue {
   final case class NonGainCalculatedTaxDue(
     disposalAmountLessCosts: AmountInPence,
     acquisitionAmountPlusCosts: AmountInPence,
-    initialGainOrLoss: AmountInPence,
+    initialGainOrLoss: AmountInPenceWithSource,
     totalReliefs: AmountInPence,
     gainOrLossAfterReliefs: AmountInPence,
     totalLosses: AmountInPence,
@@ -49,7 +70,7 @@ object CalculatedTaxDue {
   final case class GainCalculatedTaxDue(
     disposalAmountLessCosts: AmountInPence,
     acquisitionAmountPlusCosts: AmountInPence,
-    initialGainOrLoss: AmountInPence,
+    initialGainOrLoss: AmountInPenceWithSource,
     totalReliefs: AmountInPence,
     gainOrLossAfterReliefs: AmountInPence,
     totalLosses: AmountInPence,

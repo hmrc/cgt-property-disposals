@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculateCgtTaxDueRequest, CalculatedTaxDue}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, CalculateCgtTaxDueRequest, CalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.CgtCalculationService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -55,7 +55,8 @@ class CalculatorControllerSpec extends ControllerSpec {
           _: CompleteReliefDetailsAnswers,
           _: CompleteExemptionAndLossesAnswers,
           _: AmountInPence,
-          _: AmountInPence
+          _: AmountInPence,
+          _: Option[AmountInPenceWithSource]
         )
       )
       .expects(
@@ -65,7 +66,8 @@ class CalculatorControllerSpec extends ControllerSpec {
         request.reliefDetails,
         request.exemptionAndLosses,
         request.estimatedIncome,
-        request.personalAllowance
+        request.personalAllowance,
+        request.initialGainOrLoss
       )
       .returning(response)
 

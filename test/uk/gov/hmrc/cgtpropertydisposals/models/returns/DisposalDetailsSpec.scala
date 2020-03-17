@@ -39,20 +39,22 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
   "DisposalDetails getInitialGainOrLoss" must {
 
     "return some value as initialGain and none as initialLoss" in {
-      val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(123456))
+      val calculatedTaxDue = sample[GainCalculatedTaxDue]
+        .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(123456), Source.Calculated))
 
       val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
         sample[CompleteCalculatedYearToDateLiabilityAnswers].copy(calculatedTaxDue = calculatedTaxDue)
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
-        details.initialGain shouldBe BigDecimal("1234.56")
-        details.initialLoss shouldBe BigDecimal("0")
+        details.initialGain shouldBe Some(BigDecimal("1234.56"))
+        details.initialLoss shouldBe None
       }
     }
 
     "return none as initialGain and some value for initialLoss" in {
-      val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(-123456))
+      val calculatedTaxDue = sample[GainCalculatedTaxDue]
+        .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(-123456), Source.Calculated))
 
       val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
         sample[CompleteCalculatedYearToDateLiabilityAnswers]
@@ -60,8 +62,8 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
-        details.initialLoss shouldBe BigDecimal("1234.56")
-        details.initialGain shouldBe BigDecimal("0")
+        details.initialLoss shouldBe Some(BigDecimal("1234.56"))
+        details.initialGain shouldBe None
       }
     }
   }

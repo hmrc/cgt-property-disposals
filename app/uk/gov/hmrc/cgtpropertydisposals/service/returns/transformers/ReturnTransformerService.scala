@@ -70,6 +70,7 @@ class ReturnTransformerServiceImpl @Inject() (
         val acquisitionDetailsAnswers = constructAcquisitionDetailsAnswers(singleDisposalDetails)
         val reliefAnswers             = constructReliefAnswers(desReturn, otherReliefsOption)
         val exemptionAndLossesAnswers = constructExemptionAndLossesAnswers(desReturn)
+        val initialGainAnswers        = constructInitialGainAnswers(singleDisposalDetails)
 
         val yearToDateLiabilityAnswers = {
           val estimatedIncome =
@@ -89,7 +90,8 @@ class ReturnTransformerServiceImpl @Inject() (
               reliefAnswers,
               exemptionAndLossesAnswers,
               estimatedIncome,
-              personalAllowance.getOrElse(AmountInPence.zero)
+              personalAllowance.getOrElse(AmountInPence.zero),
+              initialGainAnswers
             ),
             AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
             None
@@ -158,6 +160,18 @@ class ReturnTransformerServiceImpl @Inject() (
       zeroOrAmountInPenceFromPounds(singleDisposalDetails.improvementCosts),
       AmountInPence.fromPounds(singleDisposalDetails.acquisitionFees)
     )
+
+  private def constructInitialGainAnswers(
+    singleDisposalDetails: SingleDisposalDetails
+  ): Option[AmountInPenceWithSource] = {
+    val amount: Option[AmountInPence] =
+      (singleDisposalDetails.initialLoss, singleDisposalDetails.initialGain) match {
+        case (Some(loss), _) => if (loss > 0) Some(AmountInPence.fromPounds(-loss)) else Some(AmountInPence(0L))
+        case (_, Some(gain)) => if (gain > 0) Some(AmountInPence.fromPounds(gain)) else Some(AmountInPence(0L))
+        case (None, None)    => None
+      }
+    amount.map(a => AmountInPenceWithSource(a, Source.UserSupplied))
+  }
 
   private def constructReliefAnswers(
     desReturn: DesReturnDetails,

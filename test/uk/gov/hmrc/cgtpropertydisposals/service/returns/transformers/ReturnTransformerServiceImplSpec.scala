@@ -28,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.Multi
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesAcquisitionType, DesAssetType, DesDisposalType, DesReturnDetails, DisposalDetails, ReliefDetails, RepresentedPersonDetails, ReturnDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionDate, AcquisitionMethod, AssetType, CalculatedTaxDue, CompletionDate, DisposalDate, DisposalMethod, IndividualUserType, OtherReliefsOption, ShareOfProperty}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionDate, AcquisitionMethod, AmountInPenceWithSource, AssetType, CalculatedTaxDue, CompletionDate, DisposalDate, DisposalMethod, IndividualUserType, OtherReliefsOption, ShareOfProperty}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -53,10 +53,11 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           _: CompleteReliefDetailsAnswers,
           _: CompleteExemptionAndLossesAnswers,
           _: AmountInPence,
-          _: AmountInPence
+          _: AmountInPence,
+          _: Option[AmountInPenceWithSource]
         )
       )
-      .expects(*, *, *, *, *, *, *)
+      .expects(*, *, *, *, *, *, *, *)
       .returning(result)
 
   def mockGetTaxYear(date: LocalDate)(result: Option[TaxYear]) =
