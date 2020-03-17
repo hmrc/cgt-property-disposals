@@ -41,8 +41,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
   val messagesKeys = Map()
+
   val monthNames: Map[String, Map[String, String]] = Map(
-    "en-GB" -> Map(
+    Lang.defaultLang.code -> Map(
       "date.1"  -> "January",
       "date.2"  -> "February",
       "date.3"  -> "March",
@@ -57,8 +58,9 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
       "date.12" -> "December"
     )
   )
+
   implicit val messagesApi                        = Helpers.stubMessagesApi(monthNames)
-  implicit val lang: Lang                         = Lang.apply("en-GB")
+  implicit val lang: Lang                         = Lang.defaultLang
   implicit val messagesProvider: MessagesProvider = MessagesImpl(lang, messagesApi)
 
   val (accountCreatedTemplateId, accountCreatedSignInUrl, returnSubmittedTemplateId) =
