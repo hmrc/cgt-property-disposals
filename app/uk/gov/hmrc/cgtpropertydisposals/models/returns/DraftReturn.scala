@@ -45,6 +45,7 @@ final case class SingleDisposalDraftReturn(
 final case class MultipleDisposalsDraftReturn(
   id: UUID,
   triageAnswers: MultipleDisposalsTriageAnswers,
+  examplePropertyDetailsAnswers: Option[MultipleDisposalsExamplePropertyDetailsAnswers],
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 
