@@ -58,8 +58,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
       val zeroExemptionsAndLosses = CompleteExemptionAndLossesAnswers(
         AmountInPence.zero,
         AmountInPence.zero,
-        AmountInPence.zero,
-        None
+        AmountInPence.zero
       )
 
       def calculate(
