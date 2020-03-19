@@ -17,17 +17,16 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
-import cats.syntax.either._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.i18n.{DefaultLangs, Lang, Langs, Messages, MessagesApi, MessagesImpl, MessagesProvider}
+import play.api.i18n.{Lang, Messages, MessagesApi}
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnectorImpl.SendEmailRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, LocalDateUtils}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.MoneyUtils
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, LocalDateUtils}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient

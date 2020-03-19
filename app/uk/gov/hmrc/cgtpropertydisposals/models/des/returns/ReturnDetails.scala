@@ -71,9 +71,7 @@ object ReturnDetails {
   }
 
   private def getTaxableGainOrNetLoss(c: CompleteReturn): (BigDecimal, Option[BigDecimal]) = {
-    val value = c.exemptionsAndLossesDetails.taxableGainOrLoss.getOrElse(
-      c.yearToDateLiabilityAnswers.calculatedTaxDue.taxableGainOrNetLoss
-    )
+    val value = c.yearToDateLiabilityAnswers.calculatedTaxDue.taxableGainOrNetLoss
 
     if (value < AmountInPence.zero)
       AmountInPence.zero.inPounds() -> Some(value.inPounds() * -1)

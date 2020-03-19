@@ -24,23 +24,51 @@ sealed trait YearToDateLiabilityAnswers extends Product with Serializable
 
 object YearToDateLiabilityAnswers {
 
-  final case class IncompleteYearToDateLiabilityAnswers(
-    estimatedIncome: Option[AmountInPence],
-    personalAllowance: Option[AmountInPence],
-    hasEstimatedDetails: Option[Boolean],
-    calculatedTaxDue: Option[CalculatedTaxDue],
-    taxDue: Option[AmountInPence],
-    mandatoryEvidence: Option[String]
-  ) extends YearToDateLiabilityAnswers
+  sealed trait CalculatedYearToDateLiabilityAnswers extends YearToDateLiabilityAnswers
 
-  final case class CompleteYearToDateLiabilityAnswers(
-    estimatedIncome: AmountInPence,
-    personalAllowance: Option[AmountInPence],
-    hasEstimatedDetails: Boolean,
-    calculatedTaxDue: CalculatedTaxDue,
-    taxDue: AmountInPence,
-    mandatoryEvidence: Option[String]
-  ) extends YearToDateLiabilityAnswers
+  sealed trait NonCalculatedYearToDateLiabilityAnswers extends YearToDateLiabilityAnswers
+
+  object NonCalculatedYearToDateLiabilityAnswers {
+
+    final case class IncompleteNonCalculatedYearToDateLiabilityAnswers(taxableGainOrLoss: Option[AmountInPence])
+        extends NonCalculatedYearToDateLiabilityAnswers
+
+    object IncompleteNonCalculatedYearToDateLiabilityAnswers {
+      val empty: IncompleteNonCalculatedYearToDateLiabilityAnswers =
+        IncompleteNonCalculatedYearToDateLiabilityAnswers(None)
+    }
+
+    final case class CompleteNonCalculatedYearToDateLiabilityAnswers(taxableGainOrLoss: AmountInPence)
+        extends NonCalculatedYearToDateLiabilityAnswers
+
+  }
+
+  object CalculatedYearToDateLiabilityAnswers {
+    final case class IncompleteCalculatedYearToDateLiabilityAnswers(
+      estimatedIncome: Option[AmountInPence],
+      personalAllowance: Option[AmountInPence],
+      hasEstimatedDetails: Option[Boolean],
+      calculatedTaxDue: Option[CalculatedTaxDue],
+      taxDue: Option[AmountInPence],
+      mandatoryEvidence: Option[String]
+    ) extends CalculatedYearToDateLiabilityAnswers
+
+    object IncompleteCalculatedYearToDateLiabilityAnswers {
+      val empty: IncompleteCalculatedYearToDateLiabilityAnswers =
+        IncompleteCalculatedYearToDateLiabilityAnswers(None, None, None, None, None, None)
+    }
+
+    final case class CompleteCalculatedYearToDateLiabilityAnswers(
+      estimatedIncome: AmountInPence,
+      personalAllowance: Option[AmountInPence],
+      hasEstimatedDetails: Boolean,
+      calculatedTaxDue: CalculatedTaxDue,
+      taxDue: AmountInPence,
+      mandatoryEvidence: Option[String]
+    ) extends CalculatedYearToDateLiabilityAnswers
+
+  }
+
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[YearToDateLiabilityAnswers] = derived.oformat()
 

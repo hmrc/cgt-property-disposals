@@ -675,35 +675,6 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           result.map(_.exemptionsAndLossesDetails.annualExemptAmount) shouldBe Right(AmountInPence(1234L))
         }
 
-        "there is a net loss" in {
-          mockActions()
-
-          val result = transformer.toCompleteReturn(
-            validIndividualSingleDisposalDesReturnDetails.copy(
-              returnDetails = validIndividualSingleDisposalDesReturnDetails.returnDetails.copy(
-                totalNetLoss = Some(BigDecimal("12.34"))
-              )
-            )
-          )
-
-          result.map(_.exemptionsAndLossesDetails.taxableGainOrLoss) shouldBe Right(Some(AmountInPence(-1234L)))
-        }
-
-        "there is a taxable gain" in {
-          mockActions()
-
-          val result = transformer.toCompleteReturn(
-            validIndividualSingleDisposalDesReturnDetails.copy(
-              returnDetails = validIndividualSingleDisposalDesReturnDetails.returnDetails.copy(
-                totalNetLoss     = None,
-                totalTaxableGain = BigDecimal("1.23")
-              )
-            )
-          )
-
-          result.map(_.exemptionsAndLossesDetails.taxableGainOrLoss) shouldBe Right(Some(AmountInPence(123L)))
-        }
-
       }
 
       "transform year to date liability answers correctly" when {

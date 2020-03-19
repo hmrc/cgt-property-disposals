@@ -18,15 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
 import java.util.Locale
 
-import cats.instances.char._
-import cats.syntax.either._
-import cats.syntax.eq._
-import play.api.data.Forms.{mapping, of}
-import play.api.data.format.Formatter
-import play.api.data.{Form, FormError}
-
-import scala.util.Try
-
 object MoneyUtils {
 
   private val currencyFormatter = java.text.NumberFormat.getCurrencyInstance(Locale.UK)

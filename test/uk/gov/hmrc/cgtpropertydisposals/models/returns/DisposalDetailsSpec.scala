@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{Mult
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYearToDateLiabilityAnswers.CompleteCalculatedYearToDateLiabilityAnswers
 
 class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
@@ -42,7 +42,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
       val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(123456))
 
       val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
-        sample[CompleteYearToDateLiabilityAnswers].copy(calculatedTaxDue = calculatedTaxDue)
+        sample[CompleteCalculatedYearToDateLiabilityAnswers].copy(calculatedTaxDue = calculatedTaxDue)
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
@@ -55,7 +55,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
       val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(-123456))
 
       val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
-        sample[CompleteYearToDateLiabilityAnswers]
+        sample[CompleteCalculatedYearToDateLiabilityAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
 

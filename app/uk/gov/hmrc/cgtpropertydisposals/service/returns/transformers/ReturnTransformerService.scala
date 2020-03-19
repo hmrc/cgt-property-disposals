@@ -34,7 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYearToDateLiabilityAnswers.CompleteCalculatedYearToDateLiabilityAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
@@ -78,7 +78,7 @@ class ReturnTransformerServiceImpl @Inject() (
           val personalAllowance =
             desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
 
-          CompleteYearToDateLiabilityAnswers(
+          CompleteCalculatedYearToDateLiabilityAnswers(
             estimatedIncome,
             personalAllowance,
             desReturn.returnDetails.estimate,
@@ -169,19 +169,12 @@ class ReturnTransformerServiceImpl @Inject() (
       otherReliefsOption
     )
 
-  private def constructExemptionAndLossesAnswers(desReturn: DesReturnDetails): CompleteExemptionAndLossesAnswers = {
-    val totalTaxableGainOrNetLoss: AmountInPence =
-      (desReturn.returnDetails.totalNetLoss, desReturn.returnDetails.totalTaxableGain) match {
-        case (Some(netLoss), _) => AmountInPence.fromPounds(-netLoss)
-        case (_, gain)          => AmountInPence.fromPounds(gain)
-      }
+  private def constructExemptionAndLossesAnswers(desReturn: DesReturnDetails): CompleteExemptionAndLossesAnswers =
     CompleteExemptionAndLossesAnswers(
       zeroOrAmountInPenceFromPounds(desReturn.lossSummaryDetails.inYearLossUsed),
       zeroOrAmountInPenceFromPounds(desReturn.lossSummaryDetails.preYearLossUsed),
-      AmountInPence.fromPounds(desReturn.incomeAllowanceDetails.annualExemption),
-      Some(totalTaxableGainOrNetLoss)
+      AmountInPence.fromPounds(desReturn.incomeAllowanceDetails.annualExemption)
     )
-  }
 
   private def disposalDetailsValidation(
     desReturn: DesReturnDetails,

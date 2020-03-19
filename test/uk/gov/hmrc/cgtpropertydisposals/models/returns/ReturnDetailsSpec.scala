@@ -25,33 +25,20 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CompleteYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYearToDateLiabilityAnswers.CompleteCalculatedYearToDateLiabilityAnswers
 
 class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
   "ReturnDetails getTaxableGainOrNetLoss" must {
 
-    "return totalTaxableGain value when exemptionsAndLossesDetails.taxableGainOrLoss exist" in {
-      val amountInPounds = BigDecimal(1000)
-      val completeReturn = sample[CompleteReturn].copy(
-        triageAnswers = sample[CompleteSingleDisposalTriageAnswers],
-        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers]
-          .copy(taxableGainOrLoss = Some(AmountInPence.fromPounds(amountInPounds))),
-        yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
-      )
-      val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
-
-      ReturnDetails(submitReturnRequest).totalTaxableGain shouldBe amountInPounds
-    }
-
-    "return totalTaxableGain value when exemptionsAndLossesDetails.taxableGainOrLoss doesn't exist" in {
+    "return totalTaxableGain value when one is found in the calculated tax due doesn't exist" in {
       val amountInPounds = BigDecimal(1000)
       val calculatedTaxDue =
         sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.fromPounds(amountInPounds))
       val completeReturn = sample[CompleteReturn].copy(
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
-        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss = None),
-        yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
+        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers],
+        yearToDateLiabilityAnswers = sample[CompleteCalculatedYearToDateLiabilityAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -65,8 +52,8 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.fromPounds(amountInPounds))
       val completeReturn = sample[CompleteReturn].copy(
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
-        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss = None),
-        yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
+        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers],
+        yearToDateLiabilityAnswers = sample[CompleteCalculatedYearToDateLiabilityAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -80,8 +67,8 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.fromPounds(amountInPounds))
       val completeReturn = sample[CompleteReturn].copy(
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
-        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers].copy(taxableGainOrLoss = None),
-        yearToDateLiabilityAnswers = sample[CompleteYearToDateLiabilityAnswers]
+        exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers],
+        yearToDateLiabilityAnswers = sample[CompleteCalculatedYearToDateLiabilityAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)

@@ -27,15 +27,13 @@ object ExemptionAndLossesAnswers {
   final case class IncompleteExemptionAndLossesAnswers(
     inYearLosses: Option[AmountInPence],
     previousYearsLosses: Option[AmountInPence],
-    annualExemptAmount: Option[AmountInPence],
-    taxableGainOrLoss: Option[AmountInPence]
+    annualExemptAmount: Option[AmountInPence]
   ) extends ExemptionAndLossesAnswers
 
   final case class CompleteExemptionAndLossesAnswers(
     inYearLosses: AmountInPence,
     previousYearsLosses: AmountInPence,
-    annualExemptAmount: AmountInPence,
-    taxableGainOrLoss: Option[AmountInPence]
+    annualExemptAmount: AmountInPence
   ) extends ExemptionAndLossesAnswers
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ExemptionAndLossesAnswers] = derived.oformat()

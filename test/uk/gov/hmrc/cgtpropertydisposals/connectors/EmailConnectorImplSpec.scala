@@ -18,19 +18,17 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import java.time.LocalDate
 
-import com.google.inject.Inject
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.i18n.{DefaultLangs, Lang, Langs, Messages, MessagesApi, MessagesImpl, MessagesProvider}
+import play.api.i18n.{Lang, MessagesImpl, MessagesProvider}
 import play.api.libs.json.Json
 import play.api.test.Helpers
 import play.api.test.Helpers._
 import play.api.{Configuration, Mode}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge, ChargeType, MoneyUtils}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, MoneyUtils}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
