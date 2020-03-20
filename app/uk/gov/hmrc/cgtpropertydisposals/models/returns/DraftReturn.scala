@@ -38,7 +38,7 @@ final case class SingleDisposalDraftReturn(
   reliefDetailsAnswers: Option[ReliefDetailsAnswers],
   exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
   yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
-  initialGainOrLoss: Option[AmountInPenceWithSource],
+  initialGainOrLoss: Option[AmountInPence],
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 
