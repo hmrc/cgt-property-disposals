@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
+import java.util.UUID
+
 import cats.data.EitherT
 import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
@@ -50,31 +52,61 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
-  "DraftReturnsRepository" when {
-    "Store" should {
-      val cgtReference = sample[CgtReference]
+  def mockDeleteDraftReturn(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
+    (draftReturnRepository
+      .deleteAll(_: List[UUID]))
+      .expects(draftReturnIds)
+      .returning(EitherT.fromEither[Future](response))
 
-      "create a new draft return successfully" in {
-        val draftReturn = sample[DraftReturn]
+  "DraftReturnsRepository" when {
+
+    "storing draft returns" should {
+
+      val cgtReference = sample[CgtReference]
+      val draftReturn  = sample[DraftReturn]
+
+      "return a successful response if operation was successful" in {
         mockStoreDraftReturn(draftReturn, cgtReference)(Right(()))
         await(draftReturnsService.saveDraftReturn(draftReturn, cgtReference).value) shouldBe Right(())
       }
 
-      "fail to create a new draft return" in {
-        val draftReturn = sample[DraftReturn]
+      "return an unsuccessful repsonse if the operation was no successful" in {
         mockStoreDraftReturn(draftReturn, cgtReference)(Left(Error("Could not store draft return: $error")))
         await(draftReturnsService.saveDraftReturn(draftReturn, cgtReference).value).isLeft shouldBe true
       }
     }
 
-    "Retrieve" should {
-      "return draft returns successfully" in {
-        val cgtReference = sample[CgtReference]
-        val draftReturn  = sample[DraftReturn]
+    "getting draft returns" should {
 
+      val cgtReference = sample[CgtReference]
+      val draftReturn  = sample[DraftReturn]
+
+      "return a successful response if operation was successful" in {
         mockGetDraftReturn(cgtReference)(Right(List(draftReturn)))
         await(draftReturnsService.getDraftReturn(cgtReference).value) shouldBe (Right(List(draftReturn)))
       }
+
+      "return an unsuccessful response if operation was not successful" in {
+        mockGetDraftReturn(cgtReference)(Left(Error("")))
+        await(draftReturnsService.getDraftReturn(cgtReference).value).isLeft shouldBe true
+      }
     }
+
+    "deleting draft returns" should {
+
+      val draftReturnIds = List.fill(5)(UUID.randomUUID())
+
+      "return a successful response if operation was successful" in {
+        mockDeleteDraftReturn(draftReturnIds)(Right(()))
+        await(draftReturnsService.deleteDraftReturns(draftReturnIds).value) shouldBe Right(())
+      }
+
+      "return an unsuccessful response if operation was not successful" in {
+        mockDeleteDraftReturn(draftReturnIds)(Left(Error("")))
+        await(draftReturnsService.deleteDraftReturns(draftReturnIds).value).isLeft shouldBe true
+
+      }
+    }
+
   }
 }

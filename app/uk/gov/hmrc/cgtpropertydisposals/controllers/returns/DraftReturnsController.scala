@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
+import java.util.UUID
+
 import com.google.inject.{Inject, Singleton}
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -27,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import cats.instances.future._
+import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 
 import scala.concurrent.ExecutionContext
 
@@ -64,6 +67,34 @@ class DraftReturnsController @Inject() (
           _ => Ok
         )
     }
+  }
+
+  def deleteDraftReturns(): Action[JsValue] = authenticate(parse.json).async { implicit request =>
+    withJsonBody[DeleteDraftReturnsRequest] { deleteRequest =>
+      draftReturnsService
+        .deleteDraftReturns(deleteRequest.draftReturnIds)
+        .fold(
+          { e =>
+            logger.warn(s"Could not delete draft return with ids ${deleteRequest.draftReturnIds}", e)
+            InternalServerError
+          },
+          _ => Ok
+        )
+
+    }
+
+  }
+
+}
+
+object DraftReturnsController {
+
+  final case class DeleteDraftReturnsRequest(draftReturnIds: List[UUID])
+
+  object DeleteDraftReturnsRequest {
+
+    implicit val format: OFormat[DeleteDraftReturnsRequest] = Json.format
+
   }
 
 }

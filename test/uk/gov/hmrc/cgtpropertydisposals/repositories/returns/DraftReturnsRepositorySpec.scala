@@ -23,7 +23,7 @@ import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, SingleDisposalDraftReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,20 +39,21 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
   )
 
   val repository   = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
-  val draftReturn  = sample[DraftReturn]
   val cgtReference = sample[CgtReference]
 
   "DraftReturnsRepository" when {
 
     "inserting" should {
       "create a new draft return successfully" in {
+        val draftReturn = sample[DraftReturn]
         await(repository.save(draftReturn, cgtReference).value) shouldBe Right(())
       }
     }
 
     "getting" should {
       "retrieve an existing record" in {
-        val draftReturn2 = sample[SingleDisposalDraftReturn]
+        val draftReturn  = sample[DraftReturn]
+        val draftReturn2 = sample[DraftReturn]
 
         await(repository.save(draftReturn, cgtReference).value)  shouldBe Right(())
         await(repository.save(draftReturn2, cgtReference).value) shouldBe Right(())
@@ -60,6 +61,23 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
           Set(draftReturn, draftReturn2)
         )
       }
+    }
+
+    "deleting" should {
+
+      "delete all draft returns with the given ids" in {
+        val draftReturn  = sample[DraftReturn]
+        val draftReturn2 = sample[DraftReturn]
+
+        await(repository.save(draftReturn, cgtReference).value)  shouldBe Right(())
+        await(repository.save(draftReturn2, cgtReference).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
+          Set(draftReturn, draftReturn2)
+        )
+        await(repository.deleteAll(List(draftReturn.id, draftReturn2.id)).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value)                              shouldBe Right(List.empty)
+      }
+
     }
 
   }
