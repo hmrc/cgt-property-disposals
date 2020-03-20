@@ -39,7 +39,7 @@ trait CgtCalculationService {
     exemptionAndLosses: CompleteExemptionAndLossesAnswers,
     estimatedIncome: AmountInPence,
     personalAllowance: AmountInPence,
-    initialGainOrLossCheck: Option[AmountInPenceWithSource]
+    initialGainOrLossDetails: Option[AmountInPence]
   ): CalculatedTaxDue
 
 }
@@ -55,7 +55,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     exemptionAndLosses: CompleteExemptionAndLossesAnswers,
     estimatedIncome: AmountInPence,
     personalAllowance: AmountInPence,
-    initialGainOrLossCheck: Option[AmountInPenceWithSource]
+    initialGainOrLossDetails: Option[AmountInPence]
   ): CalculatedTaxDue = {
     val disposalAmountLessCosts: AmountInPence =
       disposalDetails.disposalPrice -- disposalDetails.disposalFees
@@ -65,16 +65,12 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         acquisitionDetails.improvementCosts ++
         acquisitionDetails.acquisitionFees
 
-    val initialGainOrLoss: AmountInPenceWithSource = initialGainOrLossCheck match {
-      case Some(a: AmountInPenceWithSource) =>
-        a.source match {
-          case Source.UserSupplied => a
-          case _ =>
-            AmountInPenceWithSource(
-              amount = disposalAmountLessCosts -- acquisitionAmountPlusCosts,
-              source = Source.Calculated
-            )
-        }
+    val initialGainOrLoss: AmountInPenceWithSource = initialGainOrLossDetails match {
+      case Some(a: AmountInPence) =>
+        AmountInPenceWithSource(
+          amount = a,
+          source = Source.UserSupplied
+        )
       case _ =>
         AmountInPenceWithSource(
           amount = disposalAmountLessCosts -- acquisitionAmountPlusCosts,

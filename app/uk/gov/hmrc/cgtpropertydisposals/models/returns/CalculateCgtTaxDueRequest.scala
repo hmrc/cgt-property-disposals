@@ -32,7 +32,7 @@ final case class CalculateCgtTaxDueRequest(
   exemptionAndLosses: CompleteExemptionAndLossesAnswers,
   estimatedIncome: AmountInPence,
   personalAllowance: AmountInPence,
-  initialGainOrLoss: Option[AmountInPenceWithSource]
+  initialGainOrLoss: Option[AmountInPence]
 )
 
 object CalculateCgtTaxDueRequest {

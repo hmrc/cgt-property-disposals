@@ -105,7 +105,8 @@ class ReturnTransformerServiceImpl @Inject() (
           acquisitionDetailsAnswers,
           reliefAnswers,
           exemptionAndLossesAnswers,
-          yearToDateLiabilityAnswers
+          yearToDateLiabilityAnswers,
+          initialGainAnswers
         )
     }
 
@@ -163,15 +164,12 @@ class ReturnTransformerServiceImpl @Inject() (
 
   private def constructInitialGainAnswers(
     singleDisposalDetails: SingleDisposalDetails
-  ): Option[AmountInPenceWithSource] = {
-    val amount: Option[AmountInPence] =
-      (singleDisposalDetails.initialLoss, singleDisposalDetails.initialGain) match {
-        case (Some(loss), _) => if (loss > 0) Some(AmountInPence.fromPounds(-loss)) else Some(AmountInPence(0L))
-        case (_, Some(gain)) => if (gain > 0) Some(AmountInPence.fromPounds(gain)) else Some(AmountInPence(0L))
-        case (None, None)    => None
-      }
-    amount.map(a => AmountInPenceWithSource(a, Source.UserSupplied))
-  }
+  ): Option[AmountInPence] =
+    (singleDisposalDetails.initialLoss, singleDisposalDetails.initialGain) match {
+      case (Some(loss), _) => Some(AmountInPence.fromPounds(-loss))
+      case (_, Some(gain)) => Some(AmountInPence.fromPounds(gain))
+      case (None, None)    => None
+    }
 
   private def constructReliefAnswers(
     desReturn: DesReturnDetails,

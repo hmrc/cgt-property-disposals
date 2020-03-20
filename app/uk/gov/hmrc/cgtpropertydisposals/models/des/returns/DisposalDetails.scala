@@ -58,14 +58,21 @@ object DisposalDetails {
     landRegistry: Boolean,
     acquisitionPrice: BigDecimal,
     disposalPrice: BigDecimal,
-    initialGain: BigDecimal,
-    initialLoss: BigDecimal,
+    initialGain: Option[BigDecimal],
+    initialLoss: Option[BigDecimal],
     rebased: Boolean = false
   ) extends DisposalDetails
 
   def apply(c: CompleteReturn): DisposalDetails = {
-    val addressDetails   = Address.toAddressDetails(c.propertyAddress)
-    val calculatedTaxDue = c.yearToDateLiabilityAnswers.calculatedTaxDue
+    val addressDetails = Address.toAddressDetails(c.propertyAddress)
+    val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
+      c.initialGainAnswers.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
+        if (f < AmountInPence.zero) {
+          None -> Some(-f.inPounds())
+        } else {
+          Some(f.inPounds()) -> None
+        }
+      }
 
     SingleDisposalDetails(
       disposalDate     = c.triageAnswers.disposalDate.value,
@@ -84,18 +91,9 @@ object DisposalDetails {
       disposalType     = DesDisposalType(c),
       acquisitionFees  = c.acquisitionDetails.acquisitionFees.inPounds(),
       disposalFees     = c.disposalDetails.disposalFees.inPounds(),
-      initialGain      = getInitialGainOrLoss(calculatedTaxDue)._1,
-      initialLoss      = getInitialGainOrLoss(calculatedTaxDue)._2
+      initialGain      = initialGainOrLoss._1,
+      initialLoss      = initialGainOrLoss._2
     )
-  }
-
-  private def getInitialGainOrLoss(calculatedTaxDue: CalculatedTaxDue): (Option[BigDecimal], Option[BigDecimal]) = {
-    val value = calculatedTaxDue.initialGainOrLoss.amount
-
-    if (value < AmountInPence.zero)
-      None -> Some(value.inPounds() * -1)
-    else
-      Some(value.inPounds()) -> None
   }
 
   private def improvementCosts(c: CompleteReturn): Option[BigDecimal] =
