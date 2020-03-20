@@ -156,7 +156,8 @@ class ReturnTransformerServiceImpl @Inject() (
       AmountInPence.fromPounds(singleDisposalDetails.acquisitionPrice),
       singleDisposalDetails.rebasedAmount.map(AmountInPence.fromPounds),
       zeroOrAmountInPenceFromPounds(singleDisposalDetails.improvementCosts),
-      AmountInPence.fromPounds(singleDisposalDetails.acquisitionFees)
+      AmountInPence.fromPounds(singleDisposalDetails.acquisitionFees),
+      singleDisposalDetails.rebased
     )
 
   private def constructReliefAnswers(
