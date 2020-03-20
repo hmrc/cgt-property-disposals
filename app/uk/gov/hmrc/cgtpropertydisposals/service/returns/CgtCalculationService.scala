@@ -55,7 +55,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     exemptionAndLosses: CompleteExemptionAndLossesAnswers,
     estimatedIncome: AmountInPence,
     personalAllowance: AmountInPence,
-    initialGainOrLossDetails: Option[AmountInPence]
+    initialGainOrLoss: Option[AmountInPence]
   ): CalculatedTaxDue = {
     val disposalAmountLessCosts: AmountInPence =
       disposalDetails.disposalPrice -- disposalDetails.disposalFees
@@ -65,7 +65,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         acquisitionDetails.improvementCosts ++
         acquisitionDetails.acquisitionFees
 
-    val initialGainOrLoss: AmountInPenceWithSource = initialGainOrLossDetails match {
+    val initialGainOrLossWithSource: AmountInPenceWithSource = initialGainOrLoss match {
       case Some(a: AmountInPence) =>
         AmountInPenceWithSource(
           amount = a,
@@ -85,10 +85,10 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     }
 
     val gainOrLossAfterReliefs: AmountInPence =
-      if (initialGainOrLoss.amount > AmountInPence.zero)
-        (initialGainOrLoss.amount -- totalReliefs).withFloorZero
-      else if (initialGainOrLoss.amount < AmountInPence.zero)
-        (initialGainOrLoss.amount ++ totalReliefs).withCeilingZero
+      if (initialGainOrLossWithSource.amount > AmountInPence.zero)
+        (initialGainOrLossWithSource.amount -- totalReliefs).withFloorZero
+      else if (initialGainOrLossWithSource.amount < AmountInPence.zero)
+        (initialGainOrLossWithSource.amount ++ totalReliefs).withCeilingZero
       else
         AmountInPence.zero
 
@@ -119,7 +119,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       NonGainCalculatedTaxDue(
         disposalAmountLessCosts,
         acquisitionAmountPlusCosts,
-        initialGainOrLoss,
+        initialGainOrLossWithSource,
         totalReliefs,
         gainOrLossAfterReliefs,
         totalLosses,
@@ -153,7 +153,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       GainCalculatedTaxDue(
         disposalAmountLessCosts,
         acquisitionAmountPlusCosts,
-        initialGainOrLoss,
+        initialGainOrLossWithSource,
         totalReliefs,
         gainOrLossAfterReliefs,
         totalLosses,
