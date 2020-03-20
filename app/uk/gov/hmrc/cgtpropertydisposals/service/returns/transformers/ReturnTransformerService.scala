@@ -70,7 +70,7 @@ class ReturnTransformerServiceImpl @Inject() (
         val acquisitionDetailsAnswers = constructAcquisitionDetailsAnswers(singleDisposalDetails)
         val reliefAnswers             = constructReliefAnswers(desReturn, otherReliefsOption)
         val exemptionAndLossesAnswers = constructExemptionAndLossesAnswers(desReturn)
-        val initialGainAnswers        = constructInitialGainAnswers(singleDisposalDetails)
+        val initialGainOrLoss         = constructInitialGainAnswers(singleDisposalDetails)
 
         val yearToDateLiabilityAnswers = {
           val estimatedIncome =
@@ -91,7 +91,7 @@ class ReturnTransformerServiceImpl @Inject() (
               exemptionAndLossesAnswers,
               estimatedIncome,
               personalAllowance.getOrElse(AmountInPence.zero),
-              initialGainAnswers
+              initialGainOrLoss
             ),
             AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
             None
@@ -106,7 +106,7 @@ class ReturnTransformerServiceImpl @Inject() (
           reliefAnswers,
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
-          initialGainAnswers
+          initialGainOrLoss
         )
     }
 
