@@ -39,7 +39,7 @@ trait CgtCalculationService {
     exemptionAndLosses: CompleteExemptionAndLossesAnswers,
     estimatedIncome: AmountInPence,
     personalAllowance: AmountInPence,
-    initialGainOrLossDetails: Option[AmountInPence]
+    initialGainOrLoss: Option[AmountInPence]
   ): CalculatedTaxDue
 
 }
