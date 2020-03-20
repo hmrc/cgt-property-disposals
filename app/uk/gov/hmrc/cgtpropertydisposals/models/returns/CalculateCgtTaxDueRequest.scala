@@ -43,7 +43,6 @@ object CalculateCgtTaxDueRequest {
     implicit val acquisitionDetailsFormat: OFormat[CompleteAcquisitionDetailsAnswers] = Json.format
     implicit val reliefDetailsFormat: OFormat[CompleteReliefDetailsAnswers]           = Json.format
     implicit val exemptionAndLossesFormat: OFormat[CompleteExemptionAndLossesAnswers] = Json.format
-    implicit val initialGainOrLossFormat: OFormat[AmountInPenceWithSource]            = Json.format
     Json.format
   }
 

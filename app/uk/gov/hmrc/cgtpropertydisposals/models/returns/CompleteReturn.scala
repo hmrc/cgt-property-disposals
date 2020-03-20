@@ -34,7 +34,7 @@ final case class CompleteReturn(
   reliefDetails: CompleteReliefDetailsAnswers,
   exemptionsAndLossesDetails: CompleteExemptionAndLossesAnswers,
   yearToDateLiabilityAnswers: CompleteCalculatedYearToDateLiabilityAnswers,
-  initialGainAnswers: Option[AmountInPence]
+  initialGainOrLoss: Option[AmountInPence]
 )
 
 object CompleteReturn {

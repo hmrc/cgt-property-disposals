@@ -66,7 +66,7 @@ object DisposalDetails {
   def apply(c: CompleteReturn): DisposalDetails = {
     val addressDetails = Address.toAddressDetails(c.propertyAddress)
     val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
-      c.initialGainAnswers.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
+      c.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
         if (f < AmountInPence.zero) {
           None -> Some(-f.inPounds())
         } else {

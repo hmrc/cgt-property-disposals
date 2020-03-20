@@ -24,7 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, AssetType, CalculatedTaxDue, DisposalDate, OtherReliefsOption, Source, TaxableAmountOfMoney}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CalculatedTaxDue, DisposalDate, OtherReliefsOption, Source, TaxableAmountOfMoney}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -62,14 +62,14 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
       )
 
       def calculate(
-       triageAnswers: CompleteSingleDisposalTriageAnswers      = completeTriageAnswers,
-       disposalDetails: CompleteDisposalDetailsAnswers         = zeroDisposalDetails,
-       acquisitionDetails: CompleteAcquisitionDetailsAnswers   = zeroAcquisitionDetails,
-       reliefDetails: CompleteReliefDetailsAnswers             = zeroReliefDetails,
-       exemptionAndLosses: CompleteExemptionAndLossesAnswers   = zeroExemptionsAndLosses,
-       estimatedIncome: AmountInPence                          = sample[AmountInPence],
-       personalAllowance: AmountInPence                        = sample[AmountInPence],
-       initialGainOrLoss: Option[AmountInPence]                = None
+        triageAnswers: CompleteSingleDisposalTriageAnswers    = completeTriageAnswers,
+        disposalDetails: CompleteDisposalDetailsAnswers       = zeroDisposalDetails,
+        acquisitionDetails: CompleteAcquisitionDetailsAnswers = zeroAcquisitionDetails,
+        reliefDetails: CompleteReliefDetailsAnswers           = zeroReliefDetails,
+        exemptionAndLosses: CompleteExemptionAndLossesAnswers = zeroExemptionsAndLosses,
+        estimatedIncome: AmountInPence                        = sample[AmountInPence],
+        personalAllowance: AmountInPence                      = sample[AmountInPence],
+        initialGainOrLoss: Option[AmountInPence]              = None
       ) =
         service.calculateTaxDue(
           triageAnswers,
@@ -145,10 +145,14 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         forAll {
           (disposalDetails: CompleteDisposalDetailsAnswers, acquisitionDetails: CompleteAcquisitionDetailsAnswers) =>
             val expectedInitialGainOrLoss = AmountInPence(10L)
-            val result = calculate(disposalDetails = disposalDetails, acquisitionDetails = acquisitionDetails, initialGainOrLoss = Some(expectedInitialGainOrLoss))
+            val result = calculate(
+              disposalDetails    = disposalDetails,
+              acquisitionDetails = acquisitionDetails,
+              initialGainOrLoss  = Some(expectedInitialGainOrLoss)
+            )
 
             result.initialGainOrLoss.amount.value shouldBe expectedInitialGainOrLoss.value
-            result.initialGainOrLoss.source shouldBe Source.UserSupplied
+            result.initialGainOrLoss.source       shouldBe Source.UserSupplied
         }
       }
 
@@ -213,7 +217,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             )
 
             result.initialGainOrLoss.amount.value shouldBe 100L
-            result.initialGainOrLoss.source shouldBe Source.Calculated
+            result.initialGainOrLoss.source       shouldBe Source.Calculated
             result.gainOrLossAfterReliefs.value   shouldBe 98L
 
           }
@@ -231,7 +235,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             )
 
             result.initialGainOrLoss.amount.value shouldBe 100L
-            result.initialGainOrLoss.source shouldBe Source.Calculated
+            result.initialGainOrLoss.source       shouldBe Source.Calculated
             result.gainOrLossAfterReliefs.value   shouldBe 0L
           }
         }
@@ -254,7 +258,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             )
 
             result.initialGainOrLoss.amount.value shouldBe -100L
-            result.initialGainOrLoss.source shouldBe Source.Calculated
+            result.initialGainOrLoss.source       shouldBe Source.Calculated
             result.gainOrLossAfterReliefs.value   shouldBe -98L
           }
 
@@ -271,7 +275,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             )
 
             result.initialGainOrLoss.amount.value shouldBe -100L
-            result.initialGainOrLoss.source shouldBe Source.Calculated
+            result.initialGainOrLoss.source       shouldBe Source.Calculated
             result.gainOrLossAfterReliefs.value   shouldBe 0L
           }
         }
@@ -288,7 +292,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           result.initialGainOrLoss.amount.value shouldBe 0L
-          result.initialGainOrLoss.source shouldBe Source.Calculated
+          result.initialGainOrLoss.source       shouldBe Source.Calculated
           result.gainOrLossAfterReliefs.value   shouldBe 0L
         }
 
