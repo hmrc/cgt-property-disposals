@@ -47,7 +47,8 @@ class CalculatorController @Inject() (
         calculationRequest.exemptionAndLosses,
         calculationRequest.estimatedIncome,
         calculationRequest.personalAllowance,
-        calculationRequest.initialGainOrLoss
+        calculationRequest.initialGainOrLoss,
+        calculationRequest.isATrust
       )
 
       Future.successful(Ok(Json.toJson(result)))

@@ -39,7 +39,8 @@ trait CgtCalculationService {
     exemptionAndLosses: CompleteExemptionAndLossesAnswers,
     estimatedIncome: AmountInPence,
     personalAllowance: AmountInPence,
-    initialGainOrLoss: Option[AmountInPence]
+    initialGainOrLoss: Option[AmountInPence],
+    isATrust: Boolean
   ): CalculatedTaxDue
 
 }
@@ -55,7 +56,8 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     exemptionAndLosses: CompleteExemptionAndLossesAnswers,
     estimatedIncome: AmountInPence,
     personalAllowance: AmountInPence,
-    initialGainOrLoss: Option[AmountInPence]
+    initialGainOrLoss: Option[AmountInPence],
+    isATrust: Boolean
   ): CalculatedTaxDue = {
     val disposalAmountLessCosts: AmountInPence =
       disposalDetails.disposalPrice -- disposalDetails.disposalFees
@@ -128,21 +130,26 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         AmountInPence.zero
       )
     else {
-      val taxYear       = triageAnswers.disposalDate.taxYear
-      val taxableIncome = (estimatedIncome -- personalAllowance).withFloorZero
+      val taxYear = triageAnswers.disposalDate.taxYear
       val (lowerBandRate, higherTaxRate) =
         triageAnswers.assetType match {
           case AssetType.Residential => taxYear.cgtRateLowerBandResidential    -> taxYear.cgtRateHigherBandResidential
           case _                     => taxYear.cgtRateLowerBandNonResidential -> taxYear.cgtRateHigherBandNonResidential
         }
-      val lowerBandTax = TaxableAmountOfMoney(
-        lowerBandRate,
-        AmountInPence.zero.max(
-          taxableGain.min(
-            (taxYear.incomeTaxHigherRateThreshold -- taxableIncome).withFloorZero
+      val taxableIncome = (estimatedIncome -- personalAllowance).withFloorZero
+      val lowerBandTax = if (isATrust) {
+        TaxableAmountOfMoney(lowerBandRate, AmountInPence(0L))
+      } else {
+        TaxableAmountOfMoney(
+          lowerBandRate,
+          AmountInPence.zero.max(
+            taxableGain.min(
+              (taxYear.incomeTaxHigherRateThreshold -- taxableIncome).withFloorZero
+            )
           )
         )
-      )
+      }
+
       val higherBandTax = TaxableAmountOfMoney(
         higherTaxRate,
         (taxableGain -- lowerBandTax.taxableAmount).withFloorZero
