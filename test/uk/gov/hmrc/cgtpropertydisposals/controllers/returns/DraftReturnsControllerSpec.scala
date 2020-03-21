@@ -17,17 +17,19 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import java.time.LocalDateTime
+import java.util.UUID
 
 import akka.stream.Materializer
 import cats.data.EitherT
 import cats.instances.future._
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.Headers
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
+import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -58,6 +60,12 @@ class DraftReturnsControllerSpec extends ControllerSpec {
       .expects(cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
+  def mockDeleteDraftReturnService(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
+    (draftReturnsService
+      .deleteDraftReturns(_: List[UUID]))
+      .expects(draftReturnIds)
+      .returning(EitherT.fromEither[Future](response))
+
   implicit lazy val mat: Materializer = fakeApplication.materializer
 
   val request = new AuthenticatedRequest(
@@ -80,6 +88,16 @@ class DraftReturnsControllerSpec extends ControllerSpec {
     "handling requests to store a draft return" must {
 
       val cgtReference = sample[CgtReference]
+
+      "return a 415 response if the request body does not cotnain any JSON" in {
+        val result = controller.storeDraftReturn(cgtReference.value)(request)
+        status(result) shouldBe UNSUPPORTED_MEDIA_TYPE
+      }
+
+      "return a 400 response if the request body cannot be parsed" in {
+        val result = controller.storeDraftReturn(cgtReference.value)(fakeRequestWithJsonBody(JsString("abc")))
+        status(result) shouldBe BAD_REQUEST
+      }
 
       "return a 200 response if the draft returned was stored successfully" in {
         mockStoreDraftReturnsService(draftReturn, cgtReference)(Right(()))
@@ -121,6 +139,38 @@ class DraftReturnsControllerSpec extends ControllerSpec {
         mockGetDraftReturnsService(cgtReference)(Left(Error("")))
 
         val result = controller.draftReturns(cgtReference.value)(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
+    }
+
+    "handling requests to delete draft returns" must {
+
+      "return a 415 response if the request body does not cotnain any JSON" in {
+        val result = controller.deleteDraftReturns()(request)
+        status(result) shouldBe UNSUPPORTED_MEDIA_TYPE
+      }
+
+      "return a 400 response if the request body cannot be parsed" in {
+        val result = controller.deleteDraftReturns()(fakeRequestWithJsonBody(JsString("abc")))
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return a 200 response if the deletion is successful" in {
+        val ids = List(UUID.randomUUID())
+        mockDeleteDraftReturnService(ids)(Right(()))
+
+        val result =
+          controller.deleteDraftReturns()(fakeRequestWithJsonBody(Json.toJson(DeleteDraftReturnsRequest(ids))))
+        status(result) shouldBe OK
+      }
+
+      "return a 500 response if the deletion is unsuccessful" in {
+        val ids = List(UUID.randomUUID())
+        mockDeleteDraftReturnService(ids)(Left(Error("")))
+
+        val result =
+          controller.deleteDraftReturns()(fakeRequestWithJsonBody(Json.toJson(DeleteDraftReturnsRequest(ids))))
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 

@@ -45,7 +45,7 @@ class SubmitReturnsController @Inject() (
       val result =
         for {
           submissionResult <- returnsService.submitReturn(returnRequest)
-          _                <- draftReturnsService.deleteDraftReturn(returnRequest.id)
+          _                <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
         } yield submissionResult
 
       result.fold(

@@ -51,7 +51,7 @@ trait DraftReturnsRepository {
 
   def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit]
 
-  def delete(id: UUID): EitherT[Future, Error, Int]
+  def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit]
 }
 
 @Singleton
@@ -76,11 +76,21 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   override def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     EitherT(set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id)))
 
-  override def delete(id: UUID): EitherT[Future, Error, Int] =
-    EitherT[Future, Error, Int](
-      remove("return.draftId" -> id)
-        .map { result: WriteResult =>
-          Right(result.n)
+  override def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
+    EitherT[Future, Error, Unit](
+      remove(
+        "$or" -> JsArray(
+          draftReturnIds.map(id => JsObject(Map("return.draftId" -> JsString(id.toString))))
+        )
+      ).map { result: WriteResult =>
+          if (result.ok)
+            Right(())
+          else
+            Left(
+              Error(
+                s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
+              )
+            )
         }
         .recover {
           case exception => Left(Error(exception.getMessage))

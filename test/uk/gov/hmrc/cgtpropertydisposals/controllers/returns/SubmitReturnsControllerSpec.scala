@@ -68,10 +68,10 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       .expects(request, *, *)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Int]) =
+  def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Unit]) =
     (draftReturnsService
-      .deleteDraftReturn(_: UUID))
-      .expects(id)
+      .deleteDraftReturns(_: List[UUID]))
+      .expects(List(id))
       .returning(EitherT.fromEither[Future](response))
 
   "SubmitReturnsController" when {

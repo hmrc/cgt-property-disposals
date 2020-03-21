@@ -1,3 +1,4 @@
+POST /draft-returns/delete                     uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.deleteDraftReturns()
 GET  /draft-returns/:cgtReference              uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturns(cgtReference:String)
 POST /draft-return/:cgtReference               uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.storeDraftReturn(cgtReference: String)
 
