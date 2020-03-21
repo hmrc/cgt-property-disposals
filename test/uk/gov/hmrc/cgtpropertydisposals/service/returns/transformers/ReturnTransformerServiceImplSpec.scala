@@ -53,10 +53,11 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           _: CompleteReliefDetailsAnswers,
           _: CompleteExemptionAndLossesAnswers,
           _: AmountInPence,
-          _: AmountInPence
+          _: AmountInPence,
+          _: Option[AmountInPence]
         )
       )
-      .expects(*, *, *, *, *, *, *)
+      .expects(*, *, *, *, *, *, *, *)
       .returning(result)
 
   def mockGetTaxYear(date: LocalDate)(result: Option[TaxYear]) =

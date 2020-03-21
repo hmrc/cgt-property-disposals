@@ -24,7 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYearToDateLiabilityAnswers.CompleteCalculatedYearToDateLiabilityAnswers
 
 class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
@@ -38,30 +38,51 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
 
   "DisposalDetails getInitialGainOrLoss" must {
 
-    "return some value as initialGain and none as initialLoss" in {
-      val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(123456))
+    "return no values for either initialGain or initialLoss when calculated" in {
+      val calculatedTaxDue = sample[GainCalculatedTaxDue]
+        .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(123456), Source.Calculated))
 
-      val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
-        sample[CompleteCalculatedYearToDateLiabilityAnswers].copy(calculatedTaxDue = calculatedTaxDue)
+      val completeReturn = sample[CompleteReturn].copy(
+        initialGainOrLoss = None,
+        yearToDateLiabilityAnswers =
+          sample[CompleteCalculatedYearToDateLiabilityAnswers].copy(calculatedTaxDue = calculatedTaxDue)
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
-        details.initialGain shouldBe BigDecimal("1234.56")
-        details.initialLoss shouldBe BigDecimal("0")
+        details.initialGain shouldBe None
+        details.initialLoss shouldBe None
+      }
+    }
+
+    "return some value as initialGain and none as initialLoss" in {
+      val calculatedTaxDue = sample[GainCalculatedTaxDue]
+        .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(123456), Source.UserSupplied))
+
+      val completeReturn = sample[CompleteReturn].copy(
+        initialGainOrLoss = Some(AmountInPence(123456)),
+        yearToDateLiabilityAnswers =
+          sample[CompleteCalculatedYearToDateLiabilityAnswers].copy(calculatedTaxDue = calculatedTaxDue)
+      )
+
+      testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
+        details.initialGain shouldBe Some(BigDecimal("1234.56"))
+        details.initialLoss shouldBe None
       }
     }
 
     "return none as initialGain and some value for initialLoss" in {
-      val calculatedTaxDue = sample[GainCalculatedTaxDue].copy(initialGainOrLoss = AmountInPence(-123456))
+      val calculatedTaxDue = sample[NonGainCalculatedTaxDue]
+        .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(-123456), Source.UserSupplied))
 
-      val completeReturn = sample[CompleteReturn].copy(yearToDateLiabilityAnswers =
-        sample[CompleteCalculatedYearToDateLiabilityAnswers]
+      val completeReturn = sample[CompleteReturn].copy(
+        initialGainOrLoss = Some(AmountInPence(-123456)),
+        yearToDateLiabilityAnswers = sample[CompleteCalculatedYearToDateLiabilityAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
-        details.initialLoss shouldBe BigDecimal("1234.56")
-        details.initialGain shouldBe BigDecimal("0")
+        details.initialLoss shouldBe Some(BigDecimal("1234.56"))
+        details.initialGain shouldBe None
       }
     }
   }

@@ -26,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CalculatedTaxDue, TaxableAmountOfMoney}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, AssetType, CalculatedTaxDue, Source, TaxableAmountOfMoney}
 
 @ImplementedBy(classOf[CgtCalculationServiceImpl])
 trait CgtCalculationService {
@@ -38,7 +38,8 @@ trait CgtCalculationService {
     reliefDetails: CompleteReliefDetailsAnswers,
     exemptionAndLosses: CompleteExemptionAndLossesAnswers,
     estimatedIncome: AmountInPence,
-    personalAllowance: AmountInPence
+    personalAllowance: AmountInPence,
+    initialGainOrLoss: Option[AmountInPence]
   ): CalculatedTaxDue
 
 }
@@ -53,7 +54,8 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     reliefDetails: CompleteReliefDetailsAnswers,
     exemptionAndLosses: CompleteExemptionAndLossesAnswers,
     estimatedIncome: AmountInPence,
-    personalAllowance: AmountInPence
+    personalAllowance: AmountInPence,
+    initialGainOrLoss: Option[AmountInPence]
   ): CalculatedTaxDue = {
     val disposalAmountLessCosts: AmountInPence =
       disposalDetails.disposalPrice -- disposalDetails.disposalFees
@@ -63,8 +65,18 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         acquisitionDetails.improvementCosts ++
         acquisitionDetails.acquisitionFees
 
-    val initialGainOrLoss: AmountInPence =
-      disposalAmountLessCosts -- acquisitionAmountPlusCosts
+    val initialGainOrLossWithSource: AmountInPenceWithSource = initialGainOrLoss match {
+      case Some(a: AmountInPence) =>
+        AmountInPenceWithSource(
+          amount = a,
+          source = Source.UserSupplied
+        )
+      case _ =>
+        AmountInPenceWithSource(
+          amount = disposalAmountLessCosts -- acquisitionAmountPlusCosts,
+          source = Source.Calculated
+        )
+    }
 
     val totalReliefs: AmountInPence = {
       val otherReliefs =
@@ -73,10 +85,10 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     }
 
     val gainOrLossAfterReliefs: AmountInPence =
-      if (initialGainOrLoss > AmountInPence.zero)
-        (initialGainOrLoss -- totalReliefs).withFloorZero
-      else if (initialGainOrLoss < AmountInPence.zero)
-        (initialGainOrLoss ++ totalReliefs).withCeilingZero
+      if (initialGainOrLossWithSource.amount > AmountInPence.zero)
+        (initialGainOrLossWithSource.amount -- totalReliefs).withFloorZero
+      else if (initialGainOrLossWithSource.amount < AmountInPence.zero)
+        (initialGainOrLossWithSource.amount ++ totalReliefs).withCeilingZero
       else
         AmountInPence.zero
 
@@ -107,7 +119,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       NonGainCalculatedTaxDue(
         disposalAmountLessCosts,
         acquisitionAmountPlusCosts,
-        initialGainOrLoss,
+        initialGainOrLossWithSource,
         totalReliefs,
         gainOrLossAfterReliefs,
         totalLosses,
@@ -141,7 +153,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       GainCalculatedTaxDue(
         disposalAmountLessCosts,
         acquisitionAmountPlusCosts,
-        initialGainOrLoss,
+        initialGainOrLossWithSource,
         totalReliefs,
         gainOrLossAfterReliefs,
         totalLosses,
