@@ -45,6 +45,7 @@ class TaxYearServiceImplSpec extends WordSpec with Matchers {
         |    }
         |    personal-allowance = ${taxYear.personalAllowance.inPounds()}
         |    income-tax-higher-rate-threshold = ${taxYear.incomeTaxHigherRateThreshold.inPounds()}
+        |    lettings-relief-max-threshold = ${taxYear.maxLettingsReliefAmount.inPounds()}
         |    cgt-rates {
         |      lower-band-residential      = ${taxYear.cgtRateLowerBandResidential}
         |      lower-band-non-residential  = ${taxYear.cgtRateLowerBandNonResidential}
