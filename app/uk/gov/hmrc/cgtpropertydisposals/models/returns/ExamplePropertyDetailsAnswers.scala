@@ -20,18 +20,17 @@ import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 
-sealed trait MultipleDisposalsExamplePropertyDetailsAnswers extends Product with Serializable
+sealed trait ExamplePropertyDetailsAnswers extends Product with Serializable
 
-object MultipleDisposalsExamplePropertyDetailsAnswers {
+object ExamplePropertyDetailsAnswers {
 
-  final case class IncompleteMultipleDisposalsExamplePropertyDetailsAnswers(address: Option[UkAddress])
-      extends MultipleDisposalsExamplePropertyDetailsAnswers
+  final case class IncompleteExamplePropertyDetailsAnswers(address: Option[UkAddress])
+      extends ExamplePropertyDetailsAnswers
 
-  final case class CompleteMultipleDisposalsExamplePropertyDetailsAnswers(address: UkAddress)
-      extends MultipleDisposalsExamplePropertyDetailsAnswers
+  final case class CompleteExamplePropertyDetailsAnswers(address: UkAddress) extends ExamplePropertyDetailsAnswers
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[MultipleDisposalsExamplePropertyDetailsAnswers] = {
+  implicit val format: OFormat[ExamplePropertyDetailsAnswers] = {
     implicit val ukAddressFormat: OFormat[UkAddress] = Json.format
     derived.oformat()
   }
