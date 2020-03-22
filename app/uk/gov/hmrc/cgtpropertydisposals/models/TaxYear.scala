@@ -33,7 +33,8 @@ final case class TaxYear(
   cgtRateLowerBandResidential: BigDecimal,
   cgtRateLowerBandNonResidential: BigDecimal,
   cgtRateHigherBandResidential: BigDecimal,
-  cgtRateHigherBandNonResidential: BigDecimal
+  cgtRateHigherBandNonResidential: BigDecimal,
+  maxLettingsReliefAmount: AmountInPence
 )
 object TaxYear {
 
@@ -51,6 +52,7 @@ object TaxYear {
         cgtRateLowerBandNonResidential  <- config.get[BigDecimal](s"$key.cgt-rates.lower-band-non-residential")
         cgtRateHigherBandResidential    <- config.get[BigDecimal](s"$key.cgt-rates.higher-band-residential")
         cgtRateHigherBandNonResidential <- config.get[BigDecimal](s"$key.cgt-rates.higher-band-non-residential")
+        maxLettingsReliefAmount         <- config.get[BigDecimal](s"$key.lettings-relief-max-threshold")
       } yield TaxYear(
         LocalDate.of(startYear, 4, 6),
         LocalDate.of(startYear + 1, 4, 6),
@@ -61,7 +63,8 @@ object TaxYear {
         cgtRateLowerBandResidential,
         cgtRateLowerBandNonResidential,
         cgtRateHigherBandResidential,
-        cgtRateHigherBandNonResidential
+        cgtRateHigherBandNonResidential,
+        AmountInPence.fromPounds(maxLettingsReliefAmount)
       )
   }
 
