@@ -26,6 +26,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.Trust
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesReturnDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -91,7 +92,11 @@ class ReturnTransformerServiceImpl @Inject() (
               exemptionAndLossesAnswers,
               estimatedIncome,
               personalAllowance.getOrElse(AmountInPence.zero),
-              initialGainOrLoss
+              initialGainOrLoss,
+              isATrust = desReturn.returnDetails.customerType match {
+                case Trust => true
+                case _     => false
+              }
             ),
             AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
             None

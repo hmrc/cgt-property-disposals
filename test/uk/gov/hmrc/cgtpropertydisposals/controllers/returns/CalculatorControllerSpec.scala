@@ -56,7 +56,8 @@ class CalculatorControllerSpec extends ControllerSpec {
           _: CompleteExemptionAndLossesAnswers,
           _: AmountInPence,
           _: AmountInPence,
-          _: Option[AmountInPence]
+          _: Option[AmountInPence],
+          _: Boolean
         )
       )
       .expects(
@@ -67,7 +68,8 @@ class CalculatorControllerSpec extends ControllerSpec {
         request.exemptionAndLosses,
         request.estimatedIncome,
         request.personalAllowance,
-        request.initialGainOrLoss
+        request.initialGainOrLoss,
+        request.isATrust
       )
       .returning(response)
 
