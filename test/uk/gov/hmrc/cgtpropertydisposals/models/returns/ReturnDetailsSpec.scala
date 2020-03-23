@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYearToDateLiabilityAnswers.CompleteCalculatedYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 
 class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
@@ -38,7 +38,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       val completeReturn = sample[CompleteReturn].copy(
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
         exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers],
-        yearToDateLiabilityAnswers = sample[CompleteCalculatedYearToDateLiabilityAnswers]
+        yearToDateLiabilityAnswers = sample[CompleteCalculatedYTDAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -53,7 +53,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       val completeReturn = sample[CompleteReturn].copy(
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
         exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers],
-        yearToDateLiabilityAnswers = sample[CompleteCalculatedYearToDateLiabilityAnswers]
+        yearToDateLiabilityAnswers = sample[CompleteCalculatedYTDAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -68,7 +68,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
       val completeReturn = sample[CompleteReturn].copy(
         triageAnswers              = sample[CompleteSingleDisposalTriageAnswers],
         exemptionsAndLossesDetails = sample[CompleteExemptionAndLossesAnswers],
-        yearToDateLiabilityAnswers = sample[CompleteCalculatedYearToDateLiabilityAnswers]
+        yearToDateLiabilityAnswers = sample[CompleteCalculatedYTDAnswers]
           .copy(calculatedTaxDue = calculatedTaxDue)
       )
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)

@@ -35,7 +35,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYearToDateLiabilityAnswers.CompleteCalculatedYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
@@ -80,7 +80,7 @@ class ReturnTransformerServiceImpl @Inject() (
           val personalAllowance =
             desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
 
-          CompleteCalculatedYearToDateLiabilityAnswers(
+          CompleteCalculatedYTDAnswers(
             estimatedIncome,
             personalAllowance,
             desReturn.returnDetails.estimate,
@@ -164,7 +164,8 @@ class ReturnTransformerServiceImpl @Inject() (
       AmountInPence.fromPounds(singleDisposalDetails.acquisitionPrice),
       singleDisposalDetails.rebasedAmount.map(AmountInPence.fromPounds),
       zeroOrAmountInPenceFromPounds(singleDisposalDetails.improvementCosts),
-      AmountInPence.fromPounds(singleDisposalDetails.acquisitionFees)
+      AmountInPence.fromPounds(singleDisposalDetails.acquisitionFees),
+      singleDisposalDetails.rebased
     )
 
   private def constructInitialGainAnswers(
