@@ -41,7 +41,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYearToDateLiabilityAnswers.CompleteCalculatedYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptor, UpscanCallBack, UpscanFileDescriptor}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
@@ -184,8 +184,8 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
   implicit val completeDisposalDetailsAnswersGen: Gen[CompleteDisposalDetailsAnswers] =
     gen[CompleteDisposalDetailsAnswers]
 
-  implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteCalculatedYearToDateLiabilityAnswers] =
-    gen[CompleteCalculatedYearToDateLiabilityAnswers]
+  implicit val completeYearToDateLiabilityAnswersGen: Gen[CompleteCalculatedYTDAnswers] =
+    gen[CompleteCalculatedYTDAnswers]
 
   implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
     gen[HasEstimatedDetailsWithCalculatedTaxDue]

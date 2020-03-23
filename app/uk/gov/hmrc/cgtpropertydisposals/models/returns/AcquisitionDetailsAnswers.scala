@@ -30,7 +30,8 @@ object AcquisitionDetailsAnswers {
     acquisitionPrice: Option[AmountInPence],
     rebasedAcquisitionPrice: Option[AmountInPence],
     improvementCosts: Option[AmountInPence],
-    acquisitionFees: Option[AmountInPence]
+    acquisitionFees: Option[AmountInPence],
+    shouldUseRebase: Option[Boolean]
   ) extends AcquisitionDetailsAnswers
 
   final case class CompleteAcquisitionDetailsAnswers(
@@ -39,7 +40,8 @@ object AcquisitionDetailsAnswers {
     acquisitionPrice: AmountInPence,
     rebasedAcquisitionPrice: Option[AmountInPence],
     improvementCosts: AmountInPence,
-    acquisitionFees: AmountInPence
+    acquisitionFees: AmountInPence,
+    shouldUseRebase: Boolean
   ) extends AcquisitionDetailsAnswers
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))

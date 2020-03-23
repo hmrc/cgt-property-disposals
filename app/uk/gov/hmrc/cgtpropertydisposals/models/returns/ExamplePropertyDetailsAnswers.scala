@@ -21,26 +21,26 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
-sealed trait MultipleDisposalsExamplePropertyDetailsAnswers extends Product with Serializable
+sealed trait ExamplePropertyDetailsAnswers extends Product with Serializable
 
-object MultipleDisposalsExamplePropertyDetailsAnswers {
+object ExamplePropertyDetailsAnswers {
 
-  final case class IncompleteMultipleDisposalsExamplePropertyDetailsAnswers(
+  final case class IncompleteExamplePropertyDetailsAnswers(
     address: Option[UkAddress],
     disposalDate: Option[DisposalDate],
     disposalPrice: Option[AmountInPence],
     acquisitionPrice: Option[AmountInPence]
-  ) extends MultipleDisposalsExamplePropertyDetailsAnswers
+  ) extends ExamplePropertyDetailsAnswers
 
-  final case class CompleteMultipleDisposalsExamplePropertyDetailsAnswers(
+  final case class CompleteExamplePropertyDetailsAnswers(
     address: UkAddress,
     disposalDate: DisposalDate,
     disposalPrice: AmountInPence,
     acquisitionPrice: AmountInPence
-  ) extends MultipleDisposalsExamplePropertyDetailsAnswers
+  ) extends ExamplePropertyDetailsAnswers
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[MultipleDisposalsExamplePropertyDetailsAnswers] = {
+  implicit val format: OFormat[ExamplePropertyDetailsAnswers] = {
     implicit val ukAddressFormat: OFormat[UkAddress] = Json.format
     derived.oformat()
   }

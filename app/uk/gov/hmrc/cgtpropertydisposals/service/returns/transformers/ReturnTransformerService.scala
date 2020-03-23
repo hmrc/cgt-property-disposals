@@ -26,6 +26,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.Trust
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesReturnDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -34,7 +35,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYearToDateLiabilityAnswers.CompleteCalculatedYearToDateLiabilityAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
@@ -79,7 +80,7 @@ class ReturnTransformerServiceImpl @Inject() (
           val personalAllowance =
             desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
 
-          CompleteCalculatedYearToDateLiabilityAnswers(
+          CompleteCalculatedYTDAnswers(
             estimatedIncome,
             personalAllowance,
             desReturn.returnDetails.estimate,
@@ -91,7 +92,11 @@ class ReturnTransformerServiceImpl @Inject() (
               exemptionAndLossesAnswers,
               estimatedIncome,
               personalAllowance.getOrElse(AmountInPence.zero),
-              initialGainOrLoss
+              initialGainOrLoss,
+              isATrust = desReturn.returnDetails.customerType match {
+                case Trust => true
+                case _     => false
+              }
             ),
             AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
             None
@@ -159,7 +164,8 @@ class ReturnTransformerServiceImpl @Inject() (
       AmountInPence.fromPounds(singleDisposalDetails.acquisitionPrice),
       singleDisposalDetails.rebasedAmount.map(AmountInPence.fromPounds),
       zeroOrAmountInPenceFromPounds(singleDisposalDetails.improvementCosts),
-      AmountInPence.fromPounds(singleDisposalDetails.acquisitionFees)
+      AmountInPence.fromPounds(singleDisposalDetails.acquisitionFees),
+      singleDisposalDetails.rebased
     )
 
   private def constructInitialGainAnswers(
