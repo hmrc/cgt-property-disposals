@@ -19,15 +19,25 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 sealed trait ExamplePropertyDetailsAnswers extends Product with Serializable
 
 object ExamplePropertyDetailsAnswers {
 
-  final case class IncompleteExamplePropertyDetailsAnswers(address: Option[UkAddress])
-      extends ExamplePropertyDetailsAnswers
+  final case class IncompleteExamplePropertyDetailsAnswers(
+    address: Option[UkAddress],
+    disposalDate: Option[DisposalDate],
+    disposalPrice: Option[AmountInPence],
+    acquisitionPrice: Option[AmountInPence]
+  ) extends ExamplePropertyDetailsAnswers
 
-  final case class CompleteExamplePropertyDetailsAnswers(address: UkAddress) extends ExamplePropertyDetailsAnswers
+  final case class CompleteExamplePropertyDetailsAnswers(
+    address: UkAddress,
+    disposalDate: DisposalDate,
+    disposalPrice: AmountInPence,
+    acquisitionPrice: AmountInPence
+  ) extends ExamplePropertyDetailsAnswers
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ExamplePropertyDetailsAnswers] = {
