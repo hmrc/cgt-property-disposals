@@ -69,7 +69,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         exemptionAndLosses: CompleteExemptionAndLossesAnswers = zeroExemptionsAndLosses,
         estimatedIncome: AmountInPence                        = sample[AmountInPence],
         personalAllowance: AmountInPence                      = sample[AmountInPence],
-        initialGainOrLoss: Option[AmountInPence]              = None
+        initialGainOrLoss: Option[AmountInPence]              = None,
+        isATrust: Boolean                                     = false
       ) =
         service.calculateTaxDue(
           triageAnswers,
@@ -79,7 +80,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           exemptionAndLosses,
           estimatedIncome,
           personalAllowance,
-          initialGainOrLoss
+          initialGainOrLoss,
+          isATrust
         )
 
       "calculate disposal amount less costs correctly" in {
@@ -778,6 +780,37 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
         }
 
+        "the user is a trust" in {
+          val incomeTaxHigherBandThreshold = AmountInPence(1000L)
+          val taxYear                      = sample[TaxYear].copy(incomeTaxHigherRateThreshold = incomeTaxHigherBandThreshold)
+
+          val triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+            disposalDate = sample[DisposalDate].copy(taxYear = taxYear),
+            assetType    = AssetType.Residential
+          )
+
+          val disposalDetails =
+            zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
+
+          val result = calculate(
+            triageAnswers     = triageAnswers,
+            disposalDetails   = disposalDetails,
+            estimatedIncome   = AmountInPence(100L),
+            personalAllowance = AmountInPence.zero,
+            isATrust          = true
+          )
+
+          testOnGainCalculatedTaxDue(result) { calculated =>
+            calculated.taxableGainOrNetLoss.value shouldBe 500L
+            calculated.taxableIncome.value        shouldBe 100L
+            calculated.taxDueAtLowerRate shouldBe TaxableAmountOfMoney(
+              taxYear.cgtRateLowerBandResidential,
+              AmountInPence(0L)
+            )
+          }
+
+        }
+
       }
 
       "calculate the amount to be taxed at the higher band rate" when {
@@ -844,6 +877,37 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         "the asset type is non-residential and" when {
 
           behave like test(AssetType.NonResidential, _.cgtRateHigherBandNonResidential)
+        }
+
+        "the user is a trust" in {
+          val incomeTaxHigherRateThreshold = AmountInPence(1000L)
+          val taxYear                      = sample[TaxYear].copy(incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold)
+          val triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+            disposalDate = sample[DisposalDate].copy(taxYear = taxYear),
+            assetType    = AssetType.NonResidential
+          )
+
+          val disposalDetails = zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
+          val taxableIncome   = AmountInPence(600L)
+
+          testOnGainCalculatedTaxDue(
+            calculate(
+              triageAnswers     = triageAnswers,
+              disposalDetails   = disposalDetails,
+              estimatedIncome   = taxableIncome,
+              personalAllowance = AmountInPence.zero,
+              isATrust          = true
+            )
+          ) { result =>
+            result.taxableGainOrNetLoss.value            shouldBe 500L
+            result.taxableIncome.value                   shouldBe 600L
+            result.taxDueAtLowerRate.taxableAmount.value shouldBe 0L
+            result.taxDueAtHigherRate shouldBe TaxableAmountOfMoney(
+              taxYear.cgtRateHigherBandNonResidential,
+              AmountInPence(500L)
+            )
+          }
+
         }
 
       }
