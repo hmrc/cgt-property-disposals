@@ -45,7 +45,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteSingleDisposalReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -72,7 +72,7 @@ trait ReturnsService {
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, CompleteReturn]
+  ): EitherT[Future, Error, CompleteSingleDisposalReturn]
 
 }
 
@@ -282,7 +282,7 @@ class DefaultReturnsService @Inject() (
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, CompleteReturn] =
+  ): EitherT[Future, Error, CompleteSingleDisposalReturn] =
     returnsConnector.displayReturn(cgtReference, submissionId).subflatMap { response =>
       if (response.status === OK) {
         for {

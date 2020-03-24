@@ -176,7 +176,7 @@ trait DmsSubmissionGen {
 
 trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
-  implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
+  implicit val completeReturnGen: Gen[CompleteSingleDisposalReturn] = gen[CompleteSingleDisposalReturn]
 
   implicit val completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
     gen[CompleteSingleDisposalTriageAnswers]

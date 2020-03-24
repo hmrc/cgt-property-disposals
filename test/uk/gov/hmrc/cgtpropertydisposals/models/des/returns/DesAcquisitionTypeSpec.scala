@@ -21,7 +21,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAcquisitionType._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionMethod, CompleteReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionMethod, CompleteSingleDisposalReturn}
 
 class DesAcquisitionTypeSpec extends WordSpec with Matchers {
 
@@ -51,7 +51,7 @@ class DesAcquisitionTypeSpec extends WordSpec with Matchers {
     "have a method which converts from a complete return" in {
 
       def test(acquisitionMethod: AcquisitionMethod, expectedDesAcquisitionType: DesAcquisitionType) = {
-        val completeReturn = sample[CompleteReturn].copy(
+        val completeReturn = sample[CompleteSingleDisposalReturn].copy(
           acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers].copy(
             acquisitionMethod = acquisitionMethod
           )

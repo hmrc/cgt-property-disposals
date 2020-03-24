@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Format, JsError, JsString, JsSuccess, JsValue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionMethod, CompleteReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionMethod, CompleteSingleDisposalReturn}
 
 sealed trait DesAcquisitionType extends Product with Serializable
 
@@ -31,7 +31,7 @@ object DesAcquisitionType {
 
   final case class Other(value: String) extends DesAcquisitionType
 
-  def apply(cr: CompleteReturn): DesAcquisitionType = cr.acquisitionDetails.acquisitionMethod match {
+  def apply(cr: CompleteSingleDisposalReturn): DesAcquisitionType = cr.acquisitionDetails.acquisitionMethod match {
     case AcquisitionMethod.Bought       => Bought
     case AcquisitionMethod.Inherited    => Inherited
     case AcquisitionMethod.Gifted       => Gifted

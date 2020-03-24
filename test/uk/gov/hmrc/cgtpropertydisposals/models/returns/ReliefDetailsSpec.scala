@@ -31,7 +31,7 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
 
     "return false for no reliefs" in {
       val zeroReliefDetails = CompleteReliefDetailsAnswers(AmountInPence.zero, AmountInPence.zero, None)
-      val completeReturn    = sample[CompleteReturn].copy(reliefDetails = zeroReliefDetails)
+      val completeReturn    = sample[CompleteSingleDisposalReturn].copy(reliefDetails = zeroReliefDetails)
 
       ReliefDetails.apply(completeReturn).reliefs shouldBe false
     }
@@ -42,7 +42,7 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         lettingsRelief         = AmountInPence.zero,
         otherReliefs           = None
       )
-      val completeReturn = sample[CompleteReturn].copy(reliefDetails = privateResidentsRelief)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(reliefDetails = privateResidentsRelief)
 
       ReliefDetails.apply(completeReturn).reliefs shouldBe false
     }
@@ -53,7 +53,7 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         lettingsRelief         = AmountInPence(1000L),
         otherReliefs           = None
       )
-      val completeReturn = sample[CompleteReturn].copy(reliefDetails = lettingsRelief)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(reliefDetails = lettingsRelief)
 
       ReliefDetails.apply(completeReturn).reliefs shouldBe false
     }
@@ -65,7 +65,7 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         otherReliefs           = Some(OtherReliefs("name: String", AmountInPence.zero))
       )
 
-      val completeReturn = sample[CompleteReturn].copy(reliefDetails = otherReliefs)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(reliefDetails = otherReliefs)
 
       ReliefDetails.apply(completeReturn).reliefs shouldBe false
     }
@@ -80,14 +80,14 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         lettingsRelief         = AmountInPence.fromPounds(amountInPounds),
         otherReliefs           = None
       )
-      val completeReturn = sample[CompleteReturn].copy(reliefDetails = reliefDetails)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(reliefDetails = reliefDetails)
 
       ReliefDetails.apply(completeReturn).lettingsReflief shouldBe Some(amountInPounds)
     }
 
     "return None as letting relief value in pounds" in {
       val zeroReliefDetails = CompleteReliefDetailsAnswers(AmountInPence.zero, AmountInPence.zero, None)
-      val completeReturn    = sample[CompleteReturn].copy(reliefDetails = zeroReliefDetails)
+      val completeReturn    = sample[CompleteSingleDisposalReturn].copy(reliefDetails = zeroReliefDetails)
 
       ReliefDetails.apply(completeReturn).lettingsReflief shouldBe None
     }
@@ -102,14 +102,14 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         lettingsRelief         = AmountInPence.zero,
         otherReliefs           = None
       )
-      val completeReturn = sample[CompleteReturn].copy(reliefDetails = reliefDetails)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(reliefDetails = reliefDetails)
 
       ReliefDetails.apply(completeReturn).privateResRelief shouldBe Some(amountInPounds)
     }
 
     "return None as privateResRelief relief value in pounds" in {
       val zeroReliefDetails = CompleteReliefDetailsAnswers(AmountInPence.zero, AmountInPence.zero, None)
-      val completeReturn    = sample[CompleteReturn].copy(reliefDetails = zeroReliefDetails)
+      val completeReturn    = sample[CompleteSingleDisposalReturn].copy(reliefDetails = zeroReliefDetails)
 
       ReliefDetails.apply(completeReturn).privateResRelief shouldBe None
     }
@@ -123,7 +123,7 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         lettingsRelief         = AmountInPence.zero,
         otherReliefs           = None
       )
-      val completeReturn = sample[CompleteReturn].copy(reliefDetails = reliefDetails)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(reliefDetails = reliefDetails)
 
       ReliefDetails.apply(completeReturn).giftHoldOverRelief shouldBe None
     }
@@ -138,7 +138,7 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         lettingsRelief         = AmountInPence.zero,
         otherReliefs           = Some(OtherReliefs(otherReliefName, AmountInPence.fromPounds(otherReliefAmountInPounds)))
       )
-      val completeReturn = sample[CompleteReturn].copy(reliefDetails = reliefDetails)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(reliefDetails = reliefDetails)
 
       ReliefDetails.apply(completeReturn).otherRelief       shouldBe Some(otherReliefName)
       ReliefDetails.apply(completeReturn).otherReliefAmount shouldBe Some(otherReliefAmountInPounds)
@@ -150,7 +150,7 @@ class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with Htt
         lettingsRelief         = AmountInPence(10000),
         otherReliefs           = None
       )
-      val completeReturn = sample[CompleteReturn].copy(reliefDetails = reliefDetails)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(reliefDetails = reliefDetails)
 
       ReliefDetails.apply(completeReturn).otherRelief       shouldBe None
       ReliefDetails.apply(completeReturn).otherReliefAmount shouldBe None

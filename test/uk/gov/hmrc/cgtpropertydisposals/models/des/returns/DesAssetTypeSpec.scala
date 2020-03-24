@@ -21,7 +21,7 @@ import play.api.libs.json.{JsError, JsNumber, JsString, JsSuccess, JsValue, Json
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAssetType._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CompleteReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CompleteSingleDisposalReturn}
 
 class DesAssetTypeSpec extends WordSpec with Matchers {
 
@@ -53,7 +53,7 @@ class DesAssetTypeSpec extends WordSpec with Matchers {
     "have a method which converts from a complete return" in {
 
       def test(assetType: AssetType, expectedDesAssetType: DesAssetType) = {
-        val completeReturn = sample[CompleteReturn].copy(triageAnswers =
+        val completeReturn = sample[CompleteSingleDisposalReturn].copy(triageAnswers =
           sample[CompleteSingleDisposalTriageAnswers].copy(
             assetType = assetType
           )

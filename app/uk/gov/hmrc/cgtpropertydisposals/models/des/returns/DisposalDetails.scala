@@ -63,7 +63,7 @@ object DisposalDetails {
     rebased: Boolean = false
   ) extends DisposalDetails
 
-  def apply(c: CompleteReturn): DisposalDetails = {
+  def apply(c: CompleteSingleDisposalReturn): DisposalDetails = {
     val addressDetails = Address.toAddressDetails(c.propertyAddress)
     val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
       c.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
@@ -96,7 +96,7 @@ object DisposalDetails {
     )
   }
 
-  private def improvementCosts(c: CompleteReturn): Option[BigDecimal] =
+  private def improvementCosts(c: CompleteSingleDisposalReturn): Option[BigDecimal] =
     if (c.acquisitionDetails.improvementCosts > AmountInPence.zero)
       Some(c.acquisitionDetails.improvementCosts.inPounds())
     else None

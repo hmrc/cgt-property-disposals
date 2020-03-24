@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Format, JsError, JsString, JsSuccess, JsValue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, DisposalMethod}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteSingleDisposalReturn, DisposalMethod}
 
 sealed trait DesDisposalType extends Product with Serializable
 
@@ -29,7 +29,7 @@ object DesDisposalType {
 
   case object Other extends DesDisposalType
 
-  def apply(cr: CompleteReturn): DesDisposalType = cr.triageAnswers.disposalMethod match {
+  def apply(cr: CompleteSingleDisposalReturn): DesDisposalType = cr.triageAnswers.disposalMethod match {
     case DisposalMethod.Sold   => Sold
     case DisposalMethod.Gifted => Gifted
     case DisposalMethod.Other  => Other

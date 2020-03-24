@@ -21,7 +21,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesDisposalType._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, DisposalMethod}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteSingleDisposalReturn, DisposalMethod}
 
 class DesDisposalTypeSpec extends WordSpec with Matchers {
 
@@ -50,7 +50,7 @@ class DesDisposalTypeSpec extends WordSpec with Matchers {
     "have a method which converts from a complete return" in {
 
       def test(disposalMethod: DisposalMethod, expectedDesDisposalType: DesDisposalType) = {
-        val completeReturn = sample[CompleteReturn].copy(triageAnswers =
+        val completeReturn = sample[CompleteSingleDisposalReturn].copy(triageAnswers =
           sample[CompleteSingleDisposalTriageAnswers].copy(
             disposalMethod = disposalMethod
           )

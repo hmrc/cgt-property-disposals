@@ -36,6 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
@@ -43,7 +44,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, 
 @ImplementedBy(classOf[ReturnTransformerServiceImpl])
 trait ReturnTransformerService {
 
-  def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteReturn]
+  def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteSingleDisposalReturn]
 
 }
 
@@ -53,13 +54,13 @@ class ReturnTransformerServiceImpl @Inject() (
   taxYearService: TaxYearService
 ) extends ReturnTransformerService {
 
-  override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteReturn] =
+  override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteSingleDisposalReturn] =
     fromDesReturn(desReturn).toEither
       .leftMap(e => Error(s"Could not convert des response to complete return: [${e.toList.mkString("; ")}]"))
 
   private def fromDesReturn(
     desReturn: DesReturnDetails
-  ): ValidatedNel[String, CompleteReturn] =
+  ): ValidatedNel[String, CompleteSingleDisposalReturn] =
     (
       disposalDetailsValidation(desReturn, taxYearService),
       countryValidation(desReturn),
@@ -73,18 +74,25 @@ class ReturnTransformerServiceImpl @Inject() (
         val exemptionAndLossesAnswers = constructExemptionAndLossesAnswers(desReturn)
         val initialGainOrLoss         = constructInitialGainAnswers(singleDisposalDetails)
 
-        val yearToDateLiabilityAnswers = {
-          val estimatedIncome =
-            zeroOrAmountInPenceFromPounds(desReturn.incomeAllowanceDetails.estimatedIncome)
+        val yearToDateLiabilityAnswers = otherReliefsOption match {
+          case Some(_: OtherReliefsOption.OtherReliefs) =>
+            Left(
+              CompleteNonCalculatedYTDAnswers(
+                AmountInPence.fromPounds(
+                  desReturn.returnDetails.totalNetLoss.map(_ * -1).getOrElse(desReturn.returnDetails.totalTaxableGain)
+                ),
+                desReturn.returnDetails.estimate,
+                AmountInPence.fromPounds(desReturn.returnDetails.totalLiability)
+              )
+            )
 
-          val personalAllowance =
-            desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
+          case _ =>
+            val estimatedIncome =
+              zeroOrAmountInPenceFromPounds(desReturn.incomeAllowanceDetails.estimatedIncome)
 
-          CompleteCalculatedYTDAnswers(
-            estimatedIncome,
-            personalAllowance,
-            desReturn.returnDetails.estimate,
-            cgtCalculationService.calculateTaxDue(
+            val personalAllowance =
+              desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
+            val calculatedTaxDue = cgtCalculationService.calculateTaxDue(
               triageAnswers,
               disposalDetailsAnswers,
               acquisitionDetailsAnswers,
@@ -97,13 +105,21 @@ class ReturnTransformerServiceImpl @Inject() (
                 case Trust => true
                 case _     => false
               }
-            ),
-            AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
-            None
-          )
+            )
+
+            Right(
+              CompleteCalculatedYTDAnswers(
+                estimatedIncome,
+                personalAllowance,
+                desReturn.returnDetails.estimate,
+                calculatedTaxDue,
+                AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
+                None
+              )
+            )
         }
 
-        CompleteReturn(
+        CompleteSingleDisposalReturn(
           triageAnswers,
           address,
           disposalDetailsAnswers,

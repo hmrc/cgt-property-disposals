@@ -22,7 +22,7 @@ import org.scalatest.WordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteSingleDisposalReturn, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 
@@ -50,7 +50,7 @@ class DesSubmitReturnRequestSpec extends WordSpec {
 
       for (a <- 1 to 1000) {
         val submitReturnRequest: SubmitReturnRequest =
-          sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
+          sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteSingleDisposalReturn]
             .copy(
               propertyAddress = sample[UkAddress],
               triageAnswers   = sample[CompleteSingleDisposalTriageAnswers]

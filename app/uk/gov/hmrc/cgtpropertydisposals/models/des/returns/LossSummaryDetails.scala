@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import cats.syntax.order._
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteSingleDisposalReturn
 
 final case class LossSummaryDetails(
   inYearLoss: Boolean,
@@ -30,7 +30,7 @@ final case class LossSummaryDetails(
 
 object LossSummaryDetails {
 
-  def apply(c: CompleteReturn): LossSummaryDetails =
+  def apply(c: CompleteSingleDisposalReturn): LossSummaryDetails =
     LossSummaryDetails(
       inYearLoss      = c.exemptionsAndLossesDetails.inYearLosses > AmountInPence.zero,
       inYearLossUsed  = inYearLossUsed(c),
@@ -38,12 +38,12 @@ object LossSummaryDetails {
       preYearLossUsed = preYearLossUsed(c)
     )
 
-  private def preYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
+  private def preYearLossUsed(r: CompleteSingleDisposalReturn): Option[BigDecimal] =
     if (r.exemptionsAndLossesDetails.previousYearsLosses.inPounds > 0)
       Some(r.exemptionsAndLossesDetails.previousYearsLosses.inPounds)
     else None
 
-  private def inYearLossUsed(r: CompleteReturn): Option[BigDecimal] =
+  private def inYearLossUsed(r: CompleteSingleDisposalReturn): Option[BigDecimal] =
     if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
       Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
     else None
