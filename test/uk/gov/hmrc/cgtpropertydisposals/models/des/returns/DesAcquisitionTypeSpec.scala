@@ -18,10 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAcquisitionType._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionMethod, CompleteSingleDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionMethod
 
 class DesAcquisitionTypeSpec extends WordSpec with Matchers {
 
@@ -49,21 +47,10 @@ class DesAcquisitionTypeSpec extends WordSpec with Matchers {
     }
 
     "have a method which converts from a complete return" in {
-
-      def test(acquisitionMethod: AcquisitionMethod, expectedDesAcquisitionType: DesAcquisitionType) = {
-        val completeReturn = sample[CompleteSingleDisposalReturn].copy(
-          acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers].copy(
-            acquisitionMethod = acquisitionMethod
-          )
-        )
-
-        DesAcquisitionType(completeReturn) shouldBe expectedDesAcquisitionType
-      }
-
-      test(AcquisitionMethod.Bought, Bought)
-      test(AcquisitionMethod.Inherited, Inherited)
-      test(AcquisitionMethod.Gifted, Gifted)
-      test(AcquisitionMethod.Other("abc"), Other("abc"))
+      DesAcquisitionType(AcquisitionMethod.Bought)       shouldBe Bought
+      DesAcquisitionType(AcquisitionMethod.Inherited)    shouldBe Inherited
+      DesAcquisitionType(AcquisitionMethod.Gifted)       shouldBe Gifted
+      DesAcquisitionType(AcquisitionMethod.Other("abc")) shouldBe Other("abc")
     }
 
   }

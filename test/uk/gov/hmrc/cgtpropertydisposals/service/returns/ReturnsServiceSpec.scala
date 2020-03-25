@@ -41,7 +41,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtRef
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteSingleDisposalReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesListReturnsResponse, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -118,7 +118,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(cgtReference, fromDate, toDate, *)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, CompleteSingleDisposalReturn]) =
+  def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, CompleteReturn]) =
     (mockReturnTransformerService
       .toCompleteReturn(_: DesReturnDetails))
       .expects(desReturn)
@@ -1121,7 +1121,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       "return a list of returns" when {
 
         "the response body can be parsed and converted" in {
-          val completeReturn = sample[CompleteSingleDisposalReturn]
+          val completeReturn = sample[CompleteReturn]
 
           inSequence {
             mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(200, Some(desResponseBodyString))))

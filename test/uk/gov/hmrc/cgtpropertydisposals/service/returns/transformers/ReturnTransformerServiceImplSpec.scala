@@ -17,18 +17,20 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
 import java.time.LocalDate
+
 import cats.syntax.either._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxYear}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.MultipleDisposalDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesAcquisitionType, DesAssetType, DesDisposalType, DesReturnDetails, DisposalDetails, ReliefDetails, RepresentedPersonDetails, ReturnDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesAcquisitionType, DesAssetTypeValue, DesDisposalType, DesReturnDetails, DisposalDetails, ReliefDetails, RepresentedPersonDetails, ReturnDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionDate, AcquisitionMethod, AssetType, CalculatedTaxDue, CompletionDate, DisposalDate, DisposalMethod, IndividualUserType, OtherReliefsOption, ShareOfProperty}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionDate, AcquisitionMethod, AssetType, CalculatedTaxDue, CompleteReturn, CompletionDate, DisposalDate, DisposalMethod, IndividualUserType, OtherReliefsOption, ShareOfProperty}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -76,16 +78,28 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
     val calculatedTaxDue = sample[CalculatedTaxDue]
 
     val validSingleDisposalDetails = sample[DisposalDetails.SingleDisposalDetails].copy(
-      addressDetails = Address.toAddressDetails(ukAddress)
+      addressDetails = Address.toAddressDetails(ukAddress),
+      disposalType   = Some(DesDisposalType.Sold),
+      assetType      = DesAssetTypeValue("res")
     )
 
     "passed details of a single disposal" must {
 
+      val validReliefDetails = sample[ReliefDetails].copy(otherRelief = None, otherReliefAmount = None)
+
       val validIndividualSingleDisposalDesReturnDetails = sample[DesReturnDetails].copy(
         disposalDetails = List(validSingleDisposalDetails),
         returnDetails   = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual),
-        reliefDetails   = sample[ReliefDetails].copy(otherRelief = None, otherReliefAmount = None)
+        reliefDetails   = Some(validReliefDetails)
       )
+
+      def completeSingleDisposalReturnValue[A](
+        result: Either[Error, CompleteReturn]
+      )(value: CompleteSingleDisposalReturn => A): Either[String, A] = result match {
+        case Left(e)                                   => Left(s"Expected CompleteSingleDisposalReturn but got $e")
+        case Right(m: CompleteMultipleDisposalsReturn) => Left(s"Expected CompleteSingleDisposalReturn but got $m")
+        case Right(s: CompleteSingleDisposalReturn)    => Right(value(s))
+      }
 
       def mockActions(): Unit =
         inSequence {
@@ -139,9 +153,11 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
         "there is an 'other relief' and a name can be found but an amount cannot" in {
           val desReturn = validIndividualSingleDisposalDesReturnDetails.copy(
-            reliefDetails = sample[ReliefDetails].copy(
-              otherRelief       = Some("name"),
-              otherReliefAmount = None
+            reliefDetails = Some(
+              sample[ReliefDetails].copy(
+                otherRelief       = Some("name"),
+                otherReliefAmount = None
+              )
             )
           )
 
@@ -152,12 +168,36 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
         "there is an 'other relief' and an amount can be found but a name cannot" in {
           val desReturn = validIndividualSingleDisposalDesReturnDetails.copy(
-            reliefDetails = sample[ReliefDetails].copy(
-              otherRelief       = None,
-              otherReliefAmount = Some(BigDecimal(1))
+            reliefDetails = Some(
+              sample[ReliefDetails].copy(
+                otherRelief       = None,
+                otherReliefAmount = Some(BigDecimal(1))
+              )
             )
           )
 
+          mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(sample[TaxYear]))
+
+          transformer.toCompleteReturn(desReturn).isLeft shouldBe true
+        }
+
+        "no relief details can be found" in {
+          val desReturn = validIndividualSingleDisposalDesReturnDetails.copy(
+            reliefDetails = None
+          )
+          mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(sample[TaxYear]))
+
+          transformer.toCompleteReturn(desReturn).isLeft shouldBe true
+        }
+
+        "no disposal method can be found" in {
+          val desReturn = validIndividualSingleDisposalDesReturnDetails.copy(
+            disposalDetails = List(
+              validSingleDisposalDetails.copy(
+                disposalType = None
+              )
+            )
+          )
           mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(sample[TaxYear]))
 
           transformer.toCompleteReturn(desReturn).isLeft shouldBe true
@@ -176,7 +216,11 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.triageAnswers.individualUserType) shouldBe Right(Some(IndividualUserType.Self))
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
+            Some(
+              IndividualUserType.Self
+            )
+          )
         }
 
         "there are represented personal details but no date of death" in {
@@ -192,7 +236,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.triageAnswers.individualUserType) shouldBe Right(Some(IndividualUserType.Capacitor))
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
+            Some(IndividualUserType.Capacitor)
+          )
         }
 
         "there are represented personal details with a date of death" in {
@@ -208,7 +254,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.triageAnswers.individualUserType) shouldBe Right(Some(IndividualUserType.PersonalRepresentative))
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
+            Some(IndividualUserType.PersonalRepresentative)
+          )
         }
 
         "the user was a trust" in {
@@ -222,7 +270,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.triageAnswers.individualUserType) shouldBe Right(None)
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(None)
         }
 
         "the user was a uk resident" in {
@@ -236,7 +284,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.triageAnswers.countryOfResidence) shouldBe Right(Country.uk)
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(Country.uk)
         }
 
         "the user was not a uk resident and there is a valid country code" in {
@@ -251,7 +299,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.triageAnswers.countryOfResidence) shouldBe Right(Country("HK", Some("Hong Kong")))
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(
+            Country("HK", Some("Hong Kong"))
+          )
         }
 
         "finding the disposal method" in {
@@ -261,13 +311,13 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validIndividualSingleDisposalDesReturnDetails.copy(
               disposalDetails = List(
                 validSingleDisposalDetails.copy(
-                  disposalType = DesDisposalType.Sold
+                  disposalType = Some(DesDisposalType.Sold)
                 )
               )
             )
           )
 
-          result.map(_.triageAnswers.disposalMethod) shouldBe Right(DisposalMethod.Sold)
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.disposalMethod) shouldBe Right(DisposalMethod.Sold)
         }
 
         "finding the asset type" in {
@@ -277,13 +327,13 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validIndividualSingleDisposalDesReturnDetails.copy(
               disposalDetails = List(
                 validSingleDisposalDetails.copy(
-                  assetType = DesAssetType.NonResidential
+                  assetType = DesAssetTypeValue("nonres")
                 )
               )
             )
           )
 
-          result.map(_.triageAnswers.assetType) shouldBe Right(AssetType.NonResidential)
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.assetType) shouldBe Right(AssetType.NonResidential)
         }
 
         "a tax year can be found for the disposal date" in {
@@ -291,7 +341,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(validIndividualSingleDisposalDesReturnDetails)
 
-          result.map(_.triageAnswers.disposalDate) shouldBe Right(
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.disposalDate) shouldBe Right(
             DisposalDate(validSingleDisposalDetails.disposalDate, taxYear)
           )
         }
@@ -308,7 +358,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.triageAnswers.completionDate) shouldBe Right(CompletionDate(completionDate))
+          completeSingleDisposalReturnValue(result)(_.triageAnswers.completionDate) shouldBe Right(
+            CompletionDate(completionDate)
+          )
         }
 
       }
@@ -328,7 +380,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.disposalDetails.shareOfProperty) shouldBe Right(ShareOfProperty.Full)
+          completeSingleDisposalReturnValue(result)(_.disposalDetails.shareOfProperty) shouldBe Right(
+            ShareOfProperty.Full
+          )
         }
 
         "finding the disposal price" in {
@@ -344,7 +398,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.disposalDetails.disposalPrice) shouldBe Right(AmountInPence(12345L))
+          completeSingleDisposalReturnValue(result)(_.disposalDetails.disposalPrice) shouldBe Right(
+            AmountInPence(12345L)
+          )
         }
 
         "finding the disposal fees" in {
@@ -360,7 +416,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.disposalDetails.disposalFees) shouldBe Right(AmountInPence(12345L))
+          completeSingleDisposalReturnValue(result)(_.disposalDetails.disposalFees) shouldBe Right(
+            AmountInPence(12345L)
+          )
         }
 
       }
@@ -380,7 +438,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.acquisitionDetails.acquisitionMethod) shouldBe Right(AcquisitionMethod.Inherited)
+          completeSingleDisposalReturnValue(result)(_.acquisitionDetails.acquisitionMethod) shouldBe Right(
+            AcquisitionMethod.Inherited
+          )
         }
 
         "finding the acquisition date" in {
@@ -397,7 +457,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.acquisitionDetails.acquisitionDate) shouldBe Right(AcquisitionDate(date))
+          completeSingleDisposalReturnValue(result)(_.acquisitionDetails.acquisitionDate) shouldBe Right(
+            AcquisitionDate(date)
+          )
         }
 
         "finding the acquisition price" in {
@@ -413,7 +475,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.acquisitionDetails.acquisitionPrice) shouldBe Right(AmountInPence(1234500L))
+          completeSingleDisposalReturnValue(result)(_.acquisitionDetails.acquisitionPrice) shouldBe Right(
+            AmountInPence(1234500L)
+          )
         }
 
         "finding the rebased amount when one is defined" in {
@@ -429,7 +493,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.acquisitionDetails.rebasedAcquisitionPrice) shouldBe Right(Some(AmountInPence(1234500L)))
+          completeSingleDisposalReturnValue(result)(_.acquisitionDetails.rebasedAcquisitionPrice) shouldBe Right(
+            Some(AmountInPence(1234500L))
+          )
         }
 
         "there is no rebased amount" in {
@@ -445,7 +511,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.acquisitionDetails.rebasedAcquisitionPrice) shouldBe Right(None)
+          completeSingleDisposalReturnValue(result)(_.acquisitionDetails.rebasedAcquisitionPrice) shouldBe Right(None)
         }
 
         "the improvement costs are defined" in {
@@ -461,7 +527,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.acquisitionDetails.improvementCosts) shouldBe Right(AmountInPence(123L))
+          completeSingleDisposalReturnValue(result)(_.acquisitionDetails.improvementCosts) shouldBe Right(
+            AmountInPence(123L)
+          )
         }
 
         "the improvement costs are not defined" in {
@@ -477,7 +545,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.acquisitionDetails.improvementCosts) shouldBe Right(AmountInPence(0L))
+          completeSingleDisposalReturnValue(result)(_.acquisitionDetails.improvementCosts) shouldBe Right(
+            AmountInPence(0L)
+          )
         }
 
         "finding the acquisition fees" in {
@@ -493,7 +563,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.acquisitionDetails.acquisitionFees) shouldBe Right(AmountInPence(123L))
+          completeSingleDisposalReturnValue(result)(_.acquisitionDetails.acquisitionFees) shouldBe Right(
+            AmountInPence(123L)
+          )
         }
 
       }
@@ -505,13 +577,17 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(
             validIndividualSingleDisposalDesReturnDetails.copy(
-              reliefDetails = validIndividualSingleDisposalDesReturnDetails.reliefDetails.copy(
-                privateResRelief = Some(BigDecimal("123.45"))
+              reliefDetails = Some(
+                validReliefDetails.copy(
+                  privateResRelief = Some(BigDecimal("123.45"))
+                )
               )
             )
           )
 
-          result.map(_.reliefDetails.privateResidentsRelief) shouldBe Right(AmountInPence(12345L))
+          completeSingleDisposalReturnValue(result)(_.reliefDetails.privateResidentsRelief) shouldBe Right(
+            AmountInPence(12345L)
+          )
         }
 
         "the private residents relief is not defined" in {
@@ -519,13 +595,17 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(
             validIndividualSingleDisposalDesReturnDetails.copy(
-              reliefDetails = validIndividualSingleDisposalDesReturnDetails.reliefDetails.copy(
-                privateResRelief = None
+              reliefDetails = Some(
+                validReliefDetails.copy(
+                  privateResRelief = None
+                )
               )
             )
           )
 
-          result.map(_.reliefDetails.privateResidentsRelief) shouldBe Right(AmountInPence.zero)
+          completeSingleDisposalReturnValue(result)(_.reliefDetails.privateResidentsRelief) shouldBe Right(
+            AmountInPence.zero
+          )
         }
 
         "the letting relief is defined" in {
@@ -533,13 +613,17 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(
             validIndividualSingleDisposalDesReturnDetails.copy(
-              reliefDetails = validIndividualSingleDisposalDesReturnDetails.reliefDetails.copy(
-                lettingsReflief = Some(BigDecimal("123.45"))
+              reliefDetails = Some(
+                validReliefDetails.copy(
+                  lettingsReflief = Some(BigDecimal("123.45"))
+                )
               )
             )
           )
 
-          result.map(_.reliefDetails.lettingsRelief) shouldBe Right(AmountInPence(12345L))
+          completeSingleDisposalReturnValue(result)(_.reliefDetails.lettingsRelief) shouldBe Right(
+            AmountInPence(12345L)
+          )
         }
 
         "the letting  relief is not defined" in {
@@ -547,13 +631,15 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(
             validIndividualSingleDisposalDesReturnDetails.copy(
-              reliefDetails = validIndividualSingleDisposalDesReturnDetails.reliefDetails.copy(
-                lettingsReflief = None
+              reliefDetails = Some(
+                validReliefDetails.copy(
+                  lettingsReflief = None
+                )
               )
             )
           )
 
-          result.map(_.reliefDetails.lettingsRelief) shouldBe Right(AmountInPence.zero)
+          completeSingleDisposalReturnValue(result)(_.reliefDetails.lettingsRelief) shouldBe Right(AmountInPence.zero)
         }
 
         "there is no other relief option defined" in {
@@ -561,14 +647,16 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(
             validIndividualSingleDisposalDesReturnDetails.copy(
-              reliefDetails = validIndividualSingleDisposalDesReturnDetails.reliefDetails.copy(
-                otherRelief       = None,
-                otherReliefAmount = None
+              reliefDetails = Some(
+                validReliefDetails.copy(
+                  otherRelief       = None,
+                  otherReliefAmount = None
+                )
               )
             )
           )
 
-          result.map(_.reliefDetails.otherReliefs) shouldBe Right(None)
+          completeSingleDisposalReturnValue(result)(_.reliefDetails.otherReliefs) shouldBe Right(None)
         }
 
         "the no other reliefs indicate the user selected no other reliefs" in {
@@ -576,14 +664,18 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(
             validIndividualSingleDisposalDesReturnDetails.copy(
-              reliefDetails = validIndividualSingleDisposalDesReturnDetails.reliefDetails.copy(
-                otherRelief       = Some("none"),
-                otherReliefAmount = Some(BigDecimal(0))
+              reliefDetails = Some(
+                validReliefDetails.copy(
+                  otherRelief       = Some("none"),
+                  otherReliefAmount = Some(BigDecimal(0))
+                )
               )
             )
           )
 
-          result.map(_.reliefDetails.otherReliefs) shouldBe Right(Some(OtherReliefsOption.NoOtherReliefs))
+          completeSingleDisposalReturnValue(result)(_.reliefDetails.otherReliefs) shouldBe Right(
+            Some(OtherReliefsOption.NoOtherReliefs)
+          )
         }
 
         "the other reliefs answers indicate the user selected other reliefs" in {
@@ -591,14 +683,16 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(
             validIndividualSingleDisposalDesReturnDetails.copy(
-              reliefDetails = validIndividualSingleDisposalDesReturnDetails.reliefDetails.copy(
-                otherRelief       = Some("abc"),
-                otherReliefAmount = Some(BigDecimal("12.34"))
+              reliefDetails = Some(
+                validReliefDetails.copy(
+                  otherRelief       = Some("abc"),
+                  otherReliefAmount = Some(BigDecimal("12.34"))
+                )
               )
             )
           )
 
-          result.map(_.reliefDetails.otherReliefs) shouldBe Right(
+          completeSingleDisposalReturnValue(result)(_.reliefDetails.otherReliefs) shouldBe Right(
             Some(OtherReliefsOption.OtherReliefs("abc", AmountInPence(1234L)))
           )
         }
@@ -618,7 +712,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.exemptionsAndLossesDetails.inYearLosses) shouldBe Right(AmountInPence(12345L))
+          completeSingleDisposalReturnValue(result)(_.exemptionsAndLossesDetails.inYearLosses) shouldBe Right(
+            AmountInPence(12345L)
+          )
         }
 
         "the in year losses is not defined" in {
@@ -632,7 +728,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.exemptionsAndLossesDetails.inYearLosses) shouldBe Right(AmountInPence.zero)
+          completeSingleDisposalReturnValue(result)(_.exemptionsAndLossesDetails.inYearLosses) shouldBe Right(
+            AmountInPence.zero
+          )
         }
 
         "the previous year losses is defined" in {
@@ -646,7 +744,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.exemptionsAndLossesDetails.previousYearsLosses) shouldBe Right(AmountInPence(12345L))
+          completeSingleDisposalReturnValue(result)(_.exemptionsAndLossesDetails.previousYearsLosses) shouldBe Right(
+            AmountInPence(12345L)
+          )
         }
 
         "the previous year losses is not defined" in {
@@ -660,7 +760,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.exemptionsAndLossesDetails.previousYearsLosses) shouldBe Right(AmountInPence.zero)
+          completeSingleDisposalReturnValue(result)(_.exemptionsAndLossesDetails.previousYearsLosses) shouldBe Right(
+            AmountInPence.zero
+          )
         }
 
         "finding the annual exempt amount" in {
@@ -674,7 +776,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          result.map(_.exemptionsAndLossesDetails.annualExemptAmount) shouldBe Right(AmountInPence(1234L))
+          completeSingleDisposalReturnValue(result)(_.exemptionsAndLossesDetails.annualExemptAmount) shouldBe Right(
+            AmountInPence(1234L)
+          )
         }
 
       }
@@ -694,7 +798,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.map(_.estimatedIncome)) shouldBe Right(Right(AmountInPence(12345L)))
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.estimatedIncome)) shouldBe Right(
+              Right(AmountInPence(12345L))
+            )
           }
 
           "the estimated income is not defined" in {
@@ -708,7 +814,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.map(_.estimatedIncome)) shouldBe Right(Right(AmountInPence.zero))
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.estimatedIncome)) shouldBe Right(
+              Right(AmountInPence.zero)
+            )
           }
 
           "the personal allowance is defined" in {
@@ -722,7 +830,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.map(_.personalAllowance)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.personalAllowance)) shouldBe Right(
               Right(Some(AmountInPence(12345L)))
             )
           }
@@ -738,7 +846,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.map(_.personalAllowance)) shouldBe Right(Right(None))
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.personalAllowance)) shouldBe Right(
+              Right(None)
+            )
           }
 
           "finding whether any of the details were estimated" in {
@@ -752,7 +862,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.map(_.hasEstimatedDetails)) shouldBe Right(Right(true))
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.hasEstimatedDetails)) shouldBe Right(
+              Right(true)
+            )
           }
 
           "getting the calculated tax due" in {
@@ -760,7 +872,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
             val result = transformer.toCompleteReturn(validIndividualSingleDisposalDesReturnDetails)
 
-            result.map(_.yearToDateLiabilityAnswers.map(_.calculatedTaxDue)) shouldBe Right(Right(calculatedTaxDue))
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.calculatedTaxDue)) shouldBe Right(
+              Right(calculatedTaxDue)
+            )
           }
 
           "finding the tax due" in {
@@ -774,7 +888,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.map(_.taxDue)) shouldBe Right(Right(AmountInPence(1234567L)))
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.taxDue)) shouldBe Right(
+              Right(AmountInPence(1234567L))
+            )
           }
 
         }
@@ -783,7 +899,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val returnDetailsWithOtherReliefs = validIndividualSingleDisposalDesReturnDetails.copy(
             reliefDetails =
-              sample[ReliefDetails].copy(otherRelief = Some("other"), otherReliefAmount = Some(BigDecimal("100")))
+              Some(sample[ReliefDetails].copy(otherRelief = Some("other"), otherReliefAmount = Some(BigDecimal("100"))))
           )
 
           "finding the taxableGainOrLoss when a loss has been made" in {
@@ -798,7 +914,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)) shouldBe Right(
               Left(AmountInPence(-100L))
             )
           }
@@ -815,7 +931,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)) shouldBe Right(
               Left(AmountInPence(200L))
             )
           }
@@ -831,7 +947,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.leftMap(_.hasEstimatedDetails)) shouldBe Right(Left(true))
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.hasEstimatedDetails)) shouldBe Right(
+              Left(true)
+            )
           }
 
           "finding the tax due for the user" in {
@@ -845,7 +963,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            result.map(_.yearToDateLiabilityAnswers.leftMap(_.taxDue)) shouldBe Right(Left(AmountInPence(300L)))
+            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.taxDue)) shouldBe Right(
+              Left(AmountInPence(300L))
+            )
 
           }
 

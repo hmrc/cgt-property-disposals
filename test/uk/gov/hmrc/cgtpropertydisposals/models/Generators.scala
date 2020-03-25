@@ -37,8 +37,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscript
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
@@ -156,7 +159,7 @@ trait DraftReturnGen { this: GenUtils =>
 
   implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 
-  implicit val singleDisposalDraftReturnGen: Gen[SingleDisposalDraftReturn] = gen[SingleDisposalDraftReturn]
+  implicit val singleDisposalDraftReturnGen: Gen[DraftSingleDisposalReturn] = gen[DraftSingleDisposalReturn]
 
 }
 
@@ -177,10 +180,18 @@ trait DmsSubmissionGen {
 
 trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
-  implicit val completeReturnGen: Gen[CompleteSingleDisposalReturn] = gen[CompleteSingleDisposalReturn]
+  implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
+
+  implicit val completeSingleDisposalReturnGen: Gen[CompleteSingleDisposalReturn] = gen[CompleteSingleDisposalReturn]
 
   implicit val completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
     gen[CompleteSingleDisposalTriageAnswers]
+
+  implicit val completeMultipleDisposalsTriageAnswersGen: Gen[CompleteMultipleDisposalsTriageAnswers] =
+    gen[CompleteMultipleDisposalsTriageAnswers]
+
+  implicit val completeExamplePropertyDetailsAnswersGen: Gen[CompleteExamplePropertyDetailsAnswers] =
+    gen[CompleteExamplePropertyDetailsAnswers]
 
   implicit val completeDisposalDetailsAnswersGen: Gen[CompleteDisposalDetailsAnswers] =
     gen[CompleteDisposalDetailsAnswers]
@@ -222,11 +233,16 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
   implicit val returnSummaryGen: Gen[ReturnSummary] = gen[ReturnSummary]
 
+  implicit val assetTypeGen: Gen[AssetType] = gen[AssetType]
+
 }
 
 trait LowerPriorityReturnsGen { this: GenUtils =>
 
   implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
+
+  implicit val completeMultipleDisposalReturnGen: Gen[CompleteMultipleDisposalsReturn] =
+    gen[CompleteMultipleDisposalsReturn]
 
 }
 

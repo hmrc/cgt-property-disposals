@@ -28,9 +28,10 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.Trust
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesReturnDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesReturnDetails, ReliefDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteSingleDisposalReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -44,7 +45,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, 
 @ImplementedBy(classOf[ReturnTransformerServiceImpl])
 trait ReturnTransformerService {
 
-  def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteSingleDisposalReturn]
+  def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteReturn]
 
 }
 
@@ -54,23 +55,28 @@ class ReturnTransformerServiceImpl @Inject() (
   taxYearService: TaxYearService
 ) extends ReturnTransformerService {
 
-  override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteSingleDisposalReturn] =
+  override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteReturn] =
     fromDesReturn(desReturn).toEither
       .leftMap(e => Error(s"Could not convert des response to complete return: [${e.toList.mkString("; ")}]"))
 
   private def fromDesReturn(
     desReturn: DesReturnDetails
-  ): ValidatedNel[String, CompleteSingleDisposalReturn] =
+  ): ValidatedNel[String, CompleteReturn] =
     (
       disposalDetailsValidation(desReturn, taxYearService),
       countryValidation(desReturn),
-      otherReliefsValidation(desReturn)
+      reliefsValidation(desReturn)
     ).mapN {
-      case ((singleDisposalDetails, address, disposalDate), country, otherReliefsOption) =>
-        val triageAnswers             = constructTriageAnswers(desReturn, singleDisposalDetails, country, disposalDate)
+      case (
+          (singleDisposalDetails, address, disposalDate, disposalMethod, assetType),
+          country,
+          (reliefDetails, otherReliefsOption)
+          ) =>
+        val triageAnswers =
+          constructTriageAnswers(desReturn, singleDisposalDetails, country, disposalDate, disposalMethod, assetType)
         val disposalDetailsAnswers    = constructDisposalDetailsAnswers(singleDisposalDetails)
         val acquisitionDetailsAnswers = constructAcquisitionDetailsAnswers(singleDisposalDetails)
-        val reliefAnswers             = constructReliefAnswers(desReturn, otherReliefsOption)
+        val reliefAnswers             = constructReliefAnswers(reliefDetails, otherReliefsOption)
         val exemptionAndLossesAnswers = constructExemptionAndLossesAnswers(desReturn)
         val initialGainOrLoss         = constructInitialGainAnswers(singleDisposalDetails)
 
@@ -135,7 +141,9 @@ class ReturnTransformerServiceImpl @Inject() (
     desReturn: DesReturnDetails,
     singleDisposalDetails: SingleDisposalDetails,
     country: Country,
-    disposalDate: DisposalDate
+    disposalDate: DisposalDate,
+    disposalMethod: DisposalMethod,
+    assetType: AssetType
   ): CompleteSingleDisposalTriageAnswers = {
     val individualUserType = desReturn.returnDetails.customerType match {
       case CustomerType.Trust =>
@@ -154,9 +162,9 @@ class ReturnTransformerServiceImpl @Inject() (
 
     CompleteSingleDisposalTriageAnswers(
       individualUserType,
-      DisposalMethod(singleDisposalDetails.disposalType),
+      disposalMethod,
       country,
-      AssetType(singleDisposalDetails.assetType),
+      assetType,
       disposalDate,
       CompletionDate(desReturn.returnDetails.completionDate)
     )
@@ -194,12 +202,12 @@ class ReturnTransformerServiceImpl @Inject() (
     }
 
   private def constructReliefAnswers(
-    desReturn: DesReturnDetails,
+    reliefDetails: ReliefDetails,
     otherReliefsOption: Option[OtherReliefsOption]
   ): CompleteReliefDetailsAnswers =
     CompleteReliefDetailsAnswers(
-      zeroOrAmountInPenceFromPounds(desReturn.reliefDetails.privateResRelief),
-      zeroOrAmountInPenceFromPounds(desReturn.reliefDetails.lettingsReflief),
+      zeroOrAmountInPenceFromPounds(reliefDetails.privateResRelief),
+      zeroOrAmountInPenceFromPounds(reliefDetails.lettingsReflief),
       otherReliefsOption
     )
 
@@ -213,7 +221,7 @@ class ReturnTransformerServiceImpl @Inject() (
   private def disposalDetailsValidation(
     desReturn: DesReturnDetails,
     taxYearService: TaxYearService
-  ): Validation[(SingleDisposalDetails, UkAddress, DisposalDate)] =
+  ): Validation[(SingleDisposalDetails, UkAddress, DisposalDate, DisposalMethod, AssetType)] =
     desReturn.disposalDetails match {
       case (singleDisposalDetails: SingleDisposalDetails) :: Nil =>
         AddressDetails
@@ -232,6 +240,28 @@ class ReturnTransformerServiceImpl @Inject() (
                     s"Could not find tax year for disposal date $disposalDate"
                   )
                 )(taxYear => Valid((singleDisposalDetails, address, DisposalDate(disposalDate, taxYear))))
+          }
+          .andThen {
+            case (singleDisposalDetails, address, disposalDate) =>
+              singleDisposalDetails.disposalType
+                .map(DisposalMethod(_))
+                .fold(
+                  invalid[(SingleDisposalDetails, UkAddress, DisposalDate, DisposalMethod)](
+                    "Could not find disposal method for single disposal"
+                  )
+                )(disposalMethod => Valid((singleDisposalDetails, address, disposalDate, disposalMethod)))
+          }
+          .andThen {
+            case (singleDisposalDetails, address, disposalDate, disposalMethod) =>
+              singleDisposalDetails.assetType
+                .toAssetTypes()
+                .flatMap {
+                  case assetType :: Nil => Right(assetType)
+                  case other            => Left(s"Expected one asset type for single disposal but got $other")
+                }
+                .toValidatedNel
+                .map(assetType => (singleDisposalDetails, address, disposalDate, disposalMethod, assetType))
+
           }
 
       case (_: MultipleDisposalDetails) :: Nil =>
@@ -258,16 +288,23 @@ class ReturnTransformerServiceImpl @Inject() (
           )(name => Valid(Country(code, Some(name))))
       )
 
-  private def otherReliefsValidation(desReturn: DesReturnDetails): Validation[Option[OtherReliefsOption]] =
-    (desReturn.reliefDetails.otherRelief, desReturn.reliefDetails.otherReliefAmount) match {
-      case (None, None)        => Valid(None)
-      case (Some(other), None) => invalid(s"Found other relief name '$other' but could not find amount'")
-      case (None, Some(amount)) =>
-        invalid(s"Found other relief amount '$amount' but could not find other relief name'")
-      case (Some("none"), Some(amount)) if amount === BigDecimal("0") =>
-        Valid(Some(OtherReliefsOption.NoOtherReliefs))
-      case (Some(name), Some(amount)) =>
-        Valid(Some(OtherReliefsOption.OtherReliefs(name, AmountInPence.fromPounds(amount))))
+  private def reliefsValidation(desReturn: DesReturnDetails): Validation[(ReliefDetails, Option[OtherReliefsOption])] =
+    desReturn.reliefDetails.fold(
+      invalid[(ReliefDetails, Option[OtherReliefsOption])]("Could not find relief details for single disposal")
+    ) { reliefDetails =>
+      val otherReliefsOption = (reliefDetails.otherRelief, reliefDetails.otherReliefAmount) match {
+        case (None, None) =>
+          Valid(None)
+        case (Some(other), None) =>
+          invalid(s"Found other relief name '$other' but could not find amount'")
+        case (None, Some(amount)) =>
+          invalid(s"Found other relief amount '$amount' but could not find other relief name'")
+        case (Some("none"), Some(amount)) if amount === BigDecimal("0") =>
+          Valid(Some(OtherReliefsOption.NoOtherReliefs))
+        case (Some(name), Some(amount)) =>
+          Valid(Some(OtherReliefsOption.OtherReliefs(name, AmountInPence.fromPounds(amount))))
+      }
+      otherReliefsOption.map(reliefDetails -> _)
     }
 
   private def zeroOrAmountInPenceFromPounds(d: Option[BigDecimal]): AmountInPence =

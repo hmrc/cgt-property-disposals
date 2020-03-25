@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import cats.syntax.order._
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteSingleDisposalReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
 final case class LossSummaryDetails(
   inYearLoss: Boolean,
@@ -30,23 +30,25 @@ final case class LossSummaryDetails(
 
 object LossSummaryDetails {
 
-  def apply(c: CompleteSingleDisposalReturn): LossSummaryDetails =
+  def apply(exemptionAndLossesAnswers: CompleteExemptionAndLossesAnswers): LossSummaryDetails = {
+    val inYearLosses        = exemptionAndLossesAnswers.inYearLosses
+    val previousYearsLosses = exemptionAndLossesAnswers.previousYearsLosses
+
+    val preYearLossUsed =
+      if (previousYearsLosses > AmountInPence.zero) Some(previousYearsLosses.inPounds())
+      else None
+
+    val inYearLossUsed =
+      if (inYearLosses > AmountInPence.zero) Some(inYearLosses.inPounds())
+      else None
+
     LossSummaryDetails(
-      inYearLoss      = c.exemptionsAndLossesDetails.inYearLosses > AmountInPence.zero,
-      inYearLossUsed  = inYearLossUsed(c),
-      preYearLoss     = c.exemptionsAndLossesDetails.previousYearsLosses > AmountInPence.zero,
-      preYearLossUsed = preYearLossUsed(c)
+      inYearLoss      = inYearLosses > AmountInPence.zero,
+      inYearLossUsed  = inYearLossUsed,
+      preYearLoss     = previousYearsLosses > AmountInPence.zero,
+      preYearLossUsed = preYearLossUsed
     )
-
-  private def preYearLossUsed(r: CompleteSingleDisposalReturn): Option[BigDecimal] =
-    if (r.exemptionsAndLossesDetails.previousYearsLosses.inPounds > 0)
-      Some(r.exemptionsAndLossesDetails.previousYearsLosses.inPounds)
-    else None
-
-  private def inYearLossUsed(r: CompleteSingleDisposalReturn): Option[BigDecimal] =
-    if (r.exemptionsAndLossesDetails.inYearLosses.inPounds > 0)
-      Some(r.exemptionsAndLossesDetails.inYearLosses.inPounds)
-    else None
+  }
 
   implicit val lossSummaryDetailsFormat: OFormat[LossSummaryDetails] = Json.format[LossSummaryDetails]
 

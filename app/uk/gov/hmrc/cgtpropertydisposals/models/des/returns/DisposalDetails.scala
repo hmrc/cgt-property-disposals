@@ -23,6 +23,7 @@ import play.api.libs.json.{JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 sealed trait DisposalDetails extends Product with Serializable
@@ -32,7 +33,7 @@ object DisposalDetails {
   final case class SingleDisposalDetails(
     disposalDate: LocalDate,
     addressDetails: AddressDetails,
-    assetType: DesAssetType,
+    assetType: DesAssetTypeValue,
     acquisitionType: DesAcquisitionType,
     landRegistry: Boolean,
     acquisitionPrice: BigDecimal,
@@ -43,7 +44,7 @@ object DisposalDetails {
     improvementCosts: Option[BigDecimal],
     percentOwned: BigDecimal,
     acquiredDate: LocalDate,
-    disposalType: DesDisposalType,
+    disposalType: Option[DesDisposalType],
     acquisitionFees: BigDecimal,
     disposalFees: BigDecimal,
     initialGain: Option[BigDecimal],
@@ -53,47 +54,57 @@ object DisposalDetails {
   final case class MultipleDisposalDetails(
     disposalDate: LocalDate,
     addressDetails: AddressDetails,
-    assetType: DesAssetType,
+    assetType: DesAssetTypeValue,
     acquisitionType: DesAcquisitionType,
     landRegistry: Boolean,
     acquisitionPrice: BigDecimal,
     disposalPrice: BigDecimal,
-    initialGain: Option[BigDecimal],
-    initialLoss: Option[BigDecimal],
-    rebased: Boolean = false
+    rebased: Boolean
   ) extends DisposalDetails
 
-  def apply(c: CompleteSingleDisposalReturn): DisposalDetails = {
-    val addressDetails = Address.toAddressDetails(c.propertyAddress)
-    val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
-      c.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
-        if (f < AmountInPence.zero) {
-          None -> Some(-f.inPounds())
-        } else {
-          Some(f.inPounds()) -> None
+  def apply(c: CompleteReturn): DisposalDetails = c match {
+    case s: CompleteSingleDisposalReturn =>
+      val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
+        s.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
+          if (f < AmountInPence.zero) {
+            None -> Some(-f.inPounds())
+          } else {
+            Some(f.inPounds()) -> None
+          }
         }
-      }
 
-    SingleDisposalDetails(
-      disposalDate     = c.triageAnswers.disposalDate.value,
-      addressDetails   = addressDetails,
-      assetType        = DesAssetType(c),
-      acquisitionType  = DesAcquisitionType(c),
-      landRegistry     = false,
-      acquisitionPrice = c.acquisitionDetails.acquisitionPrice.inPounds(),
-      rebased          = c.acquisitionDetails.rebasedAcquisitionPrice.isDefined,
-      rebasedAmount    = c.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds()),
-      disposalPrice    = c.disposalDetails.disposalPrice.inPounds(),
-      improvements     = c.acquisitionDetails.improvementCosts > AmountInPence.zero,
-      improvementCosts = improvementCosts(c),
-      percentOwned     = c.disposalDetails.shareOfProperty.percentageValue,
-      acquiredDate     = c.acquisitionDetails.acquisitionDate.value,
-      disposalType     = DesDisposalType(c),
-      acquisitionFees  = c.acquisitionDetails.acquisitionFees.inPounds(),
-      disposalFees     = c.disposalDetails.disposalFees.inPounds(),
-      initialGain      = initialGainOrLoss._1,
-      initialLoss      = initialGainOrLoss._2
-    )
+      SingleDisposalDetails(
+        disposalDate     = s.triageAnswers.disposalDate.value,
+        addressDetails   = Address.toAddressDetails(s.propertyAddress),
+        assetType        = DesAssetTypeValue(s),
+        acquisitionType  = DesAcquisitionType(s.acquisitionDetails.acquisitionMethod),
+        landRegistry     = false,
+        acquisitionPrice = s.acquisitionDetails.acquisitionPrice.inPounds(),
+        rebased          = s.acquisitionDetails.shouldUseRebase,
+        rebasedAmount    = s.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds()),
+        disposalPrice    = s.disposalDetails.disposalPrice.inPounds(),
+        improvements     = s.acquisitionDetails.improvementCosts > AmountInPence.zero,
+        improvementCosts = improvementCosts(s),
+        percentOwned     = s.disposalDetails.shareOfProperty.percentageValue,
+        acquiredDate     = s.acquisitionDetails.acquisitionDate.value,
+        disposalType     = Some(DesDisposalType(s.triageAnswers.disposalMethod)),
+        acquisitionFees  = s.acquisitionDetails.acquisitionFees.inPounds(),
+        disposalFees     = s.disposalDetails.disposalFees.inPounds(),
+        initialGain      = initialGainOrLoss._1,
+        initialLoss      = initialGainOrLoss._2
+      )
+
+    case m: CompleteMultipleDisposalsReturn =>
+      MultipleDisposalDetails(
+        disposalDate     = m.examplePropertyDetailsAnswers.disposalDate.value,
+        addressDetails   = Address.toAddressDetails(m.examplePropertyDetailsAnswers.address),
+        assetType        = DesAssetTypeValue(m),
+        acquisitionType  = DesAcquisitionType.Other("not captured for multiple disposals"),
+        landRegistry     = false,
+        acquisitionPrice = m.examplePropertyDetailsAnswers.acquisitionPrice.inPounds(),
+        disposalPrice    = m.examplePropertyDetailsAnswers.disposalPrice.inPounds(),
+        rebased          = false
+      )
   }
 
   private def improvementCosts(c: CompleteSingleDisposalReturn): Option[BigDecimal] =

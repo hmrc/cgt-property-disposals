@@ -30,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteSingleDisposalReturn, ListReturnsResponse, ReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ListReturnsResponse, ReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.ReturnsService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -50,7 +50,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
       .returning(EitherT.fromEither[Future](response))
 
   def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
-    response: Either[Error, CompleteSingleDisposalReturn]
+    response: Either[Error, CompleteReturn]
   ) =
     (mockReturnsService
       .displayReturn(_: CgtReference, _: String)(_: HeaderCarrier))
@@ -142,7 +142,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
       "return the json" when {
 
         "it is successfully retrieved" in {
-          val response = sample[CompleteSingleDisposalReturn]
+          val response = sample[CompleteReturn]
           mockDisplayReturn(cgtReference, submissionId)(Right(response))
 
           val result = performAction(cgtReference, submissionId)

@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.models
 
-import java.util.UUID
+object ListUtils {
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
-
-final case class SubmitReturnRequest(
-  completeReturn: CompleteReturn,
-  id: UUID,
-  subscribedDetails: SubscribedDetails,
-  agentReferenceNumber: Option[AgentReferenceNumber]
-)
-
-object SubmitReturnRequest {
-
-  implicit val format: OFormat[SubmitReturnRequest] = Json.format[SubmitReturnRequest]
+  implicit class ListOps[A](private val l: List[A]) extends AnyVal {
+    def partitionWith[B, C](f: A => Either[B, C]): (List[B], List[C]) =
+      l.foldLeft(List.empty[B] -> List.empty[C]) {
+        case (acc, curr) =>
+          f(curr).fold(
+            b => (b :: acc._1) -> acc._2,
+            c => acc._1        -> (c :: acc._2)
+          )
+      }
+  }
 
 }
