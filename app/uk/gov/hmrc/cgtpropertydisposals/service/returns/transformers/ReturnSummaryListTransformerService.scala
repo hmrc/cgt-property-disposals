@@ -25,6 +25,7 @@ import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Singleton}
+import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
@@ -44,8 +45,6 @@ trait ReturnSummaryListTransformerService {
 
 @Singleton
 class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransformerService {
-
-  import ReturnSummaryListTransformerServiceImpl._
 
   def toReturnSummaryList(
     returns: List[DesReturnSummary],
@@ -179,18 +178,4 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     }
   }
 
-}
-
-object ReturnSummaryListTransformerServiceImpl {
-
-  implicit class ListOps[A](private val l: List[A]) extends AnyVal {
-    def partitionWith[B, C](f: A => Either[B, C]): (List[B], List[C]) =
-      l.foldLeft(List.empty[B] -> List.empty[C]) {
-        case (acc, curr) =>
-          f(curr).fold(
-            b => (b :: acc._1) -> acc._2,
-            c => acc._1        -> (c :: acc._2)
-          )
-      }
-  }
 }

@@ -26,16 +26,18 @@ final case class DesReturnDetails(
   disposalDetails: List[DisposalDetails],
   lossSummaryDetails: LossSummaryDetails,
   incomeAllowanceDetails: IncomeAllowanceDetails,
-  reliefDetails: ReliefDetails
+  reliefDetails: Option[ReliefDetails]
 )
 
 object DesReturnDetails {
 
   def apply(submitReturnRequest: SubmitReturnRequest): DesReturnDetails = {
-    val completeReturn         = submitReturnRequest.completeReturn
-    val returnDetails          = ReturnDetails(submitReturnRequest)
-    val lossSummaryDetails     = LossSummaryDetails(completeReturn)
-    val reliefDetails          = ReliefDetails(completeReturn)
+    val completeReturn = submitReturnRequest.completeReturn
+    val returnDetails  = ReturnDetails(submitReturnRequest)
+    val lossSummaryDetails = LossSummaryDetails(
+      completeReturn.fold(_.exemptionAndLossesAnswers, _.exemptionsAndLossesDetails)
+    )
+    val reliefDetails          = completeReturn.fold(_ => None, s => Some(ReliefDetails(s)))
     val incomeAllowanceDetails = IncomeAllowanceDetails(completeReturn)
     val disposalDetails        = DisposalDetails(completeReturn)
 

@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAssetType
 
 sealed trait AssetType extends Product with Serializable
 
@@ -31,13 +30,6 @@ object AssetType {
   case object IndirectDisposal extends AssetType
 
   case object MixedUse extends AssetType
-
-  def apply(desAssetType: DesAssetType): AssetType = desAssetType match {
-    case DesAssetType.Residential      => Residential
-    case DesAssetType.NonResidential   => NonResidential
-    case DesAssetType.MixedUse         => MixedUse
-    case DesAssetType.IndirectDisposal => IndirectDisposal
-  }
 
   implicit val format: OFormat[AssetType] = derived.oformat()
 

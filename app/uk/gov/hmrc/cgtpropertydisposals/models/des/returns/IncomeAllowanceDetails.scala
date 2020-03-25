@@ -17,7 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteSingleDisposalReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 
 final case class IncomeAllowanceDetails(
   annualExemption: BigDecimal,
@@ -28,13 +29,24 @@ final case class IncomeAllowanceDetails(
 
 object IncomeAllowanceDetails {
 
-  def apply(c: CompleteSingleDisposalReturn): IncomeAllowanceDetails =
-    IncomeAllowanceDetails(
-      annualExemption   = c.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
-      estimatedIncome   = c.yearToDateLiabilityAnswers.map(_.estimatedIncome.inPounds()).toOption,
-      personalAllowance = c.yearToDateLiabilityAnswers.toOption.flatMap(_.personalAllowance.map(_.inPounds())),
-      threshold         = Some(c.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
-    )
+  def apply(c: CompleteReturn): IncomeAllowanceDetails = c match {
+
+    case s: CompleteSingleDisposalReturn =>
+      IncomeAllowanceDetails(
+        annualExemption   = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
+        estimatedIncome   = s.yearToDateLiabilityAnswers.map(_.estimatedIncome.inPounds()).toOption,
+        personalAllowance = s.yearToDateLiabilityAnswers.toOption.flatMap(_.personalAllowance.map(_.inPounds())),
+        threshold         = Some(s.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
+      )
+
+    case m: CompleteMultipleDisposalsReturn =>
+      IncomeAllowanceDetails(
+        annualExemption   = m.exemptionAndLossesAnswers.annualExemptAmount.inPounds(),
+        estimatedIncome   = None,
+        personalAllowance = None,
+        threshold         = Some(m.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
+      )
+  }
 
   implicit val incomeAllowanceDetailsFormat: OFormat[IncomeAllowanceDetails] = Json.format[IncomeAllowanceDetails]
 

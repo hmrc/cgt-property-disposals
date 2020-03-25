@@ -84,7 +84,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
         inSequence {
           mockSubmitReturnService(requestBody)(Right(expectedResponseBody))
-          mockDeleteDraftReturnService(requestBody.id)(Right(1))
+          mockDeleteDraftReturnService(requestBody.id)(Right(()))
         }
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))

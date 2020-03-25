@@ -22,8 +22,10 @@ import org.scalatest.WordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteSingleDisposalReturn, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 
 import scala.io.Source
@@ -48,12 +50,19 @@ class DesSubmitReturnRequestSpec extends WordSpec {
 
       val validator = SchemaValidator(Some(Version7))
 
-      for (a <- 1 to 1000) {
+      for (_ <- 1 to 1000) {
         val submitReturnRequest: SubmitReturnRequest =
-          sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteSingleDisposalReturn]
-            .copy(
-              propertyAddress = sample[UkAddress],
-              triageAnswers   = sample[CompleteSingleDisposalTriageAnswers]
+          sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
+            .fold[CompleteReturn](
+              _.copy(
+                examplePropertyDetailsAnswers =
+                  sample[CompleteExamplePropertyDetailsAnswers].copy(address = sample[UkAddress]),
+                triageAnswers = sample[CompleteMultipleDisposalsTriageAnswers]
+              ),
+              _.copy(
+                propertyAddress = sample[UkAddress],
+                triageAnswers   = sample[CompleteSingleDisposalTriageAnswers]
+              )
             )
           )
         val ppdReturnDetails       = DesReturnDetails(submitReturnRequest)

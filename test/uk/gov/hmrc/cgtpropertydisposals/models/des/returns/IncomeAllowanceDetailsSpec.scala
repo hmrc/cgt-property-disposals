@@ -20,7 +20,7 @@ import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteSingleDisposalReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
@@ -65,6 +65,23 @@ class IncomeAllowanceDetailsSpec extends WordSpec with Matchers with ScalaCheckD
             )
           }
         }
+
+        "the return passed in is for a multiple disposals journey" in {
+          forAll { nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
+            val calculatedReturn = sample[CompleteMultipleDisposalsReturn].copy(
+              exemptionAndLossesAnswers =
+                sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
+              yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
+            )
+            IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
+              BigDecimal("0.01"),
+              None,
+              None,
+              Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
+            )
+          }
+        }
+
       }
     }
   }
