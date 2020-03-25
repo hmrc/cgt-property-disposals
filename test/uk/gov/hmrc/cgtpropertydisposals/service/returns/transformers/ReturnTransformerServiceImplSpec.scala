@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
 import java.time.LocalDate
-
+import cats.syntax.either._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
@@ -586,8 +586,8 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           result.map(_.reliefDetails.otherReliefs) shouldBe Right(Some(OtherReliefsOption.NoOtherReliefs))
         }
 
-        "the no other reliefs indicate the user selected other reliefs" in {
-          mockActions()
+        "the other reliefs answers indicate the user selected other reliefs" in {
+          mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 
           val result = transformer.toCompleteReturn(
             validIndividualSingleDisposalDesReturnDetails.copy(
@@ -681,96 +681,174 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
       "transform year to date liability answers correctly" when {
 
-        "the estimated income is defined" in {
-          mockActions()
+        "the user has not selected other reliefs and" when {
 
-          val result = transformer.toCompleteReturn(
-            validIndividualSingleDisposalDesReturnDetails.copy(
-              incomeAllowanceDetails = validIndividualSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
-                estimatedIncome = Some(BigDecimal("123.45"))
+          "the estimated income is defined" in {
+            mockActions()
+
+            val result = transformer.toCompleteReturn(
+              validIndividualSingleDisposalDesReturnDetails.copy(
+                incomeAllowanceDetails = validIndividualSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  estimatedIncome = Some(BigDecimal("123.45"))
+                )
               )
             )
-          )
 
-          result.map(_.yearToDateLiabilityAnswers.estimatedIncome) shouldBe Right(AmountInPence(12345L))
-        }
+            result.map(_.yearToDateLiabilityAnswers.map(_.estimatedIncome)) shouldBe Right(Right(AmountInPence(12345L)))
+          }
 
-        "the estimated income is not defined" in {
-          mockActions()
+          "the estimated income is not defined" in {
+            mockActions()
 
-          val result = transformer.toCompleteReturn(
-            validIndividualSingleDisposalDesReturnDetails.copy(
-              incomeAllowanceDetails = validIndividualSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
-                estimatedIncome = None
+            val result = transformer.toCompleteReturn(
+              validIndividualSingleDisposalDesReturnDetails.copy(
+                incomeAllowanceDetails = validIndividualSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  estimatedIncome = None
+                )
               )
             )
-          )
 
-          result.map(_.yearToDateLiabilityAnswers.estimatedIncome) shouldBe Right(AmountInPence.zero)
-        }
+            result.map(_.yearToDateLiabilityAnswers.map(_.estimatedIncome)) shouldBe Right(Right(AmountInPence.zero))
+          }
 
-        "the personal allowance is defined" in {
-          mockActions()
+          "the personal allowance is defined" in {
+            mockActions()
 
-          val result = transformer.toCompleteReturn(
-            validIndividualSingleDisposalDesReturnDetails.copy(
-              incomeAllowanceDetails = validIndividualSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
-                personalAllowance = Some(BigDecimal("123.45"))
+            val result = transformer.toCompleteReturn(
+              validIndividualSingleDisposalDesReturnDetails.copy(
+                incomeAllowanceDetails = validIndividualSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  personalAllowance = Some(BigDecimal("123.45"))
+                )
               )
             )
-          )
 
-          result.map(_.yearToDateLiabilityAnswers.personalAllowance) shouldBe Right(Some(AmountInPence(12345L)))
-        }
+            result.map(_.yearToDateLiabilityAnswers.map(_.personalAllowance)) shouldBe Right(
+              Right(Some(AmountInPence(12345L)))
+            )
+          }
 
-        "the personal is not defined" in {
-          mockActions()
+          "the personal is not defined" in {
+            mockActions()
 
-          val result = transformer.toCompleteReturn(
-            validIndividualSingleDisposalDesReturnDetails.copy(
-              incomeAllowanceDetails = validIndividualSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
-                personalAllowance = None
+            val result = transformer.toCompleteReturn(
+              validIndividualSingleDisposalDesReturnDetails.copy(
+                incomeAllowanceDetails = validIndividualSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  personalAllowance = None
+                )
               )
             )
-          )
 
-          result.map(_.yearToDateLiabilityAnswers.personalAllowance) shouldBe Right(None)
-        }
+            result.map(_.yearToDateLiabilityAnswers.map(_.personalAllowance)) shouldBe Right(Right(None))
+          }
 
-        "finding whether any of the details were estimated" in {
-          mockActions()
+          "finding whether any of the details were estimated" in {
+            mockActions()
 
-          val result = transformer.toCompleteReturn(
-            validIndividualSingleDisposalDesReturnDetails.copy(
-              returnDetails = validIndividualSingleDisposalDesReturnDetails.returnDetails.copy(
-                estimate = true
+            val result = transformer.toCompleteReturn(
+              validIndividualSingleDisposalDesReturnDetails.copy(
+                returnDetails = validIndividualSingleDisposalDesReturnDetails.returnDetails.copy(
+                  estimate = true
+                )
               )
             )
-          )
 
-          result.map(_.yearToDateLiabilityAnswers.hasEstimatedDetails) shouldBe Right(true)
-        }
+            result.map(_.yearToDateLiabilityAnswers.map(_.hasEstimatedDetails)) shouldBe Right(Right(true))
+          }
 
-        "getting the calculated tax due" in {
-          mockActions()
+          "getting the calculated tax due" in {
+            mockActions()
 
-          val result = transformer.toCompleteReturn(validIndividualSingleDisposalDesReturnDetails)
+            val result = transformer.toCompleteReturn(validIndividualSingleDisposalDesReturnDetails)
 
-          result.map(_.yearToDateLiabilityAnswers.calculatedTaxDue) shouldBe Right(calculatedTaxDue)
-        }
+            result.map(_.yearToDateLiabilityAnswers.map(_.calculatedTaxDue)) shouldBe Right(Right(calculatedTaxDue))
+          }
 
-        "finding the tax due" in {
-          mockActions()
+          "finding the tax due" in {
+            mockActions()
 
-          val result = transformer.toCompleteReturn(
-            validIndividualSingleDisposalDesReturnDetails.copy(
-              returnDetails = validIndividualSingleDisposalDesReturnDetails.returnDetails.copy(
-                totalLiability = BigDecimal("12345.67")
+            val result = transformer.toCompleteReturn(
+              validIndividualSingleDisposalDesReturnDetails.copy(
+                returnDetails = validIndividualSingleDisposalDesReturnDetails.returnDetails.copy(
+                  totalLiability = BigDecimal("12345.67")
+                )
               )
             )
+
+            result.map(_.yearToDateLiabilityAnswers.map(_.taxDue)) shouldBe Right(Right(AmountInPence(1234567L)))
+          }
+
+        }
+
+        "the user has selected other reliefs and" when {
+
+          val returnDetailsWithOtherReliefs = validIndividualSingleDisposalDesReturnDetails.copy(
+            reliefDetails =
+              sample[ReliefDetails].copy(otherRelief = Some("other"), otherReliefAmount = Some(BigDecimal("100")))
           )
 
-          result.map(_.yearToDateLiabilityAnswers.taxDue) shouldBe Right(AmountInPence(1234567L))
+          "finding the taxableGainOrLoss when a loss has been made" in {
+            mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
+
+            val result = transformer.toCompleteReturn(
+              returnDetailsWithOtherReliefs.copy(
+                returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
+                  totalNetLoss     = Some(BigDecimal("1")),
+                  totalTaxableGain = BigDecimal("0")
+                )
+              )
+            )
+
+            result.map(_.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)) shouldBe Right(
+              Left(AmountInPence(-100L))
+            )
+          }
+
+          "finding the taxableGainOrLoss when a gain has been made" in {
+            mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
+
+            val result = transformer.toCompleteReturn(
+              returnDetailsWithOtherReliefs.copy(
+                returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
+                  totalNetLoss     = None,
+                  totalTaxableGain = BigDecimal("2")
+                )
+              )
+            )
+
+            result.map(_.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)) shouldBe Right(
+              Left(AmountInPence(200L))
+            )
+          }
+
+          "finding whether a user has estimated any details" in {
+            mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
+
+            val result = transformer.toCompleteReturn(
+              returnDetailsWithOtherReliefs.copy(
+                returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
+                  estimate = true
+                )
+              )
+            )
+
+            result.map(_.yearToDateLiabilityAnswers.leftMap(_.hasEstimatedDetails)) shouldBe Right(Left(true))
+          }
+
+          "finding the tax due for the user" in {
+            mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
+
+            val result = transformer.toCompleteReturn(
+              returnDetailsWithOtherReliefs.copy(
+                returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
+                  totalLiability = BigDecimal("3")
+                )
+              )
+            )
+
+            result.map(_.yearToDateLiabilityAnswers.leftMap(_.taxDue)) shouldBe Right(Left(AmountInPence(300L)))
+
+          }
+
         }
 
       }

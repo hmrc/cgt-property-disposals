@@ -25,28 +25,33 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 
-final case class CompleteReturn(
+final case class CompleteSingleDisposalReturn(
   triageAnswers: CompleteSingleDisposalTriageAnswers,
   propertyAddress: UkAddress,
   disposalDetails: CompleteDisposalDetailsAnswers,
   acquisitionDetails: CompleteAcquisitionDetailsAnswers,
   reliefDetails: CompleteReliefDetailsAnswers,
   exemptionsAndLossesDetails: CompleteExemptionAndLossesAnswers,
-  yearToDateLiabilityAnswers: CompleteCalculatedYTDAnswers,
+  yearToDateLiabilityAnswers: Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers],
   initialGainOrLoss: Option[AmountInPence]
 )
 
-object CompleteReturn {
+object CompleteSingleDisposalReturn {
 
-  implicit val format: OFormat[CompleteReturn] = {
-    implicit val triageFormat: OFormat[CompleteSingleDisposalTriageAnswers]           = Json.format
-    implicit val ukAddressFormat: OFormat[UkAddress]                                  = Json.format
-    implicit val disposalDetailsFormat: OFormat[CompleteDisposalDetailsAnswers]       = Json.format
-    implicit val acquisitionDetailsFormat: OFormat[CompleteAcquisitionDetailsAnswers] = Json.format
-    implicit val reliefDetailsFormat: OFormat[CompleteReliefDetailsAnswers]           = Json.format
-    implicit val exemptionAndLossesFormat: OFormat[CompleteExemptionAndLossesAnswers] = Json.format
-    implicit val yearToDateLiabilityFormat: OFormat[CompleteCalculatedYTDAnswers]     = Json.format
+  implicit val format: OFormat[CompleteSingleDisposalReturn] = {
+    import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
+
+    implicit val triageFormat: OFormat[CompleteSingleDisposalTriageAnswers]                       = Json.format
+    implicit val ukAddressFormat: OFormat[UkAddress]                                              = Json.format
+    implicit val disposalDetailsFormat: OFormat[CompleteDisposalDetailsAnswers]                   = Json.format
+    implicit val acquisitionDetailsFormat: OFormat[CompleteAcquisitionDetailsAnswers]             = Json.format
+    implicit val reliefDetailsFormat: OFormat[CompleteReliefDetailsAnswers]                       = Json.format
+    implicit val exemptionAndLossesFormat: OFormat[CompleteExemptionAndLossesAnswers]             = Json.format
+    implicit val calculatedYearToDateLiabilityFormat: OFormat[CompleteCalculatedYTDAnswers]       = Json.format
+    implicit val nonCalculatedYearToDateLiabilityFormat: OFormat[CompleteNonCalculatedYTDAnswers] = Json.format
+
     Json.format
   }
 }

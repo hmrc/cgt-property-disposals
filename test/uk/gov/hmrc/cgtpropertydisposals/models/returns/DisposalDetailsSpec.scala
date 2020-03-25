@@ -42,9 +42,10 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
       val calculatedTaxDue = sample[GainCalculatedTaxDue]
         .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(123456), Source.Calculated))
 
-      val completeReturn = sample[CompleteReturn].copy(
-        initialGainOrLoss          = None,
-        yearToDateLiabilityAnswers = sample[CompleteCalculatedYTDAnswers].copy(calculatedTaxDue = calculatedTaxDue)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+        initialGainOrLoss = None,
+        yearToDateLiabilityAnswers =
+          Right(sample[CompleteCalculatedYTDAnswers].copy(calculatedTaxDue = calculatedTaxDue))
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
@@ -57,9 +58,10 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
       val calculatedTaxDue = sample[GainCalculatedTaxDue]
         .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(123456), Source.UserSupplied))
 
-      val completeReturn = sample[CompleteReturn].copy(
-        initialGainOrLoss          = Some(AmountInPence(123456)),
-        yearToDateLiabilityAnswers = sample[CompleteCalculatedYTDAnswers].copy(calculatedTaxDue = calculatedTaxDue)
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+        initialGainOrLoss = Some(AmountInPence(123456)),
+        yearToDateLiabilityAnswers =
+          Right(sample[CompleteCalculatedYTDAnswers].copy(calculatedTaxDue = calculatedTaxDue))
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
@@ -72,10 +74,12 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
       val calculatedTaxDue = sample[NonGainCalculatedTaxDue]
         .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(-123456), Source.UserSupplied))
 
-      val completeReturn = sample[CompleteReturn].copy(
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(
         initialGainOrLoss = Some(AmountInPence(-123456)),
-        yearToDateLiabilityAnswers = sample[CompleteCalculatedYTDAnswers]
-          .copy(calculatedTaxDue = calculatedTaxDue)
+        yearToDateLiabilityAnswers = Right(
+          sample[CompleteCalculatedYTDAnswers]
+            .copy(calculatedTaxDue = calculatedTaxDue)
+        )
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
@@ -87,8 +91,9 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
 
   "DisposalDetails improvementCosts" must {
     "return some value as improvementCosts" in {
-      val completeReturn = sample[CompleteReturn].copy(acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers]
-        .copy(improvementCosts = AmountInPence(1234))
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(acquisitionDetails =
+        sample[CompleteAcquisitionDetailsAnswers]
+          .copy(improvementCosts = AmountInPence(1234))
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>
@@ -98,8 +103,9 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with H
     }
 
     "return none as improvementCosts" in {
-      val completeReturn = sample[CompleteReturn].copy(acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers]
-        .copy(improvementCosts = AmountInPence(-1234))
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(acquisitionDetails =
+        sample[CompleteAcquisitionDetailsAnswers]
+          .copy(improvementCosts = AmountInPence(-1234))
       )
 
       testSingleDisposalDetails(DisposalDetails(completeReturn)) { details =>

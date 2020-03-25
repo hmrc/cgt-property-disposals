@@ -47,7 +47,8 @@ object ReturnDetails {
 
   def apply(submitReturnRequest: SubmitReturnRequest): ReturnDetails = {
     val c                = submitReturnRequest.completeReturn
-    val calculatedTaxDue = c.yearToDateLiabilityAnswers.calculatedTaxDue
+    val calculatedTaxDue = c.yearToDateLiabilityAnswers.map(_.calculatedTaxDue).toOption
+    val taxDue           = getTaxDue(c)
 
     ReturnDetails(
       customerType          = CustomerType(submitReturnRequest.subscribedDetails),
@@ -57,10 +58,10 @@ object ReturnDetails {
       numberDisposals       = 1,
       totalTaxableGain      = getTaxableGainOrNetLoss(c)._1,
       totalNetLoss          = getTaxableGainOrNetLoss(c)._2,
-      valueAtTaxBandDetails = ValueAtTaxBandDetails(calculatedTaxDue),
-      totalLiability        = c.yearToDateLiabilityAnswers.taxDue.inPounds(),
-      totalYTDLiability     = c.yearToDateLiabilityAnswers.taxDue.inPounds(),
-      estimate              = c.yearToDateLiabilityAnswers.hasEstimatedDetails,
+      valueAtTaxBandDetails = calculatedTaxDue.flatMap(ValueAtTaxBandDetails(_)),
+      totalLiability        = taxDue,
+      totalYTDLiability     = taxDue,
+      estimate              = c.yearToDateLiabilityAnswers.fold(_.hasEstimatedDetails, _.hasEstimatedDetails),
       repayment             = false,
       attachmentUpload      = false,
       declaration           = true,
@@ -70,11 +71,16 @@ object ReturnDetails {
     )
   }
 
-  private def getTaxableGainOrNetLoss(c: CompleteReturn): (BigDecimal, Option[BigDecimal]) = {
-    val value = c.yearToDateLiabilityAnswers.calculatedTaxDue.taxableGainOrNetLoss
+  private def getTaxDue(c: CompleteSingleDisposalReturn): BigDecimal =
+    c.yearToDateLiabilityAnswers.fold(_.taxDue, _.taxDue).inPounds()
 
+  private def getTaxableGainOrNetLoss(c: CompleteSingleDisposalReturn): (BigDecimal, Option[BigDecimal]) = {
+    val value = c.yearToDateLiabilityAnswers.fold(
+      _.taxableGainOrLoss,
+      _.calculatedTaxDue.taxableGainOrNetLoss
+    )
     if (value < AmountInPence.zero)
-      AmountInPence.zero.inPounds() -> Some(value.inPounds() * -1)
+      AmountInPence.zero.inPounds() -> Some(value.inPounds().abs)
     else value.inPounds()           -> None
   }
 
