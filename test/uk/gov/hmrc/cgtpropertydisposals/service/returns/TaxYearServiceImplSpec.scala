@@ -44,6 +44,7 @@ class TaxYearServiceImplSpec extends WordSpec with Matchers {
         |      non-vulnerable-trust = ${taxYear.annualExemptAmountNonVulnerableTrust.inPounds()}
         |    }
         |    personal-allowance = ${taxYear.personalAllowance.inPounds()}
+        |    max-personal-allowance = ${taxYear.maxPersonalAllowance.inPounds()}
         |    income-tax-higher-rate-threshold = ${taxYear.incomeTaxHigherRateThreshold.inPounds()}
         |    lettings-relief-max-threshold = ${taxYear.maxLettingsReliefAmount.inPounds()}
         |    cgt-rates {
