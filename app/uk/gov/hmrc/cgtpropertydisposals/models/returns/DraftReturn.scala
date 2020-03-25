@@ -29,7 +29,7 @@ sealed trait DraftReturn extends Product with Serializable {
   val id: UUID
 }
 
-final case class SingleDisposalDraftReturn(
+final case class DraftSingleDisposalReturn(
   id: UUID,
   triageAnswers: SingleDisposalTriageAnswers,
   propertyAddress: Option[UkAddress],
@@ -42,7 +42,7 @@ final case class SingleDisposalDraftReturn(
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 
-final case class MultipleDisposalsDraftReturn(
+final case class DraftMultipleDisposalsReturn(
   id: UUID,
   triageAnswers: MultipleDisposalsTriageAnswers,
   examplePropertyDetailsAnswers: Option[ExamplePropertyDetailsAnswers],
