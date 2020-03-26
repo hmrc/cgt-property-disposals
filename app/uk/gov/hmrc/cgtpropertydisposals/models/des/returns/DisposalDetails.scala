@@ -59,7 +59,8 @@ object DisposalDetails {
     landRegistry: Boolean,
     acquisitionPrice: BigDecimal,
     disposalPrice: BigDecimal,
-    rebased: Boolean
+    rebased: Boolean,
+    improvements: Boolean
   ) extends DisposalDetails
 
   def apply(c: CompleteReturn): DisposalDetails = c match {
@@ -103,7 +104,8 @@ object DisposalDetails {
         landRegistry     = false,
         acquisitionPrice = m.examplePropertyDetailsAnswers.acquisitionPrice.inPounds(),
         disposalPrice    = m.examplePropertyDetailsAnswers.disposalPrice.inPounds(),
-        rebased          = false
+        rebased          = false,
+        improvements     = false
       )
   }
 
