@@ -297,6 +297,14 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
         }
       }
 
+      "set the improvements flag to false" in {
+        forAll { completeReturn: CompleteMultipleDisposalsReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.improvements
+          ) shouldBe Right(false)
+        }
+      }
+
     }
   }
 
