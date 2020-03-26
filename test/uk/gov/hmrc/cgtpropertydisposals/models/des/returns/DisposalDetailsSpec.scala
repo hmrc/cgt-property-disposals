@@ -191,7 +191,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
       "populate the disposal type field correctly" in {
         forAll { completeReturn: CompleteSingleDisposalReturn =>
           singleDisposalDetailsValue(DisposalDetails(completeReturn))(_.disposalType) shouldBe Right(
-            Some(DesDisposalType(completeReturn.triageAnswers.disposalMethod))
+            DesDisposalType(completeReturn.triageAnswers.disposalMethod)
           )
         }
       }
