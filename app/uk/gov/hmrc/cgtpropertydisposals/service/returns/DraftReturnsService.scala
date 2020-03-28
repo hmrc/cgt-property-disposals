@@ -36,6 +36,8 @@ trait DraftReturnsService {
   def saveDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit]
 
   def deleteDraftReturns(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit]
+
+  def deleteDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, Unit]
 }
 
 @Singleton
@@ -53,4 +55,6 @@ class DefaultDraftReturnsService @Inject() (
   override def deleteDraftReturns(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
     draftReturnRepository.deleteAll(draftReturnIds)
 
+  override def deleteDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, Unit] =
+    draftReturnRepository.delete(cgtReference)
 }

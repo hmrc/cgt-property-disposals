@@ -51,6 +51,8 @@ trait DraftReturnsRepository {
 
   def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit]
 
+  def delete(cgtReference: CgtReference): EitherT[Future, Error, Unit]
+
   def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit]
 }
 
@@ -75,6 +77,24 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
 
   override def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     EitherT(set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id)))
+
+  override def delete(cgtReference: CgtReference): EitherT[Future, Error, Unit] =
+    EitherT[Future, Error, Unit](
+      remove("return.cgtReference" -> cgtReference.value)
+        .map { result: WriteResult =>
+          if (result.ok)
+            Right(())
+          else
+            Left(
+              Error(
+                s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
+              )
+            )
+        }
+        .recover {
+          case exception => Left(Error(exception.getMessage))
+        }
+    )
 
   override def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
