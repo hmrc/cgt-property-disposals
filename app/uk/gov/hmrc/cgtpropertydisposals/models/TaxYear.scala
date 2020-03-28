@@ -30,6 +30,7 @@ final case class TaxYear(
   annualExemptAmountNonVulnerableTrust: AmountInPence,
   personalAllowance: AmountInPence,
   maxPersonalAllowance: AmountInPence,
+  higherIncomePersonalAllowanceThreshold: AmountInPence,
   incomeTaxHigherRateThreshold: AmountInPence,
   cgtRateLowerBandResidential: BigDecimal,
   cgtRateLowerBandNonResidential: BigDecimal,
@@ -47,8 +48,12 @@ object TaxYear {
         annualExemptAmountNonVulnerableTrust <- config.get[BigDecimal](
                                                  s"$key.annual-exempt-amount.non-vulnerable-trust"
                                                )
-        personalAllowance               <- config.get[BigDecimal](s"$key.personal-allowance")
-        maxPersonalAllowance            <- config.get[BigDecimal](s"$key.max-personal-allowance")
+        personalAllowance <- config.get[BigDecimal](s"$key.personal-allowance")
+        higherIncomePersonalAllowanceThreshold <- config.get[BigDecimal](
+                                                   s"$key.higher-income-personal-allowance-threshold"
+                                                 )
+        maxPersonalAllowance <- config.get[BigDecimal](s"$key.max-personal-allowance")
+
         incomeTaxHigherRateThreshold    <- config.get[BigDecimal](s"$key.income-tax-higher-rate-threshold")
         cgtRateLowerBandResidential     <- config.get[BigDecimal](s"$key.cgt-rates.lower-band-residential")
         cgtRateLowerBandNonResidential  <- config.get[BigDecimal](s"$key.cgt-rates.lower-band-non-residential")
@@ -62,6 +67,7 @@ object TaxYear {
         AmountInPence.fromPounds(annualExemptAmountNonVulnerableTrust),
         AmountInPence.fromPounds(personalAllowance),
         AmountInPence.fromPounds(maxPersonalAllowance),
+        AmountInPence.fromPounds(higherIncomePersonalAllowanceThreshold),
         AmountInPence.fromPounds(incomeTaxHigherRateThreshold),
         cgtRateLowerBandResidential,
         cgtRateLowerBandNonResidential,
