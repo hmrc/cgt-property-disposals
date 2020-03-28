@@ -86,6 +86,20 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
         )
       }
 
+      "delete multiple returns with the same given cgtReference" in {
+        val draftReturn  = sample[DraftReturn]
+        val draftReturn2 = sample[DraftReturn]
+
+        await(repository.save(draftReturn, cgtReference).value)  shouldBe Right(())
+        await(repository.save(draftReturn2, cgtReference).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
+          Set(draftReturn, draftReturn2)
+        )
+
+        await(repository.delete(cgtReference).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value)  shouldBe Right(List.empty)
+      }
+
       "delete all draft returns with the given ids" in {
         val draftReturn  = sample[DraftReturn]
         val draftReturn2 = sample[DraftReturn]
