@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.testonly
 import cats.instances.future._
 import com.google.inject.{Inject, Singleton}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -30,7 +29,6 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class TestOnlyController @Inject() (
-  authenticate: AuthenticateActions,
   draftReturnsService: DraftReturnsService,
   cc: ControllerComponents
 )(
@@ -38,7 +36,7 @@ class TestOnlyController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def deleteDraftReturn(cgtReference: String): Action[AnyContent] = authenticate.async {
+  def deleteDraftReturn(cgtReference: String): Action[AnyContent] = Action.async { _ =>
     draftReturnsService
       .deleteDraftReturn(CgtReference(cgtReference))
       .fold(

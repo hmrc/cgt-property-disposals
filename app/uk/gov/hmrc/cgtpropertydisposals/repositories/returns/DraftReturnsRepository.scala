@@ -80,7 +80,7 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
 
   override def delete(cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
-      remove("return.cgtReference" -> cgtReference.value)
+      remove("return.cgtReference.value" -> cgtReference.value)
         .map { result: WriteResult =>
           if (result.ok)
             Right(())
