@@ -26,7 +26,6 @@ import play.api.http.Status.OK
 import play.api.libs.json.{Json, Reads}
 import play.api.mvc.Request
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnector
-import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding._
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails

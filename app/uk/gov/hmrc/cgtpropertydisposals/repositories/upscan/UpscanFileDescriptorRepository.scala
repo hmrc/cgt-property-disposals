@@ -26,7 +26,7 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanFileDescriptor}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -36,12 +36,12 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultUpscanFileDescriptorRepository])
 trait UpscanFileDescriptorRepository {
   def insert(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Unit]
-  def count(cgtReference: CgtReference): EitherT[Future, Error, Int]
+  def count(draftReturnId: DraftReturnId): EitherT[Future, Error, Int]
   def get(
     fileDescriptorId: FileDescriptorId
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
-  def getAll(cgtReference: CgtReference): EitherT[Future, Error, List[UpscanFileDescriptor]]
+  def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanFileDescriptor]]
   def updateUpscanUploadStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
 }
 
@@ -60,8 +60,8 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
 
   override def indexes: Seq[Index] = Seq(
     Index(
-      key  = Seq("cgtReference" → IndexType.Ascending),
-      name = Some("cgt-reference")
+      key  = Seq("draftReturnId" → IndexType.Ascending),
+      name = Some("draft-return-id")
     )
   )
 
@@ -107,8 +107,8 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
         }
     )
 
-  override def count(cgtReference: CgtReference): EitherT[Future, Error, Int] = {
-    val query = Json.obj("cgtReference" -> cgtReference)
+  override def count(draftReturnId: DraftReturnId): EitherT[Future, Error, Int] = {
+    val query = Json.obj("draftReturnId" -> draftReturnId)
     EitherT[Future, Error, Int](
       collection
         .count(Some(query), limit = None, skip = 0, hint = None, readConcern = defaultReadConcern)
@@ -122,10 +122,10 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
   }
 
   override def getAll(
-    cgtReference: CgtReference
+    draftReturnId: DraftReturnId
   ): EitherT[Future, Error, List[UpscanFileDescriptor]] =
     EitherT[Future, Error, List[UpscanFileDescriptor]](
-      find("cgtReference" -> Json.obj("value" -> JsString(cgtReference.value)))
+      find("draftReturnId" -> Json.obj("value" -> JsString(draftReturnId.value)))
         .map(Right(_))
         .recover {
           case exception => Left(Error(exception))

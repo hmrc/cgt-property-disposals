@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
@@ -106,12 +106,12 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(upscanFileDescriptor)
       .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
 
-  def mockGetUpscanSnapshot(cgtReference: CgtReference)(
+  def mockGetUpscanSnapshot(draftReturnId: DraftReturnId)(
     response: Either[Error, List[UpscanFileDescriptor]]
   ) =
     (mockUpscanFileDescriptorRepository
-      .getAll(_: CgtReference))
-      .expects(cgtReference)
+      .getAll(_: DraftReturnId))
+      .expects(draftReturnId)
       .returning(EitherT[Future, Error, List[UpscanFileDescriptor]](Future.successful(response)))
 
   def mockGetFileDescriptor(fileDescriptorId: FileDescriptorId)(
@@ -130,7 +130,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(upscanCallBack)
       .returning(Future[Either[Error, FileAttachment]](response))
 
-  val cgtReference         = sample[CgtReference]
+  val draftReturnId        = sample[DraftReturnId]
   val ts                   = java.time.Instant.ofEpochSecond(1000)
   val upscanFileDescriptor = sample[UpscanFileDescriptor]
   val upscanCallBack       = sample[UpscanCallBack]
@@ -156,16 +156,16 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
     "it receives a request to get upscan snapshot information" must {
       "return an error" when {
         "there is a mongo exception" in {
-          mockGetUpscanSnapshot(cgtReference)(Left(Error("Connection error")))
-          await(service.getUpscanSnapshot(cgtReference).value).isLeft shouldBe true
+          mockGetUpscanSnapshot(draftReturnId)(Left(Error("Connection error")))
+          await(service.getUpscanSnapshot(draftReturnId).value).isLeft shouldBe true
         }
       }
       "return a list of upscan file descriptors" when {
         "it successfully updates the data" in {
-          mockGetUpscanSnapshot(cgtReference)(
+          mockGetUpscanSnapshot(draftReturnId)(
             Right(List(upscanFileDescriptor.copy(status = UPLOADED, timestamp = LocalDateTime.now())))
           )
-          await(service.getUpscanSnapshot(cgtReference).value) shouldBe Right(UpscanSnapshot(1))
+          await(service.getUpscanSnapshot(draftReturnId).value) shouldBe Right(UpscanSnapshot(1))
         }
       }
     }
@@ -218,13 +218,13 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       "return an error" when {
         "there is a mongo exception" in {
           mockGetFileDescriptor(FileDescriptorId("id"))(Left(Error("Connection error")))
-          await(service.getFileDescriptor(cgtReference, FileDescriptorId("id")).value).isLeft shouldBe true
+          await(service.getFileDescriptor(draftReturnId, FileDescriptorId("id")).value).isLeft shouldBe true
         }
       }
       "return an upscan file descriptor" when {
         "it successfully stores the data" in {
           mockGetFileDescriptor(FileDescriptorId("id"))(Right(Some(upscanFileDescriptor)))
-          await(service.getFileDescriptor(cgtReference, FileDescriptorId("id")).value) shouldBe Right(
+          await(service.getFileDescriptor(draftReturnId, FileDescriptorId("id")).value) shouldBe Right(
             Some(upscanFileDescriptor)
           )
         }

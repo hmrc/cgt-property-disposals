@@ -40,10 +40,10 @@ class UpscanFileDescriptorRepositorySpec extends WordSpec with Matchers with Mon
 
     "counting" should {
       "return number of file descriptors" in {
-        await(repository.insert(fd).value)             shouldBe Right(())
-        await(repository.insert(fd).value)             shouldBe Right(())
-        await(repository.insert(fd).value)             shouldBe Right(())
-        await(repository.count(fd.cgtReference).value) shouldBe Right(3)
+        await(repository.insert(fd).value)              shouldBe Right(())
+        await(repository.insert(fd).value)              shouldBe Right(())
+        await(repository.insert(fd).value)              shouldBe Right(())
+        await(repository.count(fd.draftReturnId).value) shouldBe Right(3)
       }
     }
 
@@ -56,9 +56,9 @@ class UpscanFileDescriptorRepositorySpec extends WordSpec with Matchers with Mon
 
     "getting all upscan file descriptors" should {
       "return two if there are only two in the repo" in {
-        await(repository.insert(fd).value)                               shouldBe Right(())
-        await(repository.insert(fd).value)                               shouldBe Right(())
-        await(repository.getAll(fd.cgtReference).value).map(s => s.size) shouldBe Right(2)
+        await(repository.insert(fd).value)                                shouldBe Right(())
+        await(repository.insert(fd).value)                                shouldBe Right(())
+        await(repository.getAll(fd.draftReturnId).value).map(s => s.size) shouldBe Right(2)
       }
     }
 

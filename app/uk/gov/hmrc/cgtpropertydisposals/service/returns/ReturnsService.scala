@@ -24,7 +24,6 @@ import cats.instances.int._
 import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.eq._
-import com.codahale.metrics.Timer
 import com.codahale.metrics.Timer.Context
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
@@ -39,7 +38,7 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest, ReturnDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference

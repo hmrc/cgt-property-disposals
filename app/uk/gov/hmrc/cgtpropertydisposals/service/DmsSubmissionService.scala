@@ -28,7 +28,7 @@ import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -37,7 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultDmsSubmissionService])
 trait DmsSubmissionService {
 
-  def submitToDms(html: B64Html, cgtReference: CgtReference, formBundleId: String)(
+  def submitToDms(html: B64Html, draftReturnId: DraftReturnId, cgtReference: CgtReference, formBundleId: String)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId]
 
@@ -59,6 +59,7 @@ class DefaultDmsSubmissionService @Inject() (
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def submitToDms(
     html: B64Html,
+    draftReturnId: DraftReturnId,
     cgtReference: CgtReference,
     formBundleId: String
   )(
@@ -74,8 +75,8 @@ class DefaultDmsSubmissionService @Inject() (
     val businessArea: String = getDmsMetaConfig[String]("business-area")
 
     val fileUploadResult: EitherT[Future, Error, EnvelopeId] = for {
-      upscanSnapshot  <- upscanService.getUpscanSnapshot(cgtReference)
-      callbacks       <- upscanService.getAllUpscanCallBacks(cgtReference)
+      upscanSnapshot  <- upscanService.getUpscanSnapshot(draftReturnId)
+      callbacks       <- upscanService.getAllUpscanCallBacks(draftReturnId)
       attachments     <- upscanService.downloadFilesFromS3(upscanSnapshot, callbacks)
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
       envId <- gFormConnector.submitToDms(

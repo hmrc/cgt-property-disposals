@@ -21,11 +21,12 @@ import java.time.LocalDateTime
 import cats.Eq
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
 
 final case class UpscanFileDescriptor(
   key: String,
+  draftReturnId: DraftReturnId,
   cgtReference: CgtReference,
   fileDescriptor: FileDescriptor,
   timestamp: LocalDateTime,

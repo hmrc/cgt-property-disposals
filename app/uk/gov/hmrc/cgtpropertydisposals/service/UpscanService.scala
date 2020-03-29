@@ -27,7 +27,7 @@ import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
@@ -38,14 +38,14 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[UpscanServiceImpl])
 trait UpscanService {
 
-  def getUpscanSnapshot(cgtReference: CgtReference): EitherT[Future, Error, UpscanSnapshot]
+  def getUpscanSnapshot(draftReturnId: DraftReturnId): EitherT[Future, Error, UpscanSnapshot]
 
   def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit]
 
   def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit]
 
   def getFileDescriptor(
-    cgtReference: CgtReference,
+    draftReturnId: DraftReturnId,
     fileDescriptorId: FileDescriptorId
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
@@ -53,7 +53,7 @@ trait UpscanService {
 
   def updateUpscanFileDescriptorStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
 
-  def getAllUpscanCallBacks(cgtReference: CgtReference): EitherT[Future, Error, List[UpscanCallBack]]
+  def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]]
 
   def downloadFilesFromS3(
     snapshot: UpscanSnapshot,
@@ -80,10 +80,10 @@ class UpscanServiceImpl @Inject() (
   private val s3UrlExpiryTime: Long = getUpscanInitiateConfig[Long]("s3url.expiry-time")
 
   override def getUpscanSnapshot(
-    cgtReference: CgtReference
+    draftReturnId: DraftReturnId
   ): EitherT[Future, Error, UpscanSnapshot] =
     for {
-      fileDescriptors <- upscanFileDescriptorRepository.getAll(cgtReference)
+      fileDescriptors <- upscanFileDescriptorRepository.getAll(draftReturnId)
       upscanSnapshot  <- EitherT.fromEither[Future](computeUpscanSnapshot(fileDescriptors))
     } yield upscanSnapshot
 
@@ -104,7 +104,7 @@ class UpscanServiceImpl @Inject() (
     upscanCallBackRepository.insert(cb)
 
   override def getFileDescriptor(
-    cgtReference: CgtReference,
+    draftReturnId: DraftReturnId, //FIXME not even used
     fileDescriptorId: FileDescriptorId
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]] =
     upscanFileDescriptorRepository.get(fileDescriptorId)
@@ -141,7 +141,7 @@ class UpscanServiceImpl @Inject() (
     )
   }
 
-  def getAllUpscanCallBacks(cgtReference: CgtReference): EitherT[Future, Error, List[UpscanCallBack]] =
-    upscanCallBackRepository.getAll(cgtReference)
+  def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]] =
+    upscanCallBackRepository.getAll(draftReturnId)
 
 }

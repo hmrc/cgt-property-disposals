@@ -21,7 +21,7 @@ import com.google.inject.Inject
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBackEvent._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBackEvent, UpscanFileDescriptor, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService
@@ -39,10 +39,10 @@ class UpscanController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def getUpscanSnapshot(cgtReference: CgtReference): Action[AnyContent] =
+  def getUpscanSnapshot(draftReturnId: DraftReturnId): Action[AnyContent] =
     authenticate.async {
       upscanService
-        .getUpscanSnapshot(cgtReference)
+        .getUpscanSnapshot(draftReturnId)
         .fold(
           e => {
             logger.warn(s"failed to get upscan snapshot $e")
@@ -111,14 +111,14 @@ class UpscanController @Inject() (
     }
   }
 
-  def callback(cgtReference: CgtReference): Action[JsValue] =
+  def callback(draftReturnId: DraftReturnId): Action[JsValue] =
     Action.async(parse.json) { implicit request =>
       request.body
         .validate[UpscanCallBackEvent]
         .fold(
           error => Future.successful(BadRequest(s"failed to parse upscan call back result response: $error")),
           upscanResult =>
-            upscanService.saveCallBackData(toUpscanCallBack(cgtReference, upscanResult)).value.map {
+            upscanService.saveCallBackData(toUpscanCallBack(draftReturnId, upscanResult)).value.map {
               case Left(error) =>
                 logger.warn(s"failed to save upscan call back result response $error")
                 InternalServerError

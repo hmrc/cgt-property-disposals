@@ -29,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.{FAILED, READY}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBack, UpscanSnapshot}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -62,20 +62,20 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
     )
   )
 
-  def mockGetUpscanSnapshot(cgtReference: CgtReference)(
+  def mockGetUpscanSnapshot(draftReturnId: DraftReturnId)(
     response: Either[Error, UpscanSnapshot]
   ) =
     (mockUpscanService
-      .getUpscanSnapshot(_: CgtReference))
-      .expects(cgtReference)
+      .getUpscanSnapshot(_: DraftReturnId))
+      .expects(draftReturnId)
       .returning(EitherT[Future, Error, UpscanSnapshot](Future.successful(response)))
 
-  def mockGetAllUpscanCallBacks(cgtReference: CgtReference)(
+  def mockGetAllUpscanCallBacks(draftReturnId: DraftReturnId)(
     response: Either[Error, List[UpscanCallBack]]
   ) =
     (mockUpscanService
-      .getAllUpscanCallBacks(_: CgtReference))
-      .expects(cgtReference)
+      .getAllUpscanCallBacks(_: DraftReturnId))
+      .expects(draftReturnId)
       .returning(EitherT[Future, Error, List[UpscanCallBack]](Future.successful(response)))
 
   def mockGFormSubmission(dmsSubmissionPayload: DmsSubmissionPayload)(
@@ -100,44 +100,53 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
   "Dms Submission Service" when {
 
     "a dms file submission request is made" must {
-      val cgtReference = sample[CgtReference]
+      val cgtReference  = sample[CgtReference]
+      val draftReturnId = sample[DraftReturnId]
 
       "return an error" when {
 
         "there is an issue with the gform service" in {
           val upscanSnapshot       = UpscanSnapshot(1)
-          val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
+          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
           val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
-            mockGetUpscanSnapshot(cgtReference)(Right(upscanSnapshot))
-            mockGetAllUpscanCallBacks(cgtReference)(Right(List(upscanCallBack)))
+            mockGetUpscanSnapshot(draftReturnId)(Right(upscanSnapshot))
+            mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
             mockDownloadS3Urls(upscanSnapshot, List(upscanCallBack))(
               Right(fileAttachments.map(attachment => Right(attachment)))
             )
             mockGFormSubmission(dmsSubmissionPayload)(Left(Error("gForm service error")))
           }
-          await(dmsSubmissionService.submitToDms(dmsSubmissionPayload.b64Html, cgtReference, "form-bundle-id").value).isLeft shouldBe true
+          await(
+            dmsSubmissionService
+              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .value
+          ).isLeft shouldBe true
         }
 
         "all upscan call backs have not been received" in {
           val upscanSnapshot       = UpscanSnapshot(2)
-          val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
+          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
           val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
-            mockGetUpscanSnapshot(cgtReference)(Right(upscanSnapshot))
-            mockGetAllUpscanCallBacks(cgtReference)(Right(List(upscanCallBack)))
+            mockGetUpscanSnapshot(draftReturnId)(Right(upscanSnapshot))
+            mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
             mockDownloadS3Urls(upscanSnapshot, List(upscanCallBack))(
               Right(fileAttachments.map(attachment => Right(attachment)))
             )
             mockGFormSubmission(dmsSubmissionPayload)(Left(Error("gForm service error")))
           }
-          await(dmsSubmissionService.submitToDms(dmsSubmissionPayload.b64Html, cgtReference, "form-bundle-id").value).isLeft shouldBe true
+          await(
+            dmsSubmissionService
+              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .value
+          ).isLeft shouldBe true
         }
 
         "unable to retrieve the upscan snapshot" in {
@@ -146,9 +155,13 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
-            mockGetUpscanSnapshot(cgtReference)(Left(Error("mongo error")))
+            mockGetUpscanSnapshot(draftReturnId)(Left(Error("mongo error")))
           }
-          await(dmsSubmissionService.submitToDms(dmsSubmissionPayload.b64Html, cgtReference, "form-bundle-id").value).isLeft shouldBe true
+          await(
+            dmsSubmissionService
+              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .value
+          ).isLeft shouldBe true
         }
 
         "unable to retrieve the upscan call back information" in {
@@ -158,78 +171,98 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
-            mockGetUpscanSnapshot(cgtReference)(Right(upscanSnapshot))
-            mockGetAllUpscanCallBacks(cgtReference)(Left(Error("mongo-error")))
+            mockGetUpscanSnapshot(draftReturnId)(Right(upscanSnapshot))
+            mockGetAllUpscanCallBacks(draftReturnId)(Left(Error("mongo-error")))
           }
-          await(dmsSubmissionService.submitToDms(dmsSubmissionPayload.b64Html, cgtReference, "form-bundle-id").value).isLeft shouldBe true
+          await(
+            dmsSubmissionService
+              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .value
+          ).isLeft shouldBe true
         }
 
         "unable to download the files" in {
           val upscanSnapshot       = UpscanSnapshot(1)
-          val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
+          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
           val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
-            mockGetUpscanSnapshot(cgtReference)(Right(upscanSnapshot))
-            mockGetAllUpscanCallBacks(cgtReference)(Right(List(upscanCallBack)))
+            mockGetUpscanSnapshot(draftReturnId)(Right(upscanSnapshot))
+            mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
             mockDownloadS3Urls(upscanSnapshot, List(upscanCallBack))(Left(Error("network-error")))
           }
-          await(dmsSubmissionService.submitToDms(dmsSubmissionPayload.b64Html, cgtReference, "form-bundle-id").value).isLeft shouldBe true
+          await(
+            dmsSubmissionService
+              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .value
+          ).isLeft shouldBe true
         }
 
         "some of the downloads have failed" in {
           val upscanSnapshot       = UpscanSnapshot(1)
-          val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
+          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
           val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
-            mockGetUpscanSnapshot(cgtReference)(Right(upscanSnapshot))
-            mockGetAllUpscanCallBacks(cgtReference)(Right(List(upscanCallBack)))
+            mockGetUpscanSnapshot(draftReturnId)(Right(upscanSnapshot))
+            mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
             mockDownloadS3Urls(upscanSnapshot, List(upscanCallBack))(
               Right(fileAttachments.map(attachment => Left(Error("error downloading file"))))
             )
           }
-          await(dmsSubmissionService.submitToDms(dmsSubmissionPayload.b64Html, cgtReference, "form-bundle-id").value).isLeft shouldBe true
+          await(
+            dmsSubmissionService
+              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .value
+          ).isLeft shouldBe true
         }
 
         "some of the files are infected with viruses" in {
           val upscanSnapshot       = UpscanSnapshot(1)
-          val upscanCallBack       = UpscanCallBack(cgtReference, "reference", FAILED, Some("download-url"), Map.empty)
+          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", FAILED, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
           val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
-            mockGetUpscanSnapshot(cgtReference)(Right(upscanSnapshot))
-            mockGetAllUpscanCallBacks(cgtReference)(Right(List(upscanCallBack)))
+            mockGetUpscanSnapshot(draftReturnId)(Right(upscanSnapshot))
+            mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
             mockDownloadS3Urls(upscanSnapshot, List(upscanCallBack))(
               Right(fileAttachments.map(attachment => Left(Error("error downloading file"))))
             )
           }
-          await(dmsSubmissionService.submitToDms(dmsSubmissionPayload.b64Html, cgtReference, "form-bundle-id").value).isLeft shouldBe true
+          await(
+            dmsSubmissionService
+              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .value
+          ).isLeft shouldBe true
         }
       }
 
       "return an envelope id when files have been successfully submitted to the gform service" in {
         val upscanSnapshot       = UpscanSnapshot(1)
-        val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
+        val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
         val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
         val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
         val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
         inSequence {
-          mockGetUpscanSnapshot(cgtReference)(Right(upscanSnapshot))
-          mockGetAllUpscanCallBacks(cgtReference)(Right(List(upscanCallBack)))
+          mockGetUpscanSnapshot(draftReturnId)(Right(upscanSnapshot))
+          mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
           mockDownloadS3Urls(upscanSnapshot, List(upscanCallBack))(
             Right(fileAttachments.map(attachment => Right(attachment)))
           )
           mockGFormSubmission(dmsSubmissionPayload)(Right(EnvelopeId("env-id")))
         }
-        await(dmsSubmissionService.submitToDms(dmsSubmissionPayload.b64Html, cgtReference, "form-bundle-id").value) shouldBe Right(
+        await(
+          dmsSubmissionService
+            .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+            .value
+        ) shouldBe Right(
           EnvelopeId(
             "env-id"
           )

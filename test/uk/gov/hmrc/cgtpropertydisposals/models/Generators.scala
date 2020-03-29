@@ -29,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
@@ -116,6 +116,8 @@ trait IdGen { this: GenUtils =>
   implicit val cgtReferenceGen: Gen[CgtReference] = gen[CgtReference]
 
   implicit val sapNumberGen: Gen[SapNumber] = gen[SapNumber]
+
+  implicit val draftReturnIdGen: Gen[DraftReturnId] = gen[DraftReturnId]
 
 }
 

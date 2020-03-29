@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 import cats.Eq
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.{FAILED, READY}
 
 sealed trait UpscanStatus
@@ -32,7 +32,7 @@ object UpscanStatus {
 }
 
 final case class UpscanCallBack(
-  cgtReference: CgtReference,
+  draftReturnId: DraftReturnId,
   reference: String,
   fileStatus: UpscanStatus,
   downloadUrl: Option[String],
@@ -53,12 +53,12 @@ final case class UpscanCallBackEvent(
 
 object UpscanCallBackEvent {
 
-  def toUpscanCallBack(cgtReference: CgtReference, upscanCallBackEvent: UpscanCallBackEvent): UpscanCallBack =
+  def toUpscanCallBack(draftReturnId: DraftReturnId, upscanCallBackEvent: UpscanCallBackEvent): UpscanCallBack =
     UpscanCallBack(
-      cgtReference = cgtReference,
-      reference    = upscanCallBackEvent.reference,
-      fileStatus   = convertFileStatus(upscanCallBackEvent.fileStatus),
-      downloadUrl  = upscanCallBackEvent.downloadUrl,
+      draftReturnId = draftReturnId,
+      reference     = upscanCallBackEvent.reference,
+      fileStatus    = convertFileStatus(upscanCallBackEvent.fileStatus),
+      downloadUrl   = upscanCallBackEvent.downloadUrl,
       details = upscanCallBackEvent.uploadDetails.getOrElse(Map.empty) ++ upscanCallBackEvent.failureDetails.getOrElse(
         Map.empty
       )
