@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
 
 final case class UpscanFileDescriptor(
-  key: String,
+  upscanInitiateReference: UpscanInitiateReference,
   draftReturnId: DraftReturnId,
   cgtReference: CgtReference,
   fileDescriptor: FileDescriptor,

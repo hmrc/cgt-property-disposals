@@ -68,7 +68,7 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
   override def updateUpscanUploadStatus(
     upscanFileDescriptor: UpscanFileDescriptor
   ): EitherT[Future, Error, Boolean] = {
-    val selector = Json.obj("key"  -> upscanFileDescriptor.key)
+    val selector = Json.obj("key"  -> upscanFileDescriptor.upscanInitiateReference)
     val update   = Json.obj("$set" -> Json.obj("status" -> upscanFileDescriptor.status))
 
     EitherT[Future, Error, Boolean](
@@ -132,7 +132,7 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
         }
     )
 
-  override def get(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]] = {
+  override def get(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]] = { //FIXME: should this not be upscan initiare reference?
     val selector = Json.obj(
       "key" -> fileDescriptorId.value
     )
