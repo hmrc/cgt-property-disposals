@@ -37,8 +37,6 @@ class TaxYearController @Inject() (
   authenticate: AuthenticateActions,
   taxYearService: TaxYearService,
   cc: ControllerComponents
-)(
-  implicit ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
