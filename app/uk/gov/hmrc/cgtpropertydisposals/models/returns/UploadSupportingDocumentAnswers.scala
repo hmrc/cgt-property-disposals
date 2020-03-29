@@ -33,12 +33,13 @@ object UploadSupportingDocumentAnswers {
   }
 
   final case class IncompleteUploadSupportingDocumentAnswers(
-    doYouWantToUploadSupportingDocuments: Option[Boolean]
+    doYouWantToUploadSupportingDocuments: Option[Boolean],
+    documents: List[SupportingDocuments]
   ) extends UploadSupportingDocumentAnswers
 
   object IncompleteUploadSupportingDocumentAnswers {
     val empty: IncompleteUploadSupportingDocumentAnswers =
-      IncompleteUploadSupportingDocumentAnswers(None)
+      IncompleteUploadSupportingDocumentAnswers(None, List.empty)
   }
 
   final case class CompleteUploadSupportingDocumentAnswers(
