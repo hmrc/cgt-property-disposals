@@ -38,8 +38,9 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
     )
   )
 
-  val repository   = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
-  val cgtReference = sample[CgtReference]
+  val repository    = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
+  val cgtReference  = sample[CgtReference]
+  val cgtReference2 = sample[CgtReference]
 
   "DraftReturnsRepository" when {
 
@@ -64,6 +65,40 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
     }
 
     "deleting" should {
+
+      "delete single return with the given cgtReference" in {
+        val draftReturn  = sample[DraftReturn]
+        val draftReturn2 = sample[DraftReturn]
+
+        await(repository.save(draftReturn, cgtReference).value)   shouldBe Right(())
+        await(repository.save(draftReturn2, cgtReference2).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
+          Set(draftReturn)
+        )
+        await(repository.fetch(cgtReference2).value).map(_.toSet) shouldBe Right(
+          Set(draftReturn2)
+        )
+
+        await(repository.delete(cgtReference).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value)  shouldBe Right(List.empty)
+        await(repository.fetch(cgtReference2).value).map(_.toSet) shouldBe Right(
+          Set(draftReturn2)
+        )
+      }
+
+      "delete multiple returns with the same given cgtReference" in {
+        val draftReturn  = sample[DraftReturn]
+        val draftReturn2 = sample[DraftReturn]
+
+        await(repository.save(draftReturn, cgtReference).value)  shouldBe Right(())
+        await(repository.save(draftReturn2, cgtReference).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
+          Set(draftReturn, draftReturn2)
+        )
+
+        await(repository.delete(cgtReference).value) shouldBe Right(())
+        await(repository.fetch(cgtReference).value)  shouldBe Right(List.empty)
+      }
 
       "delete all draft returns with the given ids" in {
         val draftReturn  = sample[DraftReturn]
