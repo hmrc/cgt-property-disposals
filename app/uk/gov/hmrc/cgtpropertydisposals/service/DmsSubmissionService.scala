@@ -56,6 +56,14 @@ class DefaultDmsSubmissionService @Inject() (
     extends DmsSubmissionService
     with Logging {
 
+  def getDmsMetaConfig[A: Configs](key: String): A =
+    configuration.underlying
+      .get[A](s"microservice.services.upscan-initiate.dms.$key")
+      .value
+
+  val queue: String        = getDmsMetaConfig[String]("classification-type")
+  val businessArea: String = getDmsMetaConfig[String]("business-area")
+
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def submitToDms(
     html: B64Html,
@@ -64,14 +72,6 @@ class DefaultDmsSubmissionService @Inject() (
   )(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId] = {
-
-    def getDmsMetaConfig[A: Configs](key: String): A =
-      configuration.underlying
-        .get[A](s"microservice.services.upscan-initiate.dms.$key")
-        .value
-
-    val queue: String        = getDmsMetaConfig[String]("classification-type")
-    val businessArea: String = getDmsMetaConfig[String]("business-area")
 
     val fileUploadResult: EitherT[Future, Error, EnvelopeId] = for {
       upscanSnapshot  <- upscanService.getUpscanSnapshot(cgtReference)
@@ -104,7 +104,7 @@ class DefaultDmsSubmissionService @Inject() (
                 DmsSubmissionPayload(
                   html,
                   List.empty,
-                  DmsMetadata(formBundleId, cgtReference.value, "psa-sa return 1", "PT Operations")
+                  DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
                 )
               )
     } yield envId
