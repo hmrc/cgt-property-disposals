@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
+import java.util.Base64
+
 import cats.data.EitherT
 import cats.instances.either._
 import cats.instances.future._
@@ -61,8 +63,10 @@ class DefaultDmsSubmissionService @Inject() (
       .get[A](s"dms.$key")
       .value
 
-  val queue: String        = getDmsMetaConfig[String]("queue-name")
-  val businessArea: String = getDmsMetaConfig[String]("business-area")
+  val queue: String           = getDmsMetaConfig[String]("queue-name")
+  val b64businessArea: String = getDmsMetaConfig[String]("b64-business-area")
+
+  val businessArea = new String(Base64.getDecoder.decode(b64businessArea))
 
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def submitToDms(
