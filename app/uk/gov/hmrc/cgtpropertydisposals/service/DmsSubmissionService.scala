@@ -58,10 +58,10 @@ class DefaultDmsSubmissionService @Inject() (
 
   def getDmsMetaConfig[A: Configs](key: String): A =
     configuration.underlying
-      .get[A](s"microservice.services.upscan-initiate.dms.$key")
+      .get[A](s"dms.$key")
       .value
 
-  val queue: String        = getDmsMetaConfig[String]("classification-type")
+  val queue: String        = getDmsMetaConfig[String]("queue-name")
   val businessArea: String = getDmsMetaConfig[String]("business-area")
 
   @SuppressWarnings(Array("org.wartremover.warts.Any"))

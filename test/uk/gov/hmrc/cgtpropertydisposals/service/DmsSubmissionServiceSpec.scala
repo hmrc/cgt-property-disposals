@@ -50,13 +50,9 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
   val config = Configuration(
     ConfigFactory.parseString(
       """
-        | microservice.services {
-        |    upscan-initiate {
-        |       dms = {
-        |           classification-type = "queue-name"
-        |           business-area = "cgt-property-disposals"
-        |       }
-        |    }
+        | dms {
+        |   queue-name = "queue-name"
+        |   business-area = "cgt-property-disposals"
         | }
         |""".stripMargin
     )
