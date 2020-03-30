@@ -27,7 +27,7 @@ import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanFileDescriptor}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanFileDescriptor, UpscanInitiateReference}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -133,10 +133,7 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
     )
 
   override def get(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]] = { //FIXME: should this not be upscan initiare reference?
-    val selector = Json.obj(
-      "key" -> fileDescriptorId.value
-    )
-
+    val selector = Json.obj("upscanInitiateReference" -> UpscanInitiateReference(fileDescriptorId.value))
     EitherT[Future, Error, Option[UpscanFileDescriptor]](
       collection
         .find(selector, None)

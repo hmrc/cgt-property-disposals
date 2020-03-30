@@ -44,11 +44,6 @@ trait UpscanService {
 
   def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit]
 
-  def getFileDescriptor(
-    draftReturnId: DraftReturnId,
-    fileDescriptorId: FileDescriptorId
-  ): EitherT[Future, Error, Option[UpscanFileDescriptor]]
-
   def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
   def updateUpscanFileDescriptorStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
@@ -92,7 +87,7 @@ class UpscanServiceImpl @Inject() (
   ): EitherT[Future, Error, Boolean] =
     upscanFileDescriptorRepository.updateUpscanUploadStatus(upscanFileDescriptor)
 
-  def getUpscanFileDescriptor(
+  def getUpscanFileDescriptor( //TODO : pass in draft return id as it needs to be keyed on that as well
     fileDescriptorId: FileDescriptorId
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]] =
     upscanFileDescriptorRepository.get(fileDescriptorId)
@@ -102,12 +97,6 @@ class UpscanServiceImpl @Inject() (
 
   override def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit] =
     upscanCallBackRepository.insert(cb)
-
-  override def getFileDescriptor(
-    draftReturnId: DraftReturnId, //FIXME not even used
-    fileDescriptorId: FileDescriptorId
-  ): EitherT[Future, Error, Option[UpscanFileDescriptor]] =
-    upscanFileDescriptorRepository.get(fileDescriptorId)
 
   override def downloadFilesFromS3(
     snapshot: UpscanSnapshot,
