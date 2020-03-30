@@ -25,15 +25,13 @@ import uk.gov.hmrc.cgtpropertydisposals.service.returns.CgtCalculationService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @Singleton
 class CalculatorController @Inject() (
   authenticate: AuthenticateActions,
   calculatorService: CgtCalculationService,
   cc: ControllerComponents
-)(
-  implicit ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
