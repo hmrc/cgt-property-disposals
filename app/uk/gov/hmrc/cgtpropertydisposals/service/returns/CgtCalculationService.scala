@@ -62,8 +62,13 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     val disposalAmountLessCosts: AmountInPence =
       disposalDetails.disposalPrice -- disposalDetails.disposalFees
 
+    val acquisitionPrice: AmountInPence = acquisitionDetails.rebasedAcquisitionPrice match {
+      case Some(r) if (acquisitionDetails.shouldUseRebase) => r
+      case _                                               => acquisitionDetails.acquisitionPrice
+    }
+
     val acquisitionAmountPlusCosts: AmountInPence =
-      acquisitionDetails.rebasedAcquisitionPrice.getOrElse(acquisitionDetails.acquisitionPrice) ++
+      acquisitionPrice ++
         acquisitionDetails.improvementCosts ++
         acquisitionDetails.acquisitionFees
 
