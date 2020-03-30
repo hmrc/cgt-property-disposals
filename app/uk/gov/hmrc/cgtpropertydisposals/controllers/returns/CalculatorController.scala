@@ -32,8 +32,6 @@ class CalculatorController @Inject() (
   authenticate: AuthenticateActions,
   calculatorService: CgtCalculationService,
   cc: ControllerComponents
-)(
-  implicit ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
