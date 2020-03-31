@@ -45,6 +45,8 @@ trait UpscanService {
 
   def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
+  def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanFileDescriptor]]
+
   def updateUpscanFileDescriptorStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
 
   def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]]
@@ -100,6 +102,11 @@ class UpscanServiceImpl @Inject() (
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]] =
     upscanFileDescriptorRepository.get(fileDescriptorId)
 
+  def getAll( //TODO : pass in draft return id as it needs to be keyed on that as well
+    draftReturnId: DraftReturnId
+  ): EitherT[Future, Error, List[UpscanFileDescriptor]] =
+    upscanFileDescriptorRepository.getAll(draftReturnId)
+
   override def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit] =
     upscanFileDescriptorRepository.insert(fd)
 
@@ -123,7 +130,7 @@ class UpscanServiceImpl @Inject() (
     }
 
   private def computeUpscanSnapshot(upscanFileDescriptor: List[UpscanFileDescriptor]): Either[Error, UpscanSnapshot] = {
-    logger.info(s"stored upscan file descriptors: $upscanFileDescriptor ")
+    logger.info(s"stored upscan file descriptors: $upscanFileDescriptor ") //FIXME remove thos or make them better and the one below
 
     val validFiles = upscanFileDescriptor
       .filter(fd => fd.timestamp.isAfter(LocalDateTime.now().minusDays(s3UrlExpiryTime)))

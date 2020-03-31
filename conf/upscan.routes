@@ -6,3 +6,5 @@ GET     /upscan-snapshot-info/draft-return-id/:id                   uk.gov.hmrc.
 
 GET     /upscan-file-descriptor/draft-return-id/:id/upscan-reference/:ref   uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.removeFile(id : String, ref : String)
 GET     /upscan-file-descriptor/delete-all-files/:id                         uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.removeAllFiles(id : String)
+
+GET     /upscan-file-descriptor/all/:id             uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getAll(id:  String)

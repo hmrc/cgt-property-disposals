@@ -52,6 +52,20 @@ class UpscanController @Inject() (
         )
     }
 
+  def getAll(draftId: String): Action[AnyContent] =
+    authenticate.async {
+      upscanService
+        .getAll(DraftReturnId(draftId))
+        .fold(
+          e => {
+            logger.warn(s"failed to get upscan file descriptor $e")
+            InternalServerError
+          }, { fd =>
+            Ok(Json.toJson[List[UpscanFileDescriptor]](fd))
+          }
+        )
+    }
+
   def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): Action[AnyContent] =
     authenticate.async {
       upscanService
