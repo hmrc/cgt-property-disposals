@@ -31,13 +31,13 @@ import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.{BusinessPartnerRecordConnector, SubscriptionConnector}
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, SubscriptionStatus}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, DesSubscriptionStatusResponse}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
@@ -67,9 +67,6 @@ class BusinessPartnerRecordServiceImpl @Inject() (
   val desNonIsoCountryCodes: List[CountryCode] =
     config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
-  val subscriptionStatusApiEnabled: Boolean =
-    config.underlying.get[Boolean]("subscription-status-api.enabled").value
-
   val correlationIdHeaderKey = "CorrelationId"
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
@@ -78,7 +75,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
     for {
       maybeBpr <- getBpr(bprRequest)
       maybeCgtRef <- maybeBpr.fold[EitherT[Future, Error, Option[CgtReference]]](EitherT.pure(None))(bpr =>
-                      if (subscriptionStatusApiEnabled) getSubscriptionStatus(bpr.sapNumber) else EitherT.pure(None)
+                      getSubscriptionStatus(bpr.sapNumber)
                     )
     } yield BusinessPartnerRecordResponse(maybeBpr, maybeCgtRef)
 
