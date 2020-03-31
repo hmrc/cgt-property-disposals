@@ -169,7 +169,7 @@ class DefaultReturnsService @Inject() (
   private def sendReturnConfirmationEmail(
     returnRequest: SubmitReturnRequest,
     submitReturnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] =
     emailConnector
       .sendReturnSubmitConfirmationEmail(
         submitReturnResponse,

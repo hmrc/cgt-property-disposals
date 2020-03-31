@@ -65,7 +65,7 @@ class UpscanFileDescriptorRepositorySpec extends WordSpec with Matchers with Mon
     "get a upscan file descriptor" should {
       "return one if it exists" in {
         await(repository.insert(fd).value)                    shouldBe Right(())
-        await(repository.get(FileDescriptorId(fd.key)).value) shouldBe Right(Some(fd))
+        await(repository.get(FileDescriptorId(fd.upscanInitiateReference.value)).value) shouldBe Right(Some(fd))
       }
     }
 

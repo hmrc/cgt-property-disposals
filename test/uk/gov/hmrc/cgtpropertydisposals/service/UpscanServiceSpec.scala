@@ -214,23 +214,6 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       }
     }
 
-    "it receives a request to get file descriptor information" must {
-      "return an error" when {
-        "there is a mongo exception" in {
-          mockGetFileDescriptor(FileDescriptorId("id"))(Left(Error("Connection error")))
-          await(service.getFileDescriptor(draftReturnId, FileDescriptorId("id")).value).isLeft shouldBe true
-        }
-      }
-      "return an upscan file descriptor" when {
-        "it successfully stores the data" in {
-          mockGetFileDescriptor(FileDescriptorId("id"))(Right(Some(upscanFileDescriptor)))
-          await(service.getFileDescriptor(draftReturnId, FileDescriptorId("id")).value) shouldBe Right(
-            Some(upscanFileDescriptor)
-          )
-        }
-      }
-    }
-
     "it receives a request to download a S3 file" must {
       "return an error" when {
         "all upscan call backs have not been received" in {

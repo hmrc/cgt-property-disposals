@@ -46,7 +46,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
   val config = Configuration(
     ConfigFactory.parseString(
       """
-        | dms = {
+        | dms {
         |   s3-file-download-timeout = 2 minutes
         | }
         |""".stripMargin

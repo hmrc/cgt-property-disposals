@@ -37,9 +37,11 @@ object UpscanFileDescriptor {
   sealed trait UpscanFileDescriptorStatus
   object UpscanFileDescriptorStatus {
     case object FAILED extends UpscanFileDescriptorStatus
+    case object READY extends UpscanFileDescriptorStatus
+
+  //FIXME: below are BS statuses - the Quranatine, rejected and unknow anre in the body
     case object UPLOADED extends UpscanFileDescriptorStatus
     case object READY_TO_UPLOAD extends UpscanFileDescriptorStatus
-    case object READY extends UpscanFileDescriptorStatus
     case object QUARANTINE extends UpscanFileDescriptorStatus
     case object REJECTED extends UpscanFileDescriptorStatus
     case object UNKNOWN extends UpscanFileDescriptorStatus

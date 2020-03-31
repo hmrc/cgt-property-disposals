@@ -36,7 +36,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculateCgtTaxDueReques
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.CgtCalculationService
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CalculatorControllerSpec extends ControllerSpec {

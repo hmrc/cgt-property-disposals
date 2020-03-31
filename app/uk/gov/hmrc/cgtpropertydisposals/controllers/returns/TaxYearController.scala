@@ -29,7 +29,6 @@ import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 @Singleton
@@ -40,7 +39,7 @@ class TaxYearController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def taxYear(date: String): Action[AnyContent] = authenticate { implicit request =>
+  def taxYear(date: String): Action[AnyContent] = authenticate { _ =>
     Try(LocalDate.parse(date, DateTimeFormatter.ISO_DATE)).fold(
       { _ =>
         logger.warn(s"Could not parse date: $date")

@@ -113,9 +113,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   )
 
   val upfd = UpscanFileDescriptor(
-    key           = "12345",
-    draftReturnId = DraftReturnId("draft-return-id"),
-    cgtReference  = CgtReference("cgt-ref"),
+    upscanInitiateReference = UpscanInitiateReference("12345"),
+    draftReturnId           = DraftReturnId("draft-return-id"),
+    cgtReference            = CgtReference("cgt-ref"),
     fileDescriptor = FileDescriptor(
       reference = "11370e18-6e24-453e-b45a-76d3e32ea33d",
       uploadRequest = UploadRequest(

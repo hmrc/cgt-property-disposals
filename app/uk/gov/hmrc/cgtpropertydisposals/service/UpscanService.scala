@@ -28,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
@@ -42,7 +42,7 @@ trait UpscanService {
 
   def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit]
 
-  def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit]
+  def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Boolean]
 
   def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
@@ -95,8 +95,8 @@ class UpscanServiceImpl @Inject() (
   override def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit] =
     upscanFileDescriptorRepository.insert(fd)
 
-  override def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Unit] =
-    upscanCallBackRepository.insert(cb)
+  override def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Boolean] =
+    upscanFileDescriptorRepository.updateStatus(cb)
 
   override def downloadFilesFromS3(
     snapshot: UpscanSnapshot,
@@ -119,7 +119,7 @@ class UpscanServiceImpl @Inject() (
 
     val validFiles = upscanFileDescriptor
       .filter(fd => fd.timestamp.isAfter(LocalDateTime.now().minusDays(s3UrlExpiryTime)))
-      .filter(fd => fd.status === UPLOADED)
+      .filter(fd => fd.status === UpscanFileDescriptor.UpscanFileDescriptorStatus.READY)
 
     logger.info(s"filtered upscan file descriptors: $upscanFileDescriptor ")
 

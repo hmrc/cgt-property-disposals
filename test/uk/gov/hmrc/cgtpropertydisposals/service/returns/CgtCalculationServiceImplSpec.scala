@@ -46,7 +46,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         acquisitionPrice        = AmountInPence.zero,
         improvementCosts        = AmountInPence.zero,
         acquisitionFees         = AmountInPence.zero,
-        rebasedAcquisitionPrice = None
+        rebasedAcquisitionPrice = None,
+        shouldUseRebase         = false
       )
 
       val zeroReliefDetails = CompleteReliefDetailsAnswers(
@@ -96,42 +97,71 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         }
       }
 
-      "calculate acquisition amount plus costs correctly when the user has not rebased" in {
-        forAll { (acquisitionPrice: AmountInPence, improvementCosts: AmountInPence, acquisitionFees: AmountInPence) =>
-          val result =
-            calculate(
-              acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers].copy(
-                acquisitionPrice        = acquisitionPrice,
-                improvementCosts        = improvementCosts,
-                acquisitionFees         = acquisitionFees,
-                rebasedAcquisitionPrice = None
-              )
-            )
+      "calculate acquisition amount plus costs correctly" when {
 
-          result.acquisitionAmountPlusCosts.value shouldBe (acquisitionPrice.value + improvementCosts.value + acquisitionFees.value)
-        }
-      }
-
-      "calculate acquisition amount plus costs correctly when the user has rebased" in {
-        forAll {
-          (
-            acquisitionPrice: AmountInPence,
-            rebasedAcquisitionPrice: AmountInPence,
-            improvementCosts: AmountInPence,
-            acquisitionFees: AmountInPence
-          ) =>
+        "the user has not rebased" in {
+          forAll { (acquisitionPrice: AmountInPence, improvementCosts: AmountInPence, acquisitionFees: AmountInPence) =>
             val result =
               calculate(
-                acquisitionDetails = zeroAcquisitionDetails.copy(
+                acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers].copy(
                   acquisitionPrice        = acquisitionPrice,
                   improvementCosts        = improvementCosts,
                   acquisitionFees         = acquisitionFees,
-                  rebasedAcquisitionPrice = Some(rebasedAcquisitionPrice)
+                  rebasedAcquisitionPrice = None,
+                  shouldUseRebase         = false
                 )
               )
 
-            result.acquisitionAmountPlusCosts.value shouldBe (rebasedAcquisitionPrice.value + improvementCosts.value + acquisitionFees.value)
+            result.acquisitionAmountPlusCosts.value shouldBe (acquisitionPrice.value + improvementCosts.value + acquisitionFees.value)
+          }
         }
+
+        "the user has rebased and chosen to use the rebased value" in {
+          forAll {
+            (
+              acquisitionPrice: AmountInPence,
+              rebasedAcquisitionPrice: AmountInPence,
+              improvementCosts: AmountInPence,
+              acquisitionFees: AmountInPence
+            ) =>
+              val result =
+                calculate(
+                  acquisitionDetails = zeroAcquisitionDetails.copy(
+                    acquisitionPrice        = acquisitionPrice,
+                    improvementCosts        = improvementCosts,
+                    acquisitionFees         = acquisitionFees,
+                    rebasedAcquisitionPrice = Some(rebasedAcquisitionPrice),
+                    shouldUseRebase         = true
+                  )
+                )
+
+              result.acquisitionAmountPlusCosts.value shouldBe (rebasedAcquisitionPrice.value + improvementCosts.value + acquisitionFees.value)
+          }
+        }
+
+        "the user has rebased and chosen not to use the rebased value" in {
+          forAll {
+            (
+              acquisitionPrice: AmountInPence,
+              rebasedAcquisitionPrice: AmountInPence,
+              improvementCosts: AmountInPence,
+              acquisitionFees: AmountInPence
+            ) =>
+              val result =
+                calculate(
+                  acquisitionDetails = zeroAcquisitionDetails.copy(
+                    acquisitionPrice        = acquisitionPrice,
+                    improvementCosts        = improvementCosts,
+                    acquisitionFees         = acquisitionFees,
+                    rebasedAcquisitionPrice = Some(rebasedAcquisitionPrice),
+                    shouldUseRebase         = false
+                  )
+                )
+
+              result.acquisitionAmountPlusCosts.value shouldBe (acquisitionPrice.value + improvementCosts.value + acquisitionFees.value)
+          }
+        }
+
       }
 
       "calculate initial gain or loss correctly" in {

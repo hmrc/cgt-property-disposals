@@ -27,7 +27,7 @@ import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanFileDescriptor, UpscanInitiateReference}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -43,6 +43,7 @@ trait UpscanFileDescriptorRepository {
 
   def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanFileDescriptor]]
   def updateUpscanUploadStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
+  def updateStatus(upscanCallBack: UpscanCallBack): EitherT[Future, Error, Boolean]
 }
 
 @Singleton
@@ -64,6 +65,28 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
       name = Some("draft-return-id")
     )
   )
+
+  override def updateStatus(upscanCallBack: UpscanCallBack): EitherT[Future, Error, Boolean] = {
+    val selector = Json.obj(
+      "upscanInitiateReference" -> UpscanInitiateReference(upscanCallBack.reference),
+      "draftReturnId"           -> upscanCallBack.draftReturnId
+    )
+    val update = Json.obj("$set" -> Json.obj("status" -> upscanCallBack.fileStatus))
+
+    EitherT[Future, Error, Boolean](
+      findAndUpdate(
+        selector,
+        update,
+        fetchNewObject = false,
+        upsert         = false
+      ).map {
+        _.lastError.flatMap(_.err) match {
+          case Some(_) => Right(false)
+          case None    => Right(true)
+        }
+      }
+    )
+  }
 
   override def updateUpscanUploadStatus(
     upscanFileDescriptor: UpscanFileDescriptor
