@@ -59,8 +59,8 @@ class DmsController @Inject() (
     dmsSubmissionService
       .testSubmitToDms(
         B64Html(Base64.getEncoder().encodeToString(html.getBytes())),
-        cgtReference = CgtReference("customer-cgt-reference"),
-        formBundleId = "etmp-form-bundle-id"
+        cgtReference = CgtReference("XXCGTP123456789"),
+        formBundleId = "012345678901"
       )
       .fold(
         error => {

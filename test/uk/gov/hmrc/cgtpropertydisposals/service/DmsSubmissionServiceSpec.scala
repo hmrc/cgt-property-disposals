@@ -50,13 +50,9 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
   val config = Configuration(
     ConfigFactory.parseString(
       """
-        | microservice.services {
-        |    upscan-initiate {
-        |       dms = {
-        |           classification-type = "queue-name"
-        |           business-area = "cgt-property-disposals"
-        |       }
-        |    }
+        | dms {
+        |   queue-name = "queue-name"
+        |   b64-business-area = "YnVzaW5lc3MtYXJlYQ=="
         | }
         |""".stripMargin
     )
@@ -101,6 +97,7 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
 
     "a dms file submission request is made" must {
       val cgtReference = sample[CgtReference]
+      val dmsMetadata  = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "business-area")
 
       "return an error" when {
 
@@ -108,7 +105,6 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val upscanSnapshot       = UpscanSnapshot(1)
           val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
-          val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
@@ -126,7 +122,6 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val upscanSnapshot       = UpscanSnapshot(2)
           val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
-          val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
@@ -142,7 +137,6 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
 
         "unable to retrieve the upscan snapshot" in {
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
-          val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
@@ -154,7 +148,6 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
         "unable to retrieve the upscan call back information" in {
           val upscanSnapshot       = UpscanSnapshot(1)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
-          val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
@@ -168,7 +161,6 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val upscanSnapshot       = UpscanSnapshot(1)
           val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
-          val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
@@ -183,7 +175,6 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val upscanSnapshot       = UpscanSnapshot(1)
           val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
-          val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
@@ -200,7 +191,6 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val upscanSnapshot       = UpscanSnapshot(1)
           val upscanCallBack       = UpscanCallBack(cgtReference, "reference", FAILED, Some("download-url"), Map.empty)
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
-          val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
@@ -218,7 +208,6 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
         val upscanSnapshot       = UpscanSnapshot(1)
         val upscanCallBack       = UpscanCallBack(cgtReference, "reference", READY, Some("download-url"), Map.empty)
         val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
-        val dmsMetadata          = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "cgt-property-disposals")
         val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
         inSequence {
