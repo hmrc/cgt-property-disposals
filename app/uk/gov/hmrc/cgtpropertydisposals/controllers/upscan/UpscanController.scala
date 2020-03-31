@@ -23,7 +23,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBackEvent._
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBackEvent, UpscanFileDescriptor, UpscanSnapshot}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBackEvent, UpscanFileDescriptor, UpscanInitiateReference, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -110,6 +110,32 @@ class UpscanController @Inject() (
       }
     }
   }
+
+  def removeFile(id: String, ref: String) = //FIXME identifier names
+    authenticate.async {
+      upscanService
+        .deleteFile(DraftReturnId(id), UpscanInitiateReference(ref))
+        .fold(
+          e => {
+            logger.warn(s"failed to get upscan snapshot $e")
+            InternalServerError
+          },
+          _ => NoContent
+        )
+    }
+
+  def removeAllFiles(id: String) = //FIXME identifier names
+    authenticate.async {
+      upscanService
+        .deleteAllFiles(DraftReturnId(id))
+        .fold(
+          e => {
+            logger.warn(s"failed to get upscan snapshot $e")
+            InternalServerError
+          },
+          _ => NoContent
+        )
+    }
 
   def callback(draftReturnId: DraftReturnId): Action[JsValue] =
     Action.async(parse.json) { implicit request =>

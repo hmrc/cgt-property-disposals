@@ -3,3 +3,6 @@ GET     /upscan-file-descriptor/:fd                                 uk.gov.hmrc.
 PUT     /upscan-file-descriptor/status                              uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.updateUpscanFileDescriptorStatus()
 POST    /upscan-call-back/draft-return-id/:id                       uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.callback(id : uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId)
 GET     /upscan-snapshot-info/draft-return-id/:id                   uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanSnapshot(id : uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId)
+
+GET     /upscan-file-descriptor/draft-return-id/:id/upscan-reference/:ref   uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.removeFile(id : String, ref : String)
+GET     /upscan-file-descriptor/delete-all-files/:id                         uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.removeAllFiles(id : String)

@@ -44,6 +44,13 @@ trait UpscanFileDescriptorRepository {
   def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanFileDescriptor]]
   def updateUpscanUploadStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
   def updateStatus(upscanCallBack: UpscanCallBack): EitherT[Future, Error, Boolean]
+  def deleteFile(
+    draftReturnId: DraftReturnId,
+    upscanInitiateReference: UpscanInitiateReference
+  ): EitherT[Future, Error, Unit]
+  def deleteAllFiles(
+    draftReturnId: DraftReturnId
+  ): EitherT[Future, Error, Unit]
 }
 
 @Singleton
@@ -167,4 +174,36 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
         }
     )
   }
+
+  override def deleteFile(
+    draftReturnId: DraftReturnId,
+    upscanInitiateReference: UpscanInitiateReference
+  ): EitherT[Future, Error, Unit] = {
+    val selector = Json.obj("upscanInitiateReference" -> upscanInitiateReference, "draftReturnId" -> draftReturnId)
+    EitherT[Future, Error, Unit](
+      collection
+        .delete()
+        .one(selector, Some(1))
+        .map(_ => Right(()))
+        .recover {
+          case exception => Left(Error(exception))
+        }
+    )
+  }
+
+  override def deleteAllFiles(
+    draftReturnId: DraftReturnId
+  ): EitherT[Future, Error, Unit] = {
+    val selector = Json.obj("draftReturnId" -> draftReturnId)
+    EitherT[Future, Error, Unit](
+      collection
+        .delete()
+        .one(selector, None)
+        .map(_ => Right(()))
+        .recover {
+          case exception => Left(Error(exception))
+        }
+    )
+  }
+
 }

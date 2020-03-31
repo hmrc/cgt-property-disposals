@@ -28,9 +28,8 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
@@ -55,13 +54,22 @@ trait UpscanService {
     urls: List[UpscanCallBack]
   ): EitherT[Future, Error, List[Either[Error, FileAttachment]]]
 
+  def deleteFile(
+    draftReturnId: DraftReturnId,
+    upscanInitiateReference: UpscanInitiateReference
+  ): EitherT[Future, Error, Unit]
+
+  def deleteAllFiles(
+    draftReturnId: DraftReturnId
+  ): EitherT[Future, Error, Unit]
+
 }
 
 @Singleton
 class UpscanServiceImpl @Inject() (
   upscanConnector: UpscanConnector,
-  upscanFileDescriptorRepository: UpscanFileDescriptorRepository,
-  upscanCallBackRepository: UpscanCallBackRepository,
+  upscanFileDescriptorRepository: UpscanFileDescriptorRepository, //FIXME: rename this
+  upscanCallBackRepository: UpscanCallBackRepository, //FIXME : remove this as we don't need it - we directly update the UpscanFileDescriptorRepo
   configuration: Configuration
 )(implicit executionContext: ExecutionContext)
     extends UpscanService
@@ -131,6 +139,13 @@ class UpscanServiceImpl @Inject() (
   }
 
   def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]] =
-    upscanCallBackRepository.getAll(draftReturnId)
+    upscanCallBackRepository.getAll(draftReturnId) //FIXME remove this
 
+  override def deleteFile(
+    draftReturnId: DraftReturnId,
+    upscanInitiateReference: UpscanInitiateReference
+  ): EitherT[Future, Error, Unit] = upscanFileDescriptorRepository.deleteFile(draftReturnId, upscanInitiateReference)
+
+  override def deleteAllFiles(draftReturnId: DraftReturnId): EitherT[Future, Error, Unit] =
+    upscanFileDescriptorRepository.deleteAllFiles(draftReturnId)
 }
