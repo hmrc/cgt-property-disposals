@@ -288,11 +288,12 @@ class DefaultReturnsService @Inject() (
       val charge = (
         response.ppdReturnResponseDetails.amount,
         response.ppdReturnResponseDetails.dueDate,
+        response.processingDate,
         response.ppdReturnResponseDetails.chargeReference
       ) match {
-        case (None, None, None)                              => Right(None)
-        case (Some(amount), _, _) if amount <= BigDecimal(0) => Right(None)
-        case (Some(amount), Some(dueDate), Some(chargeReference)) =>
+        case (None, None, _, None)                              => Right(None)
+        case (Some(amount), _, _, _) if amount <= BigDecimal(0) => Right(None)
+        case (Some(amount), Some(dueDate), _, Some(chargeReference)) =>
           Right(
             Some(
               ReturnCharge(
@@ -302,14 +303,14 @@ class DefaultReturnsService @Inject() (
               )
             )
           )
-        case (amount, dueDate, chargeReference) =>
+        case (amount, dueDate, processingDate, chargeReference) =>
           Left(
             Error(
-              s"Found some charge details but not all of them: (amount: $amount, dueDate: $dueDate, chargeReference: $chargeReference)"
+              s"Found some charge details but not all of them: (amount: $amount, dueDate: $dueDate, processing date: $processingDate, chargeReference: $chargeReference)"
             )
           )
       }
-      charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, _))
+      charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, response.processingDate, _))
     }
 
   private def auditSubmitReturnResponse(

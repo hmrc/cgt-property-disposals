@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime, LocalTime}
 
 import cats.data.EitherT
 import cats.instances.future._
@@ -232,6 +232,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |""".stripMargin)
           val submitReturnResponse = SubmitReturnResponse(
             "804123737752",
+            LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             Some(
               ReturnCharge(
                 chargeReference,
@@ -286,6 +287,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           val submitReturnResponse = SubmitReturnResponse(
             formBundleId,
+            LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             None
           )
           val submitReturnRequest    = sample[SubmitReturnRequest]
@@ -315,7 +317,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "there is a no charge data" in {
-          val formBundleId = "804123737752"
+          val formBundleId   = "804123737752"
+          val processingDate = LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47))
           val responseJsonBody =
             Json.parse(s"""
               |{
@@ -327,7 +330,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |}
               |""".stripMargin)
 
-          val submitReturnResponse   = SubmitReturnResponse(formBundleId, None)
+          val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None)
           val submitReturnRequest    = sample[SubmitReturnRequest]
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
           inSequence {
@@ -355,7 +358,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "there is a zero charge" in {
-          val formBundleId = "804123737752"
+          val formBundleId   = "804123737752"
+          val processingDate = LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47))
           val responseJsonBody =
             Json.parse(s"""
               |{
@@ -368,7 +372,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |}
               |""".stripMargin)
 
-          val submitReturnResponse   = SubmitReturnResponse(formBundleId, None)
+          val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None)
           val submitReturnRequest    = sample[SubmitReturnRequest]
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
 
@@ -414,6 +418,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                           |""".stripMargin)
           val submitReturnResponse = SubmitReturnResponse(
             "804123737752",
+            LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             Some(
               ReturnCharge(
                 chargeReference,
