@@ -34,7 +34,7 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultUpscanFileDescriptorRepository])
-trait UpscanFileDescriptorRepository {
+trait UpscanFileDescriptorRepository { //FIXME rename
   def insert(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Unit]
   def count(draftReturnId: DraftReturnId): EitherT[Future, Error, Int]
   def get(
@@ -57,7 +57,7 @@ trait UpscanFileDescriptorRepository {
 class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
 ) extends ReactiveRepository[UpscanFileDescriptor, BSONObjectID](
-      collectionName = "upscan-file-descriptor",
+      collectionName = "upscan-file-descriptor", //FIXME rename
       mongo          = mongo.mongoConnector.db,
       UpscanFileDescriptor.format,
       ReactiveMongoFormats.objectIdFormats

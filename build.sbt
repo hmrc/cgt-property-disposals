@@ -9,6 +9,7 @@ val appName = "cgt-property-disposals"
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
+addCommandAlias("fix", "all compile:scalafix test:scalafix")
 
 lazy val wartremoverSettings =
   Seq(
@@ -54,7 +55,7 @@ lazy val microservice = Project(appName, file("."))
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
   )
   .settings(
-    //scalafmtOnCompile := false,
+    scalafmtOnCompile := false,
     addCompilerPlugin(scalafixSemanticdb),
     scalacOptions ++= List(
       "-Yrangepos",

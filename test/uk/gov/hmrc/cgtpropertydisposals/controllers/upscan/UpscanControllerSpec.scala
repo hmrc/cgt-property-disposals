@@ -73,12 +73,12 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
 
   def mockStoreUpscanCallBack(upscanCallBack: UpscanCallBack)(
-    response: Either[Error, Unit]
+    response: Either[Error, Boolean]
   ) =
     (mockUpscanService
       .saveCallBackData(_: UpscanCallBack))
       .expects(upscanCallBack)
-      .returning(EitherT[Future, Error, Unit](Future.successful(response)))
+      .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
 
   def mockGetUpscanFileDescriptor(fileDescriptorId: FileDescriptorId)(
     response: Either[Error, Option[UpscanFileDescriptor]]
@@ -139,7 +139,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   val upscanFileDescriptorPayload =
     """
       |{
-      |   "key":"12345",
+      |   "upscanInitiateReference":{
+      |      "value":"12345"
+      |   },
       |   "draftReturnId":{
       |      "value":"draft-return-id"
       |   },

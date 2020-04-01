@@ -49,6 +49,7 @@ trait UpscanService {
 
   def updateUpscanFileDescriptorStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
 
+  //FIXME remove
   def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]]
 
   def downloadFilesFromS3(
@@ -111,7 +112,11 @@ class UpscanServiceImpl @Inject() (
     upscanFileDescriptorRepository.insert(fd)
 
   override def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Boolean] =
-    upscanFileDescriptorRepository.updateStatus(cb)
+    for{
+      b <- upscanFileDescriptorRepository.updateStatus(cb)
+      _ <- upscanCallBackRepository.insert(cb)
+    }yield(b)
+
 
   override def downloadFilesFromS3(
     snapshot: UpscanSnapshot,
@@ -145,6 +150,7 @@ class UpscanServiceImpl @Inject() (
     )
   }
 
+  //FIXME remove
   def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]] =
     upscanCallBackRepository.getAll(draftReturnId) //FIXME remove this
 

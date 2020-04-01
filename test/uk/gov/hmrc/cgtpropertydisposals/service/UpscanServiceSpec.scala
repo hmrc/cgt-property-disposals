@@ -31,8 +31,8 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
@@ -90,6 +90,14 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(upscanCallBack)
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
+  def mockFileDescriptorUpdateStatus(upscanCallBack: UpscanCallBack)(
+    response: Either[Error, Boolean]
+  ) =
+    (mockUpscanFileDescriptorRepository
+      .updateStatus(_: UpscanCallBack))
+      .expects(upscanCallBack)
+      .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
+
   def mockDownloadFile(upscanCallBack: UpscanCallBack)(
     response: Either[Error, FileAttachment]
   ) =
@@ -113,6 +121,8 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       .getAll(_: DraftReturnId))
       .expects(draftReturnId)
       .returning(EitherT[Future, Error, List[UpscanFileDescriptor]](Future.successful(response)))
+
+
 
   def mockGetFileDescriptor(fileDescriptorId: FileDescriptorId)(
     response: Either[Error, Option[UpscanFileDescriptor]]
@@ -163,7 +173,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       "return a list of upscan file descriptors" when {
         "it successfully updates the data" in {
           mockGetUpscanSnapshot(draftReturnId)(
-            Right(List(upscanFileDescriptor.copy(status = UPLOADED, timestamp = LocalDateTime.now())))
+            Right(List(upscanFileDescriptor.copy(status = UpscanFileDescriptorStatus.READY, timestamp = LocalDateTime.now())))
           )
           await(service.getUpscanSnapshot(draftReturnId).value) shouldBe Right(UpscanSnapshot(1))
         }
@@ -187,14 +197,20 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
     "it receives a request to store upscan call back data" must {
       "return an error" when {
         "there is a mongo exception" in {
-          mockStoreUpscanCallBackRepository(upscanCallBack)(Left(Error("Connection error")))
+          inSequence {
+            mockFileDescriptorUpdateStatus(upscanCallBack)(Right(true))
+            mockStoreUpscanCallBackRepository(upscanCallBack)(Left(Error("Connection error")))
+          }
           await(service.saveCallBackData(upscanCallBack).value).isLeft shouldBe true
         }
       }
-      "return unit" when {
+      "return true" when {
         "it successfully stores the data" in {
-          mockStoreUpscanCallBackRepository(upscanCallBack)(Right(()))
-          await(service.saveCallBackData(upscanCallBack).value) shouldBe Right(())
+          inSequence {
+            mockFileDescriptorUpdateStatus(upscanCallBack)(Right(true))
+            mockStoreUpscanCallBackRepository(upscanCallBack)(Right(()))
+          }
+          await(service.saveCallBackData(upscanCallBack).value) shouldBe Right(true)
         }
       }
     }
@@ -202,14 +218,20 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
     "it receives a request to get file descriptor " must {
       "return an error" when {
         "there is a mongo exception" in {
-          mockStoreUpscanCallBackRepository(upscanCallBack)(Left(Error("Connection error")))
+          inSequence {
+            mockFileDescriptorUpdateStatus(upscanCallBack)(Right(true))
+            mockStoreUpscanCallBackRepository(upscanCallBack)(Left(Error("Connection error")))
+          }
           await(service.saveCallBackData(upscanCallBack).value).isLeft shouldBe true
         }
       }
       "return an upscan file descriptor" when {
         "it successfully stores the data" in {
-          mockStoreUpscanCallBackRepository(upscanCallBack)(Right(()))
-          await(service.saveCallBackData(upscanCallBack).value) shouldBe Right(())
+          inSequence {
+            mockFileDescriptorUpdateStatus(upscanCallBack)(Right(true))
+            mockStoreUpscanCallBackRepository(upscanCallBack)(Right(()))
+          }
+          await(service.saveCallBackData(upscanCallBack).value) shouldBe Right(true)
         }
       }
     }
