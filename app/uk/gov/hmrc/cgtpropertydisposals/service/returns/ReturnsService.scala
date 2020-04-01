@@ -307,13 +307,12 @@ class DefaultReturnsService @Inject() (
       ) match {
         case (None, None, _, None)                              => Right(None)
         case (Some(amount), _, _, _) if amount <= BigDecimal(0) => Right(None)
-        case (Some(amount), Some(dueDate), processingDate, Some(chargeReference)) =>
+        case (Some(amount), Some(dueDate), _, Some(chargeReference)) =>
           Right(
             Some(
               ReturnCharge(
                 chargeReference,
                 AmountInPence.fromPounds(amount),
-                processingDate.toLocalDate,
                 dueDate
               )
             )
