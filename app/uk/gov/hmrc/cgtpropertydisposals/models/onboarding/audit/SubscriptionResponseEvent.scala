@@ -16,13 +16,45 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit
 
-import play.api.libs.json.{JsValue, Json, OFormat}
+import play.api.libs.json._
+import uk.gov.hmrc.cgtpropertydisposals.models.des.TypeOfPersonDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.des.TypeOfPersonDetails.{Individual, Trustee}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest.{ContactDetails, DesSubscriptionDetails, Identity}
 
 final case class SubscriptionResponseEvent(
   responseHttpStatusCode: Int,
-  responseHttpBody: JsValue
+  responseHttpBody: JsValue,
+  requestBody: DesSubscriptionRequest
 )
 
 object SubscriptionResponseEvent {
-  implicit val format: OFormat[SubscriptionResponseEvent] = Json.format[SubscriptionResponseEvent]
+
+  implicit val writes: Writes[SubscriptionResponseEvent] = {
+    val desSubscriptionRequestWrites: Writes[DesSubscriptionRequest] = {
+      implicit val typeOfPersonDetailsWrites: Writes[TypeOfPersonDetails] = Writes { t =>
+        val (name, typeOfPerson) = t match {
+          case i: Individual => s"${i.firstName} ${i.lastName}" -> i.typeOfPerson
+          case t: Trustee    => t.organisationName              -> t.typeOfPerson
+        }
+        JsObject(Map("name" -> JsString(name), "typeOfPerson" -> JsString(typeOfPerson)))
+      }
+
+      implicit val identityWrites: Writes[Identity]                             = Json.writes[Identity]
+      implicit val contactDetailsWrites: Writes[ContactDetails]                 = Json.writes[ContactDetails]
+      implicit val desSubscriptionDetailsWrites: Writes[DesSubscriptionDetails] = Json.writes[DesSubscriptionDetails]
+      Json.writes
+    }
+
+    Writes[SubscriptionResponseEvent](event =>
+      JsObject(
+        Map(
+          "responseHttpStatusCode" -> JsNumber(event.responseHttpStatusCode),
+          "responseHttpBody"       -> event.responseHttpBody,
+          "requestBody"            -> desSubscriptionRequestWrites.writes(event.requestBody)
+        )
+      )
+    )
+  }
+
 }
