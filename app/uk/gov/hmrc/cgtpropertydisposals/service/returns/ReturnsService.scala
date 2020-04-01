@@ -100,9 +100,14 @@ class DefaultReturnsService @Inject() (
     for {
       _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)
       returnHttpResponse <- submitReturnAndAudit(returnRequest, desSubmitReturnRequest)
-      desResponse        <- parseResponse(returnHttpResponse)
-      returnResponse     <- prepareSubmitReturnResponse(desResponse)
-      _                  <- sendEmailAndAudit(returnRequest, returnResponse)
+      desResponse <- EitherT.fromEither[Future](
+                      returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
+                    )
+      returnResponse <- prepareSubmitReturnResponse(desResponse)
+      _ <- sendEmailAndAudit(returnRequest, returnResponse).leftFlatMap { e =>
+            logger.warn("Could not send return submission confirmation email or audit event", e)
+            EitherT.pure[Future, Error](())
+          }
     } yield returnResponse
   }
 
@@ -149,22 +154,11 @@ class DefaultReturnsService @Inject() (
   private def sendEmailAndAudit(
     returnRequest: SubmitReturnRequest,
     returnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
-    val response = for {
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] =
+    for {
       _ <- sendReturnConfirmationEmail(returnRequest, returnResponse)
       _ <- auditSubscriptionConfirmationEmailSent(returnRequest, returnResponse)
-    } yield returnResponse
-    response.leftFlatMap(_ => EitherT.pure[Future, Error](returnResponse))
-  }
-
-  private def parseResponse(response: HttpResponse): EitherT[Future, Error, DesSubmitReturnResponse] =
-    EitherT.fromEither[Future](response.parseJSON[DesSubmitReturnResponse]() match {
-      case Right(response) => response.asRight[Error]
-      case Left(error) => {
-        logger.warn(s"Call to send return confirmation email audit event ${response.status}")
-        Error(error).asLeft[DesSubmitReturnResponse]
-      }
-    })
+    } yield ()
 
   private def sendReturnConfirmationEmail(
     returnRequest: SubmitReturnRequest,
@@ -176,18 +170,10 @@ class DefaultReturnsService @Inject() (
         returnRequest.subscribedDetails
       )
       .subflatMap { httpResponse =>
-        httpResponse match {
-          case HttpResponse(ACCEPTED, _, _, _) => Right(submitReturnResponse)
-          case _ => {
-            logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
-            Left(Error(s"Call to send confirmation email came back with status ${httpResponse.status}"))
-          }
-        }
-      }
-      .leftMap { e =>
-        metrics.submitReturnErrorCounter.inc()
-        logger.warn("Could not send confirmation email", e)
-        e
+        if (httpResponse.status === ACCEPTED)
+          Right(submitReturnResponse)
+        else
+          Left(Error(s"Call to send confirmation email came back with status ${httpResponse.status}"))
       }
 
   private def auditSubscriptionConfirmationEmailSent(
@@ -302,11 +288,12 @@ class DefaultReturnsService @Inject() (
       val charge = (
         response.ppdReturnResponseDetails.amount,
         response.ppdReturnResponseDetails.dueDate,
+        response.processingDate,
         response.ppdReturnResponseDetails.chargeReference
       ) match {
-        case (None, None, None)                              => Right(None)
-        case (Some(amount), _, _) if amount <= BigDecimal(0) => Right(None)
-        case (Some(amount), Some(dueDate), Some(chargeReference)) =>
+        case (None, None, _, None)                              => Right(None)
+        case (Some(amount), _, _, _) if amount <= BigDecimal(0) => Right(None)
+        case (Some(amount), Some(dueDate), _, Some(chargeReference)) =>
           Right(
             Some(
               ReturnCharge(
@@ -316,14 +303,14 @@ class DefaultReturnsService @Inject() (
               )
             )
           )
-        case (amount, dueDate, chargeReference) =>
+        case (amount, dueDate, processingDate, chargeReference) =>
           Left(
             Error(
-              s"Found some charge details but not all of them: (amount: $amount, dueDate: $dueDate, chargeReference: $chargeReference)"
+              s"Found some charge details but not all of them: (amount: $amount, dueDate: $dueDate, processing date: $processingDate, chargeReference: $chargeReference)"
             )
           )
       }
-      charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, _))
+      charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, response.processingDate, _))
     }
 
   private def auditSubmitReturnResponse(
