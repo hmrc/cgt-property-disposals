@@ -42,6 +42,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, De
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
@@ -114,7 +115,7 @@ class DefaultReturnsService @Inject() (
   private def auditReturnBeforeSubmit(
     returnRequest: SubmitReturnRequest,
     desSubmitReturnRequest: DesSubmitReturnRequest
-  )(implicit hc: HeaderCarrier, request: Request[_]) =
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] =
     EitherT.pure[Future, Error](
       auditService.sendEvent(
         "submitReturn",
@@ -139,7 +140,12 @@ class DefaultReturnsService @Inject() (
       )
       .subflatMap { httpResponse =>
         timer.close()
-        auditSubmitReturnResponse(httpResponse.status, httpResponse.body)
+        auditSubmitReturnResponse(
+          httpResponse.status,
+          httpResponse.body,
+          desSubmitReturnRequest,
+          returnRequest.subscribedDetails
+        )
 
         httpResponse match {
           case HttpResponse(OK, _, _, _) => Right(httpResponse)
@@ -314,14 +320,24 @@ class DefaultReturnsService @Inject() (
     }
 
   private def auditSubmitReturnResponse(
-    httpStatus: Int,
-    body: String
+    responseHttpStatus: Int,
+    responseBody: String,
+    desSubmitReturnRequest: DesSubmitReturnRequest,
+    subscribedDetails: SubscribedDetails
   )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
-    val json = Try(Json.parse(body)).getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $body" }"""))
+    val responseJson =
+      Try(Json.parse(responseBody))
+        .getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }"""))
+    val requestJson = Json.toJson(desSubmitReturnRequest)
 
     auditService.sendEvent(
       "submitReturnResponse",
-      SubmitReturnResponseEvent(httpStatus, json),
+      SubmitReturnResponseEvent(
+        responseHttpStatus,
+        responseJson,
+        requestJson,
+        subscribedDetails.name.fold(_.value, n => s"${n.firstName} ${n.lastName}")
+      ),
       "submit-return-response"
     )
   }
