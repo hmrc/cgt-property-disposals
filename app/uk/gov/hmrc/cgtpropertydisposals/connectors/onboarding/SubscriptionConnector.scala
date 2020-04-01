@@ -20,14 +20,11 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnectorImpl.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesSubscriptionUpdateRequest, TypeOfPersonDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -37,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[SubscriptionConnectorImpl])
 trait SubscriptionConnector {
 
-  def subscribe(subscriptionDetails: SubscriptionDetails)(
+  def subscribe(subscriptionDetails: DesSubscriptionRequest)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -45,7 +42,7 @@ trait SubscriptionConnector {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
-  def updateSubscription(subscribedDetails: SubscribedDetails)(
+  def updateSubscription(subscribedDetails: DesSubscriptionUpdateRequest, cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -62,17 +59,15 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
 
   val subscribeUrl: String = s"$baseUrl/subscriptions/create/CGT"
 
-  def subscriptionDisplayUrl(cgtReference: CgtReference): String =
+  def subscriptionUrl(cgtReference: CgtReference): String =
     s"$baseUrl/subscriptions/CGT/ZCGT/${cgtReference.value}"
 
   def subscriptionStatusUrl(sapNumber: SapNumber): String =
     s"$baseUrl/cross-regime/subscription/CGT/${sapNumber.value}/status"
 
   override def subscribe(
-    subscriptionDetails: SubscriptionDetails
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
-    val subscriptionRequest = DesSubscriptionRequest(subscriptionDetails)
-
+    subscriptionRequest: DesSubscriptionRequest
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
         .post(subscribeUrl, Json.toJson(subscriptionRequest), headers)(
@@ -83,14 +78,13 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
-  }
 
   override def getSubscription(cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .get(subscriptionDisplayUrl(cgtReference), Map.empty, headers)(
+        .get(subscriptionUrl(cgtReference), Map.empty, headers)(
           hc.copy(authorization = None),
           ec
         )
@@ -100,14 +94,14 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
         }
     )
 
-  override def updateSubscription(subscribedDetails: SubscribedDetails)(
+  override def updateSubscription(subscriptionRequest: DesSubscriptionUpdateRequest, cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
         .put(
-          subscriptionDisplayUrl(subscribedDetails.cgtReference),
-          Json.toJson(DesSubscriptionUpdateRequest(subscribedDetails)),
+          subscriptionUrl(cgtReference),
+          Json.toJson(subscriptionRequest),
           headers
         )(
           implicitly[Writes[JsValue]],
@@ -136,59 +130,4 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
         .recover { case e => Left(Error(e)) }
     )
 
-}
-
-object SubscriptionConnectorImpl {
-
-  final case class Identity(idType: String, idValue: String)
-
-  final case class ContactDetails(
-    contactName: String,
-    emailAddress: String
-  )
-
-  final case class DesSubscriptionDetails(
-    typeOfPersonDetails: TypeOfPersonDetails,
-    addressDetails: AddressDetails,
-    contactDetails: ContactDetails
-  )
-
-  final case class DesSubscriptionRequest(
-    regime: String,
-    identity: Identity,
-    subscriptionDetails: DesSubscriptionDetails
-  )
-
-  object DesSubscriptionRequest {
-
-    def apply(s: SubscriptionDetails): DesSubscriptionRequest = {
-      val typeOfPersonDetails = s.name.fold(
-        trustName => TypeOfPersonDetails.Trustee(trustName.value),
-        individualName => TypeOfPersonDetails.Individual(individualName.firstName, individualName.lastName)
-      )
-
-      val addressDetails = s.address match {
-        case ukAddress @ Address.UkAddress(line1, line2, town, county, postcode) =>
-          AddressDetails(line1, line2, town, county, Some(postcode.value), ukAddress.countryCode)
-        case Address.NonUkAddress(line1, line2, line3, line4, postcode, country) =>
-          AddressDetails(line1, line2, line3, line4, postcode.map(_.value), country.code)
-      }
-
-      DesSubscriptionRequest(
-        "CGT",
-        Identity("sapNumber", s.sapNumber.value),
-        DesSubscriptionDetails(
-          typeOfPersonDetails,
-          addressDetails,
-          ContactDetails(s.contactName.value, s.emailAddress.value)
-        )
-      )
-    }
-
-  }
-
-  implicit val identityWrites: Writes[Identity]                             = Json.writes[Identity]
-  implicit val contactDetailsWrites: Writes[ContactDetails]                 = Json.writes[ContactDetails]
-  implicit val desSubscriptionDetailsWrites: Writes[DesSubscriptionDetails] = Json.writes[DesSubscriptionDetails]
-  implicit val subscriptionRequestWrites: Writes[DesSubscriptionRequest]    = Json.writes[DesSubscriptionRequest]
 }

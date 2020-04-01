@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime, LocalTime}
 
 import cats.data.EitherT
 import cats.instances.future._
@@ -38,6 +38,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, De
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, DesFinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
@@ -164,7 +165,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       )
       .returning(())
 
-  def mockAuditSubmitReturnResponseEvent(httpStatus: Int, responseBody: Option[JsValue]) =
+  def mockAuditSubmitReturnResponseEvent(
+    httpStatus: Int,
+    responseBody: Option[JsValue],
+    desSubmitReturnRequest: DesSubmitReturnRequest,
+    name: Either[TrustName, IndividualName]
+  ) =
     (mockAuditService
       .sendEvent(_: String, _: SubmitReturnResponseEvent, _: String)(
         _: HeaderCarrier,
@@ -175,7 +181,9 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         "submitReturnResponse",
         SubmitReturnResponseEvent(
           httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: null" }"""))
+          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: null" }""")),
+          Json.toJson(desSubmitReturnRequest),
+          name.fold(_.value, n => s"${n.firstName} ${n.lastName}")
         ),
         "submit-return-response",
         *,
@@ -232,6 +240,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |""".stripMargin)
           val submitReturnResponse = SubmitReturnResponse(
             "804123737752",
+            LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             Some(
               ReturnCharge(
                 chargeReference,
@@ -253,7 +262,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
             )(Right(HttpResponse(200, Some(responseJsonBody))))
-            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name
+            )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED))
             )
@@ -286,6 +300,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           val submitReturnResponse = SubmitReturnResponse(
             formBundleId,
+            LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             None
           )
           val submitReturnRequest    = sample[SubmitReturnRequest]
@@ -300,7 +315,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
             )(Right(HttpResponse(200, Some(responseJsonBody))))
-            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name
+            )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED))
             )
@@ -315,7 +335,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "there is a no charge data" in {
-          val formBundleId = "804123737752"
+          val formBundleId   = "804123737752"
+          val processingDate = LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47))
           val responseJsonBody =
             Json.parse(s"""
               |{
@@ -327,7 +348,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |}
               |""".stripMargin)
 
-          val submitReturnResponse   = SubmitReturnResponse(formBundleId, None)
+          val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None)
           val submitReturnRequest    = sample[SubmitReturnRequest]
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
           inSequence {
@@ -340,7 +361,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
             )(Right(HttpResponse(200, Some(responseJsonBody))))
-            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name
+            )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED))
             )
@@ -355,7 +381,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "there is a zero charge" in {
-          val formBundleId = "804123737752"
+          val formBundleId   = "804123737752"
+          val processingDate = LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47))
           val responseJsonBody =
             Json.parse(s"""
               |{
@@ -368,7 +395,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |}
               |""".stripMargin)
 
-          val submitReturnResponse   = SubmitReturnResponse(formBundleId, None)
+          val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None)
           val submitReturnRequest    = sample[SubmitReturnRequest]
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
 
@@ -382,7 +409,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
             )(Right(HttpResponse(200, Some(responseJsonBody))))
-            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name
+            )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED))
             )
@@ -414,6 +446,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                           |""".stripMargin)
           val submitReturnResponse = SubmitReturnResponse(
             "804123737752",
+            LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             Some(
               ReturnCharge(
                 chargeReference,
@@ -435,7 +468,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
             )(Right(HttpResponse(200, Some(responseJsonBody))))
-            mockAuditSubmitReturnResponseEvent(200, Some(responseJsonBody))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name
+            )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(500))
             )
@@ -463,7 +501,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 submitReturnRequest.subscribedDetails.cgtReference,
                 desSubmitReturnRequest
               )(Right(HttpResponse(200, Some(jsonResponseBody))))
-              mockAuditSubmitReturnResponseEvent(200, Some(jsonResponseBody))
+              mockAuditSubmitReturnResponseEvent(
+                200,
+                Some(jsonResponseBody),
+                desSubmitReturnRequest,
+                submitReturnRequest.subscribedDetails.name
+              )
             }
 
             await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
@@ -560,7 +603,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
             )(Right(HttpResponse(500)))
-            mockAuditSubmitReturnResponseEvent(500, None)
+            mockAuditSubmitReturnResponseEvent(
+              500,
+              None,
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name
+            )
           }
           await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
         }

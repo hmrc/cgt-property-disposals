@@ -45,16 +45,15 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val nonIsoCountryCode = "XZ"
 
-  def config(subscriptionStatusApiEnabled: Boolean) = Configuration(ConfigFactory.parseString(s"""
-      |des.non-iso-country-codes = ["$nonIsoCountryCode"]
-      |subscription-status-api.enabled = $subscriptionStatusApiEnabled
-      |""".stripMargin))
+  val config = Configuration(
+    ConfigFactory.parseString(s"""des.non-iso-country-codes = ["$nonIsoCountryCode"]""".stripMargin)
+  )
 
-  val serviceWithSubscriptionStatusApiEnabled =
+  val service =
     new BusinessPartnerRecordServiceImpl(
       mockBprConnector,
       mockSubscriptionConnector,
-      config(subscriptionStatusApiEnabled = true),
+      config,
       MockMetrics.metrics
     )
 
@@ -110,7 +109,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
         def testGetBprError(response: => Either[Error, HttpResponse]) = {
           mockGetBPR(bprRequest)(response)
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
         def testGetSubscriptionStatusError(response: => Either[Error, HttpResponse]) = {
@@ -134,7 +133,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             mockGetSubscriptionStatus(sapNumber)(response)
           }
 
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
         "the response to get BPR comes back with a status other than 200" in {
@@ -155,7 +154,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
         "the call to get a BPR fails" in {
           mockGetBPR(bprRequest)(Left(Error(new Exception("Oh no!"))))
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
         "the call to get a BPR comes back with status 200 and valid JSON but a postcode cannot " +
@@ -295,41 +294,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
           }
 
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Right(name))), None)
-          )
-        }
-
-        "call comes back with status 200 with valid JSON and a valid UK address and the subscription status api is not enabled" in {
-          val body = bprResponseJson(
-            """
-              |"address" : {
-              |    "addressLine1" : "line1",
-              |    "addressLine2" : "line2",
-              |    "addressLine3" : "line3",
-              |    "addressLine4" : "line4",
-              |    "postalCode"   : "postcode",
-              |    "countryCode"  : "GB"
-              |  }
-              |""".stripMargin,
-            None,
-            Some(name)
-          )
-
-          val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), Postcode("postcode"))
-
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-          }
-
-          val serviceWithSubscriptionStatusApiEnabled = new BusinessPartnerRecordServiceImpl(
-            mockBprConnector,
-            mockSubscriptionConnector,
-            config(subscriptionStatusApiEnabled = false),
-            MockMetrics.metrics
-          )
-
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Right(name))), None)
           )
         }
@@ -357,7 +322,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
           }
 
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Left(trustName))), None)
           )
         }
@@ -386,7 +351,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
           }
 
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Left(trustName))), None)
           )
         }
@@ -403,7 +368,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
           mockGetBPR(bprRequest)(Right(HttpResponse(404, Some(body))))
 
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(None, None)
           )
         }
@@ -437,7 +402,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(statusBody))))
           }
 
-          await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Right(name))), Some(cgtReference))
           )
         }
@@ -479,7 +444,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
                 mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(statusBody))))
               }
 
-              await(serviceWithSubscriptionStatusApiEnabled.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+              await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
                 BusinessPartnerRecordResponse(Some(expectedBpr(expectedAddress, Right(name))), None)
               )
             }
