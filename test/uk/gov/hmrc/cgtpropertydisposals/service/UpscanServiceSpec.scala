@@ -34,7 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanSnapshot}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
 
 import scala.concurrent.duration.FiniteDuration
@@ -122,14 +122,12 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(draftReturnId)
       .returning(EitherT[Future, Error, List[UpscanFileDescriptor]](Future.successful(response)))
 
-
-
-  def mockGetFileDescriptor(fileDescriptorId: FileDescriptorId)(
+  def mockGetFileDescriptor(draftReturnId: DraftReturnId, upscanInitiateReference: UpscanInitiateReference)(
     response: Either[Error, Option[UpscanFileDescriptor]]
   ) =
     (mockUpscanFileDescriptorRepository
-      .get(_: FileDescriptorId))
-      .expects(fileDescriptorId)
+      .get(_: DraftReturnId, _: UpscanInitiateReference))
+      .expects(draftReturnId, upscanInitiateReference)
       .returning(EitherT[Future, Error, Option[UpscanFileDescriptor]](Future.successful(response)))
 
   def mockDownloadS3Urls(upscanCallBack: UpscanCallBack)(
@@ -173,7 +171,11 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       "return a list of upscan file descriptors" when {
         "it successfully updates the data" in {
           mockGetUpscanSnapshot(draftReturnId)(
-            Right(List(upscanFileDescriptor.copy(status = UpscanFileDescriptorStatus.READY, timestamp = LocalDateTime.now())))
+            Right(
+              List(
+                upscanFileDescriptor.copy(status = UpscanFileDescriptorStatus.READY, timestamp = LocalDateTime.now())
+              )
+            )
           )
           await(service.getUpscanSnapshot(draftReturnId).value) shouldBe Right(UpscanSnapshot(1))
         }

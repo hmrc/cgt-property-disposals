@@ -23,7 +23,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBackEvent._
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBackEvent, UpscanFileDescriptor, UpscanInitiateReference, UpscanSnapshot}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBackEvent, UpscanFileDescriptor, UpscanInitiateReference, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -66,10 +66,10 @@ class UpscanController @Inject() (
         )
     }
 
-  def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): Action[AnyContent] =
+  def getUpscanFileDescriptor(draftReturnId: String, upscanReference: String): Action[AnyContent] =
     authenticate.async {
       upscanService
-        .getUpscanFileDescriptor(fileDescriptorId)
+        .getUpscanFileDescriptor(DraftReturnId(draftReturnId), UpscanInitiateReference(upscanReference))
         .fold(
           e => {
             logger.warn(s"failed to get upscan file descriptor $e")
@@ -77,7 +77,9 @@ class UpscanController @Inject() (
           }, {
             case Some(fd) => Ok(Json.toJson[UpscanFileDescriptor](fd))
             case None => {
-              logger.info(s"could not find upscan file descriptor with upscan reference: ${fileDescriptorId.value}")
+              logger.info(
+                s"could not find upscan file descriptor with draft id $draftReturnId and upscan ref $upscanReference"
+              )
               BadRequest
             }
           }
@@ -125,26 +127,26 @@ class UpscanController @Inject() (
     }
   }
 
-  def removeFile(id: String, ref: String) = //FIXME identifier names
+  def removeFile(draftReturnId: String, upscanReference: String) =
     authenticate.async {
       upscanService
-        .deleteFile(DraftReturnId(id), UpscanInitiateReference(ref))
+        .deleteFile(DraftReturnId(draftReturnId), UpscanInitiateReference(upscanReference))
         .fold(
           e => {
-            logger.warn(s"failed to get upscan snapshot $e")
+            logger.warn(s"failed to remove filet $e")
             InternalServerError
           },
           _ => NoContent
         )
     }
 
-  def removeAllFiles(id: String) = //FIXME identifier names
+  def removeAllFiles(draftReturnId: String) =
     authenticate.async {
       upscanService
-        .deleteAllFiles(DraftReturnId(id))
+        .deleteAllFiles(DraftReturnId(draftReturnId))
         .fold(
           e => {
-            logger.warn(s"failed to get upscan snapshot $e")
+            logger.warn(s"failed to remove all files $e")
             InternalServerError
           },
           _ => NoContent

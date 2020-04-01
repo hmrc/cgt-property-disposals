@@ -1,10 +1,8 @@
-POST    /upscan-file-descriptor                                     uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.saveUpscanFileDescriptor()
-GET     /upscan-file-descriptor/:fd                                 uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanFileDescriptor(fd :uk.gov.hmrc.cgtpropertydisposals.models.upscan.FileDescriptorId)
-PUT     /upscan-file-descriptor/status                              uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.updateUpscanFileDescriptorStatus()
-POST    /upscan-call-back/draft-return-id/:id                       uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.callback(id : uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId)
-GET     /upscan-snapshot-info/draft-return-id/:id                   uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanSnapshot(id : uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId)
-
-GET     /upscan-file-descriptor/draft-return-id/:id/upscan-reference/:ref   uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.removeFile(id : String, ref : String)
-GET     /upscan-file-descriptor/delete-all-files/:id                         uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.removeAllFiles(id : String)
-
-GET     /upscan-file-descriptor/all/:id             uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getAll(id:  String)
+POST    /upscan-file-descriptor                                                 uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.saveUpscanFileDescriptor()
+GET     /upscan-fd/draft-return-id/:id/upscan-reference/:ref                    uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanFileDescriptor(id: String, ref : String)
+PUT     /upscan-file-descriptor/status                                          uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.updateUpscanFileDescriptorStatus()
+POST    /upscan-call-back/draft-return-id/:id                                   uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.callback(id : uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId)
+GET     /upscan-snapshot-info/draft-return-id/:id                               uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanSnapshot(id : uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId)
+GET     /upscan-file-descriptor/draft-return-id/:id/upscan-reference/:ref       uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.removeFile(id : String, ref : String)
+GET     /upscan-file-descriptor/delete-all-files/:id                            uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.removeAllFiles(id : String)
+GET     /upscan-file-descriptor/all/:id                                         uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getAll(id:  String)

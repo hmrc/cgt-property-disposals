@@ -27,18 +27,19 @@ import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultUpscanFileDescriptorRepository])
-trait UpscanFileDescriptorRepository { //FIXME rename
+trait UpscanFileDescriptorRepository {
   def insert(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Unit]
   def count(draftReturnId: DraftReturnId): EitherT[Future, Error, Int]
   def get(
-    fileDescriptorId: FileDescriptorId
+    draftReturnId: DraftReturnId,
+    upscanInitiateReference: UpscanInitiateReference
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
   def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanFileDescriptor]]
@@ -57,7 +58,7 @@ trait UpscanFileDescriptorRepository { //FIXME rename
 class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoComponent)(
   implicit ec: ExecutionContext
 ) extends ReactiveRepository[UpscanFileDescriptor, BSONObjectID](
-      collectionName = "upscan-file-descriptor", //FIXME rename
+      collectionName = "upscan",
       mongo          = mongo.mongoConnector.db,
       UpscanFileDescriptor.format,
       ReactiveMongoFormats.objectIdFormats
@@ -162,8 +163,11 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
         }
     )
 
-  override def get(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]] = { //FIXME: should this not be upscan initiare reference?
-    val selector = Json.obj("upscanInitiateReference" -> UpscanInitiateReference(fileDescriptorId.value))
+  override def get(
+    draftReturnId: DraftReturnId,
+    upscanInitiateReference: UpscanInitiateReference
+  ): EitherT[Future, Error, Option[UpscanFileDescriptor]] = {
+    val selector = Json.obj("upscanInitiateReference" -> upscanInitiateReference, "draftReturnId" -> draftReturnId)
     EitherT[Future, Error, Option[UpscanFileDescriptor]](
       collection
         .find(selector, None)

@@ -47,7 +47,7 @@ class UpscanConnectorImpl @Inject() (playHttpClient: PlayHttpClient, config: Ser
 
   private lazy val userAgent: String = config.getConfString("appName", "cgt-property-disposal")
   private lazy val timeout: Duration =
-    config.getDuration("dms.s3-file-download-timeout") //TODO: what does this do?
+    config.getDuration("dms.s3-file-download-timeout")
 
   private val headers: Seq[(String, String)] = Seq(USER_AGENT -> userAgent)
 

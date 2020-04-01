@@ -43,10 +43,6 @@ trait DmsSubmissionService {
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId]
 
-  def testSubmitToDms(html: B64Html, cgtReference: CgtReference, formBundleId: String)(
-    implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, EnvelopeId]
-
 }
 
 @Singleton
@@ -95,23 +91,5 @@ class DefaultDmsSubmissionService @Inject() (
     fileUploadResult
 
   }
-
-  @SuppressWarnings(Array("org.wartremover.warts.Any"))
-  override def testSubmitToDms(
-    html: B64Html,
-    cgtReference: CgtReference,
-    formBundleId: String
-  )(
-    implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, EnvelopeId] =
-    for {
-      envId <- gFormConnector.submitToDms(
-                DmsSubmissionPayload(
-                  html,
-                  List.empty,
-                  DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
-                )
-              )
-    } yield envId
 
 }

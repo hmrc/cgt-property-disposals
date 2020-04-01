@@ -18,18 +18,20 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanFileDescriptor}
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanFileDescriptor, UpscanInitiateReference}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 
 class UpscanFileDescriptorRepositorySpec extends WordSpec with Matchers with MongoSupport {
 
   val repository = new DefaultUpscanFileDescriptorRepository(reactiveMongoComponent)
 
-  val fd = sample[UpscanFileDescriptor]
+  val dr = sample[DraftReturnId]
+  val fd = sample[UpscanFileDescriptor].copy(draftReturnId = dr)
 
   "Upscan File Descriptor Repository" when {
     "inserting" should {
@@ -64,8 +66,10 @@ class UpscanFileDescriptorRepositorySpec extends WordSpec with Matchers with Mon
 
     "get a upscan file descriptor" should {
       "return one if it exists" in {
-        await(repository.insert(fd).value)                    shouldBe Right(())
-        await(repository.get(FileDescriptorId(fd.upscanInitiateReference.value)).value) shouldBe Right(Some(fd))
+        await(repository.insert(fd).value) shouldBe Right(())
+        await(repository.get(dr, UpscanInitiateReference(fd.upscanInitiateReference.value)).value) shouldBe Right(
+          Some(fd)
+        )
       }
     }
 

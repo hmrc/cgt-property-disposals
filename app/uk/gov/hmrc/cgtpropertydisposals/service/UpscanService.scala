@@ -43,13 +43,15 @@ trait UpscanService {
 
   def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Boolean]
 
-  def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): EitherT[Future, Error, Option[UpscanFileDescriptor]]
+  def getUpscanFileDescriptor(
+    draftReturnId: DraftReturnId,
+    upscanInitiateReference: UpscanInitiateReference
+  ): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
   def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanFileDescriptor]]
 
   def updateUpscanFileDescriptorStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
 
-  //FIXME remove
   def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]]
 
   def downloadFilesFromS3(
@@ -71,8 +73,8 @@ trait UpscanService {
 @Singleton
 class UpscanServiceImpl @Inject() (
   upscanConnector: UpscanConnector,
-  upscanFileDescriptorRepository: UpscanFileDescriptorRepository, //FIXME: rename this
-  upscanCallBackRepository: UpscanCallBackRepository, //FIXME : remove this as we don't need it - we directly update the UpscanFileDescriptorRepo
+  upscanFileDescriptorRepository: UpscanFileDescriptorRepository,
+  upscanCallBackRepository: UpscanCallBackRepository,
   configuration: Configuration
 )(implicit executionContext: ExecutionContext)
     extends UpscanService
@@ -98,12 +100,13 @@ class UpscanServiceImpl @Inject() (
   ): EitherT[Future, Error, Boolean] =
     upscanFileDescriptorRepository.updateUpscanUploadStatus(upscanFileDescriptor)
 
-  def getUpscanFileDescriptor( //TODO : pass in draft return id as it needs to be keyed on that as well
-    fileDescriptorId: FileDescriptorId
+  def getUpscanFileDescriptor(
+    draftReturnId: DraftReturnId,
+    upscanInitiateReference: UpscanInitiateReference
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]] =
-    upscanFileDescriptorRepository.get(fileDescriptorId)
+    upscanFileDescriptorRepository.get(draftReturnId, upscanInitiateReference)
 
-  def getAll( //TODO : pass in draft return id as it needs to be keyed on that as well
+  def getAll(
     draftReturnId: DraftReturnId
   ): EitherT[Future, Error, List[UpscanFileDescriptor]] =
     upscanFileDescriptorRepository.getAll(draftReturnId)
@@ -112,11 +115,10 @@ class UpscanServiceImpl @Inject() (
     upscanFileDescriptorRepository.insert(fd)
 
   override def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Boolean] =
-    for{
+    for {
       b <- upscanFileDescriptorRepository.updateStatus(cb)
       _ <- upscanCallBackRepository.insert(cb)
-    }yield(b)
-
+    } yield (b)
 
   override def downloadFilesFromS3(
     snapshot: UpscanSnapshot,
@@ -135,7 +137,7 @@ class UpscanServiceImpl @Inject() (
     }
 
   private def computeUpscanSnapshot(upscanFileDescriptor: List[UpscanFileDescriptor]): Either[Error, UpscanSnapshot] = {
-    logger.info(s"stored upscan file descriptors: $upscanFileDescriptor ") //FIXME remove thos or make them better and the one below
+    logger.info(s"stored upscan file descriptors: $upscanFileDescriptor ")
 
     val validFiles = upscanFileDescriptor
       .filter(fd => fd.timestamp.isAfter(LocalDateTime.now().minusDays(s3UrlExpiryTime)))
@@ -150,9 +152,8 @@ class UpscanServiceImpl @Inject() (
     )
   }
 
-  //FIXME remove
   def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]] =
-    upscanCallBackRepository.getAll(draftReturnId) //FIXME remove this
+    upscanCallBackRepository.getAll(draftReturnId)
 
   override def deleteFile(
     draftReturnId: DraftReturnId,
