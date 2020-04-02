@@ -45,9 +45,7 @@ trait CacheRepository[A] {
   )
 
   dropInvalidIndexes
-    .flatMap { _ =>
-      collection.indexesManager.ensure(index)
-    }
+    .flatMap(_ => collection.indexesManager.ensure(index))
     .onComplete {
       case Success(_) => logger.info("Successfully ensured indices")
       case Failure(e) => logger.warn("Could not ensure indices", e)

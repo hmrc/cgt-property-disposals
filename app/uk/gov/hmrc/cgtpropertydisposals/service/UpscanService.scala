@@ -126,9 +126,7 @@ class UpscanServiceImpl @Inject() (
   ): EitherT[Future, Error, List[Either[Error, FileAttachment]]] =
     if ((snapshot.fileUploadCount === urls.size) && urls.forall(p => p.fileStatus === READY)) {
       EitherT[Future, Error, List[Either[Error, FileAttachment]]](
-        Future.traverse(urls)(url => upscanConnector.downloadFile(url)).map { s =>
-          Right(s)
-        }
+        Future.traverse(urls)(url => upscanConnector.downloadFile(url)).map(s => Right(s))
       )
     } else {
       EitherT.leftT(

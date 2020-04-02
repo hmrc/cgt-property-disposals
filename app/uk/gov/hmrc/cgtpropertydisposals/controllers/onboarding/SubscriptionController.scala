@@ -138,9 +138,8 @@ class SubscriptionController @Inject() (
         case BackendError(e) =>
           logger.warn("Error while trying to update subscription:", e)
           InternalServerError
-      }, { subscriptionUpdateResponse =>
-        Ok(Json.toJson(subscriptionUpdateResponse))
-      }
+      },
+      subscriptionUpdateResponse => Ok(Json.toJson(subscriptionUpdateResponse))
     )
   }
 

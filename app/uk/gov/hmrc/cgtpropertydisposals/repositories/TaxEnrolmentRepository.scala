@@ -80,9 +80,7 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(
   override def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
       find("ggCredId" -> ggCredId)
-        .map { maybeEnrolmentRequest =>
-          Right(maybeEnrolmentRequest.headOption)
-        }
+        .map(maybeEnrolmentRequest => Right(maybeEnrolmentRequest.headOption))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }
@@ -91,9 +89,7 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(
   override def delete(ggCredId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
       remove("ggCredId" -> ggCredId)
-        .map { result: WriteResult =>
-          Right(result.n)
-        }
+        .map { result: WriteResult => Right(result.n) }
         .recover {
           case exception => Left(Error(exception.getMessage))
         }

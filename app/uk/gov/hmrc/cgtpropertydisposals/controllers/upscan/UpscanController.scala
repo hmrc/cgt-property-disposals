@@ -60,9 +60,8 @@ class UpscanController @Inject() (
           e => {
             logger.warn(s"failed to get upscan file descriptor $e")
             InternalServerError
-          }, { fd =>
-            Ok(Json.toJson[List[UpscanFileDescriptor]](fd))
-          }
+          },
+          fd => Ok(Json.toJson[List[UpscanFileDescriptor]](fd))
         )
     }
 

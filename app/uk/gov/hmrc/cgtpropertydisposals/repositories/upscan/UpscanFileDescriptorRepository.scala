@@ -143,9 +143,7 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
     EitherT[Future, Error, Int](
       collection
         .count(Some(query), limit = None, skip = 0, hint = None, readConcern = defaultReadConcern)
-        .map[Either[Error, Int]] { c =>
-          Right(c.toInt)
-        }
+        .map[Either[Error, Int]](c => Right(c.toInt))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }

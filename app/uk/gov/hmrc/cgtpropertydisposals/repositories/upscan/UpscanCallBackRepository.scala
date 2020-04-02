@@ -85,9 +85,7 @@ class DefaultUpscanCallBackRepository @Inject() (mongo: ReactiveMongoComponent)(
     EitherT[Future, Error, Long](
       collection
         .count(Some(query), limit = None, skip = 0, hint = None, readConcern = defaultReadConcern)
-        .map[Either[Error, Long]] { c =>
-          Right(c)
-        }
+        .map[Either[Error, Long]](c => Right(c))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }
@@ -97,9 +95,7 @@ class DefaultUpscanCallBackRepository @Inject() (mongo: ReactiveMongoComponent)(
   override def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]] =
     EitherT[Future, Error, List[UpscanCallBack]](
       find("draftReturnId" -> Some(draftReturnId))
-        .map[Either[Error, List[UpscanCallBack]]] { c =>
-          Right(c)
-        }
+        .map[Either[Error, List[UpscanCallBack]]](c => Right(c))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }

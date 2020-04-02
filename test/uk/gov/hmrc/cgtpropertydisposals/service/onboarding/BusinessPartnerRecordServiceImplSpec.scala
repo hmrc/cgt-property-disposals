@@ -137,9 +137,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
         }
 
         "the response to get BPR comes back with a status other than 200" in {
-          List(400, 401, 403, 404, 500, 501, 502).foreach { status =>
-            testGetBprError(Right(HttpResponse(status)))
-          }
+          List(400, 401, 403, 404, 500, 501, 502).foreach(status => testGetBprError(Right(HttpResponse(status))))
         }
 
         "the json in the response to get BPR cannot be parsed" in {

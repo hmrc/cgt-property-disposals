@@ -135,7 +135,9 @@ class TaxEnrolmentServiceImpl @Inject() (
         val result = for {
           httpResponse <- EitherT.liftF(makeES8call(createEnrolmentRequest)) // attempt to create enrolment
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
-          _            <- taxEnrolmentRepository.delete(createEnrolmentRequest.ggCredId) // delete record if enrolment was successful
+          _ <- taxEnrolmentRepository.delete(
+                createEnrolmentRequest.ggCredId
+              ) // delete record if enrolment was successful
         } yield ()
         result
           .bimap(
