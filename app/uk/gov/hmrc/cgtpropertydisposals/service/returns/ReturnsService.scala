@@ -147,12 +147,11 @@ class DefaultReturnsService @Inject() (
           returnRequest.subscribedDetails
         )
 
-        httpResponse match {
-          case HttpResponse(OK, _, _, _) => Right(httpResponse)
-          case _ => {
-            metrics.submitReturnErrorCounter.inc()
-            Left(Error(s"call to submit return came back with status ${httpResponse.status}"))
-          }
+        if (httpResponse.status === OK)
+          Right(httpResponse)
+        else {
+          metrics.submitReturnErrorCounter.inc()
+          Left(Error(s"call to submit return came back with status ${httpResponse.status}"))
         }
       }
   }
@@ -169,18 +168,24 @@ class DefaultReturnsService @Inject() (
   private def sendReturnConfirmationEmail(
     returnRequest: SubmitReturnRequest,
     submitReturnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] = {
+    val timer = metrics.submitReturnConfirmationEmailTimer.time()
+
     emailConnector
       .sendReturnSubmitConfirmationEmail(
         submitReturnResponse,
         returnRequest.subscribedDetails
       )
       .subflatMap { httpResponse =>
+        timer.close()
         if (httpResponse.status === ACCEPTED)
           Right(submitReturnResponse)
-        else
+        else {
+          metrics.submitReturnConfirmationEmailErrorCounter.inc()
           Left(Error(s"Call to send confirmation email came back with status ${httpResponse.status}"))
+        }
       }
+  }
 
   private def auditSubscriptionConfirmationEmailSent(
     returnRequest: SubmitReturnRequest,
@@ -203,27 +208,36 @@ class DefaultReturnsService @Inject() (
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]] = {
-    lazy val desFinancialData =
+    lazy val desFinancialData = {
+      val timer = metrics.financialDataTimer.time()
       financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
+        timer.close()
+
         if (response.status === OK) {
           response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
         } else if (isNoFinancialDataResponse(response)) {
           Right(DesFinancialDataResponse(List.empty))
         } else {
+          metrics.financialDataErrorCounter.inc()
           Left(Error(s"call to get financial data came back with unexpected status ${response.status}"))
         }
       }
+    }
 
-    lazy val desReturnList =
+    lazy val desReturnList = {
+      val timer = metrics.listReturnsTimer.time()
       returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
+        timer.close()
         if (response.status === OK) {
           response.parseJSON[DesListReturnsResponse]().leftMap(Error(_))
         } else if (isNoReturnsResponse(response)) {
           Right(DesListReturnsResponse(List.empty))
         } else {
+          metrics.listReturnsErrorCounter.inc()
           Left(Error(s"call to list returns came back with unexpected status ${response.status}"))
         }
       }
+    }
 
     for {
       desReturnList <- desReturnList
@@ -273,8 +287,10 @@ class DefaultReturnsService @Inject() (
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(
     implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, CompleteReturn] =
+  ): EitherT[Future, Error, CompleteReturn] = {
+    val timer = metrics.displayReturnTimer.time()
     returnsConnector.displayReturn(cgtReference, submissionId).subflatMap { response =>
+      timer.close()
       if (response.status === OK) {
         for {
           desReturn <- response
@@ -283,9 +299,11 @@ class DefaultReturnsService @Inject() (
           completeReturn <- returnTransformerService.toCompleteReturn(desReturn)
         } yield completeReturn
       } else {
+        metrics.displayReturnErrorCounter.inc()
         Left(Error(s"call to list returns came back with status ${response.status}"))
       }
     }
+  }
 
   private def prepareSubmitReturnResponse(
     response: DesSubmitReturnResponse

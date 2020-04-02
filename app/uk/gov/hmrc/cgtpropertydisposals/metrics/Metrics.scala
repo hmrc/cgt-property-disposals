@@ -38,10 +38,6 @@ class Metrics @Inject() (metrics: com.kenshoo.play.metrics.Metrics) {
 
   val subscriptionCreateErrorCounter: Counter = counter("subscription-create.errors.count")
 
-  val submitReturnTimer: Timer = timer("submit-return.time")
-
-  val submitReturnErrorCounter: Counter = counter("submit-return.errors.count")
-
   val subscriptionUpdateTimer: Timer = timer("subscription-update.time")
 
   val subscriptionUpdateErrorCounter: Counter = counter("subscription-update.errors.count")
@@ -54,10 +50,6 @@ class Metrics @Inject() (metrics: com.kenshoo.play.metrics.Metrics) {
 
   val subscriptionStatusErrorCounter: Counter = counter("subscription-status.errors.count")
 
-  val financialDataTimer: Timer = timer("financial-data.time")
-
-  val financialDataErrorCounter: Counter = counter("financial-data.errors.count")
-
   val eacdCreateEnrolmentTimer: Timer = timer("eacd.create-enrolment.time")
 
   val eacdCreateEnrolmentErrorCounter: Counter = counter("eacd.create-enrolment.errors.count")
@@ -69,5 +61,25 @@ class Metrics @Inject() (metrics: com.kenshoo.play.metrics.Metrics) {
   val subscriptionConfirmationEmailTimer: Timer = timer("email.subscription-confirmation.time")
 
   val subscriptionConfirmationEmailErrorCounter: Counter = counter("email.subscription-confirmation.errors.count")
+
+  val submitReturnTimer: Timer = timer("submit-return.time")
+
+  val submitReturnErrorCounter: Counter = counter("submit-return.errors.count")
+
+  val submitReturnConfirmationEmailTimer: Timer = timer("email.submit-return-confirmation.time")
+
+  val submitReturnConfirmationEmailErrorCounter: Counter = counter("email.submit-return-confirmation.errors.count")
+
+  val financialDataTimer: Timer = timer("financial-data.time")
+
+  val financialDataErrorCounter: Counter = counter("financial-data.errors.count")
+
+  val listReturnsTimer: Timer = timer("list-returns.time")
+
+  val listReturnsErrorCounter: Counter = counter("list-returns.errors.count")
+
+  val displayReturnTimer: Timer = timer("display-return.time")
+
+  val displayReturnErrorCounter: Counter = counter("display-return.errors.count")
 
 }
