@@ -23,13 +23,14 @@ import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialTransaction
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesSubscriptionUpdateRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
@@ -47,7 +48,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptor, UpscanCallBack, UpscanFileDescriptor}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptor, UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
 
@@ -117,6 +118,8 @@ trait IdGen { this: GenUtils =>
 
   implicit val sapNumberGen: Gen[SapNumber] = gen[SapNumber]
 
+  implicit val draftReturnIdGen: Gen[DraftReturnId] = gen[DraftReturnId]
+
 }
 
 trait NameGen { this: GenUtils =>
@@ -136,6 +139,10 @@ trait OnboardingGen { this: GenUtils =>
   implicit val subscriptionSuccessfulGen: Gen[SubscriptionSuccessful] = gen[SubscriptionSuccessful]
 
   implicit val subscribedDetailsGen: Gen[SubscribedDetails] = gen[SubscribedDetails]
+
+  implicit val desSubscriptionRequestGen: Gen[DesSubscriptionRequest] = gen[DesSubscriptionRequest]
+
+  implicit val desUpdateRequestGen: Gen[DesSubscriptionUpdateRequest] = gen[DesSubscriptionUpdateRequest]
 
 }
 
@@ -165,9 +172,10 @@ trait DraftReturnGen { this: GenUtils =>
 
 trait UpscanGen { this: GenUtils =>
 
-  implicit val upscanMetaGen: Gen[FileDescriptor]         = gen[FileDescriptor]
-  implicit val upscanUploadGen: Gen[UpscanFileDescriptor] = gen[UpscanFileDescriptor]
-  implicit val upscanCallBackGen: Gen[UpscanCallBack]     = gen[UpscanCallBack]
+  implicit val upscanMetaGen: Gen[FileDescriptor]                       = gen[FileDescriptor]
+  implicit val upscanUploadGen: Gen[UpscanFileDescriptor]               = gen[UpscanFileDescriptor]
+  implicit val upscanCallBackGen: Gen[UpscanCallBack]                   = gen[UpscanCallBack]
+  implicit val upscanInitiateReferenceGen: Gen[UpscanInitiateReference] = gen[UpscanInitiateReference]
 
 }
 

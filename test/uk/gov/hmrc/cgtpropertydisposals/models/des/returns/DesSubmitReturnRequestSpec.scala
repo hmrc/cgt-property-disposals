@@ -52,18 +52,19 @@ class DesSubmitReturnRequestSpec extends WordSpec {
 
       for (_ <- 1 to 1000) {
         val submitReturnRequest: SubmitReturnRequest =
-          sample[SubmitReturnRequest].copy(completeReturn = sample[CompleteReturn]
-            .fold[CompleteReturn](
-              _.copy(
-                examplePropertyDetailsAnswers =
-                  sample[CompleteExamplePropertyDetailsAnswers].copy(address = sample[UkAddress]),
-                triageAnswers = sample[CompleteMultipleDisposalsTriageAnswers]
-              ),
-              _.copy(
-                propertyAddress = sample[UkAddress],
-                triageAnswers   = sample[CompleteSingleDisposalTriageAnswers]
+          sample[SubmitReturnRequest].copy(completeReturn =
+            sample[CompleteReturn]
+              .fold[CompleteReturn](
+                _.copy(
+                  examplePropertyDetailsAnswers =
+                    sample[CompleteExamplePropertyDetailsAnswers].copy(address = sample[UkAddress]),
+                  triageAnswers = sample[CompleteMultipleDisposalsTriageAnswers]
+                ),
+                _.copy(
+                  propertyAddress = sample[UkAddress],
+                  triageAnswers   = sample[CompleteSingleDisposalTriageAnswers]
+                )
               )
-            )
           )
         val ppdReturnDetails       = DesReturnDetails(submitReturnRequest)
         val desSubmitReturnRequest = DesSubmitReturnRequest(ppdReturnDetails)

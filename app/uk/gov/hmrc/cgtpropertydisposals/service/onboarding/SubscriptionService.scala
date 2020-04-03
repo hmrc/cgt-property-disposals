@@ -35,7 +35,8 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, DesSubscriptionUpdateRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.{SubscriptionConfirmationEmailSentEvent, SubscriptionResponseEvent}
@@ -106,11 +107,12 @@ class SubscriptionServiceImpl @Inject() (
         .map(_.code)
         .exists(_ === "ACTIVE_SUBSCRIPTION")
 
-    val timer = metrics.subscriptionCreateTimer.time()
+    val desSubscriptionRequest = DesSubscriptionRequest(subscriptionDetails)
+    val timer                  = metrics.subscriptionCreateTimer.time()
 
-    subscriptionConnector.subscribe(subscriptionDetails).subflatMap { response =>
+    subscriptionConnector.subscribe(desSubscriptionRequest).subflatMap { response =>
       timer.close()
-      auditSubscriptionResponse(response.status, response.body)
+      auditSubscriptionResponse(response.status, response.body, desSubscriptionRequest)
       if (response.status === OK) {
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
       } else if (isAlreadySubscribedResponse(response)) {
@@ -179,29 +181,32 @@ class SubscriptionServiceImpl @Inject() (
   override def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse] = {
-    val timer = metrics.subscriptionUpdateTimer.time()
+    val desSubscriptionRequest = DesSubscriptionUpdateRequest(subscribedUpdateDetails.newDetails)
+    val timer                  = metrics.subscriptionUpdateTimer.time()
 
-    subscriptionConnector.updateSubscription(subscribedUpdateDetails.newDetails).subflatMap { response =>
-      timer.close()
+    subscriptionConnector
+      .updateSubscription(desSubscriptionRequest, subscribedUpdateDetails.newDetails.cgtReference)
+      .subflatMap { response =>
+        timer.close()
 
-      lazy val identifiers =
-        List(
-          "id"                -> subscribedUpdateDetails.newDetails.cgtReference.value,
-          "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
-        )
+        lazy val identifiers =
+          List(
+            "id"                -> subscribedUpdateDetails.newDetails.cgtReference.value,
+            "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
+          )
 
-      if (response.status === OK) {
-        response
-          .parseJSON[SubscriptionUpdateResponse]()
-          .leftMap { e =>
-            metrics.subscriptionUpdateErrorCounter.inc()
-            Error(e, identifiers: _*)
-          }
-      } else {
-        metrics.subscriptionUpdateErrorCounter.inc()
-        Left(Error(s"call to subscription update api came back with status ${response.status}"))
+        if (response.status === OK) {
+          response
+            .parseJSON[SubscriptionUpdateResponse]()
+            .leftMap { e =>
+              metrics.subscriptionUpdateErrorCounter.inc()
+              Error(e, identifiers: _*)
+            }
+        } else {
+          metrics.subscriptionUpdateErrorCounter.inc()
+          Left(Error(s"call to subscription update api came back with status ${response.status}"))
+        }
       }
-    }
   }
 
   private def toSubscriptionDisplayRecord(
@@ -238,14 +243,16 @@ class SubscriptionServiceImpl @Inject() (
   }
 
   private def auditSubscriptionResponse(
-    httpStatus: Int,
-    body: String
+    responseHttpStatus: Int,
+    responseBody: String,
+    desSubscriptionRequest: DesSubscriptionRequest
   )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
-    val json = Try(Json.parse(body)).getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $body" }"""))
+    val responseJson = Try(Json.parse(responseBody))
+      .getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }"""))
 
     auditService.sendEvent(
       "subscriptionResponse",
-      SubscriptionResponseEvent(httpStatus, json),
+      SubscriptionResponseEvent(responseHttpStatus, responseJson, desSubscriptionRequest),
       "subscription-response"
     )
   }

@@ -31,7 +31,8 @@ import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
@@ -73,27 +74,27 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
 
   def mockStoreUpscanCallBack(upscanCallBack: UpscanCallBack)(
-    response: Either[Error, Unit]
+    response: Either[Error, Boolean]
   ) =
     (mockUpscanService
       .saveCallBackData(_: UpscanCallBack))
       .expects(upscanCallBack)
-      .returning(EitherT[Future, Error, Unit](Future.successful(response)))
+      .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
 
-  def mockGetUpscanFileDescriptor(fileDescriptorId: FileDescriptorId)(
+  def mockGetUpscanFileDescriptor(draftReturnId: DraftReturnId, upscanInitiateReference: UpscanInitiateReference)(
     response: Either[Error, Option[UpscanFileDescriptor]]
   ) =
     (mockUpscanService
-      .getUpscanFileDescriptor(_: FileDescriptorId))
-      .expects(fileDescriptorId)
+      .getUpscanFileDescriptor(_: DraftReturnId, _: UpscanInitiateReference))
+      .expects(draftReturnId, upscanInitiateReference)
       .returning(EitherT[Future, Error, Option[UpscanFileDescriptor]](Future.successful(response)))
 
-  def mockGetUpscanSnapshot(cgtReference: CgtReference)(
+  def mockGetUpscanSnapshot(draftReturnId: DraftReturnId)(
     response: Either[Error, UpscanSnapshot]
   ) =
     (mockUpscanService
-      .getUpscanSnapshot(_: CgtReference))
-      .expects(cgtReference)
+      .getUpscanSnapshot(_: DraftReturnId))
+      .expects(draftReturnId)
       .returning(EitherT[Future, Error, UpscanSnapshot](Future.successful(response)))
 
   val request = new AuthenticatedRequest(
@@ -113,8 +114,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   )
 
   val upfd = UpscanFileDescriptor(
-    key          = "12345",
-    cgtReference = CgtReference("cgt-ref"),
+    upscanInitiateReference = UpscanInitiateReference("12345"),
+    draftReturnId           = DraftReturnId("draft-return-id"),
+    cgtReference            = CgtReference("cgt-ref"),
     fileDescriptor = FileDescriptor(
       reference = "11370e18-6e24-453e-b45a-76d3e32ea33d",
       uploadRequest = UploadRequest(
@@ -138,7 +140,12 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   val upscanFileDescriptorPayload =
     """
       |{
-      |   "key":"12345",
+      |   "upscanInitiateReference":{
+      |      "value":"12345"
+      |   },
+      |   "draftReturnId":{
+      |      "value":"draft-return-id"
+      |   },
       |   "cgtReference":{
       |      "value":"cgt-ref"
       |   },
@@ -171,6 +178,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   val validUpscanCallBackPayload =
     """
       | {
+      |   "draftReturnId":{
+      |      "value":"draft-return-id"
+      |   },
       |   "cgtReference" : {
       |     "value" : "cgt-ref"
       |   },
@@ -187,10 +197,10 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       |""".stripMargin
 
   val upscanCallBack = UpscanCallBack(
-    cgtReference = CgtReference("cgt-ref"),
-    reference    = "11370e18-6e24-453e-b45a-76d3e32ea33d",
-    fileStatus   = READY,
-    downloadUrl  = Some("http://aws.com/file"),
+    draftReturnId = DraftReturnId("draft-return-id"),
+    reference     = "11370e18-6e24-453e-b45a-76d3e32ea33d",
+    fileStatus    = READY,
+    downloadUrl   = Some("http://aws.com/file"),
     details = Map(
       "Content-Type"            -> "application/xml",
       "acl"                     -> "private",
@@ -203,6 +213,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       "x-amz-signature"         -> "xxxx"
     )
   )
+
+  val draftId   = sample[DraftReturnId]
+  val upscanRef = sample[UpscanInitiateReference]
 
   "Upscan Controller" when {
 
@@ -277,9 +290,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
           )
 
-        mockGetUpscanFileDescriptor(FileDescriptorId("id"))(Left(Error("mongo error")))
+        mockGetUpscanFileDescriptor(draftId, upscanRef)(Left(Error("mongo error")))
 
-        val result = controller.getUpscanFileDescriptor(FileDescriptorId("id"))(request)
+        val result = controller.getUpscanFileDescriptor(draftId.value, upscanRef.value)(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
 
       }
@@ -294,9 +307,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
           )
 
-        mockGetUpscanFileDescriptor(FileDescriptorId("id"))(Right(None))
+        mockGetUpscanFileDescriptor(draftId, upscanRef)(Right(None))
 
-        val result = controller.getUpscanFileDescriptor(FileDescriptorId("id"))(request)
+        val result = controller.getUpscanFileDescriptor(draftId.value, upscanRef.value)(request)
         status(result) shouldBe BAD_REQUEST
 
       }
@@ -311,9 +324,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
           )
 
-        mockGetUpscanFileDescriptor(FileDescriptorId("id"))(Right(Some(upfd)))
+        mockGetUpscanFileDescriptor(draftId, upscanRef)(Right(Some(upfd)))
 
-        val result = controller.getUpscanFileDescriptor(FileDescriptorId("id"))(request)
+        val result = controller.getUpscanFileDescriptor(draftId.value, upscanRef.value)(request)
         status(result) shouldBe OK
 
       }
@@ -332,9 +345,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
           )
 
-        mockGetUpscanSnapshot(CgtReference("ref"))(Left(Error("mongo error")))
+        mockGetUpscanSnapshot(DraftReturnId("ref"))(Left(Error("mongo error")))
 
-        val result = controller.getUpscanSnapshot(CgtReference("ref"))(request)
+        val result = controller.getUpscanSnapshot(DraftReturnId("ref"))(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
 
       }
@@ -349,9 +362,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
           )
 
-        mockGetUpscanSnapshot(CgtReference("ref"))(Left(Error("mongo error")))
+        mockGetUpscanSnapshot(DraftReturnId("ref"))(Left(Error("mongo error")))
 
-        val result = controller.getUpscanSnapshot(CgtReference("ref"))(request)
+        val result = controller.getUpscanSnapshot(DraftReturnId("ref"))(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
 
       }
@@ -366,9 +379,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
           )
 
-        mockGetUpscanSnapshot(CgtReference("ref"))(Right(UpscanSnapshot(1)))
+        mockGetUpscanSnapshot(DraftReturnId("ref"))(Right(UpscanSnapshot(1)))
 
-        val result = controller.getUpscanSnapshot(CgtReference("ref"))(request)
+        val result = controller.getUpscanSnapshot(DraftReturnId("ref"))(request)
         status(result) shouldBe OK
 
       }
@@ -432,63 +445,5 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
       }
     }
-
-//    "it receives a request to save upscan call back" must {
-
-//      "return a bad request if the request contains an incorrect payload" in {
-//
-//        val corruptRequestBody =
-//          """
-//            |{
-//            |   "bad-field":"bad-value"
-//            |}
-//            |""".stripMargin
-//
-//        val request =
-//          new AuthenticatedRequest(
-//            Fake.user,
-//            LocalDateTime.now(),
-//            headerCarrier,
-//            fakeRequestWithJsonBody(Json.parse(corruptRequestBody))
-//          )
-//
-//        val result = controller.saveUpscanCallBack()(request)
-//        status(result) shouldBe BAD_REQUEST
-//      }
-
-//      "return an internal server error if the backend call fails" in {
-//
-//        val request =
-//          new AuthenticatedRequest(
-//            Fake.user,
-//            LocalDateTime.now(),
-//            headerCarrier,
-//            fakeRequestWithJsonBody(Json.toJson[UpscanCallBack](upscanCallBack))
-//          )
-//
-//        mockStoreUpscanCallBack(upscanCallBack)(Left(Error("BE error")))
-//
-//        val result = controller.saveUpscanCallBack()(request)
-//        status(result) shouldBe INTERNAL_SERVER_ERROR
-//
-//      }
-
-//      "return a 200 OK if the backend call succeeds" in {
-//
-//        val request =
-//          new AuthenticatedRequest(
-//            Fake.user,
-//            LocalDateTime.now(),
-//            headerCarrier,
-//            fakeRequestWithJsonBody(Json.toJson[UpscanCallBack](upscanCallBack))
-//          )
-//
-//        mockStoreUpscanCallBack(upscanCallBack)(Right(()))
-//
-//        val result = controller.saveUpscanCallBack()(request)
-//        status(result) shouldBe OK
-//
-//      }
-//    }
   }
 }

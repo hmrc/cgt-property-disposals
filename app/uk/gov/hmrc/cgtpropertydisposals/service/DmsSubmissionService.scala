@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
+import java.util.Base64
+
 import cats.data.EitherT
 import cats.instances.either._
 import cats.instances.future._
@@ -28,7 +30,7 @@ import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -37,11 +39,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultDmsSubmissionService])
 trait DmsSubmissionService {
 
-  def submitToDms(html: B64Html, cgtReference: CgtReference, formBundleId: String)(
-    implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, EnvelopeId]
-
-  def testSubmitToDms(html: B64Html, cgtReference: CgtReference, formBundleId: String)(
+  def submitToDms(html: B64Html, draftReturnId: DraftReturnId, cgtReference: CgtReference, formBundleId: String)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId]
 
@@ -56,26 +54,29 @@ class DefaultDmsSubmissionService @Inject() (
     extends DmsSubmissionService
     with Logging {
 
+  def getDmsMetaConfig[A: Configs](key: String): A =
+    configuration.underlying
+      .get[A](s"dms.$key")
+      .value
+
+  val queue: String           = getDmsMetaConfig[String]("queue-name")
+  val b64businessArea: String = getDmsMetaConfig[String]("b64-business-area")
+
+  val businessArea = new String(Base64.getDecoder.decode(b64businessArea))
+
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def submitToDms(
     html: B64Html,
+    draftReturnId: DraftReturnId,
     cgtReference: CgtReference,
     formBundleId: String
   )(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId] = {
 
-    def getDmsMetaConfig[A: Configs](key: String): A =
-      configuration.underlying
-        .get[A](s"microservice.services.upscan-initiate.dms.$key")
-        .value
-
-    val queue: String        = getDmsMetaConfig[String]("classification-type")
-    val businessArea: String = getDmsMetaConfig[String]("business-area")
-
     val fileUploadResult: EitherT[Future, Error, EnvelopeId] = for {
-      upscanSnapshot  <- upscanService.getUpscanSnapshot(cgtReference)
-      callbacks       <- upscanService.getAllUpscanCallBacks(cgtReference)
+      upscanSnapshot  <- upscanService.getUpscanSnapshot(draftReturnId)
+      callbacks       <- upscanService.getAllUpscanCallBacks(draftReturnId)
       attachments     <- upscanService.downloadFilesFromS3(upscanSnapshot, callbacks)
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
       envId <- gFormConnector.submitToDms(
@@ -90,23 +91,5 @@ class DefaultDmsSubmissionService @Inject() (
     fileUploadResult
 
   }
-
-  @SuppressWarnings(Array("org.wartremover.warts.Any"))
-  override def testSubmitToDms(
-    html: B64Html,
-    cgtReference: CgtReference,
-    formBundleId: String
-  )(
-    implicit hc: HeaderCarrier
-  ): EitherT[Future, Error, EnvelopeId] =
-    for {
-      envId <- gFormConnector.submitToDms(
-                DmsSubmissionPayload(
-                  html,
-                  List.empty,
-                  DmsMetadata(formBundleId, cgtReference.value, "psa-sa return 1", "PT Operations")
-                )
-              )
-    } yield envId
 
 }

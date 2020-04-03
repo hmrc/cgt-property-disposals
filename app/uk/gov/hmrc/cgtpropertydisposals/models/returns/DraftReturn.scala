@@ -23,7 +23,6 @@ import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 
 sealed trait DraftReturn extends Product with Serializable {
   val id: UUID
@@ -39,6 +38,7 @@ final case class DraftSingleDisposalReturn(
   exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
   yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
   initialGainOrLoss: Option[AmountInPence],
+  uploadSupportingDocuments: Option[UploadSupportingEvidenceAnswers],
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 
@@ -48,6 +48,7 @@ final case class DraftMultipleDisposalsReturn(
   examplePropertyDetailsAnswers: Option[ExamplePropertyDetailsAnswers],
   exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
   yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
+  uploadSupportingDocuments: Option[UploadSupportingEvidenceAnswers],
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 

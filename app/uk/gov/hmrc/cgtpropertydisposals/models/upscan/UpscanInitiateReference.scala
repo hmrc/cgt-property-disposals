@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.finance
+package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import java.util.Locale
+import play.api.libs.json.Json
 
-object MoneyUtils {
+final case class UpscanInitiateReference(value: String) extends AnyVal
 
-  private val currencyFormatter = java.text.NumberFormat.getCurrencyInstance(Locale.UK)
-
-  def formatAmountOfMoneyWithPoundSign(d: BigDecimal): String = currencyFormatter.format(d).stripSuffix(".00")
-
+object UpscanInitiateReference {
+  implicit val format = Json.format[UpscanInitiateReference]
 }

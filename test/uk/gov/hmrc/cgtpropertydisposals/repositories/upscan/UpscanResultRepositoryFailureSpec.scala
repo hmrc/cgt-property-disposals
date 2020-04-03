@@ -40,13 +40,13 @@ class UpscanResultRepositoryFailureSpec extends WordSpec with Matchers with Mong
 
     "counting in a broken repo" should {
       "return an error" in {
-        await(repository.count(cb.cgtReference).value).isLeft shouldBe true
+        await(repository.count(cb.draftReturnId).value).isLeft shouldBe true
       }
     }
 
     "getting all in a broken repo" should {
       "return an error" in {
-        await(repository.getAll(cb.cgtReference).value).isLeft shouldBe true
+        await(repository.getAll(cb.draftReturnId).value).isLeft shouldBe true
       }
     }
   }

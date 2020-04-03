@@ -40,19 +40,19 @@ class UpscanResultRepositorySpec extends WordSpec with Matchers with MongoSuppor
 
     "counting" should {
       "return number of file descriptors" in {
-        await(repository.insert(cb).value)             shouldBe Right(())
-        await(repository.insert(cb).value)             shouldBe Right(())
-        await(repository.insert(cb).value)             shouldBe Right(())
-        await(repository.count(cb.cgtReference).value) shouldBe Right(3)
+        await(repository.insert(cb).value)              shouldBe Right(())
+        await(repository.insert(cb).value)              shouldBe Right(())
+        await(repository.insert(cb).value)              shouldBe Right(())
+        await(repository.count(cb.draftReturnId).value) shouldBe Right(3)
       }
     }
 
     "getting all" should {
       "return all the call back events for a cgt reference" in {
-        await(repository.insert(cb).value)              shouldBe Right(())
-        await(repository.insert(cb).value)              shouldBe Right(())
-        await(repository.insert(cb).value)              shouldBe Right(())
-        await(repository.getAll(cb.cgtReference).value) shouldBe Right(List(cb, cb, cb))
+        await(repository.insert(cb).value)               shouldBe Right(())
+        await(repository.insert(cb).value)               shouldBe Right(())
+        await(repository.insert(cb).value)               shouldBe Right(())
+        await(repository.getAll(cb.draftReturnId).value) shouldBe Right(List(cb, cb, cb))
       }
     }
   }

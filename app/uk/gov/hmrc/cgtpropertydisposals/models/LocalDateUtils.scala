@@ -19,12 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 import java.time.LocalDate
 
 import cats.Order
-import play.api.i18n.Messages
 
 object LocalDateUtils {
-
-  def govDisplayFormat(date: LocalDate)(implicit messages: Messages): String =
-    s"""${date.getDayOfMonth()} ${messages(s"date.${date.getMonthValue()}")} ${date.getYear()}"""
 
   implicit val order: Order[LocalDate] = Order.from(_ compareTo _)
 

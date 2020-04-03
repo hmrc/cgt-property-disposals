@@ -60,9 +60,7 @@ class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(
       collection
         .find(Json.obj("ggCredId" -> ggCredId), None)
         .one[UpdateVerifiersRequest]
-        .map { maybeVerifiersRequest =>
-          Right(maybeVerifiersRequest)
-        }
+        .map(maybeVerifiersRequest => Right(maybeVerifiersRequest))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }
@@ -91,9 +89,7 @@ class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(
     EitherT[Future, Error, Int](
       collection.delete
         .one(Json.obj("ggCredId" -> ggCredId))
-        .map { result: WriteResult =>
-          Right(result.n)
-        }
+        .map { result: WriteResult => Right(result.n) }
         .recover {
           case exception => Left(Error(exception.getMessage))
         }

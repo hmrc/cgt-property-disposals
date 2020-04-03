@@ -21,9 +21,9 @@ import com.google.inject.Inject
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBackEvent._
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptorId, UpscanCallBackEvent, UpscanFileDescriptor, UpscanSnapshot}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBackEvent, UpscanFileDescriptor, UpscanInitiateReference, UpscanSnapshot}
 import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -39,10 +39,10 @@ class UpscanController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def getUpscanSnapshot(cgtReference: CgtReference): Action[AnyContent] =
+  def getUpscanSnapshot(draftReturnId: DraftReturnId): Action[AnyContent] =
     authenticate.async {
       upscanService
-        .getUpscanSnapshot(cgtReference)
+        .getUpscanSnapshot(draftReturnId)
         .fold(
           e => {
             logger.warn(s"failed to get upscan snapshot $e")
@@ -52,10 +52,23 @@ class UpscanController @Inject() (
         )
     }
 
-  def getUpscanFileDescriptor(fileDescriptorId: FileDescriptorId): Action[AnyContent] =
+  def getAll(draftId: String): Action[AnyContent] =
     authenticate.async {
       upscanService
-        .getUpscanFileDescriptor(fileDescriptorId)
+        .getAll(DraftReturnId(draftId))
+        .fold(
+          e => {
+            logger.warn(s"failed to get upscan file descriptor $e")
+            InternalServerError
+          },
+          fd => Ok(Json.toJson[List[UpscanFileDescriptor]](fd))
+        )
+    }
+
+  def getUpscanFileDescriptor(draftReturnId: String, upscanReference: String): Action[AnyContent] =
+    authenticate.async {
+      upscanService
+        .getUpscanFileDescriptor(DraftReturnId(draftReturnId), UpscanInitiateReference(upscanReference))
         .fold(
           e => {
             logger.warn(s"failed to get upscan file descriptor $e")
@@ -63,7 +76,9 @@ class UpscanController @Inject() (
           }, {
             case Some(fd) => Ok(Json.toJson[UpscanFileDescriptor](fd))
             case None => {
-              logger.info(s"could not find upscan file descriptor with upscan reference: ${fileDescriptorId.value}")
+              logger.info(
+                s"could not find upscan file descriptor with draft id $draftReturnId and upscan ref $upscanReference"
+              )
               BadRequest
             }
           }
@@ -111,14 +126,40 @@ class UpscanController @Inject() (
     }
   }
 
-  def callback(cgtReference: CgtReference): Action[JsValue] =
+  def removeFile(draftReturnId: String, upscanReference: String) =
+    authenticate.async {
+      upscanService
+        .deleteFile(DraftReturnId(draftReturnId), UpscanInitiateReference(upscanReference))
+        .fold(
+          e => {
+            logger.warn(s"failed to remove filet $e")
+            InternalServerError
+          },
+          _ => NoContent
+        )
+    }
+
+  def removeAllFiles(draftReturnId: String) =
+    authenticate.async {
+      upscanService
+        .deleteAllFiles(DraftReturnId(draftReturnId))
+        .fold(
+          e => {
+            logger.warn(s"failed to remove all files $e")
+            InternalServerError
+          },
+          _ => NoContent
+        )
+    }
+
+  def callback(draftReturnId: DraftReturnId): Action[JsValue] =
     Action.async(parse.json) { implicit request =>
       request.body
         .validate[UpscanCallBackEvent]
         .fold(
           error => Future.successful(BadRequest(s"failed to parse upscan call back result response: $error")),
           upscanResult =>
-            upscanService.saveCallBackData(toUpscanCallBack(cgtReference, upscanResult)).value.map {
+            upscanService.saveCallBackData(toUpscanCallBack(draftReturnId, upscanResult)).value.map {
               case Left(error) =>
                 logger.warn(s"failed to save upscan call back result response $error")
                 InternalServerError

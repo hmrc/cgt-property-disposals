@@ -27,7 +27,7 @@ import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -37,8 +37,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultUpscanCallBackRepository])
 trait UpscanCallBackRepository {
   def insert(upscanCallBack: UpscanCallBack): EitherT[Future, Error, Unit]
-  def count(cgtReference: CgtReference): EitherT[Future, Error, Long]
-  def getAll(cgtReference: CgtReference): EitherT[Future, Error, List[UpscanCallBack]]
+  def count(draftReturnId: DraftReturnId): EitherT[Future, Error, Long]
+  def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]]
 }
 
 @Singleton
@@ -56,8 +56,8 @@ class DefaultUpscanCallBackRepository @Inject() (mongo: ReactiveMongoComponent)(
 
   override def indexes: Seq[Index] = Seq(
     Index(
-      key  = Seq("cgtReference" → IndexType.Ascending),
-      name = Some("cgt-reference")
+      key  = Seq("draftReturnId" → IndexType.Ascending),
+      name = Some("draft-return-id")
     )
   )
 
@@ -80,26 +80,22 @@ class DefaultUpscanCallBackRepository @Inject() (mongo: ReactiveMongoComponent)(
         }
     )
 
-  override def count(cgtReference: CgtReference): EitherT[Future, Error, Long] = {
-    val query = Json.obj("cgtReference" -> Some(cgtReference))
+  override def count(draftReturnId: DraftReturnId): EitherT[Future, Error, Long] = {
+    val query = Json.obj("draftReturnId" -> Some(draftReturnId))
     EitherT[Future, Error, Long](
       collection
         .count(Some(query), limit = None, skip = 0, hint = None, readConcern = defaultReadConcern)
-        .map[Either[Error, Long]] { c =>
-          Right(c)
-        }
+        .map[Either[Error, Long]](c => Right(c))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }
     )
   }
 
-  override def getAll(cgtReference: CgtReference): EitherT[Future, Error, List[UpscanCallBack]] =
+  override def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]] =
     EitherT[Future, Error, List[UpscanCallBack]](
-      find("cgtReference" -> Some(cgtReference))
-        .map[Either[Error, List[UpscanCallBack]]] { c =>
-          Right(c)
-        }
+      find("draftReturnId" -> Some(draftReturnId))
+        .map[Either[Error, List[UpscanCallBack]]](c => Right(c))
         .recover {
           case exception => Left(Error(exception.getMessage))
         }
