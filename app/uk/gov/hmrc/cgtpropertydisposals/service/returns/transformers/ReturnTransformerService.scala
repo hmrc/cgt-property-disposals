@@ -212,7 +212,8 @@ class ReturnTransformerServiceImpl @Inject() (
         desReturn.returnDetails.totalNetLoss.map(_ * -1).getOrElse(desReturn.returnDetails.totalTaxableGain)
       ),
       desReturn.returnDetails.estimate,
-      AmountInPence.fromPounds(desReturn.returnDetails.totalLiability)
+      AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
+      MandatoryEvidence("", "") // we cannot read the details of the mandatory evidence back
     )
 
   private def getIndividualUserType(desReturn: DesReturnDetails): Option[IndividualUserType] =
