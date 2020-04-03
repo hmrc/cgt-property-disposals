@@ -47,13 +47,16 @@ lazy val microservice = Project(appName, file("."))
   )
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
-    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
+    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
+    addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.6.0" cross CrossVersion.full)
   )
   .settings(scalaVersion := "2.12.10")
   .settings(
     majorVersion := 2,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
   )
+  .settings(routesImport := Seq.empty)
+  .settings(TwirlKeys.templateImports := Seq.empty)
   .settings(
     scalafmtOnCompile := true,
     addCompilerPlugin(scalafixSemanticdb),

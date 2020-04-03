@@ -9,7 +9,8 @@ object AppDependencies {
     "org.typelevel"                            %% "cats-core"                % "2.1.0",
     "org.julienrf"                             %% "play-json-derived-codecs" % "7.0.0",
     "com.github.kxbmap"                        %% "configs"                  % "0.4.4",
-    "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer" % "20191001.1"
+    "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer" % "20191001.1",
+    "com.github.ghik"                          % "silencer-lib"              % "1.6.0" % Provided cross CrossVersion.full
   )
 
   val test = Seq(
