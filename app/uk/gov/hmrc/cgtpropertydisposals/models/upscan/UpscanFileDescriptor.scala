@@ -21,11 +21,12 @@ import java.time.LocalDateTime
 import cats.Eq
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
 
 final case class UpscanFileDescriptor(
-  key: String,
+  upscanInitiateReference: UpscanInitiateReference,
+  draftReturnId: DraftReturnId,
   cgtReference: CgtReference,
   fileDescriptor: FileDescriptor,
   timestamp: LocalDateTime,
@@ -36,9 +37,9 @@ object UpscanFileDescriptor {
   sealed trait UpscanFileDescriptorStatus
   object UpscanFileDescriptorStatus {
     case object FAILED extends UpscanFileDescriptorStatus
+    case object READY extends UpscanFileDescriptorStatus
     case object UPLOADED extends UpscanFileDescriptorStatus
     case object READY_TO_UPLOAD extends UpscanFileDescriptorStatus
-    case object READY extends UpscanFileDescriptorStatus
     case object QUARANTINE extends UpscanFileDescriptorStatus
     case object REJECTED extends UpscanFileDescriptorStatus
     case object UNKNOWN extends UpscanFileDescriptorStatus

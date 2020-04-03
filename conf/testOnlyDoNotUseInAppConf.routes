@@ -12,5 +12,4 @@
 # Add all the application routes to the prod.routes file
 ->          /                           prod.Routes
 
-GET         /cgt-property-disposals/dms-test                                        uk.gov.hmrc.cgtpropertydisposals.controllers.testonly.DmsController.testSubmitToDms()
 DELETE      /test-only/cgt-property-disposals/draftReturn/:cgtReference             uk.gov.hmrc.cgtpropertydisposals.controllers.testonly.TestOnlyController.deleteDraftReturn(cgtReference: String)

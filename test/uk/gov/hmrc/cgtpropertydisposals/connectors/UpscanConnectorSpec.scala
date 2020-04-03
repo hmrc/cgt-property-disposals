@@ -31,7 +31,7 @@ import play.shaded.ahc.org.asynchttpclient.Response
 import play.shaded.ahc.org.asynchttpclient.uri.Uri
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
 import uk.gov.hmrc.http.HeaderCarrier
@@ -99,7 +99,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
             )(Future.successful(httpResponse))
             await(
               connector
-                .downloadFile(UpscanCallBack(CgtReference(""), "", READY, Some("some-url"), Map.empty))
+                .downloadFile(UpscanCallBack(DraftReturnId(""), "", READY, Some("some-url"), Map.empty))
             ) shouldBe Left(Error(s"download failed with status ${httpResponse.status}"))
           }
         }
@@ -119,7 +119,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
               connector
                 .downloadFile(
                   UpscanCallBack(
-                    CgtReference("ref"),
+                    DraftReturnId("ref"),
                     "ref-1",
                     READY,
                     Some("some-url"),

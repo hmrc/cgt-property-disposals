@@ -54,9 +54,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
       financialData.map(t => t.chargeReference -> t).toMap
 
     val returnSummaries: List[Validation[ReturnSummary]] =
-      returns.map { returnSummary =>
-        validateReturnSummary(returnSummary, chargeReferenceToFinancialData)
-      }
+      returns.map(returnSummary => validateReturnSummary(returnSummary, chargeReferenceToFinancialData))
 
     returnSummaries
       .sequence[Validated[NonEmptyList[String], ?], ReturnSummary]
@@ -132,9 +130,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
                 s"Could not find financial data for charge with charge reference ${returnSummaryCharge.chargeReference}"
               )
               .toValidatedNel
-              .andThen { t =>
-                validatePayments(t).map(t -> _)
-              }
+              .andThen(t => validatePayments(t).map(t -> _))
 
           (chargeTypeValidation, financialDataValidation).mapN {
             case (chargeType, (financialData, payments)) =>

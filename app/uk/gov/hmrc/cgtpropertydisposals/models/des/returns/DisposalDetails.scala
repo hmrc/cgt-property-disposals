@@ -117,13 +117,12 @@ object DisposalDetails {
   implicit val singleDisposalDetailsFormat: OFormat[SingleDisposalDetails]      = Json.format
   implicit val multipleDisposalsDetailsFormat: OFormat[MultipleDisposalDetails] = Json.format
   implicit val disposalDetailsFormat: OFormat[DisposalDetails] = OFormat(
-    { json: JsValue =>
-      singleDisposalDetailsFormat.reads(json).orElse(multipleDisposalsDetailsFormat.reads(json))
-    }, { d: DisposalDetails =>
-      d match {
-        case s: SingleDisposalDetails   => singleDisposalDetailsFormat.writes(s)
-        case m: MultipleDisposalDetails => multipleDisposalsDetailsFormat.writes(m)
-      }
+    { json: JsValue => singleDisposalDetailsFormat.reads(json).orElse(multipleDisposalsDetailsFormat.reads(json)) }, {
+      d: DisposalDetails =>
+        d match {
+          case s: SingleDisposalDetails   => singleDisposalDetailsFormat.writes(s)
+          case m: MultipleDisposalDetails => multipleDisposalsDetailsFormat.writes(m)
+        }
     }
   )
 
