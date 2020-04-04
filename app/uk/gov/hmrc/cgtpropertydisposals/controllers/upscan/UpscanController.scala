@@ -23,7 +23,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBackEvent._
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBackEvent, UpscanFileDescriptor, UpscanInitiateReference, UpscanSnapshot}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBackEvent, UpscanFileDescriptor, UpscanInitiateReference}
 import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -38,32 +38,6 @@ class UpscanController @Inject() (
   implicit ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
-
-  def getUpscanSnapshot(draftReturnId: DraftReturnId): Action[AnyContent] =
-    authenticate.async {
-      upscanService
-        .getUpscanSnapshot(draftReturnId)
-        .fold(
-          e => {
-            logger.warn(s"failed to get upscan snapshot $e")
-            InternalServerError
-          },
-          snapshot => Ok(Json.toJson[UpscanSnapshot](snapshot))
-        )
-    }
-
-  def getAll(draftId: String): Action[AnyContent] =
-    authenticate.async {
-      upscanService
-        .getAll(DraftReturnId(draftId))
-        .fold(
-          e => {
-            logger.warn(s"failed to get upscan file descriptor $e")
-            InternalServerError
-          },
-          fd => Ok(Json.toJson[List[UpscanFileDescriptor]](fd))
-        )
-    }
 
   def getUpscanFileDescriptor(draftReturnId: String, upscanReference: String): Action[AnyContent] =
     authenticate.async {
@@ -125,32 +99,6 @@ class UpscanController @Inject() (
       }
     }
   }
-
-  def removeFile(draftReturnId: String, upscanReference: String) =
-    authenticate.async {
-      upscanService
-        .deleteFile(DraftReturnId(draftReturnId), UpscanInitiateReference(upscanReference))
-        .fold(
-          e => {
-            logger.warn(s"failed to remove filet $e")
-            InternalServerError
-          },
-          _ => NoContent
-        )
-    }
-
-  def removeAllFiles(draftReturnId: String) =
-    authenticate.async {
-      upscanService
-        .deleteAllFiles(DraftReturnId(draftReturnId))
-        .fold(
-          e => {
-            logger.warn(s"failed to remove all files $e")
-            InternalServerError
-          },
-          _ => NoContent
-        )
-    }
 
   def callback(draftReturnId: DraftReturnId): Action[JsValue] =
     Action.async(parse.json) { implicit request =>

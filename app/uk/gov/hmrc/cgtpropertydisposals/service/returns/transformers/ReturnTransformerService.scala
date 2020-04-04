@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, ValidatedNel}
@@ -40,7 +40,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.UploadSupportingEvidenceAnswers.CompleteUploadSupportingEvidenceAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
@@ -122,7 +122,7 @@ class ReturnTransformerServiceImpl @Inject() (
           examplePropertyDetailsAnswers,
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
-          CompleteUploadSupportingEvidenceAnswers(false, List.empty) // we cannot determine if they uploaded anything
+          CompleteSupportingEvidenceAnswers(false, List.empty) // we cannot determine if they uploaded anything
         )
     }
 
@@ -205,7 +205,7 @@ class ReturnTransformerServiceImpl @Inject() (
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
           initialGainOrLoss,
-          CompleteUploadSupportingEvidenceAnswers(false, List.empty) // we cannot determine if they uploaded anything
+          CompleteSupportingEvidenceAnswers(false, List.empty) // we cannot determine if they uploaded anything
         )
     }
 
@@ -216,7 +216,7 @@ class ReturnTransformerServiceImpl @Inject() (
       ),
       desReturn.returnDetails.estimate,
       AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
-      MandatoryEvidence("", "") // we cannot read the details of the mandatory evidence back
+      MandatoryEvidence("", "", LocalDateTime.now()) // we cannot read the details of the mandatory evidence back
     )
 
   private def getIndividualUserType(desReturn: DesReturnDetails): Option[IndividualUserType] =

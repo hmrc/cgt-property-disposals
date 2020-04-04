@@ -16,48 +16,27 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
-import java.time.LocalDateTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
-import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.Configuration
 import play.api.test.Helpers.await
 import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference, UpscanSnapshot}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
-
-  val config = Configuration(
-    ConfigFactory.parseString(
-      """
-        | microservice.services {
-        |    upscan-initiate {
-        |       max-uploads = 5
-        |       s3url.expiry-time = 7
-        |       dms = {
-        |           classification-type = "queue-name"
-        |           business-area = "cgt"
-        |       }
-        |    }
-        | }
-        |""".stripMargin
-    )
-  )
 
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
@@ -70,8 +49,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
   val service = new UpscanServiceImpl(
     mockUpscanConnector,
     mockUpscanFileDescriptorRepository,
-    mockUpscanCallBackRepository,
-    config
+    mockUpscanCallBackRepository
   )
 
   def mockStoreUpscanFileDescriptor(upscanFileDescriptor: UpscanFileDescriptor)(
@@ -114,14 +92,6 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(upscanFileDescriptor)
       .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
 
-  def mockGetUpscanSnapshot(draftReturnId: DraftReturnId)(
-    response: Either[Error, List[UpscanFileDescriptor]]
-  ) =
-    (mockUpscanFileDescriptorRepository
-      .getAll(_: DraftReturnId))
-      .expects(draftReturnId)
-      .returning(EitherT[Future, Error, List[UpscanFileDescriptor]](Future.successful(response)))
-
   def mockGetFileDescriptor(draftReturnId: DraftReturnId, upscanInitiateReference: UpscanInitiateReference)(
     response: Either[Error, Option[UpscanFileDescriptor]]
   ) =
@@ -161,27 +131,6 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       }
     }
 
-    "it receives a request to get upscan snapshot information" must {
-      "return an error" when {
-        "there is a mongo exception" in {
-          mockGetUpscanSnapshot(draftReturnId)(Left(Error("Connection error")))
-          await(service.getUpscanSnapshot(draftReturnId).value).isLeft shouldBe true
-        }
-      }
-      "return a list of upscan file descriptors" when {
-        "it successfully updates the data" in {
-          mockGetUpscanSnapshot(draftReturnId)(
-            Right(
-              List(
-                upscanFileDescriptor.copy(status = UpscanFileDescriptorStatus.READY, timestamp = LocalDateTime.now())
-              )
-            )
-          )
-          await(service.getUpscanSnapshot(draftReturnId).value) shouldBe Right(UpscanSnapshot(1))
-        }
-      }
-    }
-
     "it receives a request to store upscan file descriptor data" must {
       "return an error" when {
         "there is a mongo exception" in {
@@ -196,6 +145,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
         }
       }
     }
+
     "it receives a request to store upscan call back data" must {
       "return an error" when {
         "there is a mongo exception" in {
@@ -241,7 +191,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
     "it receives a request to download a S3 file" must {
       "return an error" when {
         "all upscan call backs have not been received" in {
-          await(service.downloadFilesFromS3(UpscanSnapshot(3), List(upscanCallBack)).value).isLeft shouldBe true
+          await(service.downloadFilesFromS3(List(upscanCallBack)).value).isLeft shouldBe true
         }
       }
       "return a file attachment" when {
@@ -249,7 +199,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
           mockDownloadS3Urls(upscanCallBack.copy(fileStatus = READY))(
             Right(FileAttachment(UUID.randomUUID().toString, "filename", Some("pdf"), ByteString(1)))
           )
-          await(service.downloadFilesFromS3(UpscanSnapshot(1), List(upscanCallBack.copy(fileStatus = READY))).value).isRight shouldBe true
+          await(service.downloadFilesFromS3(List(upscanCallBack.copy(fileStatus = READY))).value).isRight shouldBe true
         }
       }
     }
