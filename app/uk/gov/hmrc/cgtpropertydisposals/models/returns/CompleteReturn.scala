@@ -29,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.UploadSupportingEvidenceAnswers.CompleteUploadSupportingEvidenceAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 
@@ -42,7 +42,7 @@ object CompleteReturn {
     examplePropertyDetailsAnswers: CompleteExamplePropertyDetailsAnswers,
     exemptionAndLossesAnswers: CompleteExemptionAndLossesAnswers,
     yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
-    uploadSupportingDocumentAnswers: CompleteUploadSupportingEvidenceAnswers
+    supportingDocumentAnswers: CompleteSupportingEvidenceAnswers
   ) extends CompleteReturn
 
   final case class CompleteSingleDisposalReturn(
@@ -54,7 +54,7 @@ object CompleteReturn {
     exemptionsAndLossesDetails: CompleteExemptionAndLossesAnswers,
     yearToDateLiabilityAnswers: Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers],
     initialGainOrLoss: Option[AmountInPence],
-    uploadSupportingDocumentAnswers: CompleteUploadSupportingEvidenceAnswers
+    supportingDocumentAnswers: CompleteSupportingEvidenceAnswers
   ) extends CompleteReturn
 
   implicit class CompleteReturnOps(private val c: CompleteReturn) extends AnyVal {
@@ -81,7 +81,7 @@ object CompleteReturn {
     implicit val exemptionAndLossesFormat: OFormat[CompleteExemptionAndLossesAnswers]             = Json.format
     implicit val nonCalculatedYearToDateLiabilityFormat: OFormat[CompleteNonCalculatedYTDAnswers] = Json.format
     implicit val calculatedYearToDateLiabilityFormat: OFormat[CompleteCalculatedYTDAnswers]       = Json.format
-    implicit val uploadSupportingDocuments: OFormat[CompleteUploadSupportingEvidenceAnswers]      = Json.format
+    implicit val supportingDocumentsAnswersFormat: OFormat[CompleteSupportingEvidenceAnswers]     = Json.format
     derived.oformat()
   }
 

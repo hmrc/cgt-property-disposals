@@ -36,7 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.UploadSupportingEvidenceAnswers.SupportingEvidence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.SupportingEvidence
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
