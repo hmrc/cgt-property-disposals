@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import com.github.ghik.silencer.silent
-
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
@@ -30,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.UploadSupportingEvidenceAnswers.CompleteUploadSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 
@@ -41,7 +41,8 @@ object CompleteReturn {
     triageAnswers: CompleteMultipleDisposalsTriageAnswers,
     examplePropertyDetailsAnswers: CompleteExamplePropertyDetailsAnswers,
     exemptionAndLossesAnswers: CompleteExemptionAndLossesAnswers,
-    yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers
+    yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
+    uploadSupportingDocumentAnswers: CompleteUploadSupportingEvidenceAnswers
   ) extends CompleteReturn
 
   final case class CompleteSingleDisposalReturn(
@@ -52,7 +53,8 @@ object CompleteReturn {
     reliefDetails: CompleteReliefDetailsAnswers,
     exemptionsAndLossesDetails: CompleteExemptionAndLossesAnswers,
     yearToDateLiabilityAnswers: Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers],
-    initialGainOrLoss: Option[AmountInPence]
+    initialGainOrLoss: Option[AmountInPence],
+    uploadSupportingDocumentAnswers: CompleteUploadSupportingEvidenceAnswers
   ) extends CompleteReturn
 
   implicit class CompleteReturnOps(private val c: CompleteReturn) extends AnyVal {
@@ -79,6 +81,7 @@ object CompleteReturn {
     implicit val exemptionAndLossesFormat: OFormat[CompleteExemptionAndLossesAnswers]             = Json.format
     implicit val nonCalculatedYearToDateLiabilityFormat: OFormat[CompleteNonCalculatedYTDAnswers] = Json.format
     implicit val calculatedYearToDateLiabilityFormat: OFormat[CompleteCalculatedYTDAnswers]       = Json.format
+    implicit val uploadSupportingDocuments: OFormat[CompleteUploadSupportingEvidenceAnswers]      = Json.format
     derived.oformat()
   }
 
