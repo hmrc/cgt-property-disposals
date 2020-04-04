@@ -29,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.{FAILED, READY}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.{UpscanCallBackRepository, UpscanFileDescriptorRepository}
 
@@ -190,8 +190,8 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
 
     "it receives a request to download a S3 file" must {
       "return an error" when {
-        "all upscan call backs have not been received" in {
-          await(service.downloadFilesFromS3(List(upscanCallBack)).value).isLeft shouldBe true
+        "some of the files are infected" in {
+          await(service.downloadFilesFromS3(List(upscanCallBack.copy(fileStatus = FAILED))).value).isLeft shouldBe true
         }
       }
       "return a file attachment" when {
