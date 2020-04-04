@@ -42,7 +42,8 @@ object CompleteReturn {
     examplePropertyDetailsAnswers: CompleteExamplePropertyDetailsAnswers,
     exemptionAndLossesAnswers: CompleteExemptionAndLossesAnswers,
     yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
-    supportingDocumentAnswers: CompleteSupportingEvidenceAnswers
+    supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
+    hasAttachments: Boolean
   ) extends CompleteReturn
 
   final case class CompleteSingleDisposalReturn(
@@ -54,7 +55,8 @@ object CompleteReturn {
     exemptionsAndLossesDetails: CompleteExemptionAndLossesAnswers,
     yearToDateLiabilityAnswers: Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers],
     initialGainOrLoss: Option[AmountInPence],
-    supportingDocumentAnswers: CompleteSupportingEvidenceAnswers
+    supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
+    hasAttachments: Boolean
   ) extends CompleteReturn
 
   implicit class CompleteReturnOps(private val c: CompleteReturn) extends AnyVal {

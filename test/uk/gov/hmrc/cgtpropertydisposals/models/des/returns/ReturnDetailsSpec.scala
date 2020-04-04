@@ -155,7 +155,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
 
     "given a single disposal return" must {
 
-      val completeReturn = sample[CompleteSingleDisposalReturn]
+      val completeReturn = sample[CompleteSingleDisposalReturn].copy(hasAttachments = false)
 
       val singleDisposalSubmitReturnRequest = sample[SubmitReturnRequest].copy(
         completeReturn = completeReturn
@@ -286,7 +286,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
 
     "given a multiple disposals return" must {
 
-      val completeReturn = sample[CompleteMultipleDisposalsReturn]
+      val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(hasAttachments = true)
 
       val multipleDisposalsSubmitReturnRequest = sample[SubmitReturnRequest].copy(
         completeReturn = completeReturn
@@ -360,7 +360,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
 
         result.valueAtTaxBandDetails shouldBe None
         result.repayment             shouldBe false
-        result.attachmentUpload      shouldBe false
+        result.attachmentUpload      shouldBe true
         result.declaration           shouldBe true
         result.adjustedAmount        shouldBe None
         result.attachmentID          shouldBe None
