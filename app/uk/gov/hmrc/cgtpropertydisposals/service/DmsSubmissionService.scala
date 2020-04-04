@@ -85,15 +85,17 @@ class DefaultDmsSubmissionService @Inject() (
     cgtReference: CgtReference,
     formBundleId: String,
     supportingEvidence: List[SupportingEvidence],
-    mandatoryEvidence: Option[MandatoryEvidence],
+    mandatoryEvidence: Option[MandatoryEvidence]
   )(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId] =
-    EitherT[Future, Error, EnvelopeId] = for {
-      callbacks         <- upscanService.getAllUpscanCallBacks(draftReturnId)
-      relevantCallbacks <- EitherT.fromEither[Future](getRelevantCallbacks(supportingEvidence, mandatoryEvidence, callbacks))
-      attachments       <- upscanService.downloadFilesFromS3(relevantCallbacks)
-      fileAttachments   <- EitherT.fromEither[Future](attachments.sequence)
+    for {
+      callbacks <- upscanService.getAllUpscanCallBacks(draftReturnId)
+      relevantCallbacks <- EitherT.fromEither[Future](
+                            getRelevantCallbacks(supportingEvidence, mandatoryEvidence, callbacks)
+                          )
+      attachments     <- upscanService.downloadFilesFromS3(relevantCallbacks)
+      fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
       envId <- gFormConnector.submitToDms(
                 DmsSubmissionPayload(
                   html,
@@ -103,10 +105,11 @@ class DefaultDmsSubmissionService @Inject() (
               )
     } yield envId
 
-
-  private     def getRelevantCallbacks(    supportingEvidence: List[SupportingEvidence],
-                                           mandatoryEvidence: Option[MandatoryEvidence],
-                                           callbacks: List[UpscanCallBack]): Either[Error, List[UpscanCallBack]] = {
+  private def getRelevantCallbacks(
+    supportingEvidence: List[SupportingEvidence],
+    mandatoryEvidence: Option[MandatoryEvidence],
+    callbacks: List[UpscanCallBack]
+  ): Either[Error, List[UpscanCallBack]] = {
     val references =
       mandatoryEvidence.fold(supportingEvidence.map(_.reference))(_.reference :: supportingEvidence.map(_.reference))
 
@@ -119,6 +122,5 @@ class DefaultDmsSubmissionService @Inject() (
     else
       Right(relevantCallbacks)
   }
-
 
 }
