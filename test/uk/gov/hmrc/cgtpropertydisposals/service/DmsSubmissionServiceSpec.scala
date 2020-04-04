@@ -30,6 +30,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.UploadSupportingEvidenceAnswers.SupportingEvidence
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.{FAILED, READY}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -108,7 +110,14 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           }
           await(
             dmsSubmissionService
-              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .submitToDms(
+                dmsSubmissionPayload.b64Html,
+                draftReturnId,
+                cgtReference,
+                "form-bundle-id",
+                List.empty,
+                Some(sample[MandatoryEvidence].copy(reference = upscanCallBack.reference))
+              )
               .value
           ).isLeft shouldBe true
         }
@@ -118,16 +127,18 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
-          inSequence {
-            mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
-            mockDownloadS3Urls(List(upscanCallBack))(
-              Right(fileAttachments.map(attachment => Right(attachment)))
-            )
-            mockGFormSubmission(dmsSubmissionPayload)(Left(Error("gForm service error")))
-          }
+          mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
+
           await(
             dmsSubmissionService
-              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .submitToDms(
+                dmsSubmissionPayload.b64Html,
+                draftReturnId,
+                cgtReference,
+                "form-bundle-id",
+                List(sample[SupportingEvidence].copy(reference = "other-reference")),
+                Some(sample[MandatoryEvidence].copy(reference  = upscanCallBack.reference))
+              )
               .value
           ).isLeft shouldBe true
         }
@@ -141,7 +152,14 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           }
           await(
             dmsSubmissionService
-              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .submitToDms(
+                dmsSubmissionPayload.b64Html,
+                draftReturnId,
+                cgtReference,
+                "form-bundle-id",
+                List.empty,
+                Some(sample[MandatoryEvidence])
+              )
               .value
           ).isLeft shouldBe true
         }
@@ -157,7 +175,14 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           }
           await(
             dmsSubmissionService
-              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .submitToDms(
+                dmsSubmissionPayload.b64Html,
+                draftReturnId,
+                cgtReference,
+                "form-bundle-id",
+                List.empty,
+                Some(sample[MandatoryEvidence].copy(reference = upscanCallBack.reference))
+              )
               .value
           ).isLeft shouldBe true
         }
@@ -175,7 +200,14 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           }
           await(
             dmsSubmissionService
-              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .submitToDms(
+                dmsSubmissionPayload.b64Html,
+                draftReturnId,
+                cgtReference,
+                "form-bundle-id",
+                List.empty,
+                Some(sample[MandatoryEvidence].copy(reference = upscanCallBack.reference))
+              )
               .value
           ).isLeft shouldBe true
         }
@@ -193,7 +225,14 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           }
           await(
             dmsSubmissionService
-              .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+              .submitToDms(
+                dmsSubmissionPayload.b64Html,
+                draftReturnId,
+                cgtReference,
+                "form-bundle-id",
+                List.empty,
+                Some(sample[MandatoryEvidence].copy(reference = upscanCallBack.reference))
+              )
               .value
           ).isLeft shouldBe true
         }
@@ -213,7 +252,14 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
         }
         await(
           dmsSubmissionService
-            .submitToDms(dmsSubmissionPayload.b64Html, draftReturnId, cgtReference, "form-bundle-id")
+            .submitToDms(
+              dmsSubmissionPayload.b64Html,
+              draftReturnId,
+              cgtReference,
+              "form-bundle-id",
+              List.empty,
+              Some(sample[MandatoryEvidence].copy(reference = upscanCallBack.reference))
+            )
             .value
         ) shouldBe Right(
           EnvelopeId(
