@@ -18,9 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.Json
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.ReadConcern
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
@@ -35,23 +34,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultUpscanFileDescriptorRepository])
 trait UpscanFileDescriptorRepository {
+
   def insert(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Unit]
-  def count(draftReturnId: DraftReturnId): EitherT[Future, Error, Int]
+
   def get(
     draftReturnId: DraftReturnId,
     upscanInitiateReference: UpscanInitiateReference
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
-  def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanFileDescriptor]]
   def updateUpscanUploadStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
+
   def updateStatus(upscanCallBack: UpscanCallBack): EitherT[Future, Error, Boolean]
-  def deleteFile(
-    draftReturnId: DraftReturnId,
-    upscanInitiateReference: UpscanInitiateReference
-  ): EitherT[Future, Error, Unit]
-  def deleteAllFiles(
-    draftReturnId: DraftReturnId
-  ): EitherT[Future, Error, Unit]
 }
 
 @Singleton
@@ -64,8 +57,6 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
       ReactiveMongoFormats.objectIdFormats
     )
     with UpscanFileDescriptorRepository {
-
-  private val defaultReadConcern: ReadConcern = mongo.mongoConnector.helper.connectionOptions.readConcern
 
   override def indexes: Seq[Index] = Seq(
     Index(
@@ -138,29 +129,6 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
         }
     )
 
-  override def count(draftReturnId: DraftReturnId): EitherT[Future, Error, Int] = {
-    val query = Json.obj("draftReturnId" -> draftReturnId)
-    EitherT[Future, Error, Int](
-      collection
-        .count(Some(query), limit = None, skip = 0, hint = None, readConcern = defaultReadConcern)
-        .map[Either[Error, Int]](c => Right(c.toInt))
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
-    )
-  }
-
-  override def getAll(
-    draftReturnId: DraftReturnId
-  ): EitherT[Future, Error, List[UpscanFileDescriptor]] =
-    EitherT[Future, Error, List[UpscanFileDescriptor]](
-      find("draftReturnId" -> Json.obj("value" -> JsString(draftReturnId.value)))
-        .map(Right(_))
-        .recover {
-          case exception => Left(Error(exception))
-        }
-    )
-
   override def get(
     draftReturnId: DraftReturnId,
     upscanInitiateReference: UpscanInitiateReference
@@ -171,37 +139,6 @@ class DefaultUpscanFileDescriptorRepository @Inject() (mongo: ReactiveMongoCompo
         .find(selector, None)
         .one[UpscanFileDescriptor]
         .map(Right(_))
-        .recover {
-          case exception => Left(Error(exception))
-        }
-    )
-  }
-
-  override def deleteFile(
-    draftReturnId: DraftReturnId,
-    upscanInitiateReference: UpscanInitiateReference
-  ): EitherT[Future, Error, Unit] = {
-    val selector = Json.obj("upscanInitiateReference" -> upscanInitiateReference, "draftReturnId" -> draftReturnId)
-    EitherT[Future, Error, Unit](
-      collection
-        .delete()
-        .one(selector, Some(1))
-        .map(_ => Right(()))
-        .recover {
-          case exception => Left(Error(exception))
-        }
-    )
-  }
-
-  override def deleteAllFiles(
-    draftReturnId: DraftReturnId
-  ): EitherT[Future, Error, Unit] = {
-    val selector = Json.obj("draftReturnId" -> draftReturnId)
-    EitherT[Future, Error, Unit](
-      collection
-        .delete()
-        .one(selector, None)
-        .map(_ => Right(()))
         .recover {
           case exception => Left(Error(exception))
         }

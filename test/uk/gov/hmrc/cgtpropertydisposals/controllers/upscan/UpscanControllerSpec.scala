@@ -89,14 +89,6 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       .expects(draftReturnId, upscanInitiateReference)
       .returning(EitherT[Future, Error, Option[UpscanFileDescriptor]](Future.successful(response)))
 
-  def mockGetUpscanSnapshot(draftReturnId: DraftReturnId)(
-    response: Either[Error, UpscanSnapshot]
-  ) =
-    (mockUpscanService
-      .getUpscanSnapshot(_: DraftReturnId))
-      .expects(draftReturnId)
-      .returning(EitherT[Future, Error, UpscanSnapshot](Future.successful(response)))
-
   val request = new AuthenticatedRequest(
     Fake.user,
     LocalDateTime.now(),
@@ -327,61 +319,6 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
         mockGetUpscanFileDescriptor(draftId, upscanRef)(Right(Some(upfd)))
 
         val result = controller.getUpscanFileDescriptor(draftId.value, upscanRef.value)(request)
-        status(result) shouldBe OK
-
-      }
-
-    }
-
-    "it receives a request to get an upscan snapshot" must {
-
-      "return an internal server error if the backend call fails" in {
-
-        val request =
-          new AuthenticatedRequest(
-            Fake.user,
-            LocalDateTime.now(),
-            headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
-          )
-
-        mockGetUpscanSnapshot(DraftReturnId("ref"))(Left(Error("mongo error")))
-
-        val result = controller.getUpscanSnapshot(DraftReturnId("ref"))(request)
-        status(result) shouldBe INTERNAL_SERVER_ERROR
-
-      }
-
-      "return a bad request if the store descriptor structure is corrupted" in {
-
-        val request =
-          new AuthenticatedRequest(
-            Fake.user,
-            LocalDateTime.now(),
-            headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
-          )
-
-        mockGetUpscanSnapshot(DraftReturnId("ref"))(Left(Error("mongo error")))
-
-        val result = controller.getUpscanSnapshot(DraftReturnId("ref"))(request)
-        status(result) shouldBe INTERNAL_SERVER_ERROR
-
-      }
-
-      "return a 200 OK if the backend call succeeds" in {
-
-        val request =
-          new AuthenticatedRequest(
-            Fake.user,
-            LocalDateTime.now(),
-            headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
-          )
-
-        mockGetUpscanSnapshot(DraftReturnId("ref"))(Right(UpscanSnapshot(1)))
-
-        val result = controller.getUpscanSnapshot(DraftReturnId("ref"))(request)
         status(result) shouldBe OK
 
       }

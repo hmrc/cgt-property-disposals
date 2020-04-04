@@ -75,9 +75,8 @@ class DefaultDmsSubmissionService @Inject() (
   ): EitherT[Future, Error, EnvelopeId] = {
 
     val fileUploadResult: EitherT[Future, Error, EnvelopeId] = for {
-      upscanSnapshot  <- upscanService.getUpscanSnapshot(draftReturnId)
       callbacks       <- upscanService.getAllUpscanCallBacks(draftReturnId)
-      attachments     <- upscanService.downloadFilesFromS3(upscanSnapshot, callbacks)
+      attachments     <- upscanService.downloadFilesFromS3(callbacks)
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
       envId <- gFormConnector.submitToDms(
                 DmsSubmissionPayload(

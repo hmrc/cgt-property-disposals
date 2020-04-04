@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
+import java.time.LocalDateTime
+
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 
@@ -25,7 +27,8 @@ object UploadSupportingEvidenceAnswers {
 
   final case class SupportingEvidence(
     reference: String,
-    fileName: String
+    fileName: String,
+    createdOn: LocalDateTime
   )
 
   object SupportingEvidence {

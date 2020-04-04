@@ -37,10 +37,5 @@ class UpscanFileDescriptorRepositoryFailureSpec extends WordSpec with Matchers w
       }
     }
 
-    "counting in a broken repo" should {
-      "return an error" in {
-        await(repository.count(fd.draftReturnId).value).isLeft shouldBe true
-      }
-    }
   }
 }

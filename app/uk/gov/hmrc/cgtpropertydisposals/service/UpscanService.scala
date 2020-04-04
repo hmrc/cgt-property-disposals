@@ -16,14 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
-import java.time.LocalDateTime
-
 import cats.data.EitherT
 import cats.implicits._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.Configs
-import configs.syntax._
-import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
@@ -37,8 +32,6 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[UpscanServiceImpl])
 trait UpscanService {
 
-  def getUpscanSnapshot(draftReturnId: DraftReturnId): EitherT[Future, Error, UpscanSnapshot]
-
   def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit]
 
   def saveCallBackData(cb: UpscanCallBack): EitherT[Future, Error, Boolean]
@@ -48,25 +41,13 @@ trait UpscanService {
     upscanInitiateReference: UpscanInitiateReference
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]]
 
-  def getAll(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanFileDescriptor]]
-
   def updateUpscanFileDescriptorStatus(upscanFileDescriptor: UpscanFileDescriptor): EitherT[Future, Error, Boolean]
 
   def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]]
 
   def downloadFilesFromS3(
-    snapshot: UpscanSnapshot,
     urls: List[UpscanCallBack]
   ): EitherT[Future, Error, List[Either[Error, FileAttachment]]]
-
-  def deleteFile(
-    draftReturnId: DraftReturnId,
-    upscanInitiateReference: UpscanInitiateReference
-  ): EitherT[Future, Error, Unit]
-
-  def deleteAllFiles(
-    draftReturnId: DraftReturnId
-  ): EitherT[Future, Error, Unit]
 
 }
 
@@ -74,26 +55,10 @@ trait UpscanService {
 class UpscanServiceImpl @Inject() (
   upscanConnector: UpscanConnector,
   upscanFileDescriptorRepository: UpscanFileDescriptorRepository,
-  upscanCallBackRepository: UpscanCallBackRepository,
-  configuration: Configuration
+  upscanCallBackRepository: UpscanCallBackRepository
 )(implicit executionContext: ExecutionContext)
     extends UpscanService
     with Logging {
-
-  private def getUpscanInitiateConfig[A: Configs](key: String): A =
-    configuration.underlying
-      .get[A](s"microservice.services.upscan-initiate.$key")
-      .value
-
-  private val s3UrlExpiryTime: Long = getUpscanInitiateConfig[Long]("s3url.expiry-time")
-
-  override def getUpscanSnapshot(
-    draftReturnId: DraftReturnId
-  ): EitherT[Future, Error, UpscanSnapshot] =
-    for {
-      fileDescriptors <- upscanFileDescriptorRepository.getAll(draftReturnId)
-      upscanSnapshot  <- EitherT.fromEither[Future](computeUpscanSnapshot(fileDescriptors))
-    } yield upscanSnapshot
 
   override def updateUpscanFileDescriptorStatus(
     upscanFileDescriptor: UpscanFileDescriptor
@@ -106,11 +71,6 @@ class UpscanServiceImpl @Inject() (
   ): EitherT[Future, Error, Option[UpscanFileDescriptor]] =
     upscanFileDescriptorRepository.get(draftReturnId, upscanInitiateReference)
 
-  def getAll(
-    draftReturnId: DraftReturnId
-  ): EitherT[Future, Error, List[UpscanFileDescriptor]] =
-    upscanFileDescriptorRepository.getAll(draftReturnId)
-
   override def storeFileDescriptorData(fd: UpscanFileDescriptor): EitherT[Future, Error, Unit] =
     upscanFileDescriptorRepository.insert(fd)
 
@@ -121,10 +81,9 @@ class UpscanServiceImpl @Inject() (
     } yield (b)
 
   override def downloadFilesFromS3(
-    snapshot: UpscanSnapshot,
     urls: List[UpscanCallBack]
   ): EitherT[Future, Error, List[Either[Error, FileAttachment]]] =
-    if ((snapshot.fileUploadCount === urls.size) && urls.forall(p => p.fileStatus === READY)) {
+    if (urls.forall(p => p.fileStatus === READY)) {
       EitherT[Future, Error, List[Either[Error, FileAttachment]]](
         Future.traverse(urls)(url => upscanConnector.downloadFile(url)).map(s => Right(s))
       )
@@ -134,30 +93,7 @@ class UpscanServiceImpl @Inject() (
       )
     }
 
-  private def computeUpscanSnapshot(upscanFileDescriptor: List[UpscanFileDescriptor]): Either[Error, UpscanSnapshot] = {
-    logger.info(s"stored upscan file descriptors: $upscanFileDescriptor ")
-
-    val validFiles = upscanFileDescriptor
-      .filter(fd => fd.timestamp.isAfter(LocalDateTime.now().minusDays(s3UrlExpiryTime)))
-      .filter(fd => fd.status === UpscanFileDescriptor.UpscanFileDescriptorStatus.READY)
-
-    logger.info(s"filtered upscan file descriptors: $upscanFileDescriptor ")
-
-    Right(
-      UpscanSnapshot(
-        validFiles.size
-      )
-    )
-  }
-
   def getAllUpscanCallBacks(draftReturnId: DraftReturnId): EitherT[Future, Error, List[UpscanCallBack]] =
     upscanCallBackRepository.getAll(draftReturnId)
 
-  override def deleteFile(
-    draftReturnId: DraftReturnId,
-    upscanInitiateReference: UpscanInitiateReference
-  ): EitherT[Future, Error, Unit] = upscanFileDescriptorRepository.deleteFile(draftReturnId, upscanInitiateReference)
-
-  override def deleteAllFiles(draftReturnId: DraftReturnId): EitherT[Future, Error, Unit] =
-    upscanFileDescriptorRepository.deleteAllFiles(draftReturnId)
 }

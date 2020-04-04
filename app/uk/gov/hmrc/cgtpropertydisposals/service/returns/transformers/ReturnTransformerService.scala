@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, ValidatedNel}
@@ -213,7 +213,7 @@ class ReturnTransformerServiceImpl @Inject() (
       ),
       desReturn.returnDetails.estimate,
       AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
-      MandatoryEvidence("", "") // we cannot read the details of the mandatory evidence back
+      MandatoryEvidence("", "", LocalDateTime.now()) // we cannot read the details of the mandatory evidence back
     )
 
   private def getIndividualUserType(desReturn: DesReturnDetails): Option[IndividualUserType] =

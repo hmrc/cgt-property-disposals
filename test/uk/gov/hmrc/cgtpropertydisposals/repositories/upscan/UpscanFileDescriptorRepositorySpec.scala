@@ -40,27 +40,10 @@ class UpscanFileDescriptorRepositorySpec extends WordSpec with Matchers with Mon
       }
     }
 
-    "counting" should {
-      "return number of file descriptors" in {
-        await(repository.insert(fd).value)              shouldBe Right(())
-        await(repository.insert(fd).value)              shouldBe Right(())
-        await(repository.insert(fd).value)              shouldBe Right(())
-        await(repository.count(fd.draftReturnId).value) shouldBe Right(3)
-      }
-    }
-
     "updating upscan upload status" should {
       "return true if the update was successful" in {
         await(repository.insert(fd).value) shouldBe Right(())
         await(repository.updateUpscanUploadStatus(fd.copy(status = UPLOADED)).value) shouldBe Right(true)
-      }
-    }
-
-    "getting all upscan file descriptors" should {
-      "return two if there are only two in the repo" in {
-        await(repository.insert(fd).value)                                shouldBe Right(())
-        await(repository.insert(fd).value)                                shouldBe Right(())
-        await(repository.getAll(fd.draftReturnId).value).map(s => s.size) shouldBe Right(2)
       }
     }
 
