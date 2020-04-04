@@ -89,7 +89,7 @@ class UpscanServiceImpl @Inject() (
       )
     } else {
       EitherT.leftT(
-        Error("All upscan callbacks have not been received or some files are infected")
+        Error("Some files are infected")
       )
     }
 

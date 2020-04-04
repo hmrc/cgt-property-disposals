@@ -60,12 +60,13 @@ object YearToDateLiabilityAnswers {
       calculatedTaxDue: Option[CalculatedTaxDue],
       taxDue: Option[AmountInPence],
       mandatoryEvidence: Option[MandatoryEvidence],
-      expiredEvidence: Option[MandatoryEvidence]
+      expiredEvidence: Option[MandatoryEvidence],
+      upscanSuccessful: Option[Boolean]
     ) extends CalculatedYTDAnswers
 
     object IncompleteCalculatedYTDAnswers {
       val empty: IncompleteCalculatedYTDAnswers =
-        IncompleteCalculatedYTDAnswers(None, None, None, None, None, None, None)
+        IncompleteCalculatedYTDAnswers(None, None, None, None, None, None, None, None)
     }
 
     final case class CompleteCalculatedYTDAnswers(
