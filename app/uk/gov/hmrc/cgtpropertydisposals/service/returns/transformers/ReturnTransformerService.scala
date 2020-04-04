@@ -40,6 +40,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.UploadSupportingEvidenceAnswers.CompleteUploadSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
@@ -120,7 +121,8 @@ class ReturnTransformerServiceImpl @Inject() (
           triageAnswers,
           examplePropertyDetailsAnswers,
           exemptionAndLossesAnswers,
-          yearToDateLiabilityAnswers
+          yearToDateLiabilityAnswers,
+          CompleteUploadSupportingEvidenceAnswers(false, List.empty) // we cannot determine if they uploaded anything
         )
     }
 
@@ -202,7 +204,8 @@ class ReturnTransformerServiceImpl @Inject() (
           reliefAnswers,
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
-          initialGainOrLoss
+          initialGainOrLoss,
+          CompleteUploadSupportingEvidenceAnswers(false, List.empty) // we cannot determine if they uploaded anything
         )
     }
 
