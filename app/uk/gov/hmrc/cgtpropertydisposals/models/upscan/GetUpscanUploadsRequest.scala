@@ -16,22 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json._
+import play.api.libs.json.{Json, OFormat}
 
-final case class UploadRequest(
-  href: String,
-  fields: Map[String, String]
-)
+final case class GetUpscanUploadsRequest(uploadReferences: List[UploadReference])
 
-object UploadRequest {
-  implicit val format = Json.format[UploadRequest]
-}
+object GetUpscanUploadsRequest {
 
-final case class FileDescriptor(
-  reference: String,
-  uploadRequest: UploadRequest
-)
+  implicit val format: OFormat[GetUpscanUploadsRequest] = Json.format
 
-object FileDescriptor {
-  implicit val format = Json.format[FileDescriptor]
 }

@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanUpload
 
 sealed trait YearToDateLiabilityAnswers extends Product with Serializable
 
@@ -35,12 +36,13 @@ object YearToDateLiabilityAnswers {
       hasEstimatedDetails: Option[Boolean],
       taxDue: Option[AmountInPence],
       mandatoryEvidence: Option[MandatoryEvidence],
-      expiredEvidence: Option[MandatoryEvidence]
+      expiredEvidence: Option[MandatoryEvidence],
+      pendingUpscanUpload: Option[UpscanUpload]
     ) extends NonCalculatedYTDAnswers
 
     object IncompleteNonCalculatedYTDAnswers {
       val empty: IncompleteNonCalculatedYTDAnswers =
-        IncompleteNonCalculatedYTDAnswers(None, None, None, None, None)
+        IncompleteNonCalculatedYTDAnswers(None, None, None, None, None, None)
     }
 
     final case class CompleteNonCalculatedYTDAnswers(
@@ -61,7 +63,7 @@ object YearToDateLiabilityAnswers {
       taxDue: Option[AmountInPence],
       mandatoryEvidence: Option[MandatoryEvidence],
       expiredEvidence: Option[MandatoryEvidence],
-      upscanSuccessful: Option[Boolean]
+      pendingUpscanUpload: Option[UpscanUpload]
     ) extends CalculatedYTDAnswers
 
     object IncompleteCalculatedYTDAnswers {

@@ -31,9 +31,7 @@ import play.shaded.ahc.org.asynchttpclient.Response
 import play.shaded.ahc.org.asynchttpclient.uri.Uri
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
@@ -66,7 +64,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
             "protocols!"
           )
         )
-        .accumulate(new CacheableHttpResponseHeaders(false, new DefaultHttpHeaders().add("My-Header", "value")))
+        .accumulate(CacheableHttpResponseHeaders(false, new DefaultHttpHeaders().add("My-Header", "value")))
         .accumulate(new CacheableHttpResponseBodyPart("error body".getBytes(), true))
         .build()
     )
@@ -99,8 +97,29 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
             )(Future.successful(httpResponse))
             await(
               connector
-                .downloadFile(UpscanCallBack(DraftReturnId(""), "", READY, Some("some-url"), Map.empty))
+                .downloadFile(
+                  UpscanSuccess(
+                    "ref",
+                    "status",
+                    "some-url",
+                    Map("filename" -> "f1.text", "fileMimeType" -> "application/pdf")
+                  )
+                )
             ) shouldBe Left(Error(s"download failed with status ${httpResponse.status}"))
+          }
+        }
+      }
+
+      "return an error if the required file descriptors cannot be found" in {
+        List(
+          buildWsResponse(400),
+          buildWsResponse(500)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+            await(
+              connector
+                .downloadFile(UpscanSuccess("ref", "status", "some-url", Map.empty))
+            ) shouldBe Left(Error("missing file descriptors"))
           }
         }
       }
@@ -118,12 +137,11 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
             await(
               connector
                 .downloadFile(
-                  UpscanCallBack(
-                    DraftReturnId("ref"),
-                    "ref-1",
-                    READY,
-                    Some("some-url"),
-                    Map(("filename" -> "f1.text"), ("fileMimeType" -> "application/pdf"))
+                  UpscanSuccess(
+                    "ref",
+                    "status",
+                    "some-url",
+                    Map("filename" -> "f1.text", "fileMimeType" -> "application/pdf")
                   )
                 )
             ).isRight shouldBe true

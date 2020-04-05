@@ -44,6 +44,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UploadRequest, UpscanUploadMeta}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
 
@@ -218,8 +220,16 @@ class ReturnTransformerServiceImpl @Inject() (
       ),
       desReturn.returnDetails.estimate,
       AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
-      MandatoryEvidence("", "", LocalDateTime.now()) // we cannot read the details of the mandatory evidence back
+      dummyMandatoryEvidence // we cannot read the details of the mandatory evidence back
     )
+
+  private val dummyMandatoryEvidence = MandatoryEvidence(
+    UploadReference(""),
+    UpscanUploadMeta("", UploadRequest("", Map.empty)),
+    LocalDateTime.MIN,
+    UpscanSuccess("", "", "", Map.empty),
+    ""
+  )
 
   private def getIndividualUserType(desReturn: DesReturnDetails): Option[IndividualUserType] =
     desReturn.returnDetails.customerType match {

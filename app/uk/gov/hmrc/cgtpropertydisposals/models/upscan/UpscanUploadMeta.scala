@@ -14,24 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import java.time.LocalDateTime
+import play.api.libs.json.Json
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUploadMeta}
-
-final case class MandatoryEvidence(
-  uploadReference: UploadReference,
-  upscanUploadMeta: UpscanUploadMeta,
-  uploadedOn: LocalDateTime,
-  upscanSuccess: UpscanSuccess,
-  fileName: String
+final case class UpscanUploadMeta(
+  reference: String,
+  uploadRequest: UploadRequest
 )
 
-object MandatoryEvidence {
-
-  implicit val format: OFormat[MandatoryEvidence] = Json.format
-
+object UpscanUploadMeta {
+  implicit val format = Json.format[UpscanUploadMeta]
 }

@@ -22,9 +22,6 @@ import cats.data.EitherT
 import cats.instances.either._
 import cats.instances.future._
 import cats.instances.list._
-import cats.instances.string._
-import cats.syntax.either._
-import cats.syntax.eq._
 import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.Configs
@@ -32,12 +29,11 @@ import configs.syntax._
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.SupportingEvidence
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
+import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -48,11 +44,9 @@ trait DmsSubmissionService {
 
   def submitToDms(
     html: B64Html,
-    draftReturnId: DraftReturnId,
-    cgtReference: CgtReference,
     formBundleId: String,
-    supportingEvidence: List[SupportingEvidence],
-    mandatoryEvidence: Option[MandatoryEvidence]
+    cgtReference: CgtReference,
+    completeReturn: CompleteReturn
   )(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId]
@@ -81,20 +75,14 @@ class DefaultDmsSubmissionService @Inject() (
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def submitToDms(
     html: B64Html,
-    draftReturnId: DraftReturnId,
-    cgtReference: CgtReference,
     formBundleId: String,
-    supportingEvidence: List[SupportingEvidence],
-    mandatoryEvidence: Option[MandatoryEvidence]
+    cgtReference: CgtReference,
+    completeReturn: CompleteReturn
   )(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId] =
     for {
-      callbacks <- upscanService.getAllUpscanCallBacks(draftReturnId)
-      relevantCallbacks <- EitherT.fromEither[Future](
-                            getRelevantCallbacks(supportingEvidence, mandatoryEvidence, callbacks)
-                          )
-      attachments     <- upscanService.downloadFilesFromS3(relevantCallbacks)
+      attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
       envId <- gFormConnector.submitToDms(
                 DmsSubmissionPayload(
@@ -105,22 +93,14 @@ class DefaultDmsSubmissionService @Inject() (
               )
     } yield envId
 
-  private def getRelevantCallbacks(
-    supportingEvidence: List[SupportingEvidence],
-    mandatoryEvidence: Option[MandatoryEvidence],
-    callbacks: List[UpscanCallBack]
-  ): Either[Error, List[UpscanCallBack]] = {
-    val references =
-      mandatoryEvidence.fold(supportingEvidence.map(_.reference))(_.reference :: supportingEvidence.map(_.reference))
-
-    val (unknownReferences, relevantCallbacks) = references
-      .map(ref => Either.fromOption(callbacks.find(_.reference === ref), ref))
-      .partitionWith(identity)
-
-    if (unknownReferences.nonEmpty)
-      Left(Error(s"Could not find callbacks for references [${unknownReferences.mkString(", ")}]"))
-    else
-      Right(relevantCallbacks)
-  }
+  private def getUpscanSuccesses(completeReturn: CompleteReturn): List[UpscanSuccess] =
+    List(
+      UpscanSuccess(
+        "reference",
+        "status",
+        "downloadUrl",
+        Map.empty
+      )
+    )
 
 }

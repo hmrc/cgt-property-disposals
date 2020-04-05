@@ -16,10 +16,18 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
+import java.time.LocalDateTime
+
 import play.api.libs.json.Json
 
-final case class UpscanInitiateReference(value: String) extends AnyVal
+final case class UpscanUpload(
+  uploadReference: UploadReference,
+  upscanUploadMeta: UpscanUploadMeta,
+  uploadedOn: LocalDateTime,
+  upscanUploadStatus: UpscanUploadStatus,
+  upscanCallBack: Option[UpscanCallBack]
+)
 
-object UpscanInitiateReference {
-  implicit val format = Json.format[UpscanInitiateReference]
+object UpscanUpload {
+  implicit val format = Json.format[UpscanUpload]
 }

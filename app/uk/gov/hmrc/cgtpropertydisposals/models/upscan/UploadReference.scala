@@ -14,25 +14,27 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.ids
+package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json.Json
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format
 import play.api.mvc.PathBindable
 
-final case class DraftReturnId(value: String) extends AnyVal
+final case class UploadReference(value: String) extends AnyVal
 
-object DraftReturnId {
-
-  implicit val binder: PathBindable[DraftReturnId] =
-    new PathBindable[DraftReturnId] {
+object UploadReference {
+  implicit val binder: PathBindable[UploadReference] =
+    new PathBindable[UploadReference] {
       val stringBinder: PathBindable[String] = implicitly[PathBindable[String]]
 
-      override def bind(key: String, value: String): Either[String, DraftReturnId] =
-        stringBinder.bind(key, value).map(DraftReturnId.apply)
+      override def bind(key: String, value: String): Either[String, UploadReference] =
+        stringBinder.bind(key, value).map(UploadReference.apply)
 
-      override def unbind(key: String, value: DraftReturnId): String =
+      override def unbind(key: String, value: UploadReference): String =
         stringBinder.unbind(key, value.value)
     }
 
-  implicit val format = Json.format[DraftReturnId]
+  implicit val format: Format[UploadReference] =
+    implicitly[Format[String]].inmap(UploadReference(_), _.value)
+
 }
