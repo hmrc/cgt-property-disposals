@@ -32,11 +32,9 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanFileDescriptor.UpscanFileDescriptorStatus.UPLOADED
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.READY
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
-import uk.gov.hmrc.cgtpropertydisposals.service.UpscanService
+import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -57,37 +55,33 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
   val headerCarrier = HeaderCarrier()
 
-  def mockStoreUpscanFileDescriptor(upscanFileDescriptor: UpscanFileDescriptor)(
+  def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
     response: Either[Error, Unit]
   ) =
     (mockUpscanService
-      .storeFileDescriptorData(_: UpscanFileDescriptor))
-      .expects(upscanFileDescriptor)
+      .storeUpscanUpload(_: UpscanUpload))
+      .expects(upscanUpload)
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
-  def mockUpdateFileDescriptor(upscanFileDescriptor: UpscanFileDescriptor)(
-    response: Either[Error, Boolean]
+  def mockUpdateUpscanUpload(
+    draftReturnId: DraftReturnId,
+    upscanReference: UpscanReference,
+    upscanUpload: UpscanUpload
+  )(
+    response: Either[Error, Unit]
   ) =
     (mockUpscanService
-      .updateUpscanFileDescriptorStatus(_: UpscanFileDescriptor))
-      .expects(upscanFileDescriptor)
-      .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
+      .updateUpscanUpload(_: DraftReturnId, _: UpscanReference, _: UpscanUpload))
+      .expects(draftReturnId, upscanReference, upscanUpload)
+      .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
-  def mockStoreUpscanCallBack(upscanCallBack: UpscanCallBack)(
-    response: Either[Error, Boolean]
+  def mockGetUpscanUpload(draftReturnId: DraftReturnId, upscanReference: UpscanReference)(
+    response: Either[Error, Option[UpscanUpload]]
   ) =
     (mockUpscanService
-      .saveCallBackData(_: UpscanCallBack))
-      .expects(upscanCallBack)
-      .returning(EitherT[Future, Error, Boolean](Future.successful(response)))
-
-  def mockGetUpscanFileDescriptor(draftReturnId: DraftReturnId, upscanInitiateReference: UpscanInitiateReference)(
-    response: Either[Error, Option[UpscanFileDescriptor]]
-  ) =
-    (mockUpscanService
-      .getUpscanFileDescriptor(_: DraftReturnId, _: UpscanInitiateReference))
-      .expects(draftReturnId, upscanInitiateReference)
-      .returning(EitherT[Future, Error, Option[UpscanFileDescriptor]](Future.successful(response)))
+      .readUpscanUpload(_: DraftReturnId, _: UpscanReference))
+      .expects(draftReturnId, upscanReference)
+      .returning(EitherT[Future, Error, Option[UpscanUpload]](Future.successful(response)))
 
   val request = new AuthenticatedRequest(
     Fake.user,
@@ -104,189 +98,129 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
     upscanService = mockUpscanService,
     cc            = Helpers.stubControllerComponents()
   )
+//
+//  val upfd = UpscanFileDescriptor(
+//    upscanInitiateReference = UpscanInitiateReference("12345"),
+//    draftReturnId           = DraftReturnId("draft-return-id"),
+//    cgtReference            = CgtReference("cgt-ref"),
+//    fileDescriptor = FileDescriptor(
+//      reference = "11370e18-6e24-453e-b45a-76d3e32ea33d",
+//      uploadRequest = UploadRequest(
+//        href = "https:xxxx/upscan-upload-proxy/bucketName",
+//        fields = Map(
+//          "Content-Type"            -> "application/xml",
+//          "acl"                     -> "private",
+//          "key"                     -> "xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+//          "policy"                  -> "xxxxxxxx==",
+//          "x-amz-algorithm"         -> "AWS4-HMAC-SHA256",
+//          "x-amz-credential"        -> "ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
+//          "x-amz-date"              -> "yyyyMMddThhmmssZ",
+//          "x-amz-meta-callback-url" -> "https:myservice.com/callback",
+//          "x-amz-signature"         -> "xxxx"
+//        )
+//      )
+//    ),
+//    timestamp = LocalDateTime.of(2020, 2, 19, 16, 24, 16),
+//    status    = UPLOADED
+//  )
+//
+//  val upscanFileDescriptorPayload =
+//    """
+//      |{
+//      |   "upscanInitiateReference":{
+//      |      "value":"12345"
+//      |   },
+//      |   "draftReturnId":{
+//      |      "value":"draft-return-id"
+//      |   },
+//      |   "cgtReference":{
+//      |      "value":"cgt-ref"
+//      |   },
+//      |   "fileDescriptor":{
+//      |      "reference":"11370e18-6e24-453e-b45a-76d3e32ea33d",
+//      |      "uploadRequest":{
+//      |         "href":"https:xxxx/upscan-upload-proxy/bucketName",
+//      |         "fields":{
+//      |            "x-amz-meta-callback-url":"https:myservice.com/callback",
+//      |            "x-amz-date":"yyyyMMddThhmmssZ",
+//      |            "x-amz-credential":"ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
+//      |            "x-amz-algorithm":"AWS4-HMAC-SHA256",
+//      |            "key":"xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+//      |            "acl":"private",
+//      |            "x-amz-signature":"xxxx",
+//      |            "Content-Type":"application/xml",
+//      |            "policy":"xxxxxxxx=="
+//      |         }
+//      |      }
+//      |   },
+//      |   "timestamp":"2020-02-19T16:24:16",
+//      |   "status":{
+//      |      "UPLOADED":{
+//      |
+//      |      }
+//      |   }
+//      |}
+//      |""".stripMargin
+//
+//  val validUpscanCallBackPayload =
+//    """
+//      | {
+//      |   "draftReturnId":{
+//      |      "value":"draft-return-id"
+//      |   },
+//      |   "cgtReference" : {
+//      |     "value" : "cgt-ref"
+//      |   },
+//      |   "callbackResult": {
+//      |   "reference":"11370e18-6e24-453e-b45a-76d3e32ea33d",
+//      |   "fileStatus":{"READY_TO_UPLOAD":{}},
+//      |   "downloadUrl":"http:aws.com/file",
+//      |   "checksum":"12345",
+//      |   "fileName":"test.pdf",
+//      |   "fileMimeType":"application/pdf"
+//      |   }
+//      | }
+//      |
+//      |""".stripMargin
+//
+//  val upscanCallBack = UpscanCallBack(
+//    draftReturnId = DraftReturnId("draft-return-id"),
+//    reference     = "11370e18-6e24-453e-b45a-76d3e32ea33d",
+//    fileStatus    = READY,
+//    downloadUrl   = Some("http:aws.com/file"),
+//    details = Map(
+//      "Content-Type"            -> "application/xml",
+//      "acl"                     -> "private",
+//      "key"                     -> "xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+//      "policy"                  -> "xxxxxxxx==",
+//      "x-amz-algorithm"         -> "AWS4-HMAC-SHA256",
+//      "x-amz-credential"        -> "ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
+//      "x-amz-date"              -> "yyyyMMddThhmmssZ",
+//      "x-amz-meta-callback-url" -> "https:myservice.com/callback",
+//      "x-amz-signature"         -> "xxxx"
+//    )
+//  )
 
-  val upfd = UpscanFileDescriptor(
-    upscanInitiateReference = UpscanInitiateReference("12345"),
-    draftReturnId           = DraftReturnId("draft-return-id"),
-    cgtReference            = CgtReference("cgt-ref"),
-    fileDescriptor = FileDescriptor(
-      reference = "11370e18-6e24-453e-b45a-76d3e32ea33d",
-      uploadRequest = UploadRequest(
-        href = "https://xxxx/upscan-upload-proxy/bucketName",
-        fields = Map(
-          "Content-Type"            -> "application/xml",
-          "acl"                     -> "private",
-          "key"                     -> "xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-          "policy"                  -> "xxxxxxxx==",
-          "x-amz-algorithm"         -> "AWS4-HMAC-SHA256",
-          "x-amz-credential"        -> "ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
-          "x-amz-date"              -> "yyyyMMddThhmmssZ",
-          "x-amz-meta-callback-url" -> "https://myservice.com/callback",
-          "x-amz-signature"         -> "xxxx"
-        )
-      )
-    ),
-    timestamp = LocalDateTime.of(2020, 2, 19, 16, 24, 16),
-    status    = UPLOADED
-  )
-  val upscanFileDescriptorPayload =
-    """
-      |{
-      |   "upscanInitiateReference":{
-      |      "value":"12345"
-      |   },
-      |   "draftReturnId":{
-      |      "value":"draft-return-id"
-      |   },
-      |   "cgtReference":{
-      |      "value":"cgt-ref"
-      |   },
-      |   "fileDescriptor":{
-      |      "reference":"11370e18-6e24-453e-b45a-76d3e32ea33d",
-      |      "uploadRequest":{
-      |         "href":"https://xxxx/upscan-upload-proxy/bucketName",
-      |         "fields":{
-      |            "x-amz-meta-callback-url":"https://myservice.com/callback",
-      |            "x-amz-date":"yyyyMMddThhmmssZ",
-      |            "x-amz-credential":"ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
-      |            "x-amz-algorithm":"AWS4-HMAC-SHA256",
-      |            "key":"xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      |            "acl":"private",
-      |            "x-amz-signature":"xxxx",
-      |            "Content-Type":"application/xml",
-      |            "policy":"xxxxxxxx=="
-      |         }
-      |      }
-      |   },
-      |   "timestamp":"2020-02-19T16:24:16",
-      |   "status":{
-      |      "UPLOADED":{
-      |
-      |      }
-      |   }
-      |}
-      |""".stripMargin
-
-  val validUpscanCallBackPayload =
-    """
-      | {
-      |   "draftReturnId":{
-      |      "value":"draft-return-id"
-      |   },
-      |   "cgtReference" : {
-      |     "value" : "cgt-ref"
-      |   },
-      |   "callbackResult": {
-      |   "reference":"11370e18-6e24-453e-b45a-76d3e32ea33d",
-      |   "fileStatus":{"READY_TO_UPLOAD":{}},
-      |   "downloadUrl":"http://aws.com/file",
-      |   "checksum":"12345",
-      |   "fileName":"test.pdf",
-      |   "fileMimeType":"application/pdf"
-      |   }
-      | }
-      |
-      |""".stripMargin
-
-  val upscanCallBack = UpscanCallBack(
-    draftReturnId = DraftReturnId("draft-return-id"),
-    reference     = "11370e18-6e24-453e-b45a-76d3e32ea33d",
-    fileStatus    = READY,
-    downloadUrl   = Some("http://aws.com/file"),
-    details = Map(
-      "Content-Type"            -> "application/xml",
-      "acl"                     -> "private",
-      "key"                     -> "xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      "policy"                  -> "xxxxxxxx==",
-      "x-amz-algorithm"         -> "AWS4-HMAC-SHA256",
-      "x-amz-credential"        -> "ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
-      "x-amz-date"              -> "yyyyMMddThhmmssZ",
-      "x-amz-meta-callback-url" -> "https://myservice.com/callback",
-      "x-amz-signature"         -> "xxxx"
-    )
-  )
-
-  val draftId   = sample[DraftReturnId]
-  val upscanRef = sample[UpscanInitiateReference]
+  val draftReturnId   = sample[DraftReturnId]
+  val upscanReference = sample[UpscanReference]
 
   "Upscan Controller" when {
 
-    "it receives a request to update upscan file descriptor status" must {
-
-      "return a bad request if the request contains an incorrect payload" in {
-        val corruptRequestBody =
-          """
-            |{
-            |   "bad-field":"bad-value"
-            |}
-            |""".stripMargin
-
-        val request =
-          new AuthenticatedRequest(
-            Fake.user,
-            LocalDateTime.now(),
-            headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(corruptRequestBody))
-          )
-
-        val result = controller.updateUpscanFileDescriptorStatus()(request)
-        status(result) shouldBe BAD_REQUEST
-
-      }
+    "it receives a request to get an upscan upload" must {
 
       "return an internal server error if the backend call fails" in {
-
         val request =
           new AuthenticatedRequest(
             Fake.user,
             LocalDateTime.now(),
             headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
+            FakeRequest()
           )
 
-        mockUpdateFileDescriptor(upfd)(Left(Error("BE error")))
+        mockGetUpscanUpload(draftReturnId, upscanReference)(Left(Error("mongo error")))
 
-        val result = controller.updateUpscanFileDescriptorStatus()(request)
+        val result = controller.getUpscanUpload(draftReturnId, upscanReference)(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
-
-      }
-
-      "return a 200 OK if the backend call succeeds" in {
-
-        val request =
-          new AuthenticatedRequest(
-            Fake.user,
-            LocalDateTime.now(),
-            headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
-          )
-
-        mockUpdateFileDescriptor(upfd)(Right(true))
-
-        val result = controller.updateUpscanFileDescriptorStatus()(request)
-        status(result) shouldBe OK
-
-      }
-
-    }
-
-    "it receives a request to get the upscan file descriptor" must {
-
-      "return an internal server error if the backend call fails" in {
-
-        val request =
-          new AuthenticatedRequest(
-            Fake.user,
-            LocalDateTime.now(),
-            headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
-          )
-
-        mockGetUpscanFileDescriptor(draftId, upscanRef)(Left(Error("mongo error")))
-
-        val result = controller.getUpscanFileDescriptor(draftId.value, upscanRef.value)(request)
-        status(result) shouldBe INTERNAL_SERVER_ERROR
-
       }
 
       "return a bad request if the store descriptor structure is corrupted" in {
@@ -296,43 +230,58 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             Fake.user,
             LocalDateTime.now(),
             headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
+            FakeRequest()
           )
 
-        mockGetUpscanFileDescriptor(draftId, upscanRef)(Right(None))
+        mockGetUpscanUpload(draftReturnId, upscanReference)(Right(None))
 
-        val result = controller.getUpscanFileDescriptor(draftId.value, upscanRef.value)(request)
+        val result = controller.getUpscanUpload(draftReturnId, upscanReference)(request)
         status(result) shouldBe BAD_REQUEST
 
       }
 
       "return a 200 OK if the backend call succeeds" in {
 
+        val upscanUpload = sample[UpscanUpload]
+
         val request =
           new AuthenticatedRequest(
             Fake.user,
             LocalDateTime.now(),
             headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
+            FakeRequest()
           )
 
-        mockGetUpscanFileDescriptor(draftId, upscanRef)(Right(Some(upfd)))
+        mockGetUpscanUpload(draftReturnId, upscanReference)(Right(Some(upscanUpload)))
 
-        val result = controller.getUpscanFileDescriptor(draftId.value, upscanRef.value)(request)
+        val result = controller.getUpscanUpload(draftReturnId, upscanReference)(request)
         status(result) shouldBe OK
 
       }
 
     }
 
-    "it receives a request to save upscan file descriptor" must {
+    "it receives a request to save an upscan upload" must {
 
-      "return a bad request if the request contains an incorrect payload" in {
+      "return an internal server error if the backend call fails" in {
 
-        val corruptRequestBody =
+        val upscanUploadPayload =
           """
             |{
-            |   "bad-field":"bad-value"
+            |    "draftReturnId" : {
+            |        "value" : "aykfctsnnbepnPsw"
+            |    },
+            |    "upscanUploadMeta" : {
+            |        "reference" : "glwibAzzhpamXyavalyif",
+            |        "uploadRequest" : {
+            |            "href" : "wveovofmaobqq",
+            |            "fields" : {}
+            |        }
+            |    },
+            |    "uploadedOn" : "1970-01-01T01:00:07.665",
+            |    "upscanUploadStatus" : {
+            |        "Initiate" : {}
+            |    }
             |}
             |""".stripMargin
 
@@ -341,46 +290,329 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             Fake.user,
             LocalDateTime.now(),
             headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(corruptRequestBody))
+            fakeRequestWithJsonBody(Json.parse(upscanUploadPayload))
           )
 
-        val result = controller.saveUpscanFileDescriptor()(request)
+        val upscanUpload = Json.parse(upscanUploadPayload).as[UpscanUpload]
+
+        mockStoreUpscanUpload(upscanUpload)(Left(Error("mongo error")))
+
+        val result = controller.saveUpscanUpload()(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
+      "return a bad request if the request payload is incorrect" in {
+
+        val badUpscanUploadPayload =
+          """
+            |{
+            |    "upscanUploadMeta" : {
+            |        "reference" : "glwibAzzhpamXyavalyif",
+            |        "uploadRequest" : {
+            |            "href" : "wveovofmaobqq",
+            |            "fields" : {}
+            |        }
+            |    },
+            |    "uploadedOn" : "1970-01-01T01:00:07.665",
+            |    "upscanUploadStatus" : {
+            |        "Initiate" : {}
+            |    }
+            |}
+            |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            fakeRequestWithJsonBody(Json.parse(badUpscanUploadPayload))
+          )
+
+        val result = controller.saveUpscanUpload()(request)
         status(result) shouldBe BAD_REQUEST
       }
 
-      "return an internal server error if the backend call fails" in {
+      "return an 200 OK response if a valid request is received" in {
+
+        val upscanUploadPayload =
+          """
+            |{
+            |    "draftReturnId" : {
+            |        "value" : "aykfctsnnbepnPsw"
+            |    },
+            |    "upscanUploadMeta" : {
+            |        "reference" : "glwibAzzhpamXyavalyif",
+            |        "uploadRequest" : {
+            |            "href" : "wveovofmaobqq",
+            |            "fields" : {}
+            |        }
+            |    },
+            |    "uploadedOn" : "1970-01-01T01:00:07.665",
+            |    "upscanUploadStatus" : {
+            |        "Initiate" : {}
+            |    }
+            |}
+            |""".stripMargin
 
         val request =
           new AuthenticatedRequest(
             Fake.user,
             LocalDateTime.now(),
             headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
+            fakeRequestWithJsonBody(Json.parse(upscanUploadPayload))
           )
 
-        mockStoreUpscanFileDescriptor(upfd)(Left(Error("BE error")))
+        val upscanUpload = Json.parse(upscanUploadPayload).as[UpscanUpload]
 
-        val result = controller.saveUpscanFileDescriptor()(request)
-        status(result) shouldBe INTERNAL_SERVER_ERROR
+        mockStoreUpscanUpload(upscanUpload)(Right(()))
 
-      }
-
-      "return a 200 OK if the backend call succeeds" in {
-
-        val request =
-          new AuthenticatedRequest(
-            Fake.user,
-            LocalDateTime.now(),
-            headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanFileDescriptorPayload))
-          )
-
-        mockStoreUpscanFileDescriptor(upfd)(Right(()))
-
-        val result = controller.saveUpscanFileDescriptor()(request)
+        val result = controller.saveUpscanUpload()(request)
         status(result) shouldBe OK
-
       }
     }
+
+    "it receives a request to update an upscan upload" must {
+
+      "return an internal server error if the backend call fails" in {
+
+        val upscanUploadPayload =
+          """
+              |{
+              |    "draftReturnId" : {
+              |        "value" : "aykfctsnnbepnPsw"
+              |    },
+              |    "upscanUploadMeta" : {
+              |        "reference" : "glwibAzzhpamXyavalyif",
+              |        "uploadRequest" : {
+              |            "href" : "wveovofmaobqq",
+              |            "fields" : {}
+              |        }
+              |    },
+              |    "uploadedOn" : "1970-01-01T01:00:07.665",
+              |    "upscanUploadStatus" : {
+              |        "Initiate" : {}
+              |    }
+              |}
+              |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            fakeRequestWithJsonBody(Json.parse(upscanUploadPayload))
+          )
+
+        val upscanUpload = Json.parse(upscanUploadPayload).as[UpscanUpload]
+
+        mockUpdateUpscanUpload(
+          upscanUpload.draftReturnId,
+          UpscanReference(upscanUpload.upscanUploadMeta.reference),
+          upscanUpload
+        )(Left(Error("mongo error")))
+
+        val result = controller.updateUpscanUpload(
+          upscanUpload.draftReturnId,
+          UpscanReference(upscanUpload.upscanUploadMeta.reference)
+        )(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
+      "return a bad request if the request payload is incorrect" in {
+
+        val draftReturnId   = sample[DraftReturnId]
+        val upscanReference = sample[UpscanReference]
+
+        val badUpscanUploadPayload =
+          """
+              |{
+              |    "upscanUploadMeta" : {
+              |        "reference" : "glwibAzzhpamXyavalyif",
+              |        "uploadRequest" : {
+              |            "href" : "wveovofmaobqq",
+              |            "fields" : {}
+              |        }
+              |    },
+              |    "uploadedOn" : "1970-01-01T01:00:07.665",
+              |    "upscanUploadStatus" : {
+              |        "Initiate" : {}
+              |    }
+              |}
+              |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            fakeRequestWithJsonBody(Json.parse(badUpscanUploadPayload))
+          )
+
+        val result = controller.updateUpscanUpload(draftReturnId, upscanReference)(request)
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return an 200 OK response if a valid request is received" in {
+
+        val draftReturnId   = sample[DraftReturnId]
+        val upscanReference = sample[UpscanReference]
+
+        val upscanUploadPayload =
+          """
+              |{
+              |    "draftReturnId" : {
+              |        "value" : "aykfctsnnbepnPsw"
+              |    },
+              |    "upscanUploadMeta" : {
+              |        "reference" : "glwibAzzhpamXyavalyif",
+              |        "uploadRequest" : {
+              |            "href" : "wveovofmaobqq",
+              |            "fields" : {}
+              |        }
+              |    },
+              |    "uploadedOn" : "1970-01-01T01:00:07.665",
+              |    "upscanUploadStatus" : {
+              |        "Initiate" : {}
+              |    }
+              |}
+              |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            fakeRequestWithJsonBody(Json.parse(upscanUploadPayload))
+          )
+
+        val upscanUpload = Json.parse(upscanUploadPayload).as[UpscanUpload]
+
+        mockUpdateUpscanUpload(draftReturnId, upscanReference, upscanUpload)(Right(()))
+
+        val result = controller.updateUpscanUpload(draftReturnId, upscanReference)(request)
+        status(result) shouldBe OK
+      }
+    }
+
+    "it receives a upscan call back request" must {
+
+      "return an internal server error if the payload does not contain a upscan status" in {
+
+        val draftReturnId   = sample[DraftReturnId]
+        val upscanReference = sample[UpscanReference]
+
+        val upscanUploadPayload =
+          """
+            |{
+            |    "draftReturnId" : {
+            |        "value" : "aykfctsnnbepnPsw"
+            |    },
+            |    "upscanUploadMeta" : {
+            |        "reference" : "glwibAzzhpamXyavalyif",
+            |        "uploadRequest" : {
+            |            "href" : "wveovofmaobqq",
+            |            "fields" : {}
+            |        }
+            |    },
+            |    "uploadedOn" : "1970-01-01T01:00:07.665",
+            |    "upscanUploadStatus" : {
+            |        "Initiate" : {}
+            |    }
+            |}
+            |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            fakeRequestWithJsonBody(Json.parse(upscanUploadPayload))
+          )
+
+        val result = controller.callback(
+          draftReturnId,
+          upscanReference
+        )(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
+      "return an internal server error if the payload does not contain a valid status" in {
+
+        val draftReturnId   = sample[DraftReturnId]
+        val upscanReference = sample[UpscanReference]
+
+        val upscanUploadPayload =
+          """
+            |{
+            |    "reference" : "11370e18-6e24-453e-b45a-76d3e32ea33d",
+            |    "fileStatus" : "SOME BAD STATUS",
+            |    "downloadUrl" : "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
+            |    "uploadDetails": {
+            |        "uploadTimestamp": "2018-04-24T09:30:00Z",
+            |        "checksum": "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100",
+            |        "fileName": "test.pdf",
+            |        "fileMimeType": "application/pdf"
+            |    }
+            |}
+            |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            fakeRequestWithJsonBody(Json.parse(upscanUploadPayload))
+          )
+
+        val result = controller.callback(
+          draftReturnId,
+          upscanReference
+        )(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
+      "return an internal server error if the payload contains a valid status" in {
+
+        val draftReturnId   = sample[DraftReturnId]
+        val upscanReference = sample[UpscanReference]
+        val upscanUpload    = sample[UpscanUpload]
+
+        val upscanUploadPayload =
+          """
+            |{
+            |    "reference" : "11370e18-6e24-453e-b45a-76d3e32ea33d",
+            |    "fileStatus" : "READY",
+            |    "downloadUrl" : "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
+            |    "uploadDetails": {
+            |        "uploadTimestamp": "2018-04-24T09:30:00Z",
+            |        "checksum": "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100",
+            |        "fileName": "test.pdf",
+            |        "fileMimeType": "application/pdf"
+            |    }
+            |}
+            |""".stripMargin
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            fakeRequestWithJsonBody(Json.parse(upscanUploadPayload))
+          )
+
+        inSequence {
+          mockGetUpscanUpload(draftReturnId, upscanReference)(Right(Some(upscanUpload)))
+          mockUpdateUpscanUpload(draftReturnId, upscanReference, upscanUpload)(Right(()))
+        }
+
+        val result = controller.callback(
+          draftReturnId,
+          upscanReference
+        )(fakeRequestWithJsonBody(Json.parse(upscanUploadPayload)))
+        status(result) shouldBe NO_CONTENT
+      }
+
+    }
+
   }
 }

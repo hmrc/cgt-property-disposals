@@ -16,58 +16,32 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import cats.Eq
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanStatus.{FAILED, READY}
 
-sealed trait UpscanStatus
-object UpscanStatus {
-  case object READY extends UpscanStatus
-  case object FAILED extends UpscanStatus
-
-  implicit val eq: Eq[UpscanStatus]          = Eq.fromUniversalEquals
-  implicit val format: OFormat[UpscanStatus] = derived.oformat()
-}
-
-final case class UpscanCallBack(
-  draftReturnId: DraftReturnId,
-  reference: String,
-  fileStatus: UpscanStatus,
-  downloadUrl: Option[String],
-  details: Map[String, String]
-)
+sealed trait UpscanCallBack extends Product with Serializable
 
 object UpscanCallBack {
-  implicit val format: OFormat[UpscanCallBack] = derived.oformat()
-}
 
-final case class UpscanCallBackEvent(
-  reference: String,
-  fileStatus: String,
-  downloadUrl: Option[String],
-  uploadDetails: Option[Map[String, String]],
-  failureDetails: Option[Map[String, String]]
-)
+  final case class UpscanSuccess(
+    reference: String,
+    downloadUrl: String,
+    uploadDetails: Map[String, String]
+  ) extends UpscanCallBack
 
-object UpscanCallBackEvent {
-
-  def toUpscanCallBack(draftReturnId: DraftReturnId, upscanCallBackEvent: UpscanCallBackEvent): UpscanCallBack =
-    UpscanCallBack(
-      draftReturnId = draftReturnId,
-      reference     = upscanCallBackEvent.reference,
-      fileStatus    = convertFileStatus(upscanCallBackEvent.fileStatus),
-      downloadUrl   = upscanCallBackEvent.downloadUrl,
-      details = upscanCallBackEvent.uploadDetails.getOrElse(Map.empty) ++ upscanCallBackEvent.failureDetails.getOrElse(
-        Map.empty
-      )
-    )
-
-  def convertFileStatus(status: String): UpscanStatus = status match {
-    case "READY"  => READY
-    case "FAILED" => FAILED
+  object UpscanSuccess {
+    implicit val format = Json.format[UpscanSuccess]
   }
 
-  implicit val format = Json.format[UpscanCallBackEvent]
+  final case class UpscanFailure(
+    reference: String,
+    failureDetails: Map[String, String]
+  ) extends UpscanCallBack
+
+  object UpscanFailure {
+    implicit val format = Json.format[UpscanFailure]
+  }
+
+  implicit val format: OFormat[UpscanCallBack] = derived.oformat()
+
 }

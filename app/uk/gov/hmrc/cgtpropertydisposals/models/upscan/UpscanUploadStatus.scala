@@ -16,10 +16,16 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json.Json
+import cats.Eq
+import julienrf.json.derived
+import play.api.libs.json.OFormat
 
-final case class UpscanInitiateReference(value: String) extends AnyVal
+sealed trait UpscanUploadStatus
 
-object UpscanInitiateReference {
-  implicit val format = Json.format[UpscanInitiateReference]
+object UpscanUploadStatus {
+  case object Initiate extends UpscanUploadStatus
+  case object Uploaded extends UpscanUploadStatus
+
+  implicit val eq: Eq[UpscanUploadStatus]          = Eq.fromUniversalEquals
+  implicit val format: OFormat[UpscanUploadStatus] = derived.oformat()
 }

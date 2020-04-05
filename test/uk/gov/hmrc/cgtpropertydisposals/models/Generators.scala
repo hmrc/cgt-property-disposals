@@ -23,10 +23,10 @@ import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesSubscriptionUpdateRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesSubscriptionUpdateRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -49,7 +49,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{FileDescriptor, UpscanCallBack, UpscanFileDescriptor, UpscanInitiateReference}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
 
@@ -173,10 +173,13 @@ trait DraftReturnGen { this: GenUtils =>
 
 trait UpscanGen { this: GenUtils =>
 
-  implicit val upscanMetaGen: Gen[FileDescriptor]                       = gen[FileDescriptor]
-  implicit val upscanUploadGen: Gen[UpscanFileDescriptor]               = gen[UpscanFileDescriptor]
-  implicit val upscanCallBackGen: Gen[UpscanCallBack]                   = gen[UpscanCallBack]
-  implicit val upscanInitiateReferenceGen: Gen[UpscanInitiateReference] = gen[UpscanInitiateReference]
+  implicit val upscanUploadGen: Gen[UpscanUpload]       = gen[UpscanUpload]
+  implicit val upscanReferenceGen: Gen[UpscanReference] = gen[UpscanReference]
+
+//  implicit val upscanMetaGen: Gen[FileDescriptor]                       = gen[FileDescriptor]
+//  implicit val upscanUploadGen: Gen[UpscanFileDescriptor]               = gen[UpscanFileDescriptor]
+//  implicit val upscanCallBackGen: Gen[UpscanCallBack]                   = gen[UpscanCallBack]
+//  implicit val upscanInitiateReferenceGen: Gen[UpscanInitiateReference] = gen[UpscanInitiateReference]
 
 }
 

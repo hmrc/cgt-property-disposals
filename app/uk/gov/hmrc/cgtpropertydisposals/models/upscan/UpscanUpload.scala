@@ -16,22 +16,19 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json._
+import java.time.LocalDateTime
 
-final case class UploadRequest(
-  href: String,
-  fields: Map[String, String]
+import play.api.libs.json.Json
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
+
+final case class UpscanUpload(
+  draftReturnId: DraftReturnId,
+  upscanUploadMeta: UpscanUploadMeta,
+  uploadedOn: LocalDateTime,
+  upscanUploadStatus: UpscanUploadStatus,
+  upscanCallBack: Option[UpscanCallBack]
 )
 
-object UploadRequest {
-  implicit val format = Json.format[UploadRequest]
-}
-
-final case class FileDescriptor(
-  reference: String,
-  uploadRequest: UploadRequest
-)
-
-object FileDescriptor {
-  implicit val format = Json.format[FileDescriptor]
+object UpscanUpload {
+  implicit val format = Json.format[UpscanUpload]
 }

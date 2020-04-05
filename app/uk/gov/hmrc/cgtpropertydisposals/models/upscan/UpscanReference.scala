@@ -19,20 +19,19 @@ package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 import play.api.libs.json.{Json, OFormat}
 import play.api.mvc.PathBindable
 
-final case class FileDescriptorId(value: String) extends AnyVal
+final case class UpscanReference(value: String) extends AnyVal
 
-object FileDescriptorId {
-
-  implicit val binder: PathBindable[FileDescriptorId] =
-    new PathBindable[FileDescriptorId] {
+object UpscanReference {
+  implicit val binder: PathBindable[UpscanReference] =
+    new PathBindable[UpscanReference] {
       val stringBinder: PathBindable[String] = implicitly[PathBindable[String]]
 
-      override def bind(key: String, value: String): Either[String, FileDescriptorId] =
-        stringBinder.bind(key, value).map(FileDescriptorId.apply)
+      override def bind(key: String, value: String): Either[String, UpscanReference] =
+        stringBinder.bind(key, value).map(UpscanReference.apply)
 
-      override def unbind(key: String, value: FileDescriptorId): String =
+      override def unbind(key: String, value: UpscanReference): String =
         stringBinder.unbind(key, value.value)
     }
 
-  implicit val format: OFormat[FileDescriptorId] = Json.format[FileDescriptorId]
+  implicit val format: OFormat[UpscanReference] = Json.format[UpscanReference]
 }
