@@ -68,9 +68,9 @@
 //    extends DmsSubmissionService
 //    with Logging {
 //
-//  def getDmsMetaConfig[A: Configs](id: String): A =
+//  def getDmsMetaConfig[A: Configs](key: String): A =
 //    configuration.underlying
-//      .get[A](s"dms.$id")
+//      .get[A](s"dms.$key")
 //      .value
 //
 //  val queue: String           = getDmsMetaConfig[String]("queue-name")

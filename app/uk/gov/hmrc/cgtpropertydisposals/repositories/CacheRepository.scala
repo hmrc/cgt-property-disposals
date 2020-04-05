@@ -51,8 +51,8 @@ trait CacheRepository[A] {
   dropInvalidIndexes()
     .flatMap(_ => collection.indexesManager.create(cacheTtlIndex))
     .onComplete {
-      case Success(_) => logger.info("Successfully created ttl and id indices")
-      case Failure(e) => logger.warn("Could not create ttl and id indices", e)
+      case Success(_) => logger.info("Successfully ensured ttl index")
+      case Failure(e) => logger.warn("Could not ensure ttl index", e)
     }
 
   def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =

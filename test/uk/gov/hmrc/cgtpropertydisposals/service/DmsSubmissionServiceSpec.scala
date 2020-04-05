@@ -114,7 +114,7 @@
 //
 //        "there is an issue with the gform service" in {
 //          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
-//          val fileAttachments      = List(FileAttachment("id", "filename", Some("pdf"), ByteString(1)))
+//          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
 //          val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 //
 //          inSequence {
@@ -140,7 +140,7 @@
 //
 //        "all upscan call backs have not been received" in {
 //          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
-//          val fileAttachments      = List(FileAttachment("id", "filename", Some("pdf"), ByteString(1)))
+//          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
 //          val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 //
 //          mockGetAllUpscanCallBacks(draftReturnId)(Right(List(upscanCallBack)))
@@ -160,7 +160,7 @@
 //        }
 //
 //        "unable to retrieve the upscan call back information" in {
-//          val fileAttachments      = List(FileAttachment("id", "filename", Some("pdf"), ByteString(1)))
+//          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
 //          val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 //
 //          inSequence {
@@ -182,7 +182,7 @@
 //
 //        "unable to download the files" in {
 //          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
-//          val fileAttachments      = List(FileAttachment("id", "filename", Some("pdf"), ByteString(1)))
+//          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
 //          val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 //
 //          inSequence {
@@ -205,7 +205,7 @@
 //
 //        "some of the downloads have failed" in {
 //          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
-//          val fileAttachments      = List(FileAttachment("id", "filename", Some("pdf"), ByteString(1)))
+//          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
 //          val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 //
 //          inSequence {
@@ -230,7 +230,7 @@
 //
 //        "some of the files are infected with viruses" in {
 //          val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", FAILED, Some("download-url"), Map.empty)
-//          val fileAttachments      = List(FileAttachment("id", "filename", Some("pdf"), ByteString(1)))
+//          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
 //          val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 //
 //          inSequence {
@@ -256,7 +256,7 @@
 //
 //      "return an envelope id when files have been successfully submitted to the gform service" in {
 //        val upscanCallBack       = UpscanCallBack(draftReturnId, "reference", READY, Some("download-url"), Map.empty)
-//        val fileAttachments      = List(FileAttachment("id", "filename", Some("pdf"), ByteString(1)))
+//        val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
 //        val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 //
 //        inSequence {
