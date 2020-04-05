@@ -34,12 +34,13 @@ object YearToDateLiabilityAnswers {
       taxableGainOrLoss: Option[AmountInPence],
       hasEstimatedDetails: Option[Boolean],
       taxDue: Option[AmountInPence],
-      mandatoryEvidence: Option[MandatoryEvidence]
+      mandatoryEvidence: Option[MandatoryEvidence],
+      expiredEvidence: Option[MandatoryEvidence]
     ) extends NonCalculatedYTDAnswers
 
     object IncompleteNonCalculatedYTDAnswers {
       val empty: IncompleteNonCalculatedYTDAnswers =
-        IncompleteNonCalculatedYTDAnswers(None, None, None, None)
+        IncompleteNonCalculatedYTDAnswers(None, None, None, None, None)
     }
 
     final case class CompleteNonCalculatedYTDAnswers(
@@ -58,12 +59,14 @@ object YearToDateLiabilityAnswers {
       hasEstimatedDetails: Option[Boolean],
       calculatedTaxDue: Option[CalculatedTaxDue],
       taxDue: Option[AmountInPence],
-      mandatoryEvidence: Option[MandatoryEvidence]
+      mandatoryEvidence: Option[MandatoryEvidence],
+      expiredEvidence: Option[MandatoryEvidence],
+      upscanSuccessful: Option[Boolean]
     ) extends CalculatedYTDAnswers
 
     object IncompleteCalculatedYTDAnswers {
       val empty: IncompleteCalculatedYTDAnswers =
-        IncompleteCalculatedYTDAnswers(None, None, None, None, None, None)
+        IncompleteCalculatedYTDAnswers(None, None, None, None, None, None, None, None)
     }
 
     final case class CompleteCalculatedYTDAnswers(

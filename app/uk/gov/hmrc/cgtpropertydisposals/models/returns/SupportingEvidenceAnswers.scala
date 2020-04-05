@@ -37,12 +37,13 @@ object SupportingEvidenceAnswers {
 
   final case class IncompleteSupportingEvidenceAnswers(
     doYouWantToUploadSupportingEvidence: Option[Boolean],
-    evidences: List[SupportingEvidence]
+    evidences: List[SupportingEvidence],
+    expiredEvidences: List[SupportingEvidence]
   ) extends SupportingEvidenceAnswers
 
   object IncompleteSupportingEvidenceAnswers {
     val empty: IncompleteSupportingEvidenceAnswers =
-      IncompleteSupportingEvidenceAnswers(None, List.empty)
+      IncompleteSupportingEvidenceAnswers(None, List.empty, List.empty)
   }
 
   final case class CompleteSupportingEvidenceAnswers(
