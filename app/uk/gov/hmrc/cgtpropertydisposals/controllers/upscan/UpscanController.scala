@@ -22,12 +22,12 @@ import cats.instances.string._
 import cats.syntax.eq._
 import com.google.inject.Inject
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc._
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{UpscanFailure, UpscanSuccess}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanCallBack, UpscanReference, UpscanUpload}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -108,70 +108,11 @@ class UpscanController @Inject() (
     }
 
   def callback(draftReturnId: DraftReturnId, upscanReference: UpscanReference): Action[JsValue] =
-    Action.async(parse.json) { implicit request =>
+    Action.async(parse.json) { implicit request: Request[JsValue] =>
       (request.body \ "fileStatus").asOpt[String] match {
         case Some(upscanStatus) =>
-          if (upscanStatus === READY_FOR_DOWNLOAD) {
-            val result = for {
-              maybeUpscanUpload <- upscanService.readUpscanUpload(draftReturnId, upscanReference)
-              upscanUpload <- EitherT.fromOption(
-                               maybeUpscanUpload,
-                               Error(
-                                 s"could not get upscan upload value from db for draft return id $draftReturnId and upscan reference $upscanReference"
-                               )
-                             )
-              callBackResult <- EitherT.fromOption(
-                                 request.body.asOpt[UpscanSuccess],
-                                 Error(
-                                   s"could not parse upscan call back response body : ${request.body.toString}"
-                                 )
-                               )
-
-              newUpscanUpload = upscanUpload.copy(upscanCallBack = Some(callBackResult))
-              _ <- upscanService.updateUpscanUpload(draftReturnId, upscanReference, newUpscanUpload)
-            } yield ()
-
-            result.fold(
-              e => {
-                logger.warn(s"could not process upscan call back : $e")
-                InternalServerError
-              },
-              _ => {
-                logger.info(s"updated upscan upload with upscan call back result")
-                NoContent
-              }
-            )
-
-          } else if (upscanStatus === FAILED_UPSCAN) {
-            val result = for {
-              maybeUpscanUpload <- upscanService.readUpscanUpload(draftReturnId, upscanReference)
-              upscanUpload <- EitherT.fromOption(
-                               maybeUpscanUpload,
-                               Error(
-                                 s"could not get upscan upload value from db for draft return id $draftReturnId and upscan reference $upscanReference"
-                               )
-                             )
-              callBackResult <- EitherT.fromOption(
-                                 request.body.asOpt[UpscanFailure],
-                                 Error(
-                                   s"could not parse upscan call back response body : ${request.body.toString}"
-                                 )
-                               )
-
-              newUpscanUpload = upscanUpload.copy(upscanCallBack = Some(callBackResult))
-              _ <- upscanService.updateUpscanUpload(draftReturnId, upscanReference, newUpscanUpload)
-            } yield ()
-
-            result.fold(
-              e => {
-                logger.warn(s"could not process upscan call back : $e")
-                InternalServerError
-              },
-              _ => {
-                logger.info(s"updated upscan upload with upscan call back result")
-                NoContent
-              }
-            )
+          if (upscanStatus === READY_FOR_DOWNLOAD | upscanStatus === FAILED_UPSCAN) {
+            callBackHander(draftReturnId, upscanReference, upscanStatus)
           } else {
             logger.warn(s"could not process upscan status : ${request.body.toString}")
             Future.successful(InternalServerError)
@@ -181,4 +122,47 @@ class UpscanController @Inject() (
           Future.successful(InternalServerError)
       }
     }
+
+  private def callBackHander(draftReturnId: DraftReturnId, upscanReference: UpscanReference, fileStatus: String)(
+    implicit request: Request[JsValue]
+  ): Future[Result] = {
+    val result = for {
+      maybeUpscanUpload <- upscanService.readUpscanUpload(draftReturnId, upscanReference)
+      upscanUpload <- EitherT.fromOption(
+                       maybeUpscanUpload,
+                       Error(
+                         s"could not get upscan upload value from db for draft return id $draftReturnId and upscan reference $upscanReference"
+                       )
+                     )
+      callBackResult <- if (fileStatus === READY_FOR_DOWNLOAD) {
+                         EitherT.fromOption(
+                           request.body.asOpt[UpscanSuccess],
+                           Error(
+                             s"could not parse upscan call back response body : ${request.body.toString}"
+                           )
+                         )
+                       } else {
+                         EitherT.fromOption(
+                           request.body.asOpt[UpscanFailure],
+                           Error(
+                             s"could not parse upscan call back response body : ${request.body.toString}"
+                           )
+                         )
+                       }
+
+      newUpscanUpload = upscanUpload.copy(upscanCallBack = Some(callBackResult))
+      _ <- upscanService.updateUpscanUpload(draftReturnId, upscanReference, newUpscanUpload)
+    } yield ()
+
+    result.fold(
+      e => {
+        logger.warn(s"could not process upscan call back : $e")
+        InternalServerError
+      },
+      _ => {
+        logger.info(s"updated upscan upload with upscan call back result")
+        NoContent
+      }
+    )
+  }
 }
