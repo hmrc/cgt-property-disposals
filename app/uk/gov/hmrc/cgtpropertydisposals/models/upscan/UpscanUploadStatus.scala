@@ -23,7 +23,7 @@ import play.api.libs.json.OFormat
 sealed trait UpscanUploadStatus
 
 object UpscanUploadStatus {
-  case object Initiate extends UpscanUploadStatus
+  case object Initiated extends UpscanUploadStatus
   case object Uploaded extends UpscanUploadStatus
 
   implicit val eq: Eq[UpscanUploadStatus]          = Eq.fromUniversalEquals

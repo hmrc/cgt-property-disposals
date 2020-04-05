@@ -1,35 +1,3 @@
-/*
- * Copyright 2020 HM Revenue & Customs
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-///*
-// * Copyright 2020 HM Revenue & Customs
-// *
-// * Licensed under the Apache License, Version 2.0 (the "License");
-// * you may not use this file except in compliance with the License.
-// * You may obtain a copy of the License at
-// *
-// *     http://www.apache.org/licenses/LICENSE-2.0
-// *
-// * Unless required by applicable law or agreed to in writing, software
-// * distributed under the License is distributed on an "AS IS" BASIS,
-// * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// * See the License for the specific language governing permissions and
-// * limitations under the License.
-// */
-//
 //package uk.gov.hmrc.cgtpropertydisposals.service
 //
 //import java.util.Base64
@@ -51,9 +19,10 @@
 //import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
 //import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 //import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, DraftReturnId}
-//import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
+//import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, DraftReturn, MandatoryEvidence}
 //import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.SupportingEvidence
 //import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
+//import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 //import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 //import uk.gov.hmrc.http.HeaderCarrier
 //
@@ -67,8 +36,7 @@
 //    draftReturnId: DraftReturnId,
 //    cgtReference: CgtReference,
 //    formBundleId: String,
-//    supportingEvidence: List[SupportingEvidence],
-//    mandatoryEvidence: Option[MandatoryEvidence]
+//    completeReturn: CompleteReturn
 //  )(
 //    implicit hc: HeaderCarrier
 //  ): EitherT[Future, Error, EnvelopeId]
@@ -100,8 +68,7 @@
 //    draftReturnId: DraftReturnId,
 //    cgtReference: CgtReference,
 //    formBundleId: String,
-//    supportingEvidence: List[SupportingEvidence],
-//    mandatoryEvidence: Option[MandatoryEvidence]
+//    draftReturn: CompleteReturn
 //  )(
 //    implicit hc: HeaderCarrier
 //  ): EitherT[Future, Error, EnvelopeId] =

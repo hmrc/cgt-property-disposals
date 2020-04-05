@@ -147,5 +147,5 @@ class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: 
   }
 
   override val indexName: String = "upscan-cache-ttl"
-  override val objName: String   = ""
+  override val objName: String   = "upscan"
 }
