@@ -82,6 +82,14 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       .expects(upscanReference)
       .returning(EitherT[Future, Error, Option[UpscanUpload]](Future.successful(response)))
 
+  def mockGetUpscanUploads(upscanReferences: List[UpscanReference])(
+    response: Either[Error, List[UpscanUpload]]
+  ) =
+    (mockUpscanService
+      .readUpscanUploads(_: List[UpscanReference]))
+      .expects(upscanReferences)
+      .returning(EitherT[Future, Error, List[UpscanUpload]](Future.successful(response)))
+
   val request = new AuthenticatedRequest(
     Fake.user,
     LocalDateTime.now(),
@@ -151,6 +159,57 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
         mockGetUpscanUpload(upscanReference)(Right(Some(upscanUpload)))
 
         val result = controller.getUpscanUpload(upscanReference)(request)
+        status(result) shouldBe OK
+
+      }
+
+    }
+
+    "it receives a request to get upscan uploads" must {
+
+      "return an internal server error if the backend call fails" in {
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest()
+          ).withBody(Json.parse(s"""{ "upscanReferences" : [ ${Json.toJson(upscanReference)} ] }"""))
+
+        mockGetUpscanUploads(List(upscanReference))(Left(Error("mongo error")))
+
+        val result = controller.getUpscanUploads()(request)
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+
+      "return a bad request if the JSON body cannot be parsed" in {
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest()
+          ).withBody(Json.parse("""{ "things" : "other things" }"""))
+
+        val result = controller.getUpscanUploads()(request)
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return a 200 OK if the backend call succeeds" in {
+
+        val upscanUpload = sample[UpscanUpload]
+
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest()
+          ).withBody(Json.parse(s"""{ "upscanReferences" : [ ${Json.toJson(upscanReference)} ] }"""))
+
+        mockGetUpscanUploads(List(upscanReference))(Right(List(upscanUpload)))
+
+        val result = controller.getUpscanUploads()(request)
         status(result) shouldBe OK
 
       }

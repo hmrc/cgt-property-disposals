@@ -47,6 +47,10 @@ trait UpscanRepository {
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit]
 
+  def selectAll(
+    upscanReferences: List[UpscanReference]
+  ): EitherT[Future, Error, List[UpscanUpload]]
+
 }
 
 @Singleton
@@ -94,5 +98,10 @@ class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: 
         Some(upscanUpload.uploadedOn)
       )
     )
+
+  override def selectAll(
+    upscanReferences: List[UpscanReference]
+  ): EitherT[Future, Error, List[UpscanUpload]] =
+    EitherT(findAll(upscanReferences.map(_.value)))
 
 }

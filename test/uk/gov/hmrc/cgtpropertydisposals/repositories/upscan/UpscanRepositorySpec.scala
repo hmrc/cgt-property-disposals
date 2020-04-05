@@ -81,14 +81,25 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
     "selecting an upscan upload document" should {
       "select an upscan upload document if it exists" in {
 
-        val upscanUpload    = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
-        val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
-        await(repository.insert(upscanUpload).value) shouldBe Right(())
+        val upscanUpload  = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
+        val upscanUpload2 = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
+
+        val upscanReference  = UpscanReference(upscanUpload.upscanUploadMeta.reference)
+        val upscanReference2 = UpscanReference(upscanUpload2.upscanUploadMeta.reference)
+
+        await(repository.insert(upscanUpload).value)  shouldBe Right(())
+        await(repository.insert(upscanUpload2).value) shouldBe Right(())
+
         await(
           repository
             .select(upscanReference)
             .value
         ) shouldBe Right(Some(upscanUpload))
+
+        await(repository.selectAll(List(upscanReference, upscanReference2)).value).map(_.toSet) shouldBe Right(
+          Set(upscanUpload, upscanUpload2)
+        )
+
       }
     }
   }

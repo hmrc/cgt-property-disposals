@@ -1,4 +1,5 @@
 GET     /upscan/upscan-reference/:ref                       uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanUpload(ref: uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanReference)
-POST    /upscan                                            uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.saveUpscanUpload()
+POST    /upscan                                             uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.saveUpscanUpload()
 PUT     /upscan/upscan-reference/:ref                       uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.updateUpscanUpload(ref:  uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanReference)
 POST    /upscan-call-back/upscan-reference/:ref             uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.callback(ref:  uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanReference)
+POST    /upscan/uploads                                     uk.gov.hmrc.cgtpropertydisposals.controllers.upscan.UpscanController.getUpscanUploads()

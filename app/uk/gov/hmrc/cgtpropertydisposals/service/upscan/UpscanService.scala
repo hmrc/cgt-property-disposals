@@ -36,6 +36,10 @@ trait UpscanService {
     upscanReference: UpscanReference
   ): EitherT[Future, Error, Option[UpscanUpload]]
 
+  def readUpscanUploads(
+    upscanReferences: List[UpscanReference]
+  ): EitherT[Future, Error, List[UpscanUpload]]
+
   def updateUpscanUpload(
     upscanReference: UpscanReference,
     upscanUpload: UpscanUpload
@@ -62,5 +66,10 @@ class UpscanServiceImpl @Inject() (
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
     upscanRepository.update(upscanReference, upscanUpload)
+
+  override def readUpscanUploads(
+    upscanReferences: List[UpscanReference]
+  ): EitherT[Future, Error, List[UpscanUpload]] =
+    upscanRepository.selectAll(upscanReferences)
 
 }

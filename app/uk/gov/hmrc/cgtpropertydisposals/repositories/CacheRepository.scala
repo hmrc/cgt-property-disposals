@@ -18,13 +18,17 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories
 
 import java.time.LocalDateTime
 
+import cats.data.EitherT
+import cats.instances.list._
 import cats.syntax.either._
 import org.joda.time.DateTime
 import play.api.libs.json._
+import reactivemongo.api.Cursor
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
 
@@ -82,6 +86,31 @@ trait CacheRepository[A] {
         }
     }
 
+  def findAll(ids: List[String]): Future[Either[Error, List[A]]] =
+    collection
+      .find(
+        Json.obj("_id" -> Json.obj("$in" -> ids)),
+        None
+      )
+      .cursor[JsObject]()
+      .collect[List](Int.MaxValue, Cursor.FailOnError[List[JsObject]]())
+      .map { list =>
+        val (errors, values) = EitherT(list.map(readJson))
+          .subflatMap(
+            Either.fromOption(_, "Could not find value in JSON")
+          )
+          .value
+          .partitionWith(identity)
+
+        if (errors.nonEmpty)
+          Left(Error(s"Could not get all values: ${errors.mkString(", ")}]"))
+        else
+          Right(values)
+      }
+      .recover {
+        case exception => Left(Error(exception))
+      }
+
   def find(id: String): Future[Either[Error, Option[A]]] =
     collection
       .find(
@@ -90,17 +119,18 @@ trait CacheRepository[A] {
       )
       .one[JsObject]
       .map {
-        case None =>
-          Left(Error(s"Could not find json for id $id"))
-        case Some(json) =>
-          (json \ objName)
-            .validateOpt[A]
-            .asEither
-            .leftMap(e ⇒ Error(s"Could not parse session data from mongo: ${e.mkString("; ")}"))
+        case None       => Left(Error(s"Could not find json for id $id"))
+        case Some(json) => readJson(json).leftMap(Error(_))
       }
       .recover {
         case exception => Left(Error(exception))
       }
+
+  private def readJson(jsObject: JsObject): Either[String, Option[A]] =
+    (jsObject \ objName)
+      .validateOpt[A]
+      .asEither
+      .leftMap(e ⇒ s"Could not parse session data from mongo: ${e.mkString("; ")}")
 
   private def dropInvalidIndexes(): Future[Unit] =
     collection.indexesManager.list().flatMap { indexes =>

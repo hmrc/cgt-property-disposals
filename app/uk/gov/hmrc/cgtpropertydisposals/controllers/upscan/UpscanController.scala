@@ -21,14 +21,16 @@ import cats.instances.future._
 import cats.instances.string._
 import cats.syntax.eq._
 import com.google.inject.Inject
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{UpscanFailure, UpscanSuccess}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{GetUpscanUploadsRequest, GetUpscanUploadsResponse, UpscanReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
+import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -51,7 +53,7 @@ class UpscanController @Inject() (
         .readUpscanUpload(upscanReference)
         .fold(
           e => {
-            logger.warn(s"could not get upscan upload: $e")
+            logger.warn(s"could not get upscan upload", e)
             InternalServerError
           }, {
             case Some(upscanUpload) =>
@@ -74,7 +76,7 @@ class UpscanController @Inject() (
             .storeUpscanUpload(upscanUpload)
             .fold(
               e => {
-                logger.warn(s"could not save upscan upload: $e")
+                logger.warn(s"could not save upscan upload", e)
                 InternalServerError
               },
               _ => Ok
@@ -94,7 +96,7 @@ class UpscanController @Inject() (
             .updateUpscanUpload(upscanReference, upscanUpload)
             .fold(
               e => {
-                logger.warn(s"could not update upscan upload: $e")
+                logger.warn(s"could not update upscan upload", e)
                 InternalServerError
               },
               _ => Ok
@@ -105,12 +107,32 @@ class UpscanController @Inject() (
       }
     }
 
+  def getUpscanUploads(): Action[JsValue] =
+    Action.async(parse.json) { implicit request: Request[JsValue] =>
+      request.body.validate[GetUpscanUploadsRequest] match {
+        case e: JsError =>
+          logger.warn(s"Could not parse get all upscan uploads request: ${e.prettyPrint()}")
+          Future.successful(BadRequest)
+
+        case JsSuccess(GetUpscanUploadsRequest(upscanReferences), _) =>
+          upscanService
+            .readUpscanUploads(upscanReferences)
+            .fold(
+              e => {
+                logger.warn(s"could not read upscan uploads", e)
+                InternalServerError
+              },
+              upscanUploads => Ok(Json.toJson(GetUpscanUploadsResponse(upscanUploads)))
+            )
+      }
+    }
+
   def callback(upscanReference: UpscanReference): Action[JsValue] =
     Action.async(parse.json) { implicit request: Request[JsValue] =>
       (request.body \ "fileStatus").asOpt[String] match {
         case Some(upscanStatus) =>
           if (upscanStatus === READY_FOR_DOWNLOAD | upscanStatus === FAILED_UPSCAN) {
-            callBackHander(upscanReference, upscanStatus)
+            callBackHandler(upscanReference, upscanStatus)
           } else {
             logger.warn(s"could not process upscan status : ${request.body.toString}")
             Future.successful(InternalServerError)
@@ -121,7 +143,7 @@ class UpscanController @Inject() (
       }
     }
 
-  private def callBackHander(upscanReference: UpscanReference, fileStatus: String)(
+  private def callBackHandler(upscanReference: UpscanReference, fileStatus: String)(
     implicit request: Request[JsValue]
   ): Future[Result] = {
     val result = for {
@@ -154,7 +176,7 @@ class UpscanController @Inject() (
 
     result.fold(
       e => {
-        logger.warn(s"could not process upscan call back : $e")
+        logger.warn(s"could not process upscan call back", e)
         InternalServerError
       },
       _ => {
@@ -163,4 +185,5 @@ class UpscanController @Inject() (
       }
     )
   }
+
 }
