@@ -179,7 +179,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             |    },
             |    "uploadedOn" : "1970-01-01T01:00:07.665",
             |    "upscanUploadStatus" : {
-            |        "Initiate" : {}
+            |        "Initiated" : {}
             |    }
             |}
             |""".stripMargin
@@ -214,7 +214,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             |    },
             |    "uploadedOn" : "1970-01-01T01:00:07.665",
             |    "upscanUploadStatus" : {
-            |        "Initiate" : {}
+            |        "Initiated" : {}
             |    }
             |}
             |""".stripMargin
@@ -248,7 +248,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             |    },
             |    "uploadedOn" : "1970-01-01T01:00:07.665",
             |    "upscanUploadStatus" : {
-            |        "Initiate" : {}
+            |        "Initiated" : {}
             |    }
             |}
             |""".stripMargin
@@ -289,7 +289,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
               |    },
               |    "uploadedOn" : "1970-01-01T01:00:07.665",
               |    "upscanUploadStatus" : {
-              |        "Initiate" : {}
+              |        "Initiated" : {}
               |    }
               |}
               |""".stripMargin
@@ -334,7 +334,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
               |    },
               |    "uploadedOn" : "1970-01-01T01:00:07.665",
               |    "upscanUploadStatus" : {
-              |        "Initiate" : {}
+              |        "Initiated" : {}
               |    }
               |}
               |""".stripMargin
@@ -371,7 +371,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
               |    },
               |    "uploadedOn" : "1970-01-01T01:00:07.665",
               |    "upscanUploadStatus" : {
-              |        "Initiate" : {}
+              |        "Initiated" : {}
               |    }
               |}
               |""".stripMargin
@@ -415,7 +415,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             |    },
             |    "uploadedOn" : "1970-01-01T01:00:07.665",
             |    "upscanUploadStatus" : {
-            |        "Initiate" : {}
+            |        "Initiated" : {}
             |    }
             |}
             |""".stripMargin
