@@ -18,12 +18,15 @@ package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[UpscanServiceImpl])
 trait UpscanService {
@@ -45,12 +48,18 @@ trait UpscanService {
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit]
 
+  def downloadFilesFromS3(
+    upscanSuccesses: List[UpscanSuccess]
+  ): Future[List[Either[Error, FileAttachment]]]
+
 }
 
 @Singleton
 class UpscanServiceImpl @Inject() (
-  upscanRepository: UpscanRepository
-) extends UpscanService
+  upscanRepository: UpscanRepository,
+  upscanConnector: UpscanConnector
+)(implicit ec: ExecutionContext)
+    extends UpscanService
     with Logging {
 
   override def storeUpscanUpload(upscanUpload: UpscanUpload): EitherT[Future, Error, Unit] =
@@ -71,5 +80,10 @@ class UpscanServiceImpl @Inject() (
     uploadReferences: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUpload]] =
     upscanRepository.selectAll(uploadReferences)
+
+  override def downloadFilesFromS3(
+    upscanSuccesses: List[UpscanSuccess]
+  ): Future[List[Either[Error, FileAttachment]]] =
+    Future.traverse(upscanSuccesses)(url => upscanConnector.downloadFile(url))
 
 }
