@@ -67,11 +67,11 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
     with DraftReturnsRepository
     with CacheRepository[DraftReturnWithCgtReference] {
 
-  val cacheTtl: FiniteDuration = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
-  val maxDraftReturns: Int     = config.underlying.get[Int]("mongodb.draft-returns.max-draft-returns").value
-  val indexName: String        = "draft-return-cache-ttl"
-  val objName: String          = "return"
-  val key: String              = "return.cgtReference.value"
+  val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
+  val maxDraftReturns: Int      = config.underlying.get[Int]("mongodb.draft-returns.max-draft-returns").value
+  val cacheTtlIndexName: String = "draft-return-cache-ttl"
+  val objName: String           = "return"
+  val key: String               = "return.cgtReference.value"
 
   override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
     EitherT(get(cgtReference)).map(_.map(_.draftReturn))

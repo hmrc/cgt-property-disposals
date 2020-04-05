@@ -16,6 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
+import java.time.LocalDateTime
+
+import cats.syntax.either._
+import org.joda.time.DateTime
 import play.api.libs.json._
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
@@ -24,8 +28,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
@@ -35,26 +39,33 @@ trait CacheRepository[A] {
   implicit val ec: ExecutionContext
 
   val cacheTtl: FiniteDuration
-  val indexName: String
+  val cacheTtlIndexName: String
   val objName: String
 
-  private lazy val index = Index(
+  private lazy val cacheTtlIndex = Index(
     key     = Seq("lastUpdated" → IndexType.Ascending),
-    name    = Some(indexName),
+    name    = Some(cacheTtlIndexName),
     options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
   )
 
-  dropInvalidIndexes
-    .flatMap(_ => collection.indexesManager.ensure(index))
+  dropInvalidIndexes()
+    .flatMap(_ => collection.indexesManager.create(cacheTtlIndex))
     .onComplete {
-      case Success(_) => logger.info("Successfully ensured indices")
-      case Failure(e) => logger.warn("Could not ensure indices", e)
+      case Success(_) => logger.info("Successfully created ttl and id indices")
+      case Failure(e) => logger.warn("Could not create ttl and id indices", e)
     }
 
-  def set(key: String, value: A): Future[Either[Error, Unit]] =
+  def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =
     withCurrentTime { time =>
-      val selector = Json.obj("_id"  -> key)
-      val modifier = Json.obj("$set" -> Json.obj(objName -> Json.toJson(value), "lastUpdated" -> time))
+      val lastUpdated: DateTime = overrideLastUpdatedTime.map(toJodaDateTime).getOrElse(time)
+      val selector              = Json.obj("_id" -> id)
+      val modifier = Json.obj(
+        "$set" -> Json
+          .obj(
+            objName       -> Json.toJson(value),
+            "lastUpdated" -> lastUpdated
+          )
+      )
 
       collection
         .update(false)
@@ -71,18 +82,48 @@ trait CacheRepository[A] {
         }
     }
 
-  private def dropInvalidIndexes: Future[Unit] =
+  def find(id: String): Future[Either[Error, Option[A]]] =
+    collection
+      .find(
+        Json.obj("_id" -> id),
+        None
+      )
+      .one[JsObject]
+      .map {
+        case None =>
+          Left(Error(s"Could not find json for id $id"))
+        case Some(json) =>
+          (json \ objName)
+            .validateOpt[A]
+            .asEither
+            .leftMap(e ⇒ Error(s"Could not parse session data from mongo: ${e.mkString("; ")}"))
+      }
+      .recover {
+        case exception => Left(Error(exception))
+      }
+
+  private def dropInvalidIndexes(): Future[Unit] =
     collection.indexesManager.list().flatMap { indexes =>
       indexes
         .find { index =>
-          index.name.contains(indexName) &&
+          index.name.contains(cacheTtlIndexName) &&
           !index.options.getAs[Long]("expireAfterSeconds").contains(cacheTtl.toSeconds)
         }
         .map { i =>
           logger.warn(s"dropping $i as ttl value is incorrect for index")
-          collection.indexesManager.drop(indexName).map(_ => ())
+          collection.indexesManager.drop(cacheTtlIndexName).map(_ => ())
         }
         .getOrElse(Future.successful(()))
     }
+
+  private def toJodaDateTime(dateTime: LocalDateTime): org.joda.time.DateTime =
+    new org.joda.time.DateTime(
+      dateTime.getYear,
+      dateTime.getMonthValue,
+      dateTime.getDayOfMonth,
+      dateTime.getHour,
+      dateTime.getMinute,
+      dateTime.getSecond
+    )
 
 }

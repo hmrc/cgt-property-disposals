@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
+import java.time.{Clock, LocalDateTime}
+
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
@@ -31,7 +33,7 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
   val config = Configuration(
     ConfigFactory.parseString(
       """
-        | mongodb.upscan.expiry-time = 7days
+        | mongodb.upscan.expiry-time = 20seconds
         |""".stripMargin
     )
   )
@@ -41,7 +43,7 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
   "Upscan Repository" when {
     "inserting" should {
       "insert a new upscan upload document" in {
-        val upscanUpload = sample[UpscanUpload]
+        val upscanUpload = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
         await(repository.insert(upscanUpload).value) shouldBe Right(())
       }
     }
@@ -49,13 +51,13 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
     "updating an upscan upload document" should {
       "update an existing upscan upload document" in {
 
-        val upscanUpload    = sample[UpscanUpload]
+        val upscanUpload    = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
         val draftReturnId   = upscanUpload.draftReturnId
         val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
 
         await(repository.insert(upscanUpload).value) shouldBe Right(())
 
-        val newUpscanUpload  = sample[UpscanUpload]
+        val newUpscanUpload  = sample[UpscanUpload].copy(uploadedOn            = LocalDateTime.now(Clock.systemUTC()))
         val upscanUploadMeta = newUpscanUpload.upscanUploadMeta.copy(reference = upscanReference.value)
         val updatedUpscanUpload =
           newUpscanUpload.copy(draftReturnId = draftReturnId, upscanUploadMeta = upscanUploadMeta)
@@ -81,7 +83,7 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
     "selecting an upscan upload document" should {
       "select an upscan upload document if it exists" in {
 
-        val upscanUpload    = sample[UpscanUpload]
+        val upscanUpload    = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
         val draftReturnId   = upscanUpload.draftReturnId
         val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
         await(repository.insert(upscanUpload).value) shouldBe Right(())

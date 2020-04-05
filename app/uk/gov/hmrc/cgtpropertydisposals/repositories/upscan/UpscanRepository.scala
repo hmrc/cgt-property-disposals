@@ -20,12 +20,8 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
-import play.api.libs.json.Json
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
@@ -68,84 +64,43 @@ class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: 
     with UpscanRepository
     with CacheRepository[UpscanUpload] {
 
+  override val cacheTtlIndexName: String = "upscan-cache-ttl"
+
+  override val objName: String = "upscan"
+
   val cacheTtl: FiniteDuration = config.underlying.get[FiniteDuration]("mongodb.upscan.expiry-time").value
 
-  override def indexes: Seq[Index] = Seq(
-    Index(
-      key      = Seq("draftReturnId" → IndexType.Ascending, "upscanUploadMeta.reference" -> IndexType.Ascending),
-      unique   = true,
-      dropDups = true
-    )
-  )
+  private def id(draftReturnId: DraftReturnId, upscanReference: UpscanReference): String =
+    s"${draftReturnId.value}-${upscanReference.value}"
 
   override def insert(
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
-    EitherT[Future, Error, Unit](
-      collection.insert
-        .one[UpscanUpload](upscanUpload)
-        .map[Either[Error, Unit]] { result: WriteResult =>
-          if (result.ok)
-            Right(())
-          else
-            Left(
-              Error(
-                s"could not store upscan upload meta :${result.writeErrors}"
-              )
-            )
-        }
-        .recover {
-          case exception => Left(Error(exception))
-        }
+    EitherT(
+      set(
+        id(upscanUpload.draftReturnId, UpscanReference(upscanUpload.upscanUploadMeta.reference)),
+        upscanUpload,
+        Some(upscanUpload.uploadedOn)
+      )
     )
 
   override def select(
     draftReturnId: DraftReturnId,
     upscanReference: UpscanReference
-  ): EitherT[Future, Error, Option[UpscanUpload]] = {
-    val selector = Json.obj(
-      "draftReturnId.value"        -> draftReturnId.value,
-      "upscanUploadMeta.reference" -> upscanReference.value
-    )
-    EitherT[Future, Error, Option[UpscanUpload]](
-      collection
-        .find(selector, None)
-        .one[UpscanUpload]
-        .map(Right(_))
-        .recover {
-          case exception => Left(Error(exception))
-        }
-    )
-  }
+  ): EitherT[Future, Error, Option[UpscanUpload]] =
+    EitherT(find(id(draftReturnId, upscanReference)))
 
   override def update(
     draftReturnId: DraftReturnId,
     upscanReference: UpscanReference,
     upscanUpload: UpscanUpload
-  ): EitherT[Future, Error, Unit] = {
-
-    val selector = Json.obj(
-      "draftReturnId.value"        -> draftReturnId.value,
-      "upscanUploadMeta.reference" -> upscanReference.value
+  ): EitherT[Future, Error, Unit] =
+    EitherT(
+      set(
+        id(draftReturnId, upscanReference),
+        upscanUpload,
+        Some(upscanUpload.uploadedOn)
+      )
     )
 
-    val updatedUpscanUpload = Json.toJsObject(upscanUpload)
-
-    EitherT[Future, Error, Unit](
-      findAndUpdate(
-        selector,
-        updatedUpscanUpload,
-        fetchNewObject = false,
-        upsert         = false
-      ).map {
-        _.lastError.flatMap(_.err) match {
-          case Some(error) => Left(Error(s"could not update upscan upload: $error"))
-          case None        => Right(())
-        }
-      }
-    )
-  }
-
-  override val indexName: String = "upscan-cache-ttl"
-  override val objName: String   = "upscan"
 }
