@@ -227,7 +227,8 @@ class ReturnTransformerServiceImpl @Inject() (
     UploadReference(""),
     UpscanUploadMeta("", UploadRequest("", Map.empty)),
     LocalDateTime.MIN,
-    UpscanSuccess("", "", "", Map.empty)
+    UpscanSuccess("", "", "", Map.empty),
+    ""
   )
 
   private def getIndividualUserType(desReturn: DesReturnDetails): Option[IndividualUserType] =
