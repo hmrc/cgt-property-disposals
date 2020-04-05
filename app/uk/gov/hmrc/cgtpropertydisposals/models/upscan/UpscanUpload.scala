@@ -21,6 +21,7 @@ import java.time.LocalDateTime
 import play.api.libs.json.Json
 
 final case class UpscanUpload(
+  uploadReference: UploadReference,
   upscanUploadMeta: UpscanUploadMeta,
   uploadedOn: LocalDateTime,
   upscanUploadStatus: UpscanUploadStatus,

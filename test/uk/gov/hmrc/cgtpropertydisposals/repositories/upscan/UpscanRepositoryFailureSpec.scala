@@ -21,7 +21,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -48,12 +48,9 @@ class UpscanRepositoryFailureSpec extends WordSpec with Matchers with MongoSuppo
 
     "updating an upscan upload document" should {
       "return an error if there is a failure" in {
-        val upscanUpload    = sample[UpscanUpload]
-        val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
-
         await(
           repository
-            .select(upscanReference)
+            .select(sample[UploadReference])
             .value
         ).isLeft shouldBe true
       }
@@ -61,11 +58,9 @@ class UpscanRepositoryFailureSpec extends WordSpec with Matchers with MongoSuppo
 
     "selecting an upscan upload document" should {
       "return an error if there is a failure" in {
-        val upscanUpload    = sample[UpscanUpload]
-        val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
         await(
           repository
-            .select(upscanReference)
+            .select(sample[UploadReference])
             .value
         ).isLeft shouldBe true
       }
@@ -73,10 +68,9 @@ class UpscanRepositoryFailureSpec extends WordSpec with Matchers with MongoSuppo
 
     "selecting all upscan upload documents" should {
       "return an error if there is a failure" in {
-        val upscanReference = sample[UpscanReference]
         await(
           repository
-            .selectAll(List(upscanReference))
+            .selectAll(List(sample[UploadReference]))
             .value
         ).isLeft shouldBe true
       }

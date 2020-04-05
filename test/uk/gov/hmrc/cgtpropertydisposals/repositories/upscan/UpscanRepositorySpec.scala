@@ -23,7 +23,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -51,52 +51,49 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
     "updating an upscan upload document" should {
       "update an existing upscan upload document" in {
 
-        val upscanUpload    = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
-        val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
+        val upscanUpload = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
 
         await(repository.insert(upscanUpload).value) shouldBe Right(())
 
-        val newUpscanUpload  = sample[UpscanUpload].copy(uploadedOn            = LocalDateTime.now(Clock.systemUTC()))
-        val upscanUploadMeta = newUpscanUpload.upscanUploadMeta.copy(reference = upscanReference.value)
-        val updatedUpscanUpload =
-          newUpscanUpload.copy(upscanUploadMeta = upscanUploadMeta)
+        val newUpscanUpload = sample[UpscanUpload].copy(
+          uploadReference = UploadReference(s"${upscanUpload.uploadReference}-2"),
+          uploadedOn      = LocalDateTime.now(Clock.systemUTC())
+        )
 
         await(
           repository
             .update(
-              upscanReference,
-              updatedUpscanUpload
+              upscanUpload.uploadReference,
+              newUpscanUpload
             )
             .value
         ) shouldBe Right(())
 
         await(
           repository
-            .select(upscanReference)
+            .select(upscanUpload.uploadReference)
             .value
-        ) shouldBe Right(Some(updatedUpscanUpload))
+        ) shouldBe Right(Some(newUpscanUpload))
       }
     }
 
-    "selecting an upscan upload document" should {
+    "selecting upscan upload documents" should {
       "select an upscan upload document if it exists" in {
 
         val upscanUpload  = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
         val upscanUpload2 = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
-
-        val upscanReference  = UpscanReference(upscanUpload.upscanUploadMeta.reference)
-        val upscanReference2 = UpscanReference(upscanUpload2.upscanUploadMeta.reference)
 
         await(repository.insert(upscanUpload).value)  shouldBe Right(())
         await(repository.insert(upscanUpload2).value) shouldBe Right(())
 
         await(
           repository
-            .select(upscanReference)
+            .select(upscanUpload.uploadReference)
             .value
         ) shouldBe Right(Some(upscanUpload))
 
-        await(repository.selectAll(List(upscanReference, upscanReference2)).value).map(_.toSet) shouldBe Right(
+        await(repository.selectAll(List(upscanUpload.uploadReference, upscanUpload2.uploadReference)).value)
+          .map(_.toSet) shouldBe Right(
           Set(upscanUpload, upscanUpload2)
         )
 

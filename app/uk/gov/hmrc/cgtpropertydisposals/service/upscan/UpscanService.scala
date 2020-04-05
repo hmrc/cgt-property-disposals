@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
@@ -33,15 +33,15 @@ trait UpscanService {
   ): EitherT[Future, Error, Unit]
 
   def readUpscanUpload(
-    upscanReference: UpscanReference
+    uploadReference: UploadReference
   ): EitherT[Future, Error, Option[UpscanUpload]]
 
   def readUpscanUploads(
-    upscanReferences: List[UpscanReference]
+    uploadReferences: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUpload]]
 
   def updateUpscanUpload(
-    upscanReference: UpscanReference,
+    uploadReference: UploadReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit]
 
@@ -57,19 +57,19 @@ class UpscanServiceImpl @Inject() (
     upscanRepository.insert(upscanUpload)
 
   override def readUpscanUpload(
-    upscanReference: UpscanReference
+    uploadReference: UploadReference
   ): EitherT[Future, Error, Option[UpscanUpload]] =
-    upscanRepository.select(upscanReference)
+    upscanRepository.select(uploadReference)
 
   override def updateUpscanUpload(
-    upscanReference: UpscanReference,
+    uploadReference: UploadReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
-    upscanRepository.update(upscanReference, upscanUpload)
+    upscanRepository.update(uploadReference, upscanUpload)
 
   override def readUpscanUploads(
-    upscanReferences: List[UpscanReference]
+    uploadReferences: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUpload]] =
-    upscanRepository.selectAll(upscanReferences)
+    upscanRepository.selectAll(uploadReferences)
 
 }

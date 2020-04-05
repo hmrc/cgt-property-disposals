@@ -50,7 +50,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
 
@@ -173,7 +173,7 @@ trait DraftReturnGen { this: GenUtils =>
 trait UpscanGen { this: GenUtils =>
 
   implicit val upscanUploadGen: Gen[UpscanUpload]       = gen[UpscanUpload]
-  implicit val upscanReferenceGen: Gen[UpscanReference] = gen[UpscanReference]
+  implicit val uploadReferenceGen: Gen[UploadReference] = gen[UploadReference]
   implicit val upscanSuccessGen: Gen[UpscanSuccess]     = gen[UpscanSuccess]
 }
 

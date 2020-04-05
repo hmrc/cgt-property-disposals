@@ -64,30 +64,30 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
   def mockUpdateUpscanUpload(
-    upscanReference: UpscanReference,
+    uploadReference: UploadReference,
     upscanUpload: UpscanUpload
   )(
     response: Either[Error, Unit]
   ) =
     (mockUpscanService
-      .updateUpscanUpload(_: UpscanReference, _: UpscanUpload))
-      .expects(upscanReference, upscanUpload)
+      .updateUpscanUpload(_: UploadReference, _: UpscanUpload))
+      .expects(uploadReference, upscanUpload)
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
-  def mockGetUpscanUpload(upscanReference: UpscanReference)(
+  def mockGetUpscanUpload(uploadReference: UploadReference)(
     response: Either[Error, Option[UpscanUpload]]
   ) =
     (mockUpscanService
-      .readUpscanUpload(_: UpscanReference))
-      .expects(upscanReference)
+      .readUpscanUpload(_: UploadReference))
+      .expects(uploadReference)
       .returning(EitherT[Future, Error, Option[UpscanUpload]](Future.successful(response)))
 
-  def mockGetUpscanUploads(upscanReferences: List[UpscanReference])(
+  def mockGetUpscanUploads(uploadReferences: List[UploadReference])(
     response: Either[Error, List[UpscanUpload]]
   ) =
     (mockUpscanService
-      .readUpscanUploads(_: List[UpscanReference]))
-      .expects(upscanReferences)
+      .readUpscanUploads(_: List[UploadReference]))
+      .expects(uploadReferences)
       .returning(EitherT[Future, Error, List[UpscanUpload]](Future.successful(response)))
 
   val request = new AuthenticatedRequest(
@@ -106,7 +106,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
     cc            = Helpers.stubControllerComponents()
   )
 
-  val upscanReference = sample[UpscanReference]
+  val uploadReference = sample[UploadReference]
 
   "Upscan Controller" when {
 
@@ -121,9 +121,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             FakeRequest()
           )
 
-        mockGetUpscanUpload(upscanReference)(Left(Error("mongo error")))
+        mockGetUpscanUpload(uploadReference)(Left(Error("mongo error")))
 
-        val result = controller.getUpscanUpload(upscanReference)(request)
+        val result = controller.getUpscanUpload(uploadReference)(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
@@ -137,9 +137,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             FakeRequest()
           )
 
-        mockGetUpscanUpload(upscanReference)(Right(None))
+        mockGetUpscanUpload(uploadReference)(Right(None))
 
-        val result = controller.getUpscanUpload(upscanReference)(request)
+        val result = controller.getUpscanUpload(uploadReference)(request)
         status(result) shouldBe BAD_REQUEST
 
       }
@@ -156,9 +156,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             FakeRequest()
           )
 
-        mockGetUpscanUpload(upscanReference)(Right(Some(upscanUpload)))
+        mockGetUpscanUpload(uploadReference)(Right(Some(upscanUpload)))
 
-        val result = controller.getUpscanUpload(upscanReference)(request)
+        val result = controller.getUpscanUpload(uploadReference)(request)
         status(result) shouldBe OK
 
       }
@@ -174,9 +174,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             LocalDateTime.now(),
             headerCarrier,
             FakeRequest()
-          ).withBody(Json.parse(s"""{ "upscanReferences" : [ ${Json.toJson(upscanReference)} ] }"""))
+          ).withBody(Json.parse(s"""{ "uploadReferences" : [ ${Json.toJson(uploadReference)} ] }"""))
 
-        mockGetUpscanUploads(List(upscanReference))(Left(Error("mongo error")))
+        mockGetUpscanUploads(List(uploadReference))(Left(Error("mongo error")))
 
         val result = controller.getUpscanUploads()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
@@ -205,9 +205,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             LocalDateTime.now(),
             headerCarrier,
             FakeRequest()
-          ).withBody(Json.parse(s"""{ "upscanReferences" : [ ${Json.toJson(upscanReference)} ] }"""))
+          ).withBody(Json.parse(s"""{ "uploadReferences" : [ ${Json.toJson(uploadReference)} ] }"""))
 
-        mockGetUpscanUploads(List(upscanReference))(Right(List(upscanUpload)))
+        mockGetUpscanUploads(List(uploadReference))(Right(List(upscanUpload)))
 
         val result = controller.getUpscanUploads()(request)
         status(result) shouldBe OK
@@ -221,8 +221,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       "return an internal server error if the backend call fails" in {
 
         val upscanUploadPayload =
-          """
+          s"""
             |{
+            |    "uploadReference" : "abc",
             |    "upscanUploadMeta" : {
             |        "reference" : "glwibAzzhpamXyavalyif",
             |        "uploadRequest" : {
@@ -258,6 +259,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
         val badUpscanUploadPayload =
           """
             |{
+            |    "uploadReference" : "abc",
             |    "upscanUploadMeta" : {
             |        "reference" : "glwibAzzhpamXyavalyif",
             |        "uploadRequest" : {
@@ -288,6 +290,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
         val upscanUploadPayload =
           """
             |{
+            |    "uploadReference" : "abc",
             |    "upscanUploadMeta" : {
             |        "reference" : "glwibAzzhpamXyavalyif",
             |        "uploadRequest" : {
@@ -326,6 +329,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
         val upscanUploadPayload =
           """
               |{
+              |    "uploadReference" : "abc",
               |    "upscanUploadMeta" : {
               |        "reference" : "glwibAzzhpamXyavalyif",
               |        "uploadRequest" : {
@@ -351,23 +355,24 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
         val upscanUpload = Json.parse(upscanUploadPayload).as[UpscanUpload]
 
         mockUpdateUpscanUpload(
-          UpscanReference(upscanUpload.upscanUploadMeta.reference),
+          upscanUpload.uploadReference,
           upscanUpload
         )(Left(Error("mongo error")))
 
         val result = controller.updateUpscanUpload(
-          UpscanReference(upscanUpload.upscanUploadMeta.reference)
+          upscanUpload.uploadReference
         )(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
       "return a bad request if the request payload is incorrect" in {
 
-        val upscanReference = sample[UpscanReference]
+        val uploadReference = sample[UploadReference]
 
         val badUpscanUploadPayload =
           """
               |{
+              |    "uploadReference" : "abc",
               |    "upscanUploadMeta" : {
               |        "reference" : "glwibAzzhpamXyavalyif",
               |        "uploadRequest" : {
@@ -389,17 +394,18 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             fakeRequestWithJsonBody(Json.parse(badUpscanUploadPayload))
           )
 
-        val result = controller.updateUpscanUpload(upscanReference)(request)
+        val result = controller.updateUpscanUpload(uploadReference)(request)
         status(result) shouldBe BAD_REQUEST
       }
 
       "return an 200 OK response if a valid request is received" in {
 
-        val upscanReference = sample[UpscanReference]
+        val uploadReference = sample[UploadReference]
 
         val upscanUploadPayload =
           """
               |{
+              |    "uploadReference" : "abc",
               |    "upscanUploadMeta" : {
               |        "reference" : "glwibAzzhpamXyavalyif",
               |        "uploadRequest" : {
@@ -424,9 +430,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
         val upscanUpload = Json.parse(upscanUploadPayload).as[UpscanUpload]
 
-        mockUpdateUpscanUpload(upscanReference, upscanUpload)(Right(()))
+        mockUpdateUpscanUpload(uploadReference, upscanUpload)(Right(()))
 
-        val result = controller.updateUpscanUpload(upscanReference)(request)
+        val result = controller.updateUpscanUpload(uploadReference)(request)
         status(result) shouldBe OK
       }
     }
@@ -435,11 +441,10 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
       "return an internal server error if the payload does not contain a upscan status" in {
 
-        val upscanReference = sample[UpscanReference]
-
         val upscanUploadPayload =
           """
             |{
+            |    "uploadReference" : "abc",
             |    "upscanUploadMeta" : {
             |        "reference" : "glwibAzzhpamXyavalyif",
             |        "uploadRequest" : {
@@ -463,14 +468,12 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
           )
 
         val result = controller.callback(
-          upscanReference
+          sample[UploadReference]
         )(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
       "return an internal server error if the payload does not contain a valid status" in {
-
-        val upscanReference = sample[UpscanReference]
 
         val upscanUploadPayload =
           """
@@ -496,17 +499,16 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
           )
 
         val result = controller.callback(
-          upscanReference
+          sample[UploadReference]
         )(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
-      "return an internal server error if the payload contains a valid status" in {
-
-        val upscanReference = UpscanReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
-        val upscanUpload    = sample[UpscanUpload]
+      "return NO CONTENT if the payload contains a valid status" in {
+        val uploadReference = UploadReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
+        val upscanUpload    = sample[UpscanUpload].copy(uploadReference = uploadReference)
         val upscanSuccess = sample[UpscanSuccess].copy(
-          reference   = upscanReference.value,
+          reference   = "reference",
           fileStatus  = "READY",
           downloadUrl = "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
           uploadDetails = Map(
@@ -517,10 +519,10 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
           )
         )
 
-        val upscanCallBackReequest =
-          """
+        val upscanCallBackRequest =
+          s"""
             |{
-            |    "reference" : "11370e18-6e24-453e-b45a-76d3e32ea33d",
+            |    "reference" : "reference",
             |    "fileStatus" : "READY",
             |    "downloadUrl" : "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
             |    "uploadDetails": {
@@ -533,16 +535,16 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             |""".stripMargin
 
         inSequence {
-          mockGetUpscanUpload(upscanReference)(Right(Some(upscanUpload)))
+          mockGetUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUpload)))
           mockUpdateUpscanUpload(
-            upscanReference,
-            upscanUpload.copy(upscanCallBack = Some(upscanSuccess.copy(reference = upscanReference.value)))
+            upscanUpload.uploadReference,
+            upscanUpload.copy(upscanCallBack = Some(upscanSuccess))
           )(Right(()))
         }
 
         val result = controller.callback(
-          upscanReference
-        )(fakeRequestWithJsonBody(Json.parse(upscanCallBackReequest)))
+          uploadReference
+        )(fakeRequestWithJsonBody(Json.parse(upscanCallBackRequest)))
         status(result) shouldBe NO_CONTENT
       }
 

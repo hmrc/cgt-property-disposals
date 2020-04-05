@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class GetUpscanUploadsRequest(upscanReferences: List[UpscanReference])
+final case class GetUpscanUploadsRequest(uploadReferences: List[UploadReference])
 
 object GetUpscanUploadsRequest {
 

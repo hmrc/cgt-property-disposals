@@ -39,16 +39,16 @@ trait UpscanRepository {
   ): EitherT[Future, Error, Unit]
 
   def select(
-    upscanReference: UpscanReference
+    uploadReference: UploadReference
   ): EitherT[Future, Error, Option[UpscanUpload]]
 
   def update(
-    upscanReference: UpscanReference,
+    uploadReference: UploadReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit]
 
   def selectAll(
-    upscanReferences: List[UpscanReference]
+    uploadReference: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUpload]]
 
 }
@@ -76,32 +76,32 @@ class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: 
   ): EitherT[Future, Error, Unit] =
     EitherT(
       set(
-        upscanUpload.upscanUploadMeta.reference,
+        upscanUpload.uploadReference.value,
         upscanUpload,
         Some(upscanUpload.uploadedOn)
       )
     )
 
   override def select(
-    upscanReference: UpscanReference
+    uploadReference: UploadReference
   ): EitherT[Future, Error, Option[UpscanUpload]] =
-    EitherT(find(upscanReference.value))
+    EitherT(find(uploadReference.value))
 
   override def update(
-    upscanReference: UpscanReference,
+    uploadReference: UploadReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
     EitherT(
       set(
-        upscanReference.value,
+        uploadReference.value,
         upscanUpload,
         Some(upscanUpload.uploadedOn)
       )
     )
 
   override def selectAll(
-    upscanReferences: List[UpscanReference]
+    uploadReference: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUpload]] =
-    EitherT(findAll(upscanReferences.map(_.value)))
+    EitherT(findAll(uploadReference.map(_.value)))
 
 }

@@ -16,22 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format
 import play.api.mvc.PathBindable
 
-final case class UpscanReference(value: String) extends AnyVal
+final case class UploadReference(value: String) extends AnyVal
 
-object UpscanReference {
-  implicit val binder: PathBindable[UpscanReference] =
-    new PathBindable[UpscanReference] {
+object UploadReference {
+  implicit val binder: PathBindable[UploadReference] =
+    new PathBindable[UploadReference] {
       val stringBinder: PathBindable[String] = implicitly[PathBindable[String]]
 
-      override def bind(key: String, value: String): Either[String, UpscanReference] =
-        stringBinder.bind(key, value).map(UpscanReference.apply)
+      override def bind(key: String, value: String): Either[String, UploadReference] =
+        stringBinder.bind(key, value).map(UploadReference.apply)
 
-      override def unbind(key: String, value: UpscanReference): String =
+      override def unbind(key: String, value: UploadReference): String =
         stringBinder.unbind(key, value.value)
     }
 
-  implicit val format: OFormat[UpscanReference] = Json.format[UpscanReference]
+  implicit val format: Format[UploadReference] =
+    implicitly[Format[String]].inmap(UploadReference(_), _.value)
+
 }
