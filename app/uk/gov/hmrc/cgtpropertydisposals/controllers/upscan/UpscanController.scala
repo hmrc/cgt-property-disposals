@@ -25,7 +25,6 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{UpscanFailure, UpscanSuccess}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
@@ -46,10 +45,10 @@ class UpscanController @Inject() (
   private val READY_FOR_DOWNLOAD = "READY"
   private val FAILED_UPSCAN      = "FAILED"
 
-  def getUpscanUpload(draftReturnId: DraftReturnId, upscanReference: UpscanReference): Action[AnyContent] =
+  def getUpscanUpload(upscanReference: UpscanReference): Action[AnyContent] =
     authenticate.async {
       upscanService
-        .readUpscanUpload(draftReturnId, upscanReference)
+        .readUpscanUpload(upscanReference)
         .fold(
           e => {
             logger.warn(s"could not get upscan upload: $e")
@@ -59,8 +58,7 @@ class UpscanController @Inject() (
               Ok(Json.toJson(upscanUpload))
             case None =>
               logger.info(
-                s"could not find an upscan upload with draft " +
-                  s"return id $draftReturnId and upscan reference $upscanReference"
+                s"could not find an upscan upload with upscan reference $upscanReference"
               )
               BadRequest
           }
@@ -87,13 +85,13 @@ class UpscanController @Inject() (
       }
     }
 
-  def updateUpscanUpload(draftReturnId: DraftReturnId, upscanReference: UpscanReference): Action[JsValue] =
+  def updateUpscanUpload(upscanReference: UpscanReference): Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
       request.body
         .asOpt[UpscanUpload] match {
         case Some(upscanUpload) =>
           upscanService
-            .updateUpscanUpload(draftReturnId, upscanReference, upscanUpload)
+            .updateUpscanUpload(upscanReference, upscanUpload)
             .fold(
               e => {
                 logger.warn(s"could not update upscan upload: $e")
@@ -107,12 +105,12 @@ class UpscanController @Inject() (
       }
     }
 
-  def callback(draftReturnId: DraftReturnId, upscanReference: UpscanReference): Action[JsValue] =
+  def callback(upscanReference: UpscanReference): Action[JsValue] =
     Action.async(parse.json) { implicit request: Request[JsValue] =>
       (request.body \ "fileStatus").asOpt[String] match {
         case Some(upscanStatus) =>
           if (upscanStatus === READY_FOR_DOWNLOAD | upscanStatus === FAILED_UPSCAN) {
-            callBackHander(draftReturnId, upscanReference, upscanStatus)
+            callBackHander(upscanReference, upscanStatus)
           } else {
             logger.warn(s"could not process upscan status : ${request.body.toString}")
             Future.successful(InternalServerError)
@@ -123,15 +121,15 @@ class UpscanController @Inject() (
       }
     }
 
-  private def callBackHander(draftReturnId: DraftReturnId, upscanReference: UpscanReference, fileStatus: String)(
+  private def callBackHander(upscanReference: UpscanReference, fileStatus: String)(
     implicit request: Request[JsValue]
   ): Future[Result] = {
     val result = for {
-      maybeUpscanUpload <- upscanService.readUpscanUpload(draftReturnId, upscanReference)
+      maybeUpscanUpload <- upscanService.readUpscanUpload(upscanReference)
       upscanUpload <- EitherT.fromOption(
                        maybeUpscanUpload,
                        Error(
-                         s"could not get upscan upload value from db for draft return id $draftReturnId and upscan reference $upscanReference"
+                         s"could not get upscan upload value from db for upscan reference $upscanReference"
                        )
                      )
       callBackResult <- if (fileStatus === READY_FOR_DOWNLOAD) {
@@ -151,7 +149,7 @@ class UpscanController @Inject() (
                        }
 
       newUpscanUpload = upscanUpload.copy(upscanCallBack = Some(callBackResult))
-      _ <- upscanService.updateUpscanUpload(draftReturnId, upscanReference, newUpscanUpload)
+      _ <- upscanService.updateUpscanUpload(upscanReference, newUpscanUpload)
     } yield ()
 
     result.fold(

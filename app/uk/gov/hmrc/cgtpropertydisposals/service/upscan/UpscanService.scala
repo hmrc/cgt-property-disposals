@@ -19,12 +19,11 @@ package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @ImplementedBy(classOf[UpscanServiceImpl])
 trait UpscanService {
@@ -34,12 +33,10 @@ trait UpscanService {
   ): EitherT[Future, Error, Unit]
 
   def readUpscanUpload(
-    draftReturnId: DraftReturnId,
     upscanReference: UpscanReference
   ): EitherT[Future, Error, Option[UpscanUpload]]
 
   def updateUpscanUpload(
-    draftReturnId: DraftReturnId,
     upscanReference: UpscanReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit]
@@ -56,16 +53,14 @@ class UpscanServiceImpl @Inject() (
     upscanRepository.insert(upscanUpload)
 
   override def readUpscanUpload(
-    draftReturnId: DraftReturnId,
     upscanReference: UpscanReference
   ): EitherT[Future, Error, Option[UpscanUpload]] =
-    upscanRepository.select(draftReturnId, upscanReference)
+    upscanRepository.select(upscanReference)
 
   override def updateUpscanUpload(
-    draftReturnId: DraftReturnId,
     upscanReference: UpscanReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
-    upscanRepository.update(draftReturnId, upscanReference, upscanUpload)
+    upscanRepository.update(upscanReference, upscanUpload)
 
 }

@@ -52,7 +52,6 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
       "update an existing upscan upload document" in {
 
         val upscanUpload    = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
-        val draftReturnId   = upscanUpload.draftReturnId
         val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
 
         await(repository.insert(upscanUpload).value) shouldBe Right(())
@@ -60,12 +59,11 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
         val newUpscanUpload  = sample[UpscanUpload].copy(uploadedOn            = LocalDateTime.now(Clock.systemUTC()))
         val upscanUploadMeta = newUpscanUpload.upscanUploadMeta.copy(reference = upscanReference.value)
         val updatedUpscanUpload =
-          newUpscanUpload.copy(draftReturnId = draftReturnId, upscanUploadMeta = upscanUploadMeta)
+          newUpscanUpload.copy(upscanUploadMeta = upscanUploadMeta)
 
         await(
           repository
             .update(
-              draftReturnId,
               upscanReference,
               updatedUpscanUpload
             )
@@ -74,7 +72,7 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
 
         await(
           repository
-            .select(draftReturnId, upscanReference)
+            .select(upscanReference)
             .value
         ) shouldBe Right(Some(updatedUpscanUpload))
       }
@@ -84,12 +82,11 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
       "select an upscan upload document if it exists" in {
 
         val upscanUpload    = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
-        val draftReturnId   = upscanUpload.draftReturnId
         val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
         await(repository.insert(upscanUpload).value) shouldBe Right(())
         await(
           repository
-            .select(draftReturnId, upscanReference)
+            .select(upscanReference)
             .value
         ) shouldBe Right(Some(upscanUpload))
       }

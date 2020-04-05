@@ -19,10 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 import java.time.LocalDateTime
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 
 final case class UpscanUpload(
-  draftReturnId: DraftReturnId,
   upscanUploadMeta: UpscanUploadMeta,
   uploadedOn: LocalDateTime,
   upscanUploadStatus: UpscanUploadStatus,

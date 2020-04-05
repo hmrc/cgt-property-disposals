@@ -23,7 +23,6 @@ import play.api.Configuration
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -40,12 +39,10 @@ trait UpscanRepository {
   ): EitherT[Future, Error, Unit]
 
   def select(
-    draftReturnId: DraftReturnId,
     upscanReference: UpscanReference
   ): EitherT[Future, Error, Option[UpscanUpload]]
 
   def update(
-    draftReturnId: DraftReturnId,
     upscanReference: UpscanReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit]
@@ -70,34 +67,29 @@ class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: 
 
   val cacheTtl: FiniteDuration = config.underlying.get[FiniteDuration]("mongodb.upscan.expiry-time").value
 
-  private def id(draftReturnId: DraftReturnId, upscanReference: UpscanReference): String =
-    s"${draftReturnId.value}-${upscanReference.value}"
-
   override def insert(
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
     EitherT(
       set(
-        id(upscanUpload.draftReturnId, UpscanReference(upscanUpload.upscanUploadMeta.reference)),
+        upscanUpload.upscanUploadMeta.reference,
         upscanUpload,
         Some(upscanUpload.uploadedOn)
       )
     )
 
   override def select(
-    draftReturnId: DraftReturnId,
     upscanReference: UpscanReference
   ): EitherT[Future, Error, Option[UpscanUpload]] =
-    EitherT(find(id(draftReturnId, upscanReference)))
+    EitherT(find(upscanReference.value))
 
   override def update(
-    draftReturnId: DraftReturnId,
     upscanReference: UpscanReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
     EitherT(
       set(
-        id(draftReturnId, upscanReference),
+        upscanReference.value,
         upscanUpload,
         Some(upscanUpload.uploadedOn)
       )

@@ -50,12 +50,11 @@ class UpscanRepositoryFailureSpec extends WordSpec with Matchers with MongoSuppo
       "update an existing upscan upload document" in {
 
         val upscanUpload    = sample[UpscanUpload]
-        val draftReturnId   = upscanUpload.draftReturnId
         val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
 
         await(
           repository
-            .select(draftReturnId, upscanReference)
+            .select(upscanReference)
             .value
         ).isLeft shouldBe true
       }
@@ -64,11 +63,10 @@ class UpscanRepositoryFailureSpec extends WordSpec with Matchers with MongoSuppo
     "selecting an upscan upload document" should {
       "select an upscan upload document if it exists" in {
         val upscanUpload    = sample[UpscanUpload]
-        val draftReturnId   = upscanUpload.draftReturnId
         val upscanReference = UpscanReference(upscanUpload.upscanUploadMeta.reference)
         await(
           repository
-            .select(draftReturnId, upscanReference)
+            .select(upscanReference)
             .value
         ).isLeft shouldBe true
       }
