@@ -19,11 +19,14 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 import java.time.LocalDateTime
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUploadMeta}
 
 final case class MandatoryEvidence(
-  reference: String,
-  fileName: String,
-  createdOn: LocalDateTime
+  uploadReference: UploadReference,
+  upscanUploadMeta: UpscanUploadMeta,
+  uploadedOn: LocalDateTime,
+  upscanSuccess: UpscanSuccess
 )
 
 object MandatoryEvidence {
