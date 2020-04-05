@@ -16,15 +16,19 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import akka.util.Timeout
+import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.await
+import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 
@@ -36,7 +40,8 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
   implicit val timeout: Timeout                           = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   val mockUpscanRepository                                = mock[UpscanRepository]
-  val service                                             = new UpscanServiceImpl(mockUpscanRepository)
+  val mockUpscanConnector                                 = mock[UpscanConnector]
+  val service                                             = new UpscanServiceImpl(mockUpscanRepository, mockUpscanConnector)
 
   def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
     response: Either[Error, Unit]
@@ -72,6 +77,14 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       .update(_: UploadReference, _: UpscanUpload))
       .expects(uploadReference, upscanUpload)
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
+
+  def mockDownloadFile(upscanSuccess: UpscanSuccess)(
+    response: Either[Error, FileAttachment]
+  ) =
+    (mockUpscanConnector
+      .downloadFile(_: UpscanSuccess))
+      .expects(upscanSuccess)
+      .returning(Future[Either[Error, FileAttachment]](response))
 
   val upscanUpload = sample[UpscanUpload]
 
@@ -136,5 +149,39 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
         }
       }
     }
+
+    "it receives a request to download a S3 file" must {
+
+      val upscanSuccess1  = sample[UpscanSuccess]
+      val upscanSuccess2  = sample[UpscanSuccess]
+      val fileAttachment1 = FileAttachment(UUID.randomUUID().toString, "filename", Some("pdf"), ByteString(1))
+      val fileAttachment2 = FileAttachment(UUID.randomUUID().toString, "filename2", Some("pdf"), ByteString(2))
+
+      "return an error" when {
+
+        "some of the downloads fail" in {
+          mockDownloadFile(upscanSuccess1)(Right(fileAttachment1))
+          mockDownloadFile(upscanSuccess2)(Left(Error("")))
+
+          await(service.downloadFilesFromS3(List(upscanSuccess1, upscanSuccess2))) shouldBe List(
+            Right(fileAttachment1),
+            Left(Error(""))
+          )
+        }
+      }
+      "return file attachments" when {
+        "it successfully downloads the file" in {
+          mockDownloadFile(upscanSuccess1)(Right(fileAttachment1))
+          mockDownloadFile(upscanSuccess2)(Right(fileAttachment2))
+
+          await(service.downloadFilesFromS3(List(upscanSuccess1, upscanSuccess2))) shouldBe List(
+            Right(fileAttachment1),
+            Right(fileAttachment2)
+          )
+
+        }
+      }
+    }
+
   }
 }
