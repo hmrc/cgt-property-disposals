@@ -72,10 +72,9 @@ class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: 
 
   override def indexes: Seq[Index] = Seq(
     Index(
-      key = Seq("draftReturnId" → IndexType.Ascending, "upscanUploadMeta.reference" -> IndexType.Ascending)
-//      name     = Some("upscan-cache-ttl"),
-//      unique   = true,
-//      dropDups = true
+      key      = Seq("draftReturnId" → IndexType.Ascending, "upscanUploadMeta.reference" -> IndexType.Ascending),
+      unique   = true,
+      dropDups = true
     )
   )
 
