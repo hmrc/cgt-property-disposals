@@ -49,6 +49,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
@@ -175,12 +176,7 @@ trait UpscanGen { this: GenUtils =>
 
   implicit val upscanUploadGen: Gen[UpscanUpload]       = gen[UpscanUpload]
   implicit val upscanReferenceGen: Gen[UpscanReference] = gen[UpscanReference]
-
-//  implicit val upscanMetaGen: Gen[FileDescriptor]                       = gen[FileDescriptor]
-//  implicit val upscanUploadGen: Gen[UpscanFileDescriptor]               = gen[UpscanFileDescriptor]
-//  implicit val upscanCallBackGen: Gen[UpscanCallBack]                   = gen[UpscanCallBack]
-//  implicit val upscanInitiateReferenceGen: Gen[UpscanInitiateReference] = gen[UpscanInitiateReference]
-
+  implicit val upscanSuccessGen: Gen[UpscanSuccess]     = gen[UpscanSuccess]
 }
 
 trait DmsSubmissionGen {

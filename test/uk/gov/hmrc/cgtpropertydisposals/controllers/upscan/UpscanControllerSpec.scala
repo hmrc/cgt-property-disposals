@@ -23,7 +23,7 @@ import cats.data.EitherT
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsResult, JsValue, Json}
 import play.api.mvc.{Headers, WrappedRequest}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.DraftReturnId
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -574,10 +575,21 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       "return an internal server error if the payload contains a valid status" in {
 
         val draftReturnId   = sample[DraftReturnId]
-        val upscanReference = sample[UpscanReference]
+        val upscanReference = UpscanReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
         val upscanUpload    = sample[UpscanUpload]
+        val upscanSuccess = sample[UpscanSuccess].copy(
+          reference   = upscanReference.value,
+          fileStatus  = "READY",
+          downloadUrl = "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
+          uploadDetails = Map(
+            ("uploadTimestamp", "2018-04-24T09:30:00Z"),
+            ("checksum", "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100"),
+            ("fileName", "test.pdf"),
+            ("fileMimeType", "application/pdf")
+          )
+        )
 
-        val upscanUploadPayload =
+        val upscanCallBackReequest =
           """
             |{
             |    "reference" : "11370e18-6e24-453e-b45a-76d3e32ea33d",
@@ -592,23 +604,19 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             |}
             |""".stripMargin
 
-        val request =
-          new AuthenticatedRequest(
-            Fake.user,
-            LocalDateTime.now(),
-            headerCarrier,
-            fakeRequestWithJsonBody(Json.parse(upscanUploadPayload))
-          )
-
         inSequence {
           mockGetUpscanUpload(draftReturnId, upscanReference)(Right(Some(upscanUpload)))
-          mockUpdateUpscanUpload(draftReturnId, upscanReference, upscanUpload)(Right(()))
+          mockUpdateUpscanUpload(
+            draftReturnId,
+            upscanReference,
+            upscanUpload.copy(upscanCallBack = Some(upscanSuccess.copy(reference = upscanReference.value)))
+          )(Right(()))
         }
 
         val result = controller.callback(
           draftReturnId,
           upscanReference
-        )(fakeRequestWithJsonBody(Json.parse(upscanUploadPayload)))
+        )(fakeRequestWithJsonBody(Json.parse(upscanCallBackReequest)))
         status(result) shouldBe NO_CONTENT
       }
 

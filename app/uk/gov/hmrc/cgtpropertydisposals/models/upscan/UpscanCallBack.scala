@@ -25,6 +25,7 @@ object UpscanCallBack {
 
   final case class UpscanSuccess(
     reference: String,
+    fileStatus: String,
     downloadUrl: String,
     uploadDetails: Map[String, String]
   ) extends UpscanCallBack
@@ -35,6 +36,7 @@ object UpscanCallBack {
 
   final case class UpscanFailure(
     reference: String,
+    fileStatus: String,
     failureDetails: Map[String, String]
   ) extends UpscanCallBack
 
