@@ -103,7 +103,14 @@ class DefaultDmsSubmissionService @Inject() (
         Some(m.yearToDateLiabilityAnswers.mandatoryEvidence)
     }
 
-    mandatoryEvidence.toList.map(_.upscanSuccess)
+    val supportingEvidences = completeReturn
+      .fold(
+        _.supportingDocumentAnswers.evidences,
+        _.supportingDocumentAnswers.evidences
+      )
+      .map(_.upscanSuccess)
+
+    mandatoryEvidence.toList.map(_.upscanSuccess) ::: supportingEvidences
   }
 
 }
