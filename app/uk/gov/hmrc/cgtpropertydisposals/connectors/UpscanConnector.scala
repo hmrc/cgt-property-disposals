@@ -67,7 +67,7 @@ class UpscanConnectorImpl @Inject() (playHttpClient: PlayHttpClient, config: Ser
   private val headers: Seq[(String, String)] = Seq(USER_AGENT -> userAgent)
 
   override def downloadFile(upscanSuccess: UpscanSuccess): Future[Either[Error, FileAttachment]] =
-    (upscanSuccess.uploadDetails.get("filename"), upscanSuccess.uploadDetails.get("fileMimeType")) match {
+    (upscanSuccess.uploadDetails.get("fileName"), upscanSuccess.uploadDetails.get("fileMimeType")) match {
       case (Some(filename), Some(mimeType)) =>
         playHttpClient
           .get(upscanSuccess.downloadUrl, headers, timeout)
