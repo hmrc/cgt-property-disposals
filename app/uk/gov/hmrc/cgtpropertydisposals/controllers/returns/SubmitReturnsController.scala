@@ -79,8 +79,7 @@ class SubmitReturnsController @Inject() (
   private def sanitiseHtml(html: B64Html): Either[Error, B64Html] = {
     val decoded   = new String(Base64.getDecoder.decode(html.value))
     val sanitised = HtmlSanitizer.sanitize(decoded)
-    println(s"\n\nGot $sanitised\n\n\n")
-    val result = sanitised.map(s => B64Html(new String(Base64.getEncoder.encode(s.getBytes()))))
+    val result    = sanitised.map(s => B64Html(new String(Base64.getEncoder.encode(s.getBytes()))))
     Either.fromOption(result, Error("Could not sanitise html"))
   }
 
