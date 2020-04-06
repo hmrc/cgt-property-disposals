@@ -32,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -93,14 +94,16 @@ class DefaultDmsSubmissionService @Inject() (
               )
     } yield envId
 
-  private def getUpscanSuccesses(completeReturn: CompleteReturn): List[UpscanSuccess] =
-    List(
-      UpscanSuccess(
-        "reference",
-        "status",
-        "downloadUrl",
-        Map.empty
-      )
-    )
+  private def getUpscanSuccesses(completeReturn: CompleteReturn): List[UpscanSuccess] = {
+    val mandatoryEvidence = completeReturn match {
+      case s: CompleteSingleDisposalReturn =>
+        s.yearToDateLiabilityAnswers.fold(n => Some(n.mandatoryEvidence), _.mandatoryEvidence)
+
+      case m: CompleteMultipleDisposalsReturn =>
+        Some(m.yearToDateLiabilityAnswers.mandatoryEvidence)
+    }
+
+    mandatoryEvidence.toList.map(_.upscanSuccess)
+  }
 
 }

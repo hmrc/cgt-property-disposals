@@ -102,7 +102,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
                     "ref",
                     "status",
                     "some-url",
-                    Map("filename" -> "f1.text", "fileMimeType" -> "application/pdf")
+                    Map("fileName" -> "f1.text", "fileMimeType" -> "application/pdf")
                   )
                 )
             ) shouldBe Left(Error(s"download failed with status ${httpResponse.status}"))
@@ -141,7 +141,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
                     "ref",
                     "status",
                     "some-url",
-                    Map("filename" -> "f1.text", "fileMimeType" -> "application/pdf")
+                    Map("fileName" -> "f1.text", "fileMimeType" -> "application/pdf")
                   )
                 )
             ).isRight shouldBe true

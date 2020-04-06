@@ -16,24 +16,32 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
+import java.util.Base64
+
+import cats.data.EitherT
 import cats.instances.future._
+import cats.syntax.either._
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
+import uk.gov.hmrc.cgtpropertydisposals.util.{HtmlSanitizer, Logging}
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class SubmitReturnsController @Inject() (
   authenticate: AuthenticateActions,
   draftReturnsService: DraftReturnsService,
   returnsService: ReturnsService,
+  dmsSubmissionService: DmsSubmissionService,
   cc: ControllerComponents
 )(
   implicit ec: ExecutionContext
@@ -44,8 +52,18 @@ class SubmitReturnsController @Inject() (
     withJsonBody[SubmitReturnRequest] { returnRequest =>
       val result =
         for {
+          sanitisedHtml    <- EitherT.fromEither[Future](sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
           submissionResult <- returnsService.submitReturn(returnRequest)
-          _                <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
+          envelopeId <- dmsSubmissionService.submitToDms(
+                         sanitisedHtml,
+                         submissionResult.formBundleId,
+                         returnRequest.subscribedDetails.cgtReference,
+                         returnRequest.completeReturn
+                       )
+          _ = logger.info(
+            s"Submitted documents with envelope id ${envelopeId.value} with details ['formBundleId' :${submissionResult.formBundleId}, 'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
+          )
+          _ <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
         } yield submissionResult
 
       result.fold(
@@ -56,6 +74,13 @@ class SubmitReturnsController @Inject() (
         s => Ok(Json.toJson(s))
       )
     }
+  }
+
+  private def sanitiseHtml(html: B64Html): Either[Error, B64Html] = {
+    val decoded   = new String(Base64.getDecoder.decode(html.value))
+    val sanitised = HtmlSanitizer.sanitize(decoded)
+    val result    = sanitised.map(s => B64Html(new String(Base64.getEncoder.encode(s.getBytes()))))
+    Either.fromOption(result, Error("Could not sanitise html"))
   }
 
 }

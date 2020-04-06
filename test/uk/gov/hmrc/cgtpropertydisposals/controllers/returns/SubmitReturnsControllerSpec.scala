@@ -31,7 +31,10 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, EnvelopeId}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -42,6 +45,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
   val draftReturnsService: DraftReturnsService = mock[DraftReturnsService]
   val returnsService: ReturnsService           = mock[ReturnsService]
+  val dmsService: DmsSubmissionService         = mock[DmsSubmissionService]
 
   implicit val headerCarrier          = HeaderCarrier()
   implicit lazy val mat: Materializer = fakeApplication.materializer
@@ -56,10 +60,11 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   def fakeRequestWithJsonBody(body: JsValue) = request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
   val controller = new SubmitReturnsController(
-    authenticate        = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
-    draftReturnsService = draftReturnsService,
-    returnsService      = returnsService,
-    cc                  = Helpers.stubControllerComponents()
+    authenticate         = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
+    draftReturnsService  = draftReturnsService,
+    returnsService       = returnsService,
+    dmsSubmissionService = dmsService,
+    cc                   = Helpers.stubControllerComponents()
   )
 
   def mockSubmitReturnService(request: SubmitReturnRequest)(response: Either[Error, SubmitReturnResponse]) =
@@ -74,6 +79,12 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       .expects(List(id))
       .returning(EitherT.fromEither[Future](response))
 
+  def mockSubmitToDms() =
+    (dmsService
+      .submitToDms(_: B64Html, _: String, _: CgtReference, _: CompleteReturn)(_: HeaderCarrier))
+      .expects(*, *, *, *, *)
+      .returning(EitherT.pure(EnvelopeId("envelope")))
+
   "SubmitReturnsController" when {
 
     "handling requests to submit returns" must {
@@ -84,6 +95,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
         inSequence {
           mockSubmitReturnService(requestBody)(Right(expectedResponseBody))
+          mockSubmitToDms()
           mockDeleteDraftReturnService(requestBody.id)(Right(()))
         }
 
@@ -106,6 +118,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
         inSequence {
           mockSubmitReturnService(requestBody)(Right(sample[SubmitReturnResponse]))
+          mockSubmitToDms()
           mockDeleteDraftReturnService(requestBody.id)(Left(Error.apply("error while deleting draft return")))
         }
 
