@@ -91,7 +91,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
       "return 200 for successful submission" in {
         val expectedResponseBody = sample[SubmitReturnResponse]
-        val requestBody          = sample[SubmitReturnRequest]
+        val requestBody          = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml = B64Html(""))
 
         inSequence {
           mockSubmitReturnService(requestBody)(Right(expectedResponseBody))
@@ -105,7 +105,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       }
 
       "return 500 when des call fails" in {
-        val requestBody = sample[SubmitReturnRequest]
+        val requestBody = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml = B64Html(""))
 
         mockSubmitReturnService(requestBody)(Left(Error.apply("error while submitting return to DES")))
 
@@ -114,7 +114,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       }
 
       "return 500 when deleting draft return fails" in {
-        val requestBody = sample[SubmitReturnRequest]
+        val requestBody = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml = B64Html(""))
 
         inSequence {
           mockSubmitReturnService(requestBody)(Right(sample[SubmitReturnResponse]))
