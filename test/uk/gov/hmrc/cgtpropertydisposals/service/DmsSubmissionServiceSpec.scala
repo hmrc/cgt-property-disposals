@@ -48,6 +48,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteMultipleDisposalsReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
@@ -110,7 +111,8 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
       val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(
         yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers].copy(
           mandatoryEvidence = sample[MandatoryEvidence].copy(upscanSuccess = upscanSuccess)
-        )
+        ),
+        supportingDocumentAnswers = CompleteSupportingEvidenceAnswers(false, List.empty)
       )
 
       "return an error" when {
