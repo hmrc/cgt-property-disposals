@@ -52,10 +52,16 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockDeleteDraftReturn(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
+  def mockDeleteDraftReturns(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
     (draftReturnRepository
       .deleteAll(_: List[UUID]))
       .expects(draftReturnIds)
+      .returning(EitherT.fromEither[Future](response))
+
+  def mockDeleteDraftReturn(cgtReference: CgtReference)(response: Either[Error, Unit]) =
+    (draftReturnRepository
+      .delete(_: CgtReference))
+      .expects(cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
   "DraftReturnsRepository" when {
@@ -97,15 +103,31 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       val draftReturnIds = List.fill(5)(UUID.randomUUID())
 
       "return a successful response if operation was successful" in {
-        mockDeleteDraftReturn(draftReturnIds)(Right(()))
+        mockDeleteDraftReturns(draftReturnIds)(Right(()))
         await(draftReturnsService.deleteDraftReturns(draftReturnIds).value) shouldBe Right(())
       }
 
       "return an unsuccessful response if operation was not successful" in {
-        mockDeleteDraftReturn(draftReturnIds)(Left(Error("")))
+        mockDeleteDraftReturns(draftReturnIds)(Left(Error("")))
         await(draftReturnsService.deleteDraftReturns(draftReturnIds).value).isLeft shouldBe true
-
       }
+
+    }
+
+    "deleting a draft return" should {
+
+      val cgtReference = CgtReference(UUID.randomUUID.toString)
+
+      "return a successful response if operation was successful" in {
+        mockDeleteDraftReturn(cgtReference)(Right(()))
+        await(draftReturnsService.deleteDraftReturn(cgtReference).value) shouldBe Right(())
+      }
+
+      "return an unsuccessful response if operation was not successful" in {
+        mockDeleteDraftReturn(cgtReference)(Left(Error("")))
+        await(draftReturnsService.deleteDraftReturn(cgtReference).value).isLeft shouldBe true
+      }
+
     }
 
   }

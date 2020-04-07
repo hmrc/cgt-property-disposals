@@ -427,6 +427,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
+
         "there is a positive charge and email call returns 500 and the EmailSent event won't be sent" in {
           val formBundleId    = "804123737752"
           val chargeReference = "XCRG9448959757"
@@ -481,6 +482,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
         }
+
       }
 
       "return an error" when {
@@ -613,6 +615,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
         }
       }
+
     }
 
     "handling requests to list returns" must {
