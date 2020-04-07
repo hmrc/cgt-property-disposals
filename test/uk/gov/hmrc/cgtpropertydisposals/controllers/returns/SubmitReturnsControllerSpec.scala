@@ -36,6 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
+import uk.gov.hmrc.cgtpropertydisposals.util.HtmlSanitizer
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -100,6 +101,41 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         }
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
+      }
+
+      "return 200 for successful submission with sanitized html which contained forbidden elements" in {
+        val htmlWithForbiddenElements = s"""<html>
+                                          |<body>
+                                          |<h1>My First Heading</h1>
+                                          |<${HtmlSanitizer.allowedElements.head}>Sample value</${HtmlSanitizer.allowedElements.head}>
+                                          |<${HtmlSanitizer.blockedElements.head}>Sample value</${HtmlSanitizer.blockedElements.head}>
+                                          |<p>My first paragraph.</p>
+                                          |</body>
+                                          |</html>
+                                          |""".stripMargin
+
+        val sanitizedHtml = s"""<html>
+                                           |<body>
+                                           |<h1>My First Heading</h1>
+                                           |<${HtmlSanitizer.allowedElements.head}>Sample value</${HtmlSanitizer.allowedElements.head}>
+                                           |<p>My first paragraph.</p>
+                                           |</body>
+                                           |</html>
+                                           |""".stripMargin
+
+        val expectedResponseBody = sample[SubmitReturnResponse]
+        val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml = B64Html(htmlWithForbiddenElements))
+        val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml = B64Html(sanitizedHtml))
+
+        inSequence {
+          mockSubmitReturnService(sanitizedRequestBody)(Right(expectedResponseBody))
+          mockSubmitToDms()
+          mockDeleteDraftReturnService(sanitizedRequestBody.id)(Right(()))
+        }
+
+        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBodyWithForbiddenElements)))
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
       }
