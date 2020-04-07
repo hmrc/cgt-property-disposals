@@ -169,7 +169,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
     httpStatus: Int,
     responseBody: Option[JsValue],
     desSubmitReturnRequest: DesSubmitReturnRequest,
-    name: Either[TrustName, IndividualName]
+    name: Either[TrustName, IndividualName],
+    agentReferenceNumber: Option[AgentReferenceNumber]
   ) =
     (mockAuditService
       .sendEvent(_: String, _: SubmitReturnResponseEvent, _: String)(
@@ -183,7 +184,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           httpStatus,
           responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: null" }""")),
           Json.toJson(desSubmitReturnRequest),
-          name.fold(_.value, n => s"${n.firstName} ${n.lastName}")
+          name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
+          agentReferenceNumber.map(_.value)
         ),
         "submit-return-response",
         *,
@@ -266,7 +268,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               200,
               Some(responseJsonBody),
               desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED))
@@ -319,7 +322,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               200,
               Some(responseJsonBody),
               desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED))
@@ -365,7 +369,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               200,
               Some(responseJsonBody),
               desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED))
@@ -413,7 +418,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               200,
               Some(responseJsonBody),
               desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED))
@@ -473,7 +479,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               200,
               Some(responseJsonBody),
               desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(500))
@@ -507,7 +514,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 200,
                 Some(jsonResponseBody),
                 desSubmitReturnRequest,
-                submitReturnRequest.subscribedDetails.name
+                submitReturnRequest.subscribedDetails.name,
+                submitReturnRequest.agentReferenceNumber
               )
             }
 
@@ -609,7 +617,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               500,
               None,
               desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
             )
           }
           await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
