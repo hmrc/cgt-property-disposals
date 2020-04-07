@@ -115,8 +115,8 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         val htmlWithForbiddenElements = s"""<html>
                                           |<body>
                                           |<h1>My First Heading</h1>
-                                          |<${HtmlSanitizer.allowedElements.head}>Sample value</${HtmlSanitizer.allowedElements.head}>
-                                          |<${HtmlSanitizer.blockedElements.head}>Sample value</${HtmlSanitizer.blockedElements.head}>
+                                          |<${HtmlSanitizer.allowedElements.headOption}>Sample value</${HtmlSanitizer.allowedElements.headOption}>
+                                          |<${HtmlSanitizer.blockedElements.headOption}>Sample value</${HtmlSanitizer.blockedElements.headOption}>
                                           |<p>My first paragraph.</p>
                                           |</body>
                                           |</html>
@@ -125,15 +125,19 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         val sanitizedHtml = s"""<html>
                                            |<body>
                                            |<h1>My First Heading</h1>
-                                           |<${HtmlSanitizer.allowedElements.head}>Sample value</${HtmlSanitizer.allowedElements.head}>
+                                           |<${HtmlSanitizer.allowedElements.headOption}>Sample value</${HtmlSanitizer.allowedElements.headOption}>
                                            |<p>My first paragraph.</p>
                                            |</body>
                                            |</html>
                                            |""".stripMargin
 
         val expectedResponseBody = sample[SubmitReturnResponse]
-        val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml = B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes()))))
-        val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml = B64Html(new String(Base64.getEncoder.encode(sanitizedHtml.getBytes()))))
+        val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml =
+          B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes())))
+        )
+        val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml =
+          B64Html(new String(Base64.getEncoder.encode(sanitizedHtml.getBytes())))
+        )
 
         inSequence {
           mockSubmitReturnService(requestBodyWithForbiddenElements)(Right(expectedResponseBody))
