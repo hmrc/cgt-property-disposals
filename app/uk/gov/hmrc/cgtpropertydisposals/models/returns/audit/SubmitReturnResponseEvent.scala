@@ -18,7 +18,13 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns.audit
 
 import play.api.libs.json.{JsValue, Json, OFormat}
 
-final case class SubmitReturnResponseEvent(status: Int, responseBody: JsValue, requestBody: JsValue, name: String)
+final case class SubmitReturnResponseEvent(
+  status: Int,
+  responseBody: JsValue,
+  requestBody: JsValue,
+  name: String,
+  agentReferenceNumber: Option[String]
+)
 
 object SubmitReturnResponseEvent {
 

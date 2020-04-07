@@ -41,7 +41,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErr
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
@@ -144,7 +144,8 @@ class DefaultReturnsService @Inject() (
           httpResponse.status,
           httpResponse.body,
           desSubmitReturnRequest,
-          returnRequest.subscribedDetails
+          returnRequest.subscribedDetails,
+          returnRequest.agentReferenceNumber
         )
 
         if (httpResponse.status === OK)
@@ -341,7 +342,8 @@ class DefaultReturnsService @Inject() (
     responseHttpStatus: Int,
     responseBody: String,
     desSubmitReturnRequest: DesSubmitReturnRequest,
-    subscribedDetails: SubscribedDetails
+    subscribedDetails: SubscribedDetails,
+    agentReferenceNumber: Option[AgentReferenceNumber]
   )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
     val responseJson =
       Try(Json.parse(responseBody))
@@ -354,7 +356,8 @@ class DefaultReturnsService @Inject() (
         responseHttpStatus,
         responseJson,
         requestJson,
-        subscribedDetails.name.fold(_.value, n => s"${n.firstName} ${n.lastName}")
+        subscribedDetails.name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
+        agentReferenceNumber.map(_.value)
       ),
       "submit-return-response"
     )
