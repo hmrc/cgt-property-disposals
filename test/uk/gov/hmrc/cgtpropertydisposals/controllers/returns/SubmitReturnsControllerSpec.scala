@@ -112,42 +112,49 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       }
 
       "return 200 for successful submission with sanitized html which contained forbidden elements" in {
-        val htmlWithForbiddenElements = s"""<html>
-                                          |<body>
-                                          |<h1>My First Heading</h1>
-                                          |<${HtmlSanitizer.allowedElements.headOption}>Sample value</${HtmlSanitizer.allowedElements.headOption}>
-                                          |<${HtmlSanitizer.blockedElements.headOption}>Sample value</${HtmlSanitizer.blockedElements.headOption}>
-                                          |<p>My first paragraph.</p>
-                                          |</body>
-                                          |</html>
-                                          |""".stripMargin
+        HtmlSanitizer.allowedElements.foreach { allowedElement =>
+          HtmlSanitizer.blockedElements.foreach { blockedElement =>
+            val htmlWithForbiddenElements =
+              s"""<html>
+                 |<body>
+                 |<h1>My First Heading</h1>
+                 |<$allowedElement>Sample value</$allowedElement>
+                 |<$blockedElement>Sample value</$blockedElement>
+                 |<p>My first paragraph.</p>
+                 |</body>
+                 |</html>
+                 |""".stripMargin
 
-        val sanitizedHtml = s"""<html>
-                                           |<body>
-                                           |<h1>My First Heading</h1>
-                                           |<${HtmlSanitizer.allowedElements.headOption}>Sample value</${HtmlSanitizer.allowedElements.headOption}>
-                                           |<p>My first paragraph.</p>
-                                           |</body>
-                                           |</html>
-                                           |""".stripMargin
+            val sanitizedHtml =
+              s"""<html>
+                 |<body>
+                 |<h1>My First Heading</h1>
+                 |<$allowedElement>Sample value</$allowedElement>
+                 |<p>My first paragraph.</p>
+                 |</body>
+                 |</html>
+                 |""".stripMargin
 
-        val expectedResponseBody = sample[SubmitReturnResponse]
-        val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml =
-          B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes())))
-        )
-        val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml =
-          B64Html(new String(Base64.getEncoder.encode(sanitizedHtml.getBytes())))
-        )
+            val expectedResponseBody = sample[SubmitReturnResponse]
+            val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml =
+              B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes())))
+            )
+            val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml =
+              B64Html(new String(Base64.getEncoder.encode(sanitizedHtml.getBytes())))
+            )
 
-        inSequence {
-          mockSubmitReturnService(requestBodyWithForbiddenElements)(Right(expectedResponseBody))
-          mockSubmitSanitizedToDms(sanitizedRequestBody)
-          mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
+            inSequence {
+              mockSubmitReturnService(requestBodyWithForbiddenElements)(Right(expectedResponseBody))
+              mockSubmitSanitizedToDms(sanitizedRequestBody)
+              mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
+            }
+
+            val result =
+              controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBodyWithForbiddenElements)))
+            status(result)        shouldBe OK
+            contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
+          }
         }
-
-        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBodyWithForbiddenElements)))
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
       }
 
       "return 500 when des call fails" in {
