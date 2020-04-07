@@ -21,6 +21,7 @@ import java.time.LocalDate
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.libs.json.Json
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
@@ -188,6 +189,53 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
             await(connector.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
           }
 
+        }
+
+      }
+
+      "handling request to amend a return" must {
+
+        "do a post http call and get the result" in {
+          val cgtReference        = sample[CgtReference]
+          val submitReturnRequest = Json.toJson(sample[DesSubmitReturnRequest])
+
+          List(
+            HttpResponse(200),
+            HttpResponse(400),
+            HttpResponse(401),
+            HttpResponse(403),
+            HttpResponse(500),
+            HttpResponse(502),
+            HttpResponse(503)
+          ).foreach { httpResponse =>
+            withClue(s"For http response [${httpResponse.toString}]") {
+              mockPost(
+                expectedSubmitReturnUrl(cgtReference.value),
+                expectedHeaders,
+                *
+              )(
+                Some(httpResponse)
+              )
+
+              await(connector.amendReturn(cgtReference, submitReturnRequest).value) shouldBe Right(httpResponse)
+            }
+          }
+        }
+
+        "return an error" when {
+
+          "the call fails" in {
+            val cgtReference        = sample[CgtReference]
+            val submitReturnRequest = Json.toJson(sample[DesSubmitReturnRequest])
+
+            mockPost(
+              expectedSubmitReturnUrl(cgtReference.value),
+              expectedHeaders,
+              *
+            )(None)
+
+            await(connector.amendReturn(cgtReference, submitReturnRequest).value).isLeft shouldBe true
+          }
         }
 
       }
