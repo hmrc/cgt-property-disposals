@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.{Base64, UUID}
 
 import akka.stream.Materializer
 import cats.data.EitherT
@@ -126,13 +126,13 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
                                            |""".stripMargin
 
         val expectedResponseBody = sample[SubmitReturnResponse]
-        val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml = B64Html(htmlWithForbiddenElements))
-        val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml = B64Html(sanitizedHtml))
+        val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml = B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes()))))
+        val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml = B64Html(new String(Base64.getEncoder.encode(sanitizedHtml.getBytes()))))
 
         inSequence {
-          mockSubmitReturnService(sanitizedRequestBody)(Right(expectedResponseBody))
+          mockSubmitReturnService(requestBodyWithForbiddenElements)(Right(expectedResponseBody))
           mockSubmitToDms()
-          mockDeleteDraftReturnService(sanitizedRequestBody.id)(Right(()))
+          mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
         }
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBodyWithForbiddenElements)))
