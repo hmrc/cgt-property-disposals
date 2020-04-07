@@ -86,6 +86,12 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       .expects(*, *, *, *, *)
       .returning(EitherT.pure(EnvelopeId("envelope")))
 
+  def mockSubmitSanitizedToDms(submitReturnRequest: SubmitReturnRequest) =
+    (dmsService
+      .submitToDms(_: B64Html, _: String, _: CgtReference, _: CompleteReturn)(_: HeaderCarrier))
+      .expects(*, *, *, submitReturnRequest.completeReturn, *)
+      .returning(EitherT.pure(EnvelopeId("envelope")))
+
   "SubmitReturnsController" when {
 
     "handling requests to submit returns" must {
@@ -131,7 +137,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
         inSequence {
           mockSubmitReturnService(requestBodyWithForbiddenElements)(Right(expectedResponseBody))
-          mockSubmitToDms()
+          mockSubmitSanitizedToDms(sanitizedRequestBody)
           mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
         }
 
