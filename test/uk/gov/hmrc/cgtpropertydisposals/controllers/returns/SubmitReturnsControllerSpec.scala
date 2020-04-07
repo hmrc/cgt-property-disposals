@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.{Base64, UUID}
 
 import akka.stream.Materializer
 import cats.data.EitherT
@@ -36,6 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
+import uk.gov.hmrc.cgtpropertydisposals.util.HtmlSanitizer
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -85,6 +86,12 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       .expects(*, *, *, *, *)
       .returning(EitherT.pure(EnvelopeId("envelope")))
 
+  def mockSubmitSanitizedToDms(submitReturnRequest: SubmitReturnRequest) =
+    (dmsService
+      .submitToDms(_: B64Html, _: String, _: CgtReference, _: CompleteReturn)(_: HeaderCarrier))
+      .expects(*, *, *, submitReturnRequest.completeReturn, *)
+      .returning(EitherT.pure(EnvelopeId("envelope")))
+
   "SubmitReturnsController" when {
 
     "handling requests to submit returns" must {
@@ -102,6 +109,52 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
+      }
+
+      "return 200 for successful submission with sanitized html which contained forbidden elements" in {
+        HtmlSanitizer.allowedElements.foreach { allowedElement =>
+          HtmlSanitizer.blockedElements.foreach { blockedElement =>
+            val htmlWithForbiddenElements =
+              s"""<html>
+                 |<body>
+                 |<h1>My First Heading</h1>
+                 |<$allowedElement>Sample value</$allowedElement>
+                 |<$blockedElement>Sample value</$blockedElement>
+                 |<p>My first paragraph.</p>
+                 |</body>
+                 |</html>
+                 |""".stripMargin
+
+            val sanitizedHtml =
+              s"""<html>
+                 |<body>
+                 |<h1>My First Heading</h1>
+                 |<$allowedElement>Sample value</$allowedElement>
+                 |<p>My first paragraph.</p>
+                 |</body>
+                 |</html>
+                 |""".stripMargin
+
+            val expectedResponseBody = sample[SubmitReturnResponse]
+            val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(checkYourAnswerPageHtml =
+              B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes())))
+            )
+            val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml =
+              B64Html(new String(Base64.getEncoder.encode(sanitizedHtml.getBytes())))
+            )
+
+            inSequence {
+              mockSubmitReturnService(requestBodyWithForbiddenElements)(Right(expectedResponseBody))
+              mockSubmitSanitizedToDms(sanitizedRequestBody)
+              mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
+            }
+
+            val result =
+              controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBodyWithForbiddenElements)))
+            status(result)        shouldBe OK
+            contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
+          }
+        }
       }
 
       "return 500 when des call fails" in {
