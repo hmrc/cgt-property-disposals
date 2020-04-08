@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.scalatest.MockFactory
@@ -35,17 +37,19 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSucce
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, _}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
 
   val config = Configuration(
     ConfigFactory.parseString(
       """
-        | dms {
-        |   s3-file-download-timeout = 2 minutes
+        | s3 {
+        |   file-download-timeout = 2 minutes
+        |   upstream-element-limit-scale-factor = 200
+        |   max-file-download-size-in-mb = 5
         | }
         |""".stripMargin
     )
@@ -78,8 +82,11 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
       .returning(response)
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val actorSystem       = ActorSystem()
+  implicit val actorMaterializer = ActorMaterializer()
 
-  val connector = new UpscanConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector =
+    new UpscanConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)), actorMaterializer)
 
   "Upscan Connector" when {
 
@@ -92,7 +99,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
               "some-url",
-              Seq(("User-Agent" -> "cgt-property-disposal")),
+              Seq(("User-Agent" -> "cgt-property-disposal-frontend")),
               2 minutes
             )(Future.successful(httpResponse))
             await(
@@ -105,7 +112,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
                     Map("fileName" -> "f1.text", "fileMimeType" -> "application/pdf")
                   )
                 )
-            ) shouldBe Left(Error(s"download failed with status ${httpResponse.status}"))
+            ) shouldBe Left(Error(s"could not download file from s3"))
           }
         }
       }
@@ -131,7 +138,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
               "some-url",
-              Seq(("User-Agent" -> "cgt-property-disposal")),
+              Seq(("User-Agent" -> "cgt-property-disposal-frontend")),
               2 minutes
             )(Future.successful(httpResponse))
             await(

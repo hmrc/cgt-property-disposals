@@ -94,7 +94,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
 
       val dms = DmsSubmissionPayload(
         B64Html("html"),
-        List(FileAttachment("key", "filename", Some("application/pdf"), ByteString("data"))),
+        List(FileAttachment("key", "filename", Some("application/pdf"), Seq(ByteString("data")))),
         DmsMetadata("id", "cId", "ct", "ba")
       )
 
