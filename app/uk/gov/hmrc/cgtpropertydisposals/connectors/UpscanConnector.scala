@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import java.util.UUID
 
+import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.google.inject.{ImplementedBy, Inject, Singleton}
@@ -42,14 +43,15 @@ trait UpscanConnector {
 @Singleton
 class UpscanConnectorImpl @Inject() (
   playHttpClient: PlayHttpClient,
-  config: ServicesConfig,
-  implicit val mat: ActorMaterializer
+  config: ServicesConfig
 )(
-  implicit executionContext: ExecutionContext
+  implicit executionContext: ExecutionContext,
+  system: ActorSystem
 ) extends UpscanConnector
     with Logging
     with HttpErrorFunctions {
 
+  implicit val mat: ActorMaterializer        = ActorMaterializer()
   private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposal-frontend")
   private lazy val maxFileDownloadSize: Long = config.getConfInt("s3.max-file-download-size-in-mb", 5)
   private val limitScaleFactor: Long         = config.getConfInt("s3.upstream-element-limit-scale-factor", 200)

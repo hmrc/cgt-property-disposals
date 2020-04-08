@@ -17,11 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import play.api.libs.ws
 import play.api.libs.ws.WSResponse
 import play.api.libs.ws.ahc.AhcWSResponse
@@ -37,11 +36,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSucce
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport with BeforeAndAfterAll {
 
   val config = Configuration(
     ConfigFactory.parseString(
@@ -83,10 +82,14 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   implicit val actorSystem       = ActorSystem()
-  implicit val actorMaterializer = ActorMaterializer()
 
   val connector =
-    new UpscanConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)), actorMaterializer)
+    new UpscanConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+
+  override def afterAll(): Unit = {
+    Await.ready(actorSystem.terminate(), 10.seconds)
+    super.afterAll()
+  }
 
   "Upscan Connector" when {
 
