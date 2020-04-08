@@ -19,10 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 import java.time.LocalDateTime
 
 import cats.data.EitherT
-import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.Configuration
 import play.api.libs.json.{JsNumber, JsValue, Json, Writes}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
@@ -56,21 +54,10 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   val mockAuditService: AuditService = mock[AuditService]
 
-  val nonIsoCountryCode = "XZ"
-
-  val config = Configuration(
-    ConfigFactory.parseString(
-      s"""
-        |des.non-iso-country-codes = ["$nonIsoCountryCode"]
-        |""".stripMargin
-    )
-  )
-
   val service = new SubscriptionServiceImpl(
     mockAuditService,
     mockSubscriptionConnector,
     mockEmailConnector,
-    config,
     MockMetrics.metrics
   )
 
