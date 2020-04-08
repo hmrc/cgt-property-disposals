@@ -22,7 +22,6 @@ import java.time.format.DateTimeFormatter
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.TaxYearResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
