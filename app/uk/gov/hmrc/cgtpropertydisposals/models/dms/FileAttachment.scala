@@ -22,5 +22,5 @@ final case class FileAttachment(
   key: String,
   filename: String,
   contentType: Option[String],
-  data: ByteString
+  data: Seq[ByteString]
 )

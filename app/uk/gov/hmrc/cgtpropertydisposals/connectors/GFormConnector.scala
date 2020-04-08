@@ -130,10 +130,17 @@ object GFormConnector {
       ref         = SingletonTemporaryFileCreator.create(path)
     )
 
-  def processAttachment(attachment: FileAttachment)(implicit hc: HeaderCarrier): Option[FilePart[TemporaryFile]] =
-    createTempFile(attachment.filename, suffix(attachment.contentType), attachment.data.toArray).map { path =>
+  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+  def processAttachment(attachment: FileAttachment)(implicit hc: HeaderCarrier): Option[FilePart[TemporaryFile]] = {
+    val file = File.createTempFile("s3-file-tmp-file-prefix", ".tmp", new File("/tmp"))
+    file.deleteOnExit()
+    val outputStream = java.nio.file.Files.newOutputStream(file.toPath)
+    attachment.data.map(n => outputStream.write(n.toArray))
+
+    createTempFile(attachment.filename, suffix(attachment.contentType), Files.readAllBytes(file.toPath)).map { path =>
       createFilePart(attachment, path)
     }
+  }
 
   def filePartToByteString(fileparts: Seq[FilePart[TemporaryFile]]): Seq[FilePart[Source[ByteString, Any]]] =
     fileparts.map(file => file.copy(ref = FileIO.fromPath(file.ref.path): Source[ByteString, Any]))

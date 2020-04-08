@@ -154,8 +154,8 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
 
       val upscanSuccess1  = sample[UpscanSuccess]
       val upscanSuccess2  = sample[UpscanSuccess]
-      val fileAttachment1 = FileAttachment(UUID.randomUUID().toString, "filename", Some("pdf"), ByteString(1))
-      val fileAttachment2 = FileAttachment(UUID.randomUUID().toString, "filename2", Some("pdf"), ByteString(2))
+      val fileAttachment1 = FileAttachment(UUID.randomUUID().toString, "filename", Some("pdf"), Seq(ByteString(1)))
+      val fileAttachment2 = FileAttachment(UUID.randomUUID().toString, "filename2", Some("pdf"), Seq(ByteString(2)))
 
       "return an error" when {
 
