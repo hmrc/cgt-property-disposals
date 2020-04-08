@@ -90,6 +90,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
   val connector = new GFormConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
   "GForm Connector" when {
+
     "return an error if the http call to download the file fails" in {
 
       val dms = DmsSubmissionPayload(
@@ -180,6 +181,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
         }
       }
     }
+
   }
 
 }

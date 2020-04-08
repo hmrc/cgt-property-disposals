@@ -207,11 +207,14 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
   "TaxEnrolment Service Implementation" when {
 
     "it receives a request to check if a user has a CGT enrolment" must {
+
       "return an error" when {
+
         "there is a mongo exception when calling the tax enrolment repo" in {
           mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Connection error")))
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isLeft shouldBe true
         }
+
         "there is a mongo exception when calling the verifiers repo" in {
           mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
           mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Connection error")))
@@ -281,6 +284,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(None)
         }
+
         "there does exist a stored enrolment request but the enrolment call fails again" in {
           inSequence {
             mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(
@@ -293,6 +297,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
             Some(taxEnrolmentRequestWithNonUkAddress)
           )
         }
+
         "there does exist a stored enrolment request and the enrolment call succeeds but the deleting of the record fails" in {
           inSequence {
             mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(
@@ -307,7 +312,9 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           )
         }
       }
+
       "return true" when {
+
         "an enrolment record exists, the tax enrolment call is made successfully, and the delete occurred correctly" in {
           inSequence {
             mockGetEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(
@@ -319,7 +326,9 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
           }
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isRight shouldBe true
         }
+
       }
+
     }
 
     "it receives a request to allocate an enrolment" must {
