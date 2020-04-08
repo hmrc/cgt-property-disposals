@@ -31,7 +31,7 @@ import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.{BusinessPartnerRecordConnector, SubscriptionConnector}
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, CountryCodeMapping}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, SubscriptionStatus}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
@@ -66,6 +66,9 @@ class BusinessPartnerRecordServiceImpl @Inject() (
 
   val desNonIsoCountryCodes: List[CountryCode] =
     config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
+
+  val countryCodeMappings: Map[CountryCode, CountryCode] =
+    config.underlying.get[List[CountryCodeMapping]]("des.country-code-mappings").value.map(m => m.from -> m.to).toMap
 
   val correlationIdHeaderKey = "CorrelationId"
 
@@ -153,7 +156,8 @@ class BusinessPartnerRecordServiceImpl @Inject() (
   private def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
     val a = d.address
 
-    val addressValidation: Validation[Address] = AddressDetails.fromDesAddressDetails(a)(desNonIsoCountryCodes)
+    val addressValidation: Validation[Address] =
+      AddressDetails.fromDesAddressDetails(a)(desNonIsoCountryCodes, countryCodeMappings)
 
     val nameValidation: Validation[Either[TrustName, IndividualName]] =
       d.individual -> d.organisation match {
