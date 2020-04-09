@@ -19,8 +19,10 @@ package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 import java.time.LocalDateTime
 
 import cats.data.EitherT
+import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.json.{JsNumber, JsValue, Json, Writes}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
@@ -54,10 +56,21 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   val mockAuditService: AuditService = mock[AuditService]
 
+  val nonIsoCountryCode = "XZ"
+
+  val config = Configuration(
+    ConfigFactory.parseString(
+      s"""	
+         |des.non-iso-country-codes = ["$nonIsoCountryCode"]	
+         |""".stripMargin
+    )
+  )
+
   val service = new SubscriptionServiceImpl(
     mockAuditService,
     mockSubscriptionConnector,
     mockEmailConnector,
+    config,
     MockMetrics.metrics
   )
 
@@ -571,6 +584,57 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Right(IndividualName("Luke", "Bishop")),
           Email("stephen@abc.co.uk"),
           UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), Postcode("DH14EJ")),
+          ContactName("Stephen Wood"),
+          cgtReference,
+          Some(TelephoneNumber("(+013)32752856")),
+          true
+        )
+        mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+        await(service.getSubscription(cgtReference).value) shouldBe Right(subscriptionDisplayResponse)
+      }
+
+      "return the subscription display response the country code does not have a country name" in {
+        val jsonBody =
+          s"""
+            |{
+            |    "regime": "CGT",
+            |    "subscriptionDetails": {
+            |        "typeOfPersonDetails": {
+            |            "typeOfPerson": "Individual",
+            |            "firstName": "Luke",
+            |            "lastName": "Bishop"
+            |        },
+            |        "isRegisteredWithId": true,
+            |        "addressDetails": {
+            |            "addressLine1": "100 Sutton Street",
+            |            "addressLine2": "Wokingham",
+            |            "addressLine3": "Surrey",
+            |            "addressLine4": "London",
+            |            "postalCode": "DH14EJ",
+            |            "countryCode": "$nonIsoCountryCode"
+            |        },
+            |        "contactDetails": {
+            |            "contactName": "Stephen Wood",
+            |            "phoneNumber": "(+013)32752856",
+            |            "mobileNumber": "(+44)7782565326",
+            |            "faxNumber": "01332754256",
+            |            "emailAddress": "stephen@abc.co.uk"
+            |        }
+            |    }
+            |}
+            |""".stripMargin
+
+        val subscriptionDisplayResponse = accounts.SubscribedDetails(
+          Right(IndividualName("Luke", "Bishop")),
+          Email("stephen@abc.co.uk"),
+          NonUkAddress(
+            "100 Sutton Street",
+            Some("Wokingham"),
+            Some("Surrey"),
+            Some("London"),
+            Some(Postcode("DH14EJ")),
+            Country(nonIsoCountryCode, None)
+          ),
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),
