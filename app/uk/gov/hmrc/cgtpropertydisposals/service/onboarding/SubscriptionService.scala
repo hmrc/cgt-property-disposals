@@ -23,7 +23,9 @@ import cats.instances.string._
 import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
+import configs.syntax._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.api.Configuration
 import play.api.http.Status.{ACCEPTED, FORBIDDEN, OK}
 import play.api.libs.json.Json
 import play.api.mvc.Request
@@ -32,6 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnec
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, DesSubscriptionUpdateRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -73,11 +76,15 @@ class SubscriptionServiceImpl @Inject() (
   auditService: AuditService,
   subscriptionConnector: SubscriptionConnector,
   emailConnector: EmailConnector,
+  config: Configuration,
   metrics: Metrics
 )(
   implicit ec: ExecutionContext
 ) extends SubscriptionService
     with Logging {
+
+  val desNonIsoCountryCodes: List[CountryCode] =
+    config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
@@ -208,7 +215,7 @@ class SubscriptionServiceImpl @Inject() (
   ): Either[String, SubscribedDetails] = {
     val addressValidation: Validation[Address] = AddressDetails.fromDesAddressDetails(
       desSubscriptionDisplayDetails.subscriptionDetails.addressDetails
-    )(List.empty, Map.empty)
+    )(desNonIsoCountryCodes, Map.empty)
 
     val nameValidation: Validation[Either[TrustName, IndividualName]] = Name.nameValidation(
       desSubscriptionDisplayDetails.subscriptionDetails.typeOfPersonDetails
