@@ -102,7 +102,7 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
               "some-url",
-              Seq(("User-Agent" -> "cgt-property-disposal")),
+              Seq(("User-Agent" -> "cgt-property-disposals")),
               2 minutes
             )(Future.successful(httpResponse))
             await(
@@ -141,7 +141,7 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
               "some-url",
-              Seq(("User-Agent" -> "cgt-property-disposal")),
+              Seq(("User-Agent" -> "cgt-property-disposals")),
               2 minutes
             )(Future.successful(httpResponse))
             await(

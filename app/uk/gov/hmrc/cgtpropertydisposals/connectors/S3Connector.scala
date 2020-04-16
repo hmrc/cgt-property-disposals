@@ -52,7 +52,7 @@ class S3ConnectorImpl @Inject() (
     with HttpErrorFunctions {
 
   implicit val mat: ActorMaterializer        = ActorMaterializer()
-  private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposal")
+  private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposals")
   private lazy val maxFileDownloadSize: Long = config.getConfInt("s3.max-file-download-size-in-mb", 5)
   private val limitScaleFactor: Long         = config.getConfInt("s3.upstream-element-limit-scale-factor", 200)
   private lazy val timeout: Duration         = config.getDuration("s3.file-download-timeout")
