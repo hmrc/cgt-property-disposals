@@ -79,6 +79,8 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
           }
       )
 
+    logger.info(s"\n\n\n\n\n\n\n\n\n\n\n ${dmsSubmissionPayload.b64Html} \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+
     for {
       fileparts <- EitherT.fromOption[Future](
                     makeTemporaryFiles(dmsSubmissionPayload),
