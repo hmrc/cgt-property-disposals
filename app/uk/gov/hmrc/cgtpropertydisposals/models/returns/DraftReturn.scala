@@ -39,6 +39,7 @@ final case class DraftSingleDisposalReturn(
   yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
   initialGainOrLoss: Option[AmountInPence],
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
+  representeeAnswers: Option[RepresenteeAnswers],
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 
@@ -49,6 +50,7 @@ final case class DraftMultipleDisposalsReturn(
   exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
   yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
+  representeeAnswers: Option[RepresenteeAnswers],
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 
