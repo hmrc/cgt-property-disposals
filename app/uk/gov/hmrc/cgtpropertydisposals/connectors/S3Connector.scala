@@ -35,24 +35,24 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-@ImplementedBy(classOf[UpscanConnectorImpl])
-trait UpscanConnector {
+@ImplementedBy(classOf[S3ConnectorImpl])
+trait S3Connector {
   def downloadFile(upscanSuccess: UpscanSuccess): Future[Either[Error, FileAttachment]]
 }
 
 @Singleton
-class UpscanConnectorImpl @Inject() (
+class S3ConnectorImpl @Inject() (
   playHttpClient: PlayHttpClient,
   config: ServicesConfig
 )(
   implicit executionContext: ExecutionContext,
   system: ActorSystem
-) extends UpscanConnector
+) extends S3Connector
     with Logging
     with HttpErrorFunctions {
 
   implicit val mat: ActorMaterializer        = ActorMaterializer()
-  private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposal-frontend")
+  private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposal")
   private lazy val maxFileDownloadSize: Long = config.getConfInt("s3.max-file-download-size-in-mb", 5)
   private val limitScaleFactor: Long         = config.getConfInt("s3.upstream-element-limit-scale-factor", 200)
   private lazy val timeout: Duration         = config.getDuration("s3.file-download-timeout")
@@ -75,7 +75,6 @@ class UpscanConnectorImpl @Inject() (
                 Future.successful(Left(Error("could not download file from s3")))
               }
               case _ =>
-                logger.info(s"downloading file from s3: url ${upscanSuccess.downloadUrl}")
                 response.bodyAsSource.limit(maxFileDownloadSize * limitScaleFactor).runWith(Sink.seq).map { bytes =>
                   Right(
                     FileAttachment(

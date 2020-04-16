@@ -24,7 +24,7 @@ import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.await
-import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.S3Connector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
@@ -40,8 +40,8 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
   implicit val timeout: Timeout                           = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   val mockUpscanRepository                                = mock[UpscanRepository]
-  val mockUpscanConnector                                 = mock[UpscanConnector]
-  val service                                             = new UpscanServiceImpl(mockUpscanRepository, mockUpscanConnector)
+  val mockS3Connector                                     = mock[S3Connector]
+  val service                                             = new UpscanServiceImpl(mockUpscanRepository, mockS3Connector)
 
   def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
     response: Either[Error, Unit]
@@ -81,7 +81,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
   def mockDownloadFile(upscanSuccess: UpscanSuccess)(
     response: Either[Error, FileAttachment]
   ) =
-    (mockUpscanConnector
+    (mockS3Connector
       .downloadFile(_: UpscanSuccess))
       .expects(upscanSuccess)
       .returning(Future[Either[Error, FileAttachment]](response))
