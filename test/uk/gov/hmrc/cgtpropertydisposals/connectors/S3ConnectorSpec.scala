@@ -40,7 +40,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport with BeforeAndAfterAll {
+class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport with BeforeAndAfterAll {
 
   val config = Configuration(
     ConfigFactory.parseString(
@@ -84,7 +84,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
   implicit val actorSystem       = ActorSystem()
 
   val connector =
-    new UpscanConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+    new S3ConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
   override def afterAll(): Unit = {
     Await.ready(actorSystem.terminate(), 10.seconds)
@@ -102,7 +102,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
               "some-url",
-              Seq(("User-Agent" -> "cgt-property-disposal-frontend")),
+              Seq(("User-Agent" -> "cgt-property-disposals")),
               2 minutes
             )(Future.successful(httpResponse))
             await(
@@ -141,7 +141,7 @@ class UpscanConnectorSpec extends WordSpec with Matchers with MockFactory with H
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
               "some-url",
-              Seq(("User-Agent" -> "cgt-property-disposal-frontend")),
+              Seq(("User-Agent" -> "cgt-property-disposals")),
               2 minutes
             )(Future.successful(httpResponse))
             await(
