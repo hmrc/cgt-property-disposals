@@ -18,18 +18,20 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
 import play.api.libs.json.OFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR}
 
-sealed trait RepresenteeAnswers extends Product with Serializable
+sealed trait RepresenteeReferenceId extends Product with Serializable
 
-object RepresenteeAnswers {
+object RepresenteeReferenceId {
 
-  final case class IncompleteRepresenteeAnswers(name: Option[IndividualName], id: Option[RepresenteeReferenceId])
-      extends RepresenteeAnswers
+  final case class RepresenteeNino(value: NINO) extends RepresenteeReferenceId
 
-  final case class CompleteRepresenteeAnswers(name: IndividualName, id: RepresenteeReferenceId)
-      extends RepresenteeAnswers
+  final case class RepresenteeSautr(value: SAUTR) extends RepresenteeReferenceId
 
-  implicit val format: OFormat[RepresenteeAnswers] = derived.oformat()
+  final case class RepresenteeCgtReference(value: CgtReference) extends RepresenteeReferenceId
+
+  case object NoReferenceId extends RepresenteeReferenceId
+
+  implicit val format: OFormat[RepresenteeReferenceId] = derived.oformat()
 
 }
