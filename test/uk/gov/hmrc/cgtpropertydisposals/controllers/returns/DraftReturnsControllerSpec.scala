@@ -60,10 +60,16 @@ class DraftReturnsControllerSpec extends ControllerSpec {
       .expects(cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockDeleteDraftReturnService(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
+  def mockDeleteDraftReturnsService(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
     (draftReturnsService
       .deleteDraftReturns(_: List[UUID]))
       .expects(draftReturnIds)
+      .returning(EitherT.fromEither[Future](response))
+
+  def mockDeleteDraftReturnService(cgtReference: CgtReference)(response: Either[Error, Unit]) =
+    (draftReturnsService
+      .deleteDraftReturn(_: CgtReference))
+      .expects(cgtReference)
       .returning(EitherT.fromEither[Future](response))
 
   implicit lazy val mat: Materializer = fakeApplication.materializer
@@ -157,8 +163,8 @@ class DraftReturnsControllerSpec extends ControllerSpec {
       }
 
       "return a 200 response if the deletion is successful" in {
-        val ids = List(UUID.randomUUID())
-        mockDeleteDraftReturnService(ids)(Right(()))
+        val ids = List(UUID.randomUUID(), UUID.randomUUID())
+        mockDeleteDraftReturnsService(ids)(Right(()))
 
         val result =
           controller.deleteDraftReturns()(fakeRequestWithJsonBody(Json.toJson(DeleteDraftReturnsRequest(ids))))
@@ -166,8 +172,8 @@ class DraftReturnsControllerSpec extends ControllerSpec {
       }
 
       "return a 500 response if the deletion is unsuccessful" in {
-        val ids = List(UUID.randomUUID())
-        mockDeleteDraftReturnService(ids)(Left(Error("")))
+        val ids = List(UUID.randomUUID(), UUID.randomUUID())
+        mockDeleteDraftReturnsService(ids)(Left(Error("")))
 
         val result =
           controller.deleteDraftReturns()(fakeRequestWithJsonBody(Json.toJson(DeleteDraftReturnsRequest(ids))))
