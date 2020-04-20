@@ -345,7 +345,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
   private def addressValidation(addressDetails: AddressDetails): Validation[UkAddress] =
     AddressDetails
-      .fromDesAddressDetails(addressDetails)(List.empty)
+      .fromDesAddressDetails(addressDetails)(List.empty, Map.empty)
       .andThen {
         case _: NonUkAddress => invalid("Expected uk address but got non-uk address")
         case a: UkAddress    => Valid(a)

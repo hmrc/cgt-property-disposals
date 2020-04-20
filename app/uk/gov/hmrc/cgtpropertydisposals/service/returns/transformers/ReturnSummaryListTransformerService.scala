@@ -68,7 +68,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
   ): Validation[ReturnSummary] = {
     val chargesValidation: Validation[List[Charge]] = validateCharges(returnSummary, chargeReferenceToFinancialData)
     val addressValidation: Validation[UkAddress] = AddressDetails
-      .fromDesAddressDetails(returnSummary.propertyAddress)(List.empty)
+      .fromDesAddressDetails(returnSummary.propertyAddress)(List.empty, Map.empty)
       .andThen {
         case a: UkAddress    => Valid(a)
         case _: NonUkAddress => invalid("Expected uk address but found non-uk address")

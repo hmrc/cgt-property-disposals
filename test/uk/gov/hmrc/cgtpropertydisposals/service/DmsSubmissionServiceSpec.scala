@@ -118,7 +118,7 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
       "return an error" when {
 
         "there is an issue with the gform service" in {
-          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
+          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           inSequence {
@@ -138,7 +138,7 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
         }
 
         "some of the downloads have failed" in {
-          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
+          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
           mockDownloadS3Urls(List(upscanSuccess))(
@@ -160,7 +160,7 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
       }
 
       "return an envelope id when files have been successfully submitted to the gform service" in {
-        val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), ByteString(1)))
+        val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
         val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
         inSequence {

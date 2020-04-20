@@ -23,7 +23,6 @@ import scala.util.Try
 object HtmlSanitizer {
 
   val allowedElements = List(
-    "a",
     "label",
     "h1",
     "h2",
@@ -74,6 +73,7 @@ object HtmlSanitizer {
   )
 
   val blockedElements = List(
+    "a",
     "img",
     "link",
     "meta",

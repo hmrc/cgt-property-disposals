@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.S3Connector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
@@ -57,7 +57,7 @@ trait UpscanService {
 @Singleton
 class UpscanServiceImpl @Inject() (
   upscanRepository: UpscanRepository,
-  upscanConnector: UpscanConnector
+  s3Connector: S3Connector
 )(implicit ec: ExecutionContext)
     extends UpscanService
     with Logging {
@@ -84,6 +84,6 @@ class UpscanServiceImpl @Inject() (
   override def downloadFilesFromS3(
     upscanSuccesses: List[UpscanSuccess]
   ): Future[List[Either[Error, FileAttachment]]] =
-    Future.traverse(upscanSuccesses)(url => upscanConnector.downloadFile(url))
+    Future.traverse(upscanSuccesses)(url => s3Connector.downloadFile(url))
 
 }

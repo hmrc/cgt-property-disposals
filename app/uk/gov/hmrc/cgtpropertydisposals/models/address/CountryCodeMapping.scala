@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.dms
+package uk.gov.hmrc.cgtpropertydisposals.models.address
 
-import akka.util.ByteString
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 
-final case class FileAttachment(
-  key: String,
-  filename: String,
-  contentType: Option[String],
-  data: Seq[ByteString]
-)
+final case class CountryCodeMapping(from: CountryCode, to: CountryCode)

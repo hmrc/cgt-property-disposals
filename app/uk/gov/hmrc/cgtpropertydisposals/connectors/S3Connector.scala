@@ -14,29 +14,15 @@
  * limitations under the License.
  */
 
-/*
- * Copyright 2020 HM Revenue & Customs
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import java.util.UUID
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.HeaderNames.USER_AGENT
-import play.api.libs.ws.ahc.AhcWSResponse
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
@@ -49,21 +35,27 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-@ImplementedBy(classOf[UpscanConnectorImpl])
-trait UpscanConnector {
+@ImplementedBy(classOf[S3ConnectorImpl])
+trait S3Connector {
   def downloadFile(upscanSuccess: UpscanSuccess): Future[Either[Error, FileAttachment]]
 }
 
 @Singleton
-class UpscanConnectorImpl @Inject() (playHttpClient: PlayHttpClient, config: ServicesConfig)(
-  implicit executionContext: ExecutionContext
-) extends UpscanConnector
+class S3ConnectorImpl @Inject() (
+  playHttpClient: PlayHttpClient,
+  config: ServicesConfig
+)(
+  implicit executionContext: ExecutionContext,
+  system: ActorSystem
+) extends S3Connector
     with Logging
     with HttpErrorFunctions {
 
-  private lazy val userAgent: String = config.getConfString("appName", "cgt-property-disposal")
-  private lazy val timeout: Duration = config.getDuration("dms.s3-file-download-timeout")
-
+  implicit val mat: ActorMaterializer        = ActorMaterializer()
+  private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposals")
+  private lazy val maxFileDownloadSize: Long = config.getConfInt("s3.max-file-download-size-in-mb", 5)
+  private val limitScaleFactor: Long         = config.getConfInt("s3.upstream-element-limit-scale-factor", 200)
+  private lazy val timeout: Duration         = config.getDuration("s3.file-download-timeout")
   private val headers: Seq[(String, String)] = Seq(USER_AGENT -> userAgent)
 
   override def downloadFile(upscanSuccess: UpscanSuccess): Future[Either[Error, FileAttachment]] =
@@ -71,18 +63,35 @@ class UpscanConnectorImpl @Inject() (playHttpClient: PlayHttpClient, config: Ser
       case (Some(filename), Some(mimeType)) =>
         playHttpClient
           .get(upscanSuccess.downloadUrl, headers, timeout)
-          .map {
-            case AhcWSResponse(underlying) =>
-              underlying.status match {
-                case s if is4xx(s) | is5xx(s) => Left(Error(s"download failed with status $s"))
-                case _ =>
-                  Right(FileAttachment(UUID.randomUUID().toString, filename, Some(mimeType), underlying.bodyAsBytes))
+          .flatMap { response =>
+            response.status match {
+              case status if is4xx(status) | is5xx(status) => {
+                logger.warn(
+                  s"could not download file from s3 : ${response.toString}" +
+                    s"download url : ${upscanSuccess.downloadUrl}" +
+                    s"http status: ${response.status}" +
+                    s"http body: ${response.body}"
+                )
+                Future.successful(Left(Error("could not download file from s3")))
               }
+              case _ =>
+                response.bodyAsSource.limit(maxFileDownloadSize * limitScaleFactor).runWith(Sink.seq).map { bytes =>
+                  Right(
+                    FileAttachment(
+                      UUID.randomUUID().toString,
+                      filename,
+                      Some(mimeType),
+                      bytes
+                    )
+                  )
+                }
+            }
           }
           .recover {
             case NonFatal(e) => Left(Error(e))
           }
-      case _ => Future.successful(Left(Error("missing file descriptors")))
+      case _ =>
+        logger.warn(s"could not find file name nor mime type : $upscanSuccess")
+        Future.successful(Left(Error("missing file descriptors")))
     }
-
 }

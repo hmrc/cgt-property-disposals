@@ -24,7 +24,7 @@ import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.await
-import uk.gov.hmrc.cgtpropertydisposals.connectors.UpscanConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.S3Connector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
@@ -40,7 +40,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
   implicit val timeout: Timeout                           = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   val mockUpscanRepository                                = mock[UpscanRepository]
-  val mockUpscanConnector                                 = mock[UpscanConnector]
+  val mockUpscanConnector                                 = mock[S3Connector]
   val service                                             = new UpscanServiceImpl(mockUpscanRepository, mockUpscanConnector)
 
   def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
@@ -154,8 +154,8 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
 
       val upscanSuccess1  = sample[UpscanSuccess]
       val upscanSuccess2  = sample[UpscanSuccess]
-      val fileAttachment1 = FileAttachment(UUID.randomUUID().toString, "filename", Some("pdf"), ByteString(1))
-      val fileAttachment2 = FileAttachment(UUID.randomUUID().toString, "filename2", Some("pdf"), ByteString(2))
+      val fileAttachment1 = FileAttachment(UUID.randomUUID().toString, "filename", Some("pdf"), Seq(ByteString(1)))
+      val fileAttachment2 = FileAttachment(UUID.randomUUID().toString, "filename2", Some("pdf"), Seq(ByteString(2)))
 
       "return an error" when {
 

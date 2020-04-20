@@ -23,8 +23,8 @@ import cats.instances.string._
 import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
-import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
+import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.Configuration
 import play.api.http.Status.{ACCEPTED, FORBIDDEN, OK}
 import play.api.libs.json.Json
@@ -215,7 +215,7 @@ class SubscriptionServiceImpl @Inject() (
   ): Either[String, SubscribedDetails] = {
     val addressValidation: Validation[Address] = AddressDetails.fromDesAddressDetails(
       desSubscriptionDisplayDetails.subscriptionDetails.addressDetails
-    )(desNonIsoCountryCodes)
+    )(desNonIsoCountryCodes, Map.empty)
 
     val nameValidation: Validation[Either[TrustName, IndividualName]] = Name.nameValidation(
       desSubscriptionDisplayDetails.subscriptionDetails.typeOfPersonDetails
