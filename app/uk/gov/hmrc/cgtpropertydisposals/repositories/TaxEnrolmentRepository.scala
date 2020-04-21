@@ -27,6 +27,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -61,38 +62,44 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(
 
   override def save(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
-      insert(cgtEnrolmentRequest)
-        .map[Either[Error, Unit]] { result: WriteResult =>
-          if (result.ok)
-            Right(())
-          else
-            Left(
-              Error(
-                s"Could not insert enrolment request into database: got write errors :${result.writeErrors}"
+      preservingMdc {
+        insert(cgtEnrolmentRequest)
+          .map[Either[Error, Unit]] { result: WriteResult =>
+            if (result.ok)
+              Right(())
+            else
+              Left(
+                Error(
+                  s"Could not insert enrolment request into database: got write errors :${result.writeErrors}"
+                )
               )
-            )
-        }
-        .recover {
-          case exception => Left(Error(exception))
-        }
+          }
+          .recover {
+            case exception => Left(Error(exception))
+          }
+      }
     )
 
   override def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
-      find("ggCredId" -> ggCredId)
-        .map(maybeEnrolmentRequest => Right(maybeEnrolmentRequest.headOption))
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
+      preservingMdc {
+        find("ggCredId" -> ggCredId)
+          .map(maybeEnrolmentRequest => Right(maybeEnrolmentRequest.headOption))
+          .recover {
+            case exception => Left(Error(exception.getMessage))
+          }
+      }
     )
 
   override def delete(ggCredId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
-      remove("ggCredId" -> ggCredId)
-        .map { result: WriteResult => Right(result.n) }
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
+      preservingMdc {
+        remove("ggCredId" -> ggCredId)
+          .map { result: WriteResult => Right(result.n) }
+          .recover {
+            case exception => Left(Error(exception.getMessage))
+          }
+      }
     )
 
   override def update(
@@ -100,14 +107,16 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(
     cgtEnrolmentRequest: TaxEnrolmentRequest
   ): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
-      findAndUpdate(
-        Json.obj("ggCredId" -> ggCredId),
-        Json.obj("$set"     -> Json.toJson(cgtEnrolmentRequest)),
-        fetchNewObject = true
-      ).map(dbResult => Right(dbResult.result[TaxEnrolmentRequest]))
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
+      preservingMdc {
+        findAndUpdate(
+          Json.obj("ggCredId" -> ggCredId),
+          Json.obj("$set"     -> Json.toJson(cgtEnrolmentRequest)),
+          fetchNewObject = true
+        ).map(dbResult => Right(dbResult.result[TaxEnrolmentRequest]))
+          .recover {
+            case exception => Left(Error(exception.getMessage))
+          }
+      }
     )
 
 }

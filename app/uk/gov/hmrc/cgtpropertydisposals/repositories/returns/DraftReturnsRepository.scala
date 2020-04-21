@@ -40,6 +40,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -74,48 +75,56 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   val key: String               = "return.cgtReference.value"
 
   override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
-    EitherT(get(cgtReference)).map(_.map(_.draftReturn))
+    EitherT(
+      preservingMdc {
+        get(cgtReference)
+      }
+    ).map(_.map(_.draftReturn))
 
   override def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     EitherT(set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id)))
 
   override def delete(cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
-      remove("return.cgtReference.value" -> cgtReference.value)
-        .map { result: WriteResult =>
-          if (result.ok)
-            Right(())
-          else
-            Left(
-              Error(
-                s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
+      preservingMdc {
+        remove("return.cgtReference.value" -> cgtReference.value)
+          .map { result: WriteResult =>
+            if (result.ok)
+              Right(())
+            else
+              Left(
+                Error(
+                  s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
+                )
               )
-            )
-        }
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
+          }
+          .recover {
+            case exception => Left(Error(exception.getMessage))
+          }
+      }
     )
 
   override def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
-      remove(
-        "$or" -> JsArray(
-          draftReturnIds.map(id => JsObject(Map("return.draftId" -> JsString(id.toString))))
-        )
-      ).map { result: WriteResult =>
-          if (result.ok)
-            Right(())
-          else
-            Left(
-              Error(
-                s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
+      preservingMdc {
+        remove(
+          "$or" -> JsArray(
+            draftReturnIds.map(id => JsObject(Map("return.draftId" -> JsString(id.toString))))
+          )
+        ).map { result: WriteResult =>
+            if (result.ok)
+              Right(())
+            else
+              Left(
+                Error(
+                  s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
+                )
               )
-            )
-        }
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
+          }
+          .recover {
+            case exception => Left(Error(exception.getMessage))
+          }
+      }
     )
 
   private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] = {
