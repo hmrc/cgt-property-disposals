@@ -28,6 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -57,42 +58,48 @@ class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(
 
   override def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifiersRequest]] =
     EitherT[Future, Error, Option[UpdateVerifiersRequest]](
-      collection
-        .find(Json.obj("ggCredId" -> ggCredId), None)
-        .one[UpdateVerifiersRequest]
-        .map(maybeVerifiersRequest => Right(maybeVerifiersRequest))
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
+      preservingMdc {
+        collection
+          .find(Json.obj("ggCredId" -> ggCredId), None)
+          .one[UpdateVerifiersRequest]
+          .map(maybeVerifiersRequest => Right(maybeVerifiersRequest))
+          .recover {
+            case exception => Left(Error(exception.getMessage))
+          }
+      }
     )
 
   override def insert(updateVerifiersRequest: UpdateVerifiersRequest): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
-      collection.insert
-        .one[UpdateVerifiersRequest](updateVerifiersRequest)
-        .map[Either[Error, Unit]] { result: WriteResult =>
-          if (result.ok)
-            Right(())
-          else
-            Left(
-              Error(
-                s"Could not insert update verifier request into database: got write errors :${result.writeErrors}"
+      preservingMdc {
+        collection.insert
+          .one[UpdateVerifiersRequest](updateVerifiersRequest)
+          .map[Either[Error, Unit]] { result: WriteResult =>
+            if (result.ok)
+              Right(())
+            else
+              Left(
+                Error(
+                  s"Could not insert update verifier request into database: got write errors :${result.writeErrors}"
+                )
               )
-            )
-        }
-        .recover {
-          case exception => Left(Error(exception))
-        }
+          }
+          .recover {
+            case exception => Left(Error(exception))
+          }
+      }
     )
 
   override def delete(ggCredId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
-      collection.delete
-        .one(Json.obj("ggCredId" -> ggCredId))
-        .map { result: WriteResult => Right(result.n) }
-        .recover {
-          case exception => Left(Error(exception.getMessage))
-        }
+      preservingMdc {
+        collection.delete
+          .one(Json.obj("ggCredId" -> ggCredId))
+          .map { result: WriteResult => Right(result.n) }
+          .recover {
+            case exception => Left(Error(exception.getMessage))
+          }
+      }
     )
 
 }
