@@ -58,7 +58,7 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(draftReturnIds)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockDeleteDraftReturn(cgtReference: CgtReference)(response: Either[Error, Unit]) =
+  def mockDeleteADraftReturn(cgtReference: CgtReference)(response: Either[Error, Unit]) =
     (draftReturnRepository
       .delete(_: CgtReference))
       .expects(cgtReference)
@@ -119,12 +119,12 @@ class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       val cgtReference = CgtReference(UUID.randomUUID.toString)
 
       "return a successful response if operation was successful" in {
-        mockDeleteDraftReturn(cgtReference)(Right(()))
+        mockDeleteADraftReturn(cgtReference)(Right(()))
         await(draftReturnsService.deleteDraftReturn(cgtReference).value) shouldBe Right(())
       }
 
       "return an unsuccessful response if operation was not successful" in {
-        mockDeleteDraftReturn(cgtReference)(Left(Error("")))
+        mockDeleteADraftReturn(cgtReference)(Left(Error("")))
         await(draftReturnsService.deleteDraftReturn(cgtReference).value).isLeft shouldBe true
       }
 

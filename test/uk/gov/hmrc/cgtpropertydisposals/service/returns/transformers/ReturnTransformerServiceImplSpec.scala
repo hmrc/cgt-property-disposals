@@ -123,7 +123,8 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             )
           )
 
-          transformer.toCompleteReturn(desReturn).isLeft shouldBe true
+          val result = transformer.toCompleteReturn(desReturn)
+          result.isLeft shouldBe true
         }
 
         "a tax year cannot be found for the disposal date" in {
