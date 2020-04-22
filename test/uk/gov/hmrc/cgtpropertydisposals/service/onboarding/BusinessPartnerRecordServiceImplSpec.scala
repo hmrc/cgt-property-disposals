@@ -526,6 +526,39 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             }
           }
         }
+
+        "the call comes back with slashes in the organisation name" in {
+          val body = bprResponseJson(
+            s"""
+               |"address" : {
+               |    "addressLine1" : "line1",
+               |    "addressLine2" : "line2",
+               |    "addressLine3" : "line3",
+               |    "addressLine4" : "line4",
+               |    "countryCode"  : "${validCountryCodeMapping.from}"
+               |  }
+               |""".stripMargin,
+            Some(TrustName("a/trust\\\\with/\\\\slashes")),
+            None
+          )
+
+          val expectedAddress =
+            NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
+
+          inSequence {
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
+            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
+          }
+
+          await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+            BusinessPartnerRecordResponse(
+              Some(expectedBpr(expectedAddress, Left(TrustName("a-trust-with--slashes")))),
+              None
+            )
+          )
+
+        }
+
       }
     }
   }
