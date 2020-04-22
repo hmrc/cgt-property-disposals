@@ -161,8 +161,9 @@ class BusinessPartnerRecordServiceImpl @Inject() (
 
     val nameValidation: Validation[Either[TrustName, IndividualName]] =
       d.individual -> d.organisation match {
-        case (Some(individual), None)   => Valid(Right(IndividualName(individual.firstName, individual.lastName)))
-        case (None, Some(organisation)) => Valid(Left(TrustName(organisation.organisationName)))
+        case (Some(individual), None) => Valid(Right(IndividualName(individual.firstName, individual.lastName)))
+        case (None, Some(organisation)) =>
+          Valid(Left(TrustName(organisation.organisationName.replaceAll("[\\\\/]", "-"))))
         case (Some(_), Some(_)) =>
           Invalid(NonEmptyList.one("BPR contained both an organisation name and individual name"))
         case (None, None) =>
