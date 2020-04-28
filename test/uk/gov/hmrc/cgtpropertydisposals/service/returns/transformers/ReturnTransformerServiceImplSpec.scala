@@ -243,7 +243,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validSingleDisposalDesReturnDetails.copy(
               representedPersonDetails = Some(
                 sample[RepresentedPersonDetails].copy(
-                  dateOfDeath = Some("2000-01-01")
+                  dateOfDeath = Some(LocalDate.of(2000, 1, 1))
                 )
               )
             )
@@ -1103,7 +1103,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validMultipleDisposalsDesReturnDetails.copy(
               representedPersonDetails = Some(
                 sample[RepresentedPersonDetails].copy(
-                  dateOfDeath = Some("2000-01-01")
+                  dateOfDeath = Some(LocalDate.of(2000, 1, 1))
                 )
               )
             )

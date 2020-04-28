@@ -30,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, Des
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
@@ -44,6 +44,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAns
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.SupportingEvidence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
@@ -73,6 +74,12 @@ object Generators
 
   def sample[A: ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
+
+  def sampleOptional[A: ClassTag](implicit gen: Gen[A]): Option[A] =
+    Gen
+      .option(gen)
+      .sample
+      .getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
 
   implicit def arb[A](implicit g: Gen[A]): Arbitrary[A] = Arbitrary(g)
 
@@ -119,6 +126,10 @@ trait IdGen { this: GenUtils =>
   implicit val cgtReferenceGen: Gen[CgtReference] = gen[CgtReference]
 
   implicit val sapNumberGen: Gen[SapNumber] = gen[SapNumber]
+
+  implicit val sautrGen: Gen[SAUTR] = gen[SAUTR]
+
+  implicit val ninoGen: Gen[NINO] = gen[NINO]
 
 }
 
@@ -244,6 +255,12 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
   implicit val mandatoryEvidenceGen: Gen[MandatoryEvidence] = gen[MandatoryEvidence]
 
   implicit val supportingEvidenceGen: Gen[SupportingEvidence] = gen[SupportingEvidence]
+
+  implicit val representeeDetailsGen: Gen[RepresenteeDetails] = gen[RepresenteeDetails]
+
+  implicit val representeeContactDetailsGen: Gen[RepresenteeContactDetails] = gen[RepresenteeContactDetails]
+
+  implicit val completeRepresenteeAnswersGen: Gen[CompleteRepresenteeAnswers] = gen[CompleteRepresenteeAnswers]
 
 }
 

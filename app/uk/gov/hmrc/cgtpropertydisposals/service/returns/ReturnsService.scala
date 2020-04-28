@@ -45,7 +45,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtRef
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, RepresenteeDetails, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -61,7 +61,7 @@ import scala.util.Try
 @ImplementedBy(classOf[DefaultReturnsService])
 trait ReturnsService {
 
-  def submitReturn(returnRequest: SubmitReturnRequest)(
+  def submitReturn(returnRequest: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
     implicit hc: HeaderCarrier,
     request: Request[_]
   ): EitherT[Future, Error, SubmitReturnResponse]
@@ -94,9 +94,10 @@ class DefaultReturnsService @Inject() (
     config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
   override def submitReturn(
-    returnRequest: SubmitReturnRequest
+    returnRequest: SubmitReturnRequest,
+    representeeDetails: Option[RepresenteeDetails]
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
-    val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest)
+    val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest, representeeDetails)
 
     for {
       _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)

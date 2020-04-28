@@ -28,6 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAns
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
@@ -43,6 +44,7 @@ object CompleteReturn {
     exemptionAndLossesAnswers: CompleteExemptionAndLossesAnswers,
     yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
+    representeeAnswers: Option[CompleteRepresenteeAnswers],
     hasAttachments: Boolean
   ) extends CompleteReturn
 
@@ -56,6 +58,7 @@ object CompleteReturn {
     yearToDateLiabilityAnswers: Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers],
     initialGainOrLoss: Option[AmountInPence],
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
+    representeeAnswers: Option[CompleteRepresenteeAnswers],
     hasAttachments: Boolean
   ) extends CompleteReturn
 
@@ -84,6 +87,8 @@ object CompleteReturn {
     implicit val nonCalculatedYearToDateLiabilityFormat: OFormat[CompleteNonCalculatedYTDAnswers] = Json.format
     implicit val calculatedYearToDateLiabilityFormat: OFormat[CompleteCalculatedYTDAnswers]       = Json.format
     implicit val supportingDocumentsAnswersFormat: OFormat[CompleteSupportingEvidenceAnswers]     = Json.format
+    implicit val representeeAnswersFormat: OFormat[CompleteRepresenteeAnswers]                    = Json.format
+
     derived.oformat()
   }
 

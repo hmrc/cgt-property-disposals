@@ -23,12 +23,18 @@ import cats.instances.future._
 import cats.syntax.either._
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc.{Action, ControllerComponents, Request}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, RepresenteeReferenceId, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdService, SubscriptionService}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.cgtpropertydisposals.util.{HtmlSanitizer, Logging}
@@ -42,6 +48,8 @@ class SubmitReturnsController @Inject() (
   draftReturnsService: DraftReturnsService,
   returnsService: ReturnsService,
   dmsSubmissionService: DmsSubmissionService,
+  subscriptionService: SubscriptionService,
+  registrationService: RegisterWithoutIdService,
   cc: ControllerComponents
 )(
   implicit ec: ExecutionContext
@@ -52,8 +60,9 @@ class SubmitReturnsController @Inject() (
     withJsonBody[SubmitReturnRequest] { returnRequest =>
       val result =
         for {
-          sanitisedHtml    <- EitherT.fromEither[Future](sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
-          submissionResult <- returnsService.submitReturn(returnRequest)
+          sanitisedHtml      <- EitherT.fromEither[Future](sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
+          representeeDetails <- extractRepresenteeAnswersWithValidId(returnRequest)
+          submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
           envelopeId <- dmsSubmissionService.submitToDms(
                          sanitisedHtml,
                          submissionResult.formBundleId,
@@ -82,5 +91,55 @@ class SubmitReturnsController @Inject() (
     val result    = sanitised.map(s => B64Html(new String(Base64.getEncoder.encode(s.getBytes()))))
     Either.fromOption(result, Error("Could not sanitise html"))
   }
+
+  private def extractRepresenteeAnswersWithValidId(
+    submitReturnRequest: SubmitReturnRequest
+  )(
+    implicit request: Request[_]
+  ): EitherT[Future, Error, Option[RepresenteeDetails]] =
+    submitReturnRequest.completeReturn.fold(_.representeeAnswers, _.representeeAnswers) match {
+      case None => EitherT.pure(None)
+      case Some(c: CompleteRepresenteeAnswers) =>
+        c.id match {
+          case RepresenteeSautr(sautr)         => EitherT.pure(Some(RepresenteeDetails(c, Left(sautr))))
+          case RepresenteeNino(nino)           => EitherT.pure(Some(RepresenteeDetails(c, Right(Left(nino)))))
+          case RepresenteeCgtReference(cgtRef) => EitherT.pure(Some(RepresenteeDetails(c, Right(Right(cgtRef)))))
+          case NoReferenceId =>
+            for {
+              sapNumber <- registrationService.registerWithoutId(
+                            RegistrationDetails(
+                              c.name,
+                              c.contactDetails.emailAddress,
+                              c.contactDetails.address
+                            )
+                          )
+              subscriptionResponse <- subscriptionService.subscribe(
+                                       SubscriptionDetails(
+                                         Right(c.name),
+                                         c.contactDetails.contactName,
+                                         c.contactDetails.emailAddress,
+                                         c.contactDetails.address,
+                                         sapNumber
+                                       )
+                                     )
+              cgtReference <- subscriptionResponse match {
+                               case SubscriptionResponse.SubscriptionSuccessful(cgtReferenceNumber) =>
+                                 EitherT.pure[Future, Error](cgtReferenceNumber)
+                               case SubscriptionResponse.AlreadySubscribed =>
+                                 EitherT.leftT(
+                                   Error(
+                                     "Got unexpected 'already subscribed' response to subscription after register with id for representee"
+                                   )
+                                 )
+                             }
+            } yield {
+              logger.info(
+                s"registered and subscribed representee to cgt with SAP number ${sapNumber.value} and cgtReference"
+              )
+              Some(RepresenteeDetails(c, Right(Right(CgtReference(cgtReference)))))
+            }
+        }
+
+    }
 
 }

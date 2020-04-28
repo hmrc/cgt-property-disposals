@@ -29,6 +29,7 @@ object RepresenteeAnswers {
     id: Option[RepresenteeReferenceId],
     dateOfDeath: Option[DateOfDeath],
     contactDetails: Option[RepresenteeContactDetails],
+    hasConfirmedPerson: Boolean,
     hasConfirmedContactDetails: Boolean
   ) extends RepresenteeAnswers
 
