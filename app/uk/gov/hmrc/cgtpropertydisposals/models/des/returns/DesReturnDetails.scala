@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
 
 final case class DesReturnDetails(
   returnType: ReturnType,
@@ -31,7 +31,10 @@ final case class DesReturnDetails(
 
 object DesReturnDetails {
 
-  def apply(submitReturnRequest: SubmitReturnRequest): DesReturnDetails = {
+  def apply(
+    submitReturnRequest: SubmitReturnRequest,
+    representeeDetails: Option[RepresenteeDetails]
+  ): DesReturnDetails = {
     val completeReturn = submitReturnRequest.completeReturn
     val returnDetails  = ReturnDetails(submitReturnRequest)
     val lossSummaryDetails = LossSummaryDetails(
@@ -44,7 +47,7 @@ object DesReturnDetails {
     DesReturnDetails(
       returnType               = CreateReturnType(getSource(submitReturnRequest)),
       returnDetails            = returnDetails,
-      representedPersonDetails = None,
+      representedPersonDetails = representeeDetails.map(RepresentedPersonDetails(_)),
       disposalDetails          = List(disposalDetails),
       lossSummaryDetails       = lossSummaryDetails,
       incomeAllowanceDetails   = incomeAllowanceDetails,

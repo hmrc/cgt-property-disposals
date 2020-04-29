@@ -17,14 +17,17 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
 
 final case class DesSubmitReturnRequest(ppdReturnDetails: DesReturnDetails)
 
 object DesSubmitReturnRequest {
 
-  def apply(submitReturnRequest: SubmitReturnRequest): DesSubmitReturnRequest = {
-    val ppdReturnDetails = DesReturnDetails(submitReturnRequest)
+  def apply(
+    submitReturnRequest: SubmitReturnRequest,
+    representeeDetails: Option[RepresenteeDetails]
+  ): DesSubmitReturnRequest = {
+    val ppdReturnDetails = DesReturnDetails(submitReturnRequest, representeeDetails)
     DesSubmitReturnRequest(ppdReturnDetails)
   }
 

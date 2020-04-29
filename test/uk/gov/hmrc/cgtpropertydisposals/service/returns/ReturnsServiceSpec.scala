@@ -252,7 +252,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           )
           val submitReturnRequest    = sample[SubmitReturnRequest]
-          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
             mockAuditSubmitReturnEvent(
@@ -281,7 +281,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
 
         "there is a negative charge" in {
@@ -307,7 +307,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             None
           )
           val submitReturnRequest    = sample[SubmitReturnRequest]
-          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
           inSequence {
             mockAuditSubmitReturnEvent(
               submitReturnRequest.subscribedDetails.cgtReference,
@@ -335,7 +335,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
 
         "there is a no charge data" in {
@@ -354,7 +354,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None)
           val submitReturnRequest    = sample[SubmitReturnRequest]
-          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
           inSequence {
             mockAuditSubmitReturnEvent(
               submitReturnRequest.subscribedDetails.cgtReference,
@@ -382,7 +382,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
 
         "there is a zero charge" in {
@@ -402,7 +402,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None)
           val submitReturnRequest    = sample[SubmitReturnRequest]
-          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
             mockAuditSubmitReturnEvent(
@@ -431,7 +431,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
 
         "there is a positive charge and email call returns 500 and the EmailSent event won't be sent" in {
@@ -463,7 +463,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           )
           val submitReturnRequest    = sample[SubmitReturnRequest]
-          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
             mockAuditSubmitReturnEvent(
@@ -487,7 +487,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.submitReturn(submitReturnRequest).value) shouldBe Right(submitReturnResponse)
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
 
       }
@@ -498,7 +498,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           def test(jsonResponseBody: JsValue): Unit = {
             val submitReturnRequest    = sample[SubmitReturnRequest]
-            val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+            val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
             inSequence {
               mockAuditSubmitReturnEvent(
@@ -519,7 +519,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               )
             }
 
-            await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
+            await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
           }
 
           "the charge amount is missing" in {
@@ -580,7 +580,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "the call to submit a return fails" in {
           val submitReturnRequest    = sample[SubmitReturnRequest]
-          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
             mockAuditSubmitReturnEvent(
@@ -596,12 +596,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
 
           }
-          await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
+          await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
         }
 
         "the http call comes back with a status other than 200" in {
           val submitReturnRequest    = sample[SubmitReturnRequest]
-          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest)
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
             mockAuditSubmitReturnEvent(
@@ -621,7 +621,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.agentReferenceNumber
             )
           }
-          await(returnsService.submitReturn(submitReturnRequest).value).isLeft shouldBe true
+          await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
         }
       }
 

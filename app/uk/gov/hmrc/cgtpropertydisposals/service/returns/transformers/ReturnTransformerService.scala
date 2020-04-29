@@ -125,6 +125,7 @@ class ReturnTransformerServiceImpl @Inject() (
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
+          None,
           hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
@@ -209,6 +210,7 @@ class ReturnTransformerServiceImpl @Inject() (
           yearToDateLiabilityAnswers,
           initialGainOrLoss,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
+          None,
           hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }

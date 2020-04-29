@@ -16,17 +16,21 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import java.time.LocalDate
+
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeDetails
 
 final case class RepresentedPersonDetails(
   capacitorPersonalRep: String,
   firstName: String,
   lastName: String,
-  idType: String, //TODO: "ZCGT","NINO","UTR","TRN"
+  idType: String,
   idValue: String,
   dateOfBirth: Option[String],
-  dateOfDeath: Option[String],
+  dateOfDeath: Option[LocalDate],
   trustCessationDate: Option[String],
   trustTerminationDate: Option[String],
   addressDetails: Option[AddressDetails],
@@ -34,6 +38,31 @@ final case class RepresentedPersonDetails(
 )
 
 object RepresentedPersonDetails {
+
+  def apply(representeeDetails: RepresenteeDetails): RepresentedPersonDetails = {
+    val idTypeWithValue = representeeDetails.id match {
+      case Left(sautr)          => "UTR"  -> sautr.value
+      case Right(Left(nino))    => "NINO" -> nino.value
+      case Right(Right(cgtRef)) => "ZCGT" -> cgtRef.value
+    }
+
+    val answers = representeeDetails.answers
+
+    RepresentedPersonDetails(
+      answers.dateOfDeath.fold("Capacitor")(_ => "Personal Representative"),
+      answers.name.firstName,
+      answers.name.lastName,
+      idTypeWithValue._1,
+      idTypeWithValue._2,
+      None,
+      answers.dateOfDeath.map(_.value),
+      None,
+      None,
+      Some(Address.toAddressDetails(representeeDetails.answers.contactDetails.address)),
+      Some(answers.contactDetails.emailAddress.value)
+    )
+  }
+
   implicit val representedPersonDetailsFormat: OFormat[RepresentedPersonDetails] =
     Json.format[RepresentedPersonDetails]
 }

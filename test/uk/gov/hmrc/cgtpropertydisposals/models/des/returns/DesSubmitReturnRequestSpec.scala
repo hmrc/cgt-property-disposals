@@ -20,12 +20,15 @@ import com.eclipsesource.schema.drafts.Version7
 import com.eclipsesource.schema.{SchemaType, SchemaValidator}
 import org.scalatest.WordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
+import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.NINO
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, RepresenteeContactDetails, RepresenteeDetails, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 
 import scala.io.Source
@@ -66,7 +69,20 @@ class DesSubmitReturnRequestSpec extends WordSpec {
                 )
               )
           )
-        val ppdReturnDetails       = DesReturnDetails(submitReturnRequest)
+
+        val representeeDetails = sampleOptional[RepresenteeDetails].map(
+          _.copy(
+            answers = sample[CompleteRepresenteeAnswers].copy(
+              contactDetails = sample[RepresenteeContactDetails].copy(
+                address      = sample[UkAddress],
+                emailAddress = Email("email@email.com")
+              )
+            ),
+            id = Right(Left(NINO("AB123456C")))
+          )
+        )
+
+        val ppdReturnDetails       = DesReturnDetails(submitReturnRequest, representeeDetails)
         val desSubmitReturnRequest = DesSubmitReturnRequest(ppdReturnDetails)
         val json                   = Json.toJson(desSubmitReturnRequest)
         val validationResult       = validator.validate(schemaToBeValidated, json)
