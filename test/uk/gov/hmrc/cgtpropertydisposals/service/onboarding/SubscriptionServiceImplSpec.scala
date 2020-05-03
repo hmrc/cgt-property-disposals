@@ -496,7 +496,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           true
         )
         mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
-        await(service.getSubscription(cgtReference).value) shouldBe Right(subscriptionDisplayResponse)
+        await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
       }
 
       "return the subscription display response if the call comes back with a " +
@@ -545,7 +545,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           true
         )
         mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
-        await(service.getSubscription(cgtReference).value) shouldBe Right(subscriptionDisplayResponse)
+        await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
       }
 
       "return the subscription display response if the call comes back with a " +
@@ -590,7 +590,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           true
         )
         mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
-        await(service.getSubscription(cgtReference).value) shouldBe Right(subscriptionDisplayResponse)
+        await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
       }
 
       "return the subscription display response the country code does not have a country name" in {
@@ -641,8 +641,22 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           true
         )
         mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
-        await(service.getSubscription(cgtReference).value) shouldBe Right(subscriptionDisplayResponse)
+        await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
       }
+
+      "return None when no subscription details exist for the cgt reference given" in {
+        List(
+          Json.parse("""{ "code": "NOT_FOUND", "reason" : "Data not found for the provided Registration Number." }"""),
+          Json.parse(
+            """{ "failures": [ { "code": "NOT_FOUND", "reason" : "Data not found for the provided Registration Number." } ] }"""
+          )
+        ).foreach { desResponseBody =>
+          mockGetSubscription(cgtReference)(Right(HttpResponse(404, Some(desResponseBody))))
+          await(service.getSubscription(cgtReference).value) shouldBe Right(None)
+        }
+
+      }
+
     }
 
     "handling requests to subscribe" must {

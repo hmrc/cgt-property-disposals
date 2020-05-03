@@ -20,13 +20,13 @@ import cats.data.EitherT
 import cats.instances.future._
 import cats.syntax.either._
 import com.google.inject.Inject
-import play.api.libs.json.{JsString, Json, Reads}
+import play.api.libs.json.{JsString, Json, OWrites, Reads}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
-import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.SubscriptionError
+import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.{GetSubscriptionResponse, SubscriptionError}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.{RegisteredWithoutId, RegistrationDetails}
@@ -114,7 +114,8 @@ class SubscriptionController @Inject() (
       case Left(error) =>
         logger.warn(s"Error getting subscription details: $error")
         InternalServerError
-      case Right(subscribedDetails) => Ok(Json.toJson(subscribedDetails))
+      case Right(maybeSubscribedDetails) =>
+        Ok(Json.toJson(GetSubscriptionResponse(maybeSubscribedDetails)))
     }
   }
 
@@ -186,6 +187,14 @@ object SubscriptionController {
     final case class BackendError(e: Error) extends SubscriptionError
 
     final case class RequestValidationError(msg: String) extends SubscriptionError
+  }
+
+  final case class GetSubscriptionResponse(subscribedDetails: Option[SubscribedDetails])
+
+  object GetSubscriptionResponse {
+
+    implicit val writes: OWrites[GetSubscriptionResponse] = Json.writes[GetSubscriptionResponse]
+
   }
 
 }
