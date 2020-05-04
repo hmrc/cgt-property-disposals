@@ -256,15 +256,11 @@ class DefaultReturnsService @Inject() (
   }
 
   def isNoFinancialDataResponse(response: HttpResponse): Boolean = {
-    def isNoReturnResponse(e: SingleDesErrorResponse) =
-      e.code === "NOT_FOUND" &&
-        e.reason === "The remote endpoint has indicated that no data can be found."
-
     lazy val hasNoReturnBody = response
       .parseJSON[DesErrorResponse]()
       .bimap(
         _ => false,
-        _.fold(isNoReturnResponse, _.failures.exists(isNoReturnResponse))
+        _.hasError(SingleDesErrorResponse("NOT_FOUND", "The remote endpoint has indicated that no data can be found."))
       )
       .merge
 
@@ -272,15 +268,16 @@ class DefaultReturnsService @Inject() (
   }
 
   private def isNoReturnsResponse(response: HttpResponse): Boolean = {
-    def isNoReturnResponse(e: SingleDesErrorResponse) =
-      e.code === "NOT_FOUND" &&
-        e.reason === "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
-
     lazy val hasNoReturnBody = response
       .parseJSON[DesErrorResponse]()
       .bimap(
         _ => false,
-        _.fold(isNoReturnResponse, _.failures.exists(isNoReturnResponse))
+        _.hasError(
+          SingleDesErrorResponse(
+            "NOT_FOUND",
+            "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+          )
+        )
       )
       .merge
 

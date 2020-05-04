@@ -77,7 +77,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(expectedSubscriptionDetails, *, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, SubscribedDetails]): Unit =
+  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, Option[SubscribedDetails]]): Unit =
     (mockSubscriptionService
       .getSubscription(_: CgtReference)(_: HeaderCarrier))
       .expects(cgtReference, *)
@@ -402,14 +402,16 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
         mockGetSubscription(CgtReference("XDCGT123456789"))(
           Right(
-            SubscribedDetails(
-              Right(IndividualName("Stephen", "Wood")),
-              Email("stephen@abc.co.uk"),
-              UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), Postcode("DH14EJ")),
-              ContactName("Stephen Wood"),
-              CgtReference("XDCGT123456789"),
-              Some(TelephoneNumber("+44191919191919")),
-              true
+            Some(
+              SubscribedDetails(
+                Right(IndividualName("Stephen", "Wood")),
+                Email("stephen@abc.co.uk"),
+                UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), Postcode("DH14EJ")),
+                ContactName("Stephen Wood"),
+                CgtReference("XDCGT123456789"),
+                Some(TelephoneNumber("+44191919191919")),
+                true
+              )
             )
           )
         )
@@ -417,30 +419,48 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         val expectedResponse =
           """
             |{
-            |    "name" : {"r":{"firstName":"Stephen","lastName":"Wood"}},
-            |    "emailAddress": "stephen@abc.co.uk",
-            |    "address": {
-            |        "UkAddress": {
-            |            "postcode": "DH14EJ",
-            |            "line1": "100 Sutton Street",
-            |            "line2": "Wokingham",
-            |            "town": "Surrey",
-            |            "county": "London",
-            |            "postcode": "DH14EJ"
-            |        }
-            |    },
-            |    "contactName": "Stephen Wood",
-            |    "cgtReference": {
-            |        "value": "XDCGT123456789"
-            |    },
-            |    "telephoneNumber": "+44191919191919",
-            |    "registeredWithId": true
-            |}
+            |  "subscribedDetails" : {
+            |      "name" : {"r":{"firstName":"Stephen","lastName":"Wood"}},
+            |      "emailAddress": "stephen@abc.co.uk",
+            |      "address": {
+            |          "UkAddress": {
+            |              "postcode": "DH14EJ",
+            |              "line1": "100 Sutton Street",
+            |              "line2": "Wokingham",
+            |              "town": "Surrey",
+            |              "county": "London",
+            |              "postcode": "DH14EJ"
+            |          }
+            |      },
+            |      "contactName": "Stephen Wood",
+            |      "cgtReference": {
+            |          "value": "XDCGT123456789"
+            |      },
+            |      "telephoneNumber": "+44191919191919",
+            |      "registeredWithId": true
+            |  }
+            |}  
             |""".stripMargin
 
         val result = controller.getSubscription(CgtReference("XDCGT123456789"))(request)
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.parse(expectedResponse)
+      }
+
+      "return a 200 OK response if the a subscription does not exist" in {
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest()
+          )
+
+        mockGetSubscription(CgtReference("XDCGT123456789"))(Right(None))
+
+        val result = controller.getSubscription(CgtReference("XDCGT123456789"))(request)
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.parse("{}")
       }
 
       "return an internal server error" when {
