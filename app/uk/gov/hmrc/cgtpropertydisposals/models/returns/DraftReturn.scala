@@ -21,6 +21,7 @@ import java.util.UUID
 
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
@@ -47,6 +48,19 @@ final case class DraftMultipleDisposalsReturn(
   id: UUID,
   triageAnswers: MultipleDisposalsTriageAnswers,
   examplePropertyDetailsAnswers: Option[ExamplePropertyDetailsAnswers],
+  exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
+  yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
+  supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
+  representeeAnswers: Option[RepresenteeAnswers],
+  lastUpdatedDate: LocalDate
+) extends DraftReturn
+
+final case class DraftSingleIndirectDisposalReturn(
+  id: UUID,
+  triageAnswers: SingleDisposalTriageAnswers,
+  companyAddress: Option[Address],
+  disposalDetailsAnswers: Option[DisposalDetailsAnswers],
+  acquisitionDetailsAnswers: Option[AcquisitionDetailsAnswers],
   exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
   yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],

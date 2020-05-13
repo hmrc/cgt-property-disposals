@@ -21,7 +21,6 @@ import java.time.{LocalDate, LocalDateTime}
 import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
-import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.codahale.metrics.Timer.Context
