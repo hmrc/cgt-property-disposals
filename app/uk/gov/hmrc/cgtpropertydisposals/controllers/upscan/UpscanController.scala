@@ -87,26 +87,6 @@ class UpscanController @Inject() (
       }
     }
 
-  def updateUpscanUpload(uploadReference: UploadReference): Action[JsValue] =
-    authenticate(parse.json).async { implicit request =>
-      request.body
-        .asOpt[UpscanUpload] match {
-        case Some(upscanUpload) =>
-          upscanService
-            .updateUpscanUpload(uploadReference, upscanUpload)
-            .fold(
-              e => {
-                logger.warn(s"could not update upscan upload", e)
-                InternalServerError
-              },
-              _ => Ok
-            )
-        case None =>
-          logger.warn(s"could not parse JSON body")
-          Future.successful(BadRequest)
-      }
-    }
-
   def getUpscanUploads(): Action[JsValue] =
     Action.async(parse.json) { implicit request: Request[JsValue] =>
       request.body.validate[GetUpscanUploadsRequest] match {
