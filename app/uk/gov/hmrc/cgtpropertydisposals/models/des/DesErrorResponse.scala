@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
+import cats.Eq
+import cats.instances.string._
+import cats.syntax.eq._
 import play.api.libs.json.{Json, Reads}
 
 sealed trait DesErrorResponse extends Product with Serializable
@@ -26,6 +29,8 @@ object DesErrorResponse {
 
   final case class MultipleDesErrorsResponse(failures: List[SingleDesErrorResponse]) extends DesErrorResponse
 
+  implicit val singleDesErrorResponseEq: Eq[SingleDesErrorResponse] = Eq.fromUniversalEquals
+
   implicit class DesErrorResponseOps(private val e: DesErrorResponse) extends AnyVal {
 
     def fold[A](ifSingle: SingleDesErrorResponse => A, ifMultiple: MultipleDesErrorsResponse => A): A =
@@ -33,6 +38,18 @@ object DesErrorResponse {
         case s: SingleDesErrorResponse    => ifSingle(s)
         case m: MultipleDesErrorsResponse => ifMultiple(m)
       }
+
+    def hasError(error: SingleDesErrorResponse): Boolean =
+      fold(
+        _ === error,
+        _.failures.contains(error)
+      )
+
+    def hasCode(code: String): Boolean =
+      fold(
+        _.code === code,
+        _.failures.exists(_.code === code)
+      )
 
   }
 
