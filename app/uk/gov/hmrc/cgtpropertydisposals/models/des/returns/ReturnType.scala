@@ -37,25 +37,26 @@ final case class AmendReturnType(
 }
 
 object ReturnType {
-  implicit val returnTypeFormat: OFormat[ReturnType] = {
+  implicit val returnTypeFormat: OFormat[ReturnType] =
     OFormat[ReturnType](
       json =>
         for {
           source         <- (json \ "source").validate[String]
           submissionType <- (json \ "submissionType").validate[SubmissionType]
           submissionId   <- (json \ "submissionID").validateOpt[String]
-          result <- submissionType match {
-                     case SubmissionType.New => JsSuccess(CreateReturnType(source))
-                     case SubmissionType.Amend =>
-                       submissionId.fold[JsResult[AmendReturnType]](
-                         JsError("Could not find submission id for amend return type")
-                       )(id => JsSuccess(AmendReturnType(source, id)))
-                   }
-        } yield result, { r: ReturnType =>
+          result         <- submissionType match {
+                      case SubmissionType.New   => JsSuccess(CreateReturnType(source))
+                      case SubmissionType.Amend =>
+                        submissionId.fold[JsResult[AmendReturnType]](
+                          JsError("Could not find submission id for amend return type")
+                        )(id => JsSuccess(AmendReturnType(source, id)))
+                    }
+        } yield result,
+      { r: ReturnType =>
         r match {
           case c: CreateReturnType =>
             JsObject(Map("source" -> JsString(c.source), "submissionType" -> Json.toJson(c.submissionType)))
-          case a: AmendReturnType =>
+          case a: AmendReturnType  =>
             JsObject(
               Map(
                 "source"         -> JsString(a.source),
@@ -66,5 +67,4 @@ object ReturnType {
         }
       }
     )
-  }
 }

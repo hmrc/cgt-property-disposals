@@ -41,14 +41,14 @@ import scala.util.Try
 
 @ImplementedBy(classOf[GFormConnectorImpl])
 trait GFormConnector {
-  def submitToDms(dmsSubmission: DmsSubmissionPayload)(
-    implicit hc: HeaderCarrier
+  def submitToDms(dmsSubmission: DmsSubmissionPayload)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId]
 }
 
 @Singleton
-class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConfig: ServicesConfig)(
-  implicit ex: ExecutionContext
+class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConfig: ServicesConfig)(implicit
+  ex: ExecutionContext
 ) extends DefaultWriteables
     with GFormConnector
     with Logging {
@@ -70,20 +70,20 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
           .post(gformUrl, hc.headers, multipartFormData)
           .map { response =>
             response.status match {
-              case 200 => Right(EnvelopeId(response.body))
-              case status if (is4xx(status) || is5xx(status)) =>
+              case 200                                      => Right(EnvelopeId(response.body))
+              case status if is4xx(status) || is5xx(status) =>
                 logger.warn(s"Bad response status from gform service ${response.body}")
                 Left(Error(response.body))
-              case _ => Left(Error("Invalid HTTP response status from gform service"))
+              case _                                        => Left(Error("Invalid HTTP response status from gform service"))
             }
           }
       )
 
     for {
-      fileparts <- EitherT.fromOption[Future](
-                    makeTemporaryFiles(dmsSubmissionPayload),
-                    Error("Could not construct temporary files")
-                  )
+      fileparts  <- EitherT.fromOption[Future](
+                     makeTemporaryFiles(dmsSubmissionPayload),
+                     Error("Could not construct temporary files")
+                   )
       formdata   <- EitherT.pure[Future, Error](createFormData(dmsSubmissionPayload, fileparts))
       payload    <- EitherT.pure[Future, Error](convertToPayload(formdata))
       envelopeId <- sendFormdata(payload)
@@ -124,15 +124,15 @@ object GFormConnector {
 
   def createFilePart(attachment: FileAttachment, path: Path)(implicit hc: HeaderCarrier): FilePart[TemporaryFile] =
     FilePart(
-      key         = hc.sessionId.map(_.value).getOrElse("").take(10),
-      filename    = attachment.filename,
+      key = hc.sessionId.map(_.value).getOrElse("").take(10),
+      filename = attachment.filename,
       contentType = attachment.contentType,
-      ref         = SingletonTemporaryFileCreator.create(path)
+      ref = SingletonTemporaryFileCreator.create(path)
     )
 
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   def processAttachment(attachment: FileAttachment)(implicit hc: HeaderCarrier): Option[FilePart[TemporaryFile]] = {
-    val file = File.createTempFile("s3-file-tmp-file-prefix", ".tmp", new File("/tmp"))
+    val file         = File.createTempFile("s3-file-tmp-file-prefix", ".tmp", new File("/tmp"))
     file.deleteOnExit()
     val outputStream = java.nio.file.Files.newOutputStream(file.toPath)
     attachment.data.map(n => outputStream.write(n.toArray))
@@ -162,7 +162,7 @@ object GFormConnector {
         "classificationType" -> Seq(dmsSubmissionPayload.dmsMetadata.classificationType),
         "businessArea"       -> Seq(dmsSubmissionPayload.dmsMetadata.businessArea)
       ),
-      files    = temporaryFiles,
+      files = temporaryFiles,
       badParts = Nil
     )
 

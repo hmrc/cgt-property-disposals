@@ -37,16 +37,16 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
 trait TaxEnrolmentService {
-  def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
-    implicit hc: HeaderCarrier
+  def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
 
-  def hasCgtSubscription(ggCredId: String)(
-    implicit hc: HeaderCarrier
+  def hasCgtSubscription(ggCredId: String)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
 
-  def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
-    implicit hc: HeaderCarrier
+  def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
 
 }
@@ -73,7 +73,7 @@ class TaxEnrolmentServiceImpl @Inject() (
         timer.close()
 
         result match {
-          case Left(error) =>
+          case Left(error)         =>
             metrics.eacdCreateEnrolmentErrorCounter.inc()
             HttpResponse(999, Some(JsString(error.toString)))
 
@@ -94,7 +94,7 @@ class TaxEnrolmentServiceImpl @Inject() (
         timer.close()
 
         result match {
-          case Left(error) =>
+          case Left(error)         =>
             metrics.eacdUpdateEnrolmentErrorCounter.inc()
             HttpResponse(999, Some(JsString(error.toString)))
 
@@ -103,21 +103,21 @@ class TaxEnrolmentServiceImpl @Inject() (
       }
   }
 
-  override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
-    implicit hc: HeaderCarrier
+  override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
     for {
       httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
-      result <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
-                 error: Error =>
-                   logger
-                     .warn(
-                       s"Failed to allocate enrolments due to error: $error; will store enrolment details"
-                     )
-                   taxEnrolmentRepository
-                     .save(taxEnrolmentRequest)
-                     .leftMap(error => Error(s"Could not store enrolment details: $error"))
-               }
+      result       <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
+                  error: Error =>
+                    logger
+                      .warn(
+                        s"Failed to allocate enrolments due to error: $error; will store enrolment details"
+                      )
+                    taxEnrolmentRepository
+                      .save(taxEnrolmentRequest)
+                      .leftMap(error => Error(s"Could not store enrolment details: $error"))
+                }
     } yield result
 
   def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
@@ -131,13 +131,13 @@ class TaxEnrolmentServiceImpl @Inject() (
   )(implicit hc: HeaderCarrier): Future[Unit] =
     enrolmentState match {
 
-      case (Some(createEnrolmentRequest), None) =>
+      case (Some(createEnrolmentRequest), None)                   =>
         val result = for {
           httpResponse <- EitherT.liftF(makeES8call(createEnrolmentRequest)) // attempt to create enrolment
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
-          _ <- taxEnrolmentRepository.delete(
-                createEnrolmentRequest.ggCredId
-              ) // delete record if enrolment was successful
+          _            <- taxEnrolmentRepository.delete(
+                 createEnrolmentRequest.ggCredId
+               ) // delete record if enrolment was successful
         } yield ()
         result
           .bimap(
@@ -146,7 +146,7 @@ class TaxEnrolmentServiceImpl @Inject() (
           )
           .merge
 
-      case (None, Some(updateVerifiersRequest)) =>
+      case (None, Some(updateVerifiersRequest))                   =>
         val result = for {
           httpResponse <- EitherT.liftF(makeES6call(updateVerifiersRequest))
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse))
@@ -177,53 +177,52 @@ class TaxEnrolmentServiceImpl @Inject() (
           )
           .merge
 
-      case (None, None) => Future.successful(())
+      case (None, None)                                           => Future.successful(())
     }
 
   override def hasCgtSubscription(
     ggCredId: String
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     for {
-      maybeEnrolmentRequest <- taxEnrolmentRepository
-                                .get(ggCredId)
-                                .leftMap(error =>
-                                  Error(s"Could not check database to determine subscription status: $error")
-                                )
-      maybeUpdateVerifierRequest <- verifiersRepository
-                                     .get(ggCredId)
-                                     .leftMap(error =>
-                                       Error(
-                                         s"Could not check database to determine update verifier request exists : $error"
-                                       )
-                                     )
-      _ <- EitherT.liftF(handleEnrolmentState(maybeEnrolmentRequest -> maybeUpdateVerifierRequest))
+      maybeEnrolmentRequest      <-
+        taxEnrolmentRepository
+          .get(ggCredId)
+          .leftMap(error => Error(s"Could not check database to determine subscription status: $error"))
+      maybeUpdateVerifierRequest <-
+        verifiersRepository
+          .get(ggCredId)
+          .leftMap(error =>
+            Error(
+              s"Could not check database to determine update verifier request exists : $error"
+            )
+          )
+      _                          <- EitherT.liftF(handleEnrolmentState(maybeEnrolmentRequest -> maybeUpdateVerifierRequest))
     } yield maybeEnrolmentRequest
 
-  override def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(
-    implicit hc: HeaderCarrier
+  override def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
-    if (hasChangedAddress(updateVerifiersRequest.subscribedUpdateDetails)) {
+    if (hasChangedAddress(updateVerifiersRequest.subscribedUpdateDetails))
       for {
         _                           <- verifiersRepository.delete(updateVerifiersRequest.ggCredId)
         _                           <- verifiersRepository.insert(updateVerifiersRequest)
         maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
         _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
       } yield ()
-    } else {
+    else
       EitherT.rightT[Future, Error](())
-    }
 
   private def hasChangedAddress(subscribedUpdateDetails: SubscribedUpdateDetails): Boolean =
     subscribedUpdateDetails.newDetails.address match {
-      case Address.UkAddress(_, _, _, _, newPostcode) =>
+      case Address.UkAddress(_, _, _, _, newPostcode)      =>
         subscribedUpdateDetails.previousDetails.address match {
           case Address.UkAddress(_, _, _, _, oldPostcode) =>
             if (newPostcode.equals(oldPostcode)) false else true
-          case _: Address.NonUkAddress => true
+          case _: Address.NonUkAddress                    => true
         }
       case Address.NonUkAddress(_, _, _, _, _, newCountry) =>
         subscribedUpdateDetails.previousDetails.address match {
-          case _: Address.UkAddress => true
+          case _: Address.UkAddress                                 => true
           case Address.NonUkAddress(_, _, _, _, _, previousCountry) =>
             if (newCountry === previousCountry) false else true
         }

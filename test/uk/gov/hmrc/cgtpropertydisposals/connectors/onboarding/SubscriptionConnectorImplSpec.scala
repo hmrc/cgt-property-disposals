@@ -61,9 +61,9 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
   "SubscriptionConnectorImpl" when {
 
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-    val expectedSubscriptionUrl    = "http://host:123/subscriptions/create/CGT"
+    implicit val hc: HeaderCarrier                                 = HeaderCarrier()
+    val expectedHeaders                                            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedSubscriptionUrl                                    = "http://host:123/subscriptions/create/CGT"
     def expectedSubscriptionDisplayUrl(cgtReference: CgtReference) =
       s"http://host:123/subscriptions/CGT/ZCGT/${cgtReference.value}"
 

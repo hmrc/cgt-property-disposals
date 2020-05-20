@@ -65,7 +65,7 @@ class TestOnlyControllerSpec extends ControllerSpec {
 
   val controller = new TestOnlyController(
     draftReturnsService = draftReturnsService,
-    cc                  = Helpers.stubControllerComponents()
+    cc = Helpers.stubControllerComponents()
   )
 
   def fakeRequestWithJsonBody(body: JsValue) = request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)

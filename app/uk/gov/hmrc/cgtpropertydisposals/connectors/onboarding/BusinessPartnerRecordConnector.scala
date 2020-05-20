@@ -33,8 +33,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[BusinessPartnerRecordConnectorImpl])
 trait BusinessPartnerRecordConnector {
 
-  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
-    implicit hc: HeaderCarrier
+  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
 }
@@ -53,7 +53,7 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
 
   def url(bprRequest: BusinessPartnerRecordRequest): String = {
     val entityType = bprRequest.fold(_ => "organisation", _ => "individual")
-    val suffix = bprRequest.foldOnId(
+    val suffix     = bprRequest.foldOnId(
       t => s"trn/${t.value.removeAllWhitespaces()}",
       s => s"utr/${s.value.removeAllWhitespaces()}",
       n => s"nino/${n.value.removeAllWhitespaces()}"
@@ -61,13 +61,13 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
     s"$baseUrl/registration/$entityType/$suffix"
   }
 
-  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
-    implicit hc: HeaderCarrier
+  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
     val registerDetails = RegisterDetails(
-      regime            = "CGT",
+      regime = "CGT",
       requiresNameMatch = bprRequest.fold(_.nameMatch.isDefined, _.nameMatch.isDefined),
-      isAnAgent         = false,
+      isAnAgent = false,
       individual = bprRequest.fold(
         _ => None,
         _.nameMatch.map(name => RegisterIndividual(name.firstName, name.lastName))

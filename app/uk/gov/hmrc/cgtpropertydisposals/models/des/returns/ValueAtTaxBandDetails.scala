@@ -29,7 +29,7 @@ object ValueAtTaxBandDetails {
   def apply(calculatedTaxDue: CalculatedTaxDue): Option[List[ValueAtTaxBandDetails]] =
     calculatedTaxDue match {
       case _: CalculatedTaxDue.NonGainCalculatedTaxDue => None
-      case g: CalculatedTaxDue.GainCalculatedTaxDue =>
+      case g: CalculatedTaxDue.GainCalculatedTaxDue    =>
         Some(
           List(
             ValueAtTaxBandDetails(g.taxDueAtLowerRate.taxRate, g.taxDueAtLowerRate.taxableAmount.inPounds()),

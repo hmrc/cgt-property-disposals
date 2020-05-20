@@ -70,13 +70,13 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   def fakeRequestWithJsonBody(body: JsValue) = request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
   val controller = new SubmitReturnsController(
-    authenticate         = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
-    draftReturnsService  = draftReturnsService,
-    returnsService       = returnsService,
+    authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
+    draftReturnsService = draftReturnsService,
+    returnsService = returnsService,
     dmsSubmissionService = dmsService,
-    subscriptionService  = subscriptionService,
-    registrationService  = registrationService,
-    cc                   = Helpers.stubControllerComponents()
+    subscriptionService = subscriptionService,
+    registrationService = registrationService,
+    cc = Helpers.stubControllerComponents()
   )
 
   def mockSubmitReturnService(request: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
@@ -123,9 +123,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
       "return 200 for successful submission" in {
         val expectedResponseBody = sample[SubmitReturnResponse]
-        val requestBody = sample[SubmitReturnRequest].copy(
+        val requestBody          = sample[SubmitReturnRequest].copy(
           checkYourAnswerPageHtml = B64Html(""),
-          completeReturn          = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None)
+          completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None)
         )
 
         inSequence {
@@ -143,14 +143,14 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         "for a representee" in {
         val expectedResponseBody = sample[SubmitReturnResponse]
 
-        val representeeAnswers = sample[CompleteRepresenteeAnswers].copy(id = NoReferenceId)
-        val registrationDetails = RegistrationDetails(
+        val representeeAnswers   = sample[CompleteRepresenteeAnswers].copy(id = NoReferenceId)
+        val registrationDetails  = RegistrationDetails(
           representeeAnswers.name,
           representeeAnswers.contactDetails.emailAddress,
           representeeAnswers.contactDetails.address
         )
-        val sapNumber = sample[SapNumber]
-        val subscriptionDetails =
+        val sapNumber            = sample[SapNumber]
+        val subscriptionDetails  =
           SubscriptionDetails(
             Right(representeeAnswers.name),
             representeeAnswers.contactDetails.contactName,
@@ -159,7 +159,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
             sapNumber
           )
         val subscriptionResponse = sample[SubscriptionSuccessful]
-        val representeeDetails = RepresenteeDetails(
+        val representeeDetails   = RepresenteeDetails(
           representeeAnswers,
           Right(Right(CgtReference(subscriptionResponse.cgtReferenceNumber)))
         )
@@ -203,7 +203,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           withClue(s"For $representeeDetails: ") {
             val expectedResponseBody = sample[SubmitReturnResponse]
             val representeeAnswers   = representeeDetails.answers
-            val requestBody = sample[SubmitReturnRequest].copy(
+            val requestBody          = sample[SubmitReturnRequest].copy(
               checkYourAnswerPageHtml = B64Html(""),
               completeReturn = sample[CompleteSingleDisposalReturn].copy(
                 representeeAnswers = Some(representeeAnswers)
@@ -275,7 +275,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
       "return 500 when des call fails" in {
         val requestBody = sample[SubmitReturnRequest].copy(
-          completeReturn          = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None),
+          completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None),
           checkYourAnswerPageHtml = B64Html("")
         )
 
@@ -287,7 +287,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
       "return 500 when deleting draft return fails" in {
         val requestBody = sample[SubmitReturnRequest].copy(
-          completeReturn          = sample[CompleteMultipleDisposalsReturn].copy(representeeAnswers = None),
+          completeReturn = sample[CompleteMultipleDisposalsReturn].copy(representeeAnswers = None),
           checkYourAnswerPageHtml = B64Html("")
         )
 
@@ -315,7 +315,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
           val sapNumber = sample[SapNumber]
 
-          val subscriptionDetails =
+          val subscriptionDetails  =
             SubscriptionDetails(
               Right(representeeAnswers.name),
               representeeAnswers.contactDetails.contactName,

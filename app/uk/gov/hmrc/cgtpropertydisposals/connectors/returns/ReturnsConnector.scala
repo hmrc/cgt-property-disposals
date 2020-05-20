@@ -36,16 +36,16 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[ReturnsConnectorImpl])
 trait ReturnsConnector {
 
-  def submit(cgtReference: CgtReference, submitReturnRequest: DesSubmitReturnRequest)(
-    implicit hc: HeaderCarrier
+  def submit(cgtReference: CgtReference, submitReturnRequest: DesSubmitReturnRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
-  def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
-    implicit hc: HeaderCarrier
+  def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
-  def displayReturn(cgtReference: CgtReference, submissionId: String)(
-    implicit hc: HeaderCarrier
+  def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
 }
@@ -75,10 +75,10 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
     )
   }
 
-  def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
-    implicit hc: HeaderCarrier
+  def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
-    val url: String = s"$baseUrl/capital-gains-tax/returns/${cgtReference.value}"
+    val url: String     = s"$baseUrl/capital-gains-tax/returns/${cgtReference.value}"
     val queryParameters = Map(
       "fromDate" -> fromDate.format(dateFormatter),
       "toDate"   -> toDate.format(dateFormatter)
@@ -95,14 +95,14 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
     )
   }
 
-  def displayReturn(cgtReference: CgtReference, submissionId: String)(
-    implicit hc: HeaderCarrier
+  def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
     val url: String = s"$baseUrl/capital-gains-tax/${cgtReference.value}/$submissionId/return"
 
     EitherT[Future, Error, HttpResponse](
       http
-        .get(url, headers       = headers)(
+        .get(url, headers = headers)(
           hc.copy(authorization = None),
           ec
         )

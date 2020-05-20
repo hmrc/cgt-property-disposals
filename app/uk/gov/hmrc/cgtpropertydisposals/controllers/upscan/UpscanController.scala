@@ -39,8 +39,8 @@ class UpscanController @Inject() (
   authenticate: AuthenticateActions,
   upscanService: UpscanService,
   cc: ControllerComponents
-)(
-  implicit ec: ExecutionContext
+)(implicit
+  ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
@@ -55,10 +55,11 @@ class UpscanController @Inject() (
           e => {
             logger.warn(s"could not get upscan upload", e)
             InternalServerError
-          }, {
+          },
+          {
             case Some(upscanUpload) =>
               Ok(Json.toJson(upscanUpload))
-            case None =>
+            case None               =>
               logger.info(
                 s"could not find an upscan upload with upload reference $uploadReference"
               )
@@ -81,7 +82,7 @@ class UpscanController @Inject() (
               },
               _ => Ok
             )
-        case None =>
+        case None               =>
           logger.warn(s"could not parse JSON body")
           Future.successful(BadRequest)
       }
@@ -90,7 +91,7 @@ class UpscanController @Inject() (
   def getUpscanUploads(): Action[JsValue] =
     Action.async(parse.json) { implicit request: Request[JsValue] =>
       request.body.validate[GetUpscanUploadsRequest] match {
-        case e: JsError =>
+        case e: JsError                                              =>
           logger.warn(s"Could not parse get all upscan uploads request: ${e.prettyPrint()}")
           Future.successful(BadRequest)
 
@@ -111,47 +112,46 @@ class UpscanController @Inject() (
     Action.async(parse.json) { implicit request: Request[JsValue] =>
       (request.body \ "fileStatus").asOpt[String] match {
         case Some(upscanStatus) =>
-          if (upscanStatus === READY_FOR_DOWNLOAD | upscanStatus === FAILED_UPSCAN) {
+          if (upscanStatus === READY_FOR_DOWNLOAD | upscanStatus === FAILED_UPSCAN)
             callBackHandler(uploadReference, upscanStatus)
-          } else {
+          else {
             logger.warn(s"could not process upscan status : ${request.body.toString}")
             Future.successful(InternalServerError)
           }
-        case None =>
+        case None               =>
           logger.warn(s"could not parse upscan response body : ${request.body.toString}")
           Future.successful(InternalServerError)
       }
     }
 
-  private def callBackHandler(uploadReference: UploadReference, fileStatus: String)(
-    implicit request: Request[JsValue]
+  private def callBackHandler(uploadReference: UploadReference, fileStatus: String)(implicit
+    request: Request[JsValue]
   ): Future[Result] = {
     val result = for {
       maybeUpscanUpload <- upscanService.readUpscanUpload(uploadReference)
-      upscanUpload <- EitherT.fromOption(
-                       maybeUpscanUpload,
-                       Error(
-                         s"could not get upscan upload value from db for upload reference $uploadReference"
-                       )
-                     )
-      callBackResult <- if (fileStatus === READY_FOR_DOWNLOAD) {
-                         EitherT.fromOption(
-                           request.body.asOpt[UpscanSuccess],
-                           Error(
-                             s"could not parse upscan call back response body : ${request.body.toString}"
-                           )
-                         )
-                       } else {
-                         EitherT.fromOption(
-                           request.body.asOpt[UpscanFailure],
-                           Error(
-                             s"could not parse upscan call back response body : ${request.body.toString}"
-                           )
-                         )
-                       }
+      upscanUpload      <- EitherT.fromOption(
+                        maybeUpscanUpload,
+                        Error(
+                          s"could not get upscan upload value from db for upload reference $uploadReference"
+                        )
+                      )
+      callBackResult    <- if (fileStatus === READY_FOR_DOWNLOAD)
+                          EitherT.fromOption(
+                            request.body.asOpt[UpscanSuccess],
+                            Error(
+                              s"could not parse upscan call back response body : ${request.body.toString}"
+                            )
+                          )
+                        else
+                          EitherT.fromOption(
+                            request.body.asOpt[UpscanFailure],
+                            Error(
+                              s"could not parse upscan call back response body : ${request.body.toString}"
+                            )
+                          )
 
-      newUpscanUpload = upscanUpload.copy(upscanCallBack = Some(callBackResult))
-      _ <- upscanService.updateUpscanUpload(uploadReference, newUpscanUpload)
+      newUpscanUpload    = upscanUpload.copy(upscanCallBack = Some(callBackResult))
+      _                 <- upscanService.updateUpscanUpload(uploadReference, newUpscanUpload)
     } yield ()
 
     result.fold(

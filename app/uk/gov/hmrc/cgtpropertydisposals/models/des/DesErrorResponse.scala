@@ -55,6 +55,6 @@ object DesErrorResponse {
 
   implicit val singleErrorResponseReads: Reads[SingleDesErrorResponse]      = Json.reads
   implicit val multipleErrorResponseReads: Reads[MultipleDesErrorsResponse] = Json.reads
-  implicit val errorResponseReads: Reads[DesErrorResponse] =
+  implicit val errorResponseReads: Reads[DesErrorResponse]                  =
     Reads(j => singleErrorResponseReads.reads(j).orElse(multipleErrorResponseReads.reads(j)))
 }

@@ -70,13 +70,13 @@ class ReturnTransformerServiceImpl @Inject() (
     desReturn: DesReturnDetails
   ): ValidatedNel[String, CompleteReturn] =
     desReturn.disposalDetails match {
-      case (singleDisposalDetails: SingleDisposalDetails) :: Nil =>
+      case (singleDisposalDetails: SingleDisposalDetails) :: Nil      =>
         validateSingleDisposal(desReturn, singleDisposalDetails)
 
       case (multipleDisposalsDetails: MultipleDisposalDetails) :: Nil =>
         validateMultipleDisposal(desReturn, multipleDisposalsDetails)
 
-      case other =>
+      case other                                                      =>
         Invalid(
           NonEmptyList.one(
             s"Expected either one single disposal detail or one multiple disposal details but got ${other.length} disposals"
@@ -95,10 +95,10 @@ class ReturnTransformerServiceImpl @Inject() (
       countryValidation(desReturn)
     ).mapN {
       case (
-          address,
-          disposalDate,
-          assetTypes,
-          country
+            address,
+            disposalDate,
+            assetTypes,
+            country
           ) =>
         val triageAnswers = CompleteMultipleDisposalsTriageAnswers(
           getIndividualUserType(desReturn),
@@ -142,13 +142,13 @@ class ReturnTransformerServiceImpl @Inject() (
       reliefsValidation(desReturn)
     ).mapN {
       case (
-          address,
-          disposalDate,
-          assetType,
-          country,
-          (reliefDetails, otherReliefsOption)
+            address,
+            disposalDate,
+            assetType,
+            country,
+            (reliefDetails, otherReliefsOption)
           ) =>
-        val triageAnswers =
+        val triageAnswers             =
           constructTriageAnswers(
             desReturn,
             singleDisposalDetails,
@@ -167,13 +167,13 @@ class ReturnTransformerServiceImpl @Inject() (
           case Some(_: OtherReliefsOption.OtherReliefs) =>
             Left(constructNonCalculatedYearToDateAnswers(desReturn))
 
-          case _ =>
+          case _                                        =>
             val estimatedIncome =
               zeroOrAmountInPenceFromPounds(desReturn.incomeAllowanceDetails.estimatedIncome)
 
             val personalAllowance =
               desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
-            val calculatedTaxDue = cgtCalculationService.calculateTaxDue(
+            val calculatedTaxDue  = cgtCalculationService.calculateTaxDue(
               triageAnswers,
               disposalDetailsAnswers,
               acquisitionDetailsAnswers,
@@ -235,7 +235,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
   private def getIndividualUserType(desReturn: DesReturnDetails): Option[IndividualUserType] =
     desReturn.returnDetails.customerType match {
-      case CustomerType.Trust =>
+      case CustomerType.Trust      =>
         None
       case CustomerType.Individual =>
         Some(
@@ -255,7 +255,7 @@ class ReturnTransformerServiceImpl @Inject() (
     disposalDate: DisposalDate,
     disposalMethod: DisposalMethod,
     assetType: AssetType
-  ): CompleteSingleDisposalTriageAnswers =
+  ): CompleteSingleDisposalTriageAnswers                                                     =
     CompleteSingleDisposalTriageAnswers(
       getIndividualUserType(desReturn),
       disposalMethod,
@@ -331,15 +331,15 @@ class ReturnTransformerServiceImpl @Inject() (
       invalid[(ReliefDetails, Option[OtherReliefsOption])]("Could not find relief details for single disposal")
     ) { reliefDetails =>
       val otherReliefsOption = (reliefDetails.otherRelief, reliefDetails.otherReliefAmount) match {
-        case (None, None) =>
+        case (None, None)                                               =>
           Valid(None)
-        case (Some(other), None) =>
+        case (Some(other), None)                                        =>
           invalid(s"Found other relief name '$other' but could not find amount'")
-        case (None, Some(amount)) =>
+        case (None, Some(amount))                                       =>
           invalid(s"Found other relief amount '$amount' but could not find other relief name'")
         case (Some("none"), Some(amount)) if amount === BigDecimal("0") =>
           Valid(Some(OtherReliefsOption.NoOtherReliefs))
-        case (Some(name), Some(amount)) =>
+        case (Some(name), Some(amount))                                 =>
           Valid(Some(OtherReliefsOption.OtherReliefs(name, AmountInPence.fromPounds(amount))))
       }
       otherReliefsOption.map(reliefDetails -> _)

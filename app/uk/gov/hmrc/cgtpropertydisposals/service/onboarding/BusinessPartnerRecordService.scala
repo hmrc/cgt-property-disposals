@@ -48,8 +48,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[BusinessPartnerRecordServiceImpl])
 trait BusinessPartnerRecordService {
 
-  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
-    implicit hc: HeaderCarrier
+  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, BusinessPartnerRecordResponse]
 
 }
@@ -60,8 +60,8 @@ class BusinessPartnerRecordServiceImpl @Inject() (
   subscriptionConnector: SubscriptionConnector,
   config: Configuration,
   metrics: Metrics
-)(
-  implicit ec: ExecutionContext
+)(implicit
+  ec: ExecutionContext
 ) extends BusinessPartnerRecordService {
 
   val desNonIsoCountryCodes: List[CountryCode] =
@@ -70,16 +70,16 @@ class BusinessPartnerRecordServiceImpl @Inject() (
   val countryCodeMappings: Map[CountryCode, CountryCode] =
     config.underlying.get[List[CountryCodeMapping]]("des.country-code-mappings").value.map(m => m.from -> m.to).toMap
 
-  val correlationIdHeaderKey = "CorrelationId"
+  val correlationIdHeaderKey                             = "CorrelationId"
 
-  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(
-    implicit hc: HeaderCarrier
+  def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, BusinessPartnerRecordResponse] =
     for {
-      maybeBpr <- getBpr(bprRequest)
+      maybeBpr    <- getBpr(bprRequest)
       maybeCgtRef <- maybeBpr.fold[EitherT[Future, Error, Option[CgtReference]]](EitherT.pure(None))(bpr =>
-                      getSubscriptionStatus(bpr.sapNumber)
-                    )
+                       getSubscriptionStatus(bpr.sapNumber)
+                     )
     } yield BusinessPartnerRecordResponse(maybeBpr, maybeCgtRef)
 
   private def getBpr(
@@ -95,7 +95,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
           "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-")
         )
 
-      if (response.status === OK) {
+      if (response.status === OK)
         response
           .parseJSON[DesBusinessPartnerRecord]()
           .flatMap(toBusinessPartnerRecord(_))
@@ -104,9 +104,9 @@ class BusinessPartnerRecordServiceImpl @Inject() (
             metrics.registerWithIdErrorCounter.inc()
             Error(e, identifiers: _*)
           }
-      } else if (isNotFoundResponse(response)) {
+      else if (isNotFoundResponse(response))
         Right(None)
-      } else {
+      else {
         metrics.registerWithIdErrorCounter.inc()
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
       }
@@ -120,7 +120,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
 
     subscriptionConnector.getSubscriptionStatus(sapNumber).subflatMap { response =>
       timer.close()
-      if (response.status === OK) {
+      if (response.status === OK)
         response
           .parseJSON[DesSubscriptionStatusResponse]()
           .leftMap { e =>
@@ -131,7 +131,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
             case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, Some("ZCGT"), Some(cgtRef)) =>
               Right(Some(CgtReference(cgtRef)))
 
-            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, otherIdType, id) =>
+            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, otherIdType, id)            =>
               Left(
                 Error(
                   s"Could not find cgt reference id in subscription status response. Got id type " +
@@ -139,10 +139,10 @@ class BusinessPartnerRecordServiceImpl @Inject() (
                 )
               )
 
-            case DesSubscriptionStatusResponse(_, _, _) =>
+            case DesSubscriptionStatusResponse(_, _, _)                                                   =>
               Right(None)
           }
-      } else {
+      else {
         metrics.subscriptionStatusErrorCounter.inc()
         Left(Error(s"Call to get subscription status came back with status ${response.status}"))
       }
@@ -161,12 +161,12 @@ class BusinessPartnerRecordServiceImpl @Inject() (
 
     val nameValidation: Validation[Either[TrustName, IndividualName]] =
       d.individual -> d.organisation match {
-        case (Some(individual), None) => Valid(Right(IndividualName(individual.firstName, individual.lastName)))
+        case (Some(individual), None)   => Valid(Right(IndividualName(individual.firstName, individual.lastName)))
         case (None, Some(organisation)) =>
           Valid(Left(TrustName(organisation.organisationName.replaceAll("[\\\\/]", "-"))))
-        case (Some(_), Some(_)) =>
+        case (Some(_), Some(_))         =>
           Invalid(NonEmptyList.one("BPR contained both an organisation name and individual name"))
-        case (None, None) =>
+        case (None, None)               =>
           Invalid(NonEmptyList.one("BPR contained contained neither an organisation name or an individual name"))
       }
 

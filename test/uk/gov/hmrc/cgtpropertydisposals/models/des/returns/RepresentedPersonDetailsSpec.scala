@@ -40,7 +40,7 @@ class RepresentedPersonDetailsSpec extends WordSpec with Matchers {
           val desAddress = AddressDetails("line1", None, None, None, Some(address.postcode.value), "GB")
 
           val answers = sample[CompleteRepresenteeAnswers].copy(
-            dateOfDeath    = None,
+            dateOfDeath = None,
             contactDetails = sample[RepresenteeContactDetails].copy(address = address)
           )
 
@@ -66,8 +66,8 @@ class RepresentedPersonDetailsSpec extends WordSpec with Matchers {
           val desAddress = AddressDetails("line1", None, None, None, None, address.country.code)
 
           val dateOfDeath = DateOfDeath(LocalDate.now())
-          val answers = sample[CompleteRepresenteeAnswers].copy(
-            dateOfDeath    = Some(dateOfDeath),
+          val answers     = sample[CompleteRepresenteeAnswers].copy(
+            dateOfDeath = Some(dateOfDeath),
             contactDetails = sample[RepresenteeContactDetails].copy(address = address)
           )
 
@@ -93,13 +93,15 @@ class RepresentedPersonDetailsSpec extends WordSpec with Matchers {
           val desAddress = AddressDetails("line1", None, None, None, Some(address.postcode.value), "GB")
 
           val answers = sample[CompleteRepresenteeAnswers].copy(
-            dateOfDeath    = None,
+            dateOfDeath = None,
             contactDetails = sample[RepresenteeContactDetails].copy(address = address)
           )
 
           val cgtRefrence = sample[CgtReference]
 
-          RepresentedPersonDetails(RepresenteeDetails(answers, Right(Right(cgtRefrence)))) shouldBe RepresentedPersonDetails(
+          RepresentedPersonDetails(
+            RepresenteeDetails(answers, Right(Right(cgtRefrence)))
+          ) shouldBe RepresentedPersonDetails(
             "Capacitor",
             answers.name.firstName,
             answers.name.lastName,

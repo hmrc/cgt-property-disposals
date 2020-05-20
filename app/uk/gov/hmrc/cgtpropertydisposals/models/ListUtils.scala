@@ -24,7 +24,7 @@ object ListUtils {
         case (acc, curr) =>
           f(curr).fold(
             b => (b :: acc._1) -> acc._2,
-            c => acc._1        -> (c :: acc._2)
+            c => acc._1 -> (c :: acc._2)
           )
       }
   }

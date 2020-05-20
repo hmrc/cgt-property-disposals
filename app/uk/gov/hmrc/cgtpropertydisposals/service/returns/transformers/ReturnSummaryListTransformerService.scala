@@ -50,7 +50,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     returns: List[DesReturnSummary],
     financialData: List[DesFinancialTransaction]
   ): Either[Error, List[ReturnSummary]] = {
-    val chargeReferenceToFinancialData =
+    val chargeReferenceToFinancialData                   =
       financialData.map(t => t.chargeReference -> t).toMap
 
     val returnSummaries: List[Validation[ReturnSummary]] =
@@ -67,7 +67,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     chargeReferenceToFinancialData: Map[String, DesFinancialTransaction]
   ): Validation[ReturnSummary] = {
     val chargesValidation: Validation[List[Charge]] = validateCharges(returnSummary, chargeReferenceToFinancialData)
-    val addressValidation: Validation[UkAddress] = AddressDetails
+    val addressValidation: Validation[UkAddress]    = AddressDetails
       .fromDesAddressDetails(returnSummary.propertyAddress)(List.empty, Map.empty)
       .andThen {
         case a: UkAddress    => Valid(a)
@@ -82,11 +82,11 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
           c.chargeType === ChargeType.UkResidentReturn || c.chargeType === ChargeType.NonUkResidentReturn
         ) match {
           case mainReturnCharge :: Nil => Valid(mainReturnCharge.amount)
-          case Nil =>
+          case Nil                     =>
             invalid(
               s"Could not find charge with main return type. Found charge types ${charges.map(_.chargeType).toString}"
             )
-          case _ => invalid(s"Found more than one charge with a main return type")
+          case _                       => invalid(s"Found more than one charge with a main return type")
         }
     }
 
@@ -121,7 +121,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     val charges: List[Validation[Charge]] =
       uniqueCharges(returnSummary)
         .map { returnSummaryCharge =>
-          val chargeTypeValidation: Validation[ChargeType] =
+          val chargeTypeValidation: Validation[ChargeType]                                  =
             ChargeType.fromString(returnSummaryCharge.chargeDescription).toValidatedNel
           val financialDataValidation: Validation[(DesFinancialTransaction, List[Payment])] =
             Either
@@ -157,10 +157,10 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
             .fromString(paymentMethod)
             .map(method => Some(Payment(AmountInPence.fromPounds(paymentAmount), method, clearingDate)))
 
-        case DesFinancialTransactionItem(None, None, None) =>
+        case DesFinancialTransactionItem(None, None, None)                                             =>
           Right(None)
 
-        case other =>
+        case other                                                                                     =>
           Left(
             s"Could not find all required fields for a payment: (paymentAmount = ${other.paymentAmount}, " +
               s"paymentMethod = ${other.paymentMethod}, clearingDate = ${other.clearingDate}  "

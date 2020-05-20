@@ -100,10 +100,10 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   def fakeRequestWithJsonBody(body: JsValue): WrappedRequest[JsValue] =
     request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
-  val controller = new UpscanController(
-    authenticate  = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
+  val controller                                                      = new UpscanController(
+    authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     upscanService = mockUpscanService,
-    cc            = Helpers.stubControllerComponents()
+    cc = Helpers.stubControllerComponents()
   )
 
   val uploadReference = sample[UploadReference]
@@ -392,9 +392,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       "return NO CONTENT if the payload contains a valid status" in {
         val uploadReference = UploadReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
         val upscanUpload    = sample[UpscanUpload].copy(uploadReference = uploadReference)
-        val upscanSuccess = sample[UpscanSuccess].copy(
-          reference   = "reference",
-          fileStatus  = "READY",
+        val upscanSuccess   = sample[UpscanSuccess].copy(
+          reference = "reference",
+          fileStatus = "READY",
           downloadUrl = "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
           uploadDetails = Map(
             ("uploadTimestamp", "2018-04-24T09:30:00Z"),

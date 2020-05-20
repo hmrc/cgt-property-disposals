@@ -43,9 +43,9 @@ object LossSummaryDetails {
       else None
 
     LossSummaryDetails(
-      inYearLoss      = inYearLosses > AmountInPence.zero,
-      inYearLossUsed  = inYearLossUsed,
-      preYearLoss     = previousYearsLosses > AmountInPence.zero,
+      inYearLoss = inYearLosses > AmountInPence.zero,
+      inYearLossUsed = inYearLossUsed,
+      preYearLoss = previousYearsLosses > AmountInPence.zero,
       preYearLossUsed = preYearLossUsed
     )
   }

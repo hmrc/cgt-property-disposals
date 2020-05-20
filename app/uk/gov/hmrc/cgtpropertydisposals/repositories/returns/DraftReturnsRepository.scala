@@ -58,12 +58,12 @@ trait DraftReturnsRepository {
 }
 
 @Singleton
-class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(
-  implicit val ec: ExecutionContext
+class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(implicit
+  val ec: ExecutionContext
 ) extends ReactiveRepository[DraftReturnWithCgtReference, BSONObjectID](
       collectionName = "draft-returns",
-      mongo          = component.mongoConnector.db,
-      domainFormat   = DraftReturnWithCgtReference.format
+      mongo = component.mongoConnector.db,
+      domainFormat = DraftReturnWithCgtReference.format
     )
     with DraftReturnsRepository
     with CacheRepository[DraftReturnWithCgtReference] {

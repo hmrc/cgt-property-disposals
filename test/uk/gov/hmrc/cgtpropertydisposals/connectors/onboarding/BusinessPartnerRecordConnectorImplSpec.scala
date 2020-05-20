@@ -133,7 +133,9 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
             expectedIndividualBody(false)
           )(None)
 
-          await(connector.getBusinessPartnerRecord(individualBprRequest(Right(NINO("  AA 123 456C")), false)).value).isLeft shouldBe true
+          await(
+            connector.getBusinessPartnerRecord(individualBprRequest(Right(NINO("  AA 123 456C")), false)).value
+          ).isLeft shouldBe true
 
         }
       }
@@ -180,14 +182,16 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
             expectedIndividualBody(false)
           )(None)
 
-          await(connector.getBusinessPartnerRecord(individualBprRequest(Left(SAUTR(" 12 34 5 ")), false)).value).isLeft shouldBe true
+          await(
+            connector.getBusinessPartnerRecord(individualBprRequest(Left(SAUTR(" 12 34 5 ")), false)).value
+          ).isLeft shouldBe true
 
         }
       }
 
       "handling organisations" must {
-        val trn   = TRN("t r n ")
-        val sautr = SAUTR(" sa utr ")
+        val trn                                                              = TRN("t r n ")
+        val sautr                                                            = SAUTR(" sa utr ")
         def bprRequest(id: Either[TRN, SAUTR], nameMatch: Option[TrustName]) =
           TrustBusinessPartnerRecordRequest(id, nameMatch)
 
@@ -218,22 +222,20 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
         "do a post http call and return the result" in {
           for {
-            httpResponse <- List(
-                             HttpResponse(200),
-                             HttpResponse(200, Some(JsString("hi"))),
-                             HttpResponse(500)
-                           )
+            httpResponse        <- List(
+                              HttpResponse(200),
+                              HttpResponse(200, Some(JsString("hi"))),
+                              HttpResponse(500)
+                            )
             idsWithExpectedUrls <- idsWithExpectedUrlsList
-          } {
-            withClue(s"For http response [${httpResponse.toString}] and id ${idsWithExpectedUrls._1}") {
-              mockPost(idsWithExpectedUrls._2, expectedHeaders, expectedBody(None))(
-                Some(httpResponse)
-              )
+          } withClue(s"For http response [${httpResponse.toString}] and id ${idsWithExpectedUrls._1}") {
+            mockPost(idsWithExpectedUrls._2, expectedHeaders, expectedBody(None))(
+              Some(httpResponse)
+            )
 
-              await(connector.getBusinessPartnerRecord(bprRequest(idsWithExpectedUrls._1, None)).value) shouldBe Right(
-                httpResponse
-              )
-            }
+            await(connector.getBusinessPartnerRecord(bprRequest(idsWithExpectedUrls._1, None)).value) shouldBe Right(
+              httpResponse
+            )
           }
         }
 

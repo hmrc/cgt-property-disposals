@@ -47,104 +47,110 @@ class SubscriptionController @Inject() (
   taxEnrolmentService: TaxEnrolmentService,
   registerWithoutIdService: RegisterWithoutIdService,
   cc: ControllerComponents
-)(
-  implicit ec: ExecutionContext
+)(implicit
+  ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
-  def subscribe(): Action[AnyContent] = authenticate.async { implicit request =>
-    val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
-      for {
-        subscriptionDetails <- EitherT.fromEither[Future](extractRequest[SubscriptionDetails](request))
-        subscriptionResponse <- subscribeAndEnrol(subscriptionDetails)
-                                 .leftMap[SubscriptionError](BackendError)
-      } yield subscriptionResponse
+  def subscribe(): Action[AnyContent] =
+    authenticate.async { implicit request =>
+      val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
+        for {
+          subscriptionDetails  <- EitherT.fromEither[Future](extractRequest[SubscriptionDetails](request))
+          subscriptionResponse <- subscribeAndEnrol(subscriptionDetails)
+                                    .leftMap[SubscriptionError](BackendError)
+        } yield subscriptionResponse
 
-    result.fold(
-      {
-        case RequestValidationError(msg) =>
-          logger.warn(s"Error in request to subscribe: $msg")
-          BadRequest
-        case BackendError(e) =>
-          logger.warn("Error while trying to subscribe:", e)
-          InternalServerError
-      }, {
-        case successful: SubscriptionSuccessful => Ok(Json.toJson(successful))
-        case AlreadySubscribed                  => Conflict
-      }
-    )
-  }
-
-  def registerWithoutId(): Action[AnyContent] = authenticate.async { implicit request =>
-    val result = for {
-      registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))
-      sapNumber <- registerWithoutIdService
-                    .registerWithoutId(registrationDetails)
-                    .leftMap[SubscriptionError](BackendError)
-    } yield sapNumber
-
-    result.fold(
-      {
-        case RequestValidationError(msg) =>
-          logger.warn(s"Error in request to register without id: $msg")
-          BadRequest
-        case BackendError(e) =>
-          logger.warn("Error while trying to register without id:", e)
-          InternalServerError
-      },
-      sapNumber => Ok(Json.toJson(RegisteredWithoutId(sapNumber)))
-    )
-  }
-
-  def checkSubscriptionStatus(): Action[AnyContent] = authenticate.async { implicit request =>
-    taxEnrolmentService.hasCgtSubscription(request.user.ggCredId).value.map {
-      case Left(error) =>
-        logger.warn(s"Error checking existence of enrolment request: $error")
-        InternalServerError
-      case Right(maybeEnrolmentRequest) =>
-        maybeEnrolmentRequest match {
-          case Some(enrolmentRequest) => Ok(Json.obj("value" -> JsString(enrolmentRequest.cgtReference)))
-          case None                   => NoContent
+      result.fold(
+        {
+          case RequestValidationError(msg) =>
+            logger.warn(s"Error in request to subscribe: $msg")
+            BadRequest
+          case BackendError(e)             =>
+            logger.warn("Error while trying to subscribe:", e)
+            InternalServerError
+        },
+        {
+          case successful: SubscriptionSuccessful => Ok(Json.toJson(successful))
+          case AlreadySubscribed                  => Conflict
         }
+      )
     }
-  }
 
-  def getSubscription(cgtReference: CgtReference): Action[AnyContent] = authenticate.async { implicit request =>
-    subscriptionService.getSubscription(cgtReference).value.map {
-      case Left(error) =>
-        logger.warn(s"Error getting subscription details: $error")
-        InternalServerError
-      case Right(maybeSubscribedDetails) =>
-        Ok(Json.toJson(GetSubscriptionResponse(maybeSubscribedDetails)))
+  def registerWithoutId(): Action[AnyContent] =
+    authenticate.async { implicit request =>
+      val result = for {
+        registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))
+        sapNumber           <- registerWithoutIdService
+                       .registerWithoutId(registrationDetails)
+                       .leftMap[SubscriptionError](BackendError)
+      } yield sapNumber
+
+      result.fold(
+        {
+          case RequestValidationError(msg) =>
+            logger.warn(s"Error in request to register without id: $msg")
+            BadRequest
+          case BackendError(e)             =>
+            logger.warn("Error while trying to register without id:", e)
+            InternalServerError
+        },
+        sapNumber => Ok(Json.toJson(RegisteredWithoutId(sapNumber)))
+      )
     }
-  }
 
-  def updateSubscription: Action[AnyContent] = authenticate.async { implicit request =>
-    val result: EitherT[Future, SubscriptionError, SubscriptionUpdateResponse] =
-      for {
-        subscribedUpdateDetails <- EitherT.fromEither[Future](extractRequest[SubscribedUpdateDetails](request))
-        subscriptionResponse <- subscriptionService
-                                 .updateSubscription(subscribedUpdateDetails)
-                                 .leftMap[SubscriptionError](BackendError)
-        _ <- taxEnrolmentService
-              .updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
-              .leftMap[SubscriptionError](BackendError)
-      } yield subscriptionResponse
-
-    result.fold(
-      {
-        case RequestValidationError(msg) =>
-          logger.warn(s"Error in request to update subscription: $msg")
-          BadRequest
-        case BackendError(e) =>
-          logger.warn("Error while trying to update subscription:", e)
+  def checkSubscriptionStatus(): Action[AnyContent] =
+    authenticate.async { implicit request =>
+      taxEnrolmentService.hasCgtSubscription(request.user.ggCredId).value.map {
+        case Left(error)                  =>
+          logger.warn(s"Error checking existence of enrolment request: $error")
           InternalServerError
-      },
-      subscriptionUpdateResponse => Ok(Json.toJson(subscriptionUpdateResponse))
-    )
-  }
+        case Right(maybeEnrolmentRequest) =>
+          maybeEnrolmentRequest match {
+            case Some(enrolmentRequest) => Ok(Json.obj("value" -> JsString(enrolmentRequest.cgtReference)))
+            case None                   => NoContent
+          }
+      }
+    }
 
-  private def extractRequest[R: Reads](request: Request[AnyContent]): Either[SubscriptionError, R] =
+  def getSubscription(cgtReference: CgtReference): Action[AnyContent] =
+    authenticate.async { implicit request =>
+      subscriptionService.getSubscription(cgtReference).value.map {
+        case Left(error)                   =>
+          logger.warn(s"Error getting subscription details: $error")
+          InternalServerError
+        case Right(maybeSubscribedDetails) =>
+          Ok(Json.toJson(GetSubscriptionResponse(maybeSubscribedDetails)))
+      }
+    }
+
+  def updateSubscription: Action[AnyContent] =
+    authenticate.async { implicit request =>
+      val result: EitherT[Future, SubscriptionError, SubscriptionUpdateResponse] =
+        for {
+          subscribedUpdateDetails <- EitherT.fromEither[Future](extractRequest[SubscribedUpdateDetails](request))
+          subscriptionResponse    <- subscriptionService
+                                    .updateSubscription(subscribedUpdateDetails)
+                                    .leftMap[SubscriptionError](BackendError)
+          _                       <- taxEnrolmentService
+                 .updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
+                 .leftMap[SubscriptionError](BackendError)
+        } yield subscriptionResponse
+
+      result.fold(
+        {
+          case RequestValidationError(msg) =>
+            logger.warn(s"Error in request to update subscription: $msg")
+            BadRequest
+          case BackendError(e)             =>
+            logger.warn("Error while trying to update subscription:", e)
+            InternalServerError
+        },
+        subscriptionUpdateResponse => Ok(Json.toJson(subscriptionUpdateResponse))
+      )
+    }
+
+  private def extractRequest[R : Reads](request: Request[AnyContent]): Either[SubscriptionError, R] =
     Either
       .fromOption(request.body.asJson, RequestValidationError("No JSON body found in request"))
       .flatMap(
@@ -161,20 +167,20 @@ class SubscriptionController @Inject() (
   )(implicit request: AuthenticatedRequest[_]): EitherT[Future, Error, SubscriptionResponse] =
     for {
       subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails)
-      _ <- subscriptionResponse match {
-            case SubscriptionSuccessful(cgtReferenceNumber) =>
-              taxEnrolmentService
-                .allocateEnrolmentToGroup(
-                  TaxEnrolmentRequest(
-                    request.user.ggCredId,
-                    cgtReferenceNumber,
-                    subscriptionDetails.address,
-                    timestamp = request.timestamp
-                  )
-                )
+      _                    <- subscriptionResponse match {
+             case SubscriptionSuccessful(cgtReferenceNumber) =>
+               taxEnrolmentService
+                 .allocateEnrolmentToGroup(
+                   TaxEnrolmentRequest(
+                     request.user.ggCredId,
+                     cgtReferenceNumber,
+                     subscriptionDetails.address,
+                     timestamp = request.timestamp
+                   )
+                 )
 
-            case AlreadySubscribed => EitherT.pure[Future, Error](())
-          }
+             case AlreadySubscribed                          => EitherT.pure[Future, Error](())
+           }
     } yield subscriptionResponse
 }
 

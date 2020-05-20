@@ -224,9 +224,9 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       "handle successful submits" when {
 
         "there is a positive charge" in {
-          val formBundleId    = "804123737752"
-          val chargeReference = "XCRG9448959757"
-          val responseJsonBody =
+          val formBundleId           = "804123737752"
+          val chargeReference        = "XCRG9448959757"
+          val responseJsonBody       =
             Json.parse(s"""
               |{
               |"processingDate":"2020-02-20T09:30:47Z",
@@ -240,7 +240,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |  }
               |}
               |""".stripMargin)
-          val submitReturnResponse = SubmitReturnResponse(
+          val submitReturnResponse   = SubmitReturnResponse(
             "804123737752",
             LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             Some(
@@ -285,7 +285,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "there is a negative charge" in {
-          val formBundleId = "804123737752"
+          val formBundleId     = "804123737752"
           val responseJsonBody =
             Json.parse(s"""
               |{
@@ -301,7 +301,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |}
               |""".stripMargin)
 
-          val submitReturnResponse = SubmitReturnResponse(
+          val submitReturnResponse   = SubmitReturnResponse(
             formBundleId,
             LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             None
@@ -339,8 +339,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "there is a no charge data" in {
-          val formBundleId   = "804123737752"
-          val processingDate = LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47))
+          val formBundleId     = "804123737752"
+          val processingDate   = LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47))
           val responseJsonBody =
             Json.parse(s"""
               |{
@@ -386,8 +386,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "there is a zero charge" in {
-          val formBundleId   = "804123737752"
-          val processingDate = LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47))
+          val formBundleId     = "804123737752"
+          val processingDate   = LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47))
           val responseJsonBody =
             Json.parse(s"""
               |{
@@ -435,9 +435,9 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "there is a positive charge and email call returns 500 and the EmailSent event won't be sent" in {
-          val formBundleId    = "804123737752"
-          val chargeReference = "XCRG9448959757"
-          val responseJsonBody =
+          val formBundleId           = "804123737752"
+          val chargeReference        = "XCRG9448959757"
+          val responseJsonBody       =
             Json.parse(s"""
                           |{
                           |"processingDate":"2020-02-20T09:30:47Z",
@@ -451,7 +451,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                           |  }
                           |}
                           |""".stripMargin)
-          val submitReturnResponse = SubmitReturnResponse(
+          val submitReturnResponse   = SubmitReturnResponse(
             "804123737752",
             LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             Some(
@@ -1140,7 +1140,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
            |}
            |""".stripMargin
       )
-      val desReturnDetails = desResponseBodyString
+      val desReturnDetails      = desResponseBodyString
         .validate[DesReturnDetails]
         .getOrElse(sys.error("Could not parse json as DesReturnDetails"))
 

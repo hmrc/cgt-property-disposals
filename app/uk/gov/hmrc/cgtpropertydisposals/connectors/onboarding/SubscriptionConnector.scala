@@ -34,16 +34,16 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[SubscriptionConnectorImpl])
 trait SubscriptionConnector {
 
-  def subscribe(subscriptionDetails: DesSubscriptionRequest)(
-    implicit hc: HeaderCarrier
+  def subscribe(subscriptionDetails: DesSubscriptionRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
-  def getSubscription(cgtReference: CgtReference)(
-    implicit hc: HeaderCarrier
+  def getSubscription(cgtReference: CgtReference)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
-  def updateSubscription(subscribedDetails: DesSubscriptionUpdateRequest, cgtReference: CgtReference)(
-    implicit hc: HeaderCarrier
+  def updateSubscription(subscribedDetails: DesSubscriptionUpdateRequest, cgtReference: CgtReference)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
   def getSubscriptionStatus(sapNumber: SapNumber)(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse]
@@ -79,8 +79,8 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
         .recover { case e => Left(Error(e)) }
     )
 
-  override def getSubscription(cgtReference: CgtReference)(
-    implicit hc: HeaderCarrier
+  override def getSubscription(cgtReference: CgtReference)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
@@ -114,8 +114,8 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
         }
     )
 
-  override def getSubscriptionStatus(sapNumber: SapNumber)(
-    implicit hc: HeaderCarrier
+  override def getSubscriptionStatus(sapNumber: SapNumber)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http

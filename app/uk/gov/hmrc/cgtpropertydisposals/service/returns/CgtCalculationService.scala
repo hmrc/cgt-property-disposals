@@ -63,8 +63,8 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       disposalDetails.disposalPrice -- disposalDetails.disposalFees
 
     val acquisitionPrice: AmountInPence = acquisitionDetails.rebasedAcquisitionPrice match {
-      case Some(r) if (acquisitionDetails.shouldUseRebase) => r
-      case _                                               => acquisitionDetails.acquisitionPrice
+      case Some(r) if acquisitionDetails.shouldUseRebase => r
+      case _                                             => acquisitionDetails.acquisitionPrice
     }
 
     val acquisitionAmountPlusCosts: AmountInPence =
@@ -78,7 +78,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
           amount = a,
           source = Source.UserSupplied
         )
-      case _ =>
+      case _                      =>
         AmountInPenceWithSource(
           amount = disposalAmountLessCosts -- acquisitionAmountPlusCosts,
           source = Source.Calculated
@@ -101,8 +101,10 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
 
     val totalLosses: AmountInPence = {
       val previousYearsLosses =
-        if (gainOrLossAfterReliefs < AmountInPence.zero ||
-            (gainOrLossAfterReliefs -- exemptionAndLosses.inYearLosses) < AmountInPence.zero)
+        if (
+          gainOrLossAfterReliefs < AmountInPence.zero ||
+          (gainOrLossAfterReliefs -- exemptionAndLosses.inYearLosses) < AmountInPence.zero
+        )
           AmountInPence.zero
         else
           exemptionAndLosses.previousYearsLosses
@@ -135,25 +137,25 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         AmountInPence.zero
       )
     else {
-      val taxYear = triageAnswers.disposalDate.taxYear
+      val taxYear                        = triageAnswers.disposalDate.taxYear
       val (lowerBandRate, higherTaxRate) =
         triageAnswers.assetType match {
           case AssetType.Residential => taxYear.cgtRateLowerBandResidential    -> taxYear.cgtRateHigherBandResidential
           case _                     => taxYear.cgtRateLowerBandNonResidential -> taxYear.cgtRateHigherBandNonResidential
         }
-      val taxableIncome = (estimatedIncome -- personalAllowance).withFloorZero
-      val lowerBandTax = if (isATrust) {
-        TaxableAmountOfMoney(lowerBandRate, AmountInPence(0L))
-      } else {
-        TaxableAmountOfMoney(
-          lowerBandRate,
-          AmountInPence.zero.max(
-            taxableGain.min(
-              (taxYear.incomeTaxHigherRateThreshold -- taxableIncome).withFloorZero
+      val taxableIncome                  = (estimatedIncome -- personalAllowance).withFloorZero
+      val lowerBandTax                   =
+        if (isATrust)
+          TaxableAmountOfMoney(lowerBandRate, AmountInPence(0L))
+        else
+          TaxableAmountOfMoney(
+            lowerBandRate,
+            AmountInPence.zero.max(
+              taxableGain.min(
+                (taxYear.incomeTaxHigherRateThreshold -- taxableIncome).withFloorZero
+              )
             )
           )
-        )
-      }
 
       val higherBandTax = TaxableAmountOfMoney(
         higherTaxRate,

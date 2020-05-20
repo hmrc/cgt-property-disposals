@@ -100,9 +100,9 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
   "Dms Submission Service" when {
 
     "a dms file submission request is made" must {
-      val cgtReference = sample[CgtReference]
-      val dmsMetadata  = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "business-area")
-      val upscanSuccess = UpscanSuccess(
+      val cgtReference   = sample[CgtReference]
+      val dmsMetadata    = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "business-area")
+      val upscanSuccess  = UpscanSuccess(
         "reference",
         "status",
         "downloadUrl",

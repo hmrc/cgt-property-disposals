@@ -38,15 +38,15 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[RegisterWithoutIdConnectorImpl])
 trait RegisterWithoutIdConnector {
 
-  def registerWithoutId(registrationDetails: RegistrationDetails, acknowledgementReferenceId: UUID)(
-    implicit hc: HeaderCarrier
+  def registerWithoutId(registrationDetails: RegistrationDetails, acknowledgementReferenceId: UUID)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
 }
 
 @Singleton
-class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: ServicesConfig)(
-  implicit ec: ExecutionContext
+class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: ServicesConfig)(implicit
+  ec: ExecutionContext
 ) extends RegisterWithoutIdConnector
     with DesConnector {
   import RegisterWithoutIdConnectorImpl._
@@ -63,7 +63,7 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: Se
       "CGT",
       acknowledgementReferenceId.toString.filterNot(_ === '-'),
       isAnAgent = false,
-      isAGroup  = false,
+      isAGroup = false,
       RegistrationIndividual(registrationDetails.name.firstName, registrationDetails.name.lastName),
       toRegistrationAddress(registrationDetails.address),
       RegistrationContactDetails(registrationDetails.emailAddress.value)
@@ -81,14 +81,15 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: Se
     )
   }
 
-  private def toRegistrationAddress(address: Address): RegistrationAddress = address match {
-    case ukAddress @ UkAddress(line1, line2, town, county, postcode) =>
-      RegistrationAddress(line1, line2, town, county, Some(postcode.value), ukAddress.countryCode)
+  private def toRegistrationAddress(address: Address): RegistrationAddress =
+    address match {
+      case ukAddress @ UkAddress(line1, line2, town, county, postcode) =>
+        RegistrationAddress(line1, line2, town, county, Some(postcode.value), ukAddress.countryCode)
 
-    case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
-      RegistrationAddress(line1, line2, line3, line4, postcode.map(_.value), country.code)
+      case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
+        RegistrationAddress(line1, line2, line3, line4, postcode.map(_.value), country.code)
 
-  }
+    }
 
 }
 

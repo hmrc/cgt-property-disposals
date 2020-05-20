@@ -63,51 +63,51 @@ object DisposalDetails {
     improvements: Boolean
   ) extends DisposalDetails
 
-  def apply(c: CompleteReturn): DisposalDetails = c match {
-    case s: CompleteSingleDisposalReturn =>
-      val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
-        s.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
-          if (f < AmountInPence.zero) {
-            None -> Some(-f.inPounds())
-          } else {
-            Some(f.inPounds()) -> None
+  def apply(c: CompleteReturn): DisposalDetails =
+    c match {
+      case s: CompleteSingleDisposalReturn    =>
+        val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
+          s.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
+            if (f < AmountInPence.zero)
+              None               -> Some(-f.inPounds())
+            else
+              Some(f.inPounds()) -> None
           }
-        }
 
-      SingleDisposalDetails(
-        disposalDate     = s.triageAnswers.disposalDate.value,
-        addressDetails   = Address.toAddressDetails(s.propertyAddress),
-        assetType        = DesAssetTypeValue(s),
-        acquisitionType  = DesAcquisitionType(s.acquisitionDetails.acquisitionMethod),
-        landRegistry     = false,
-        acquisitionPrice = s.acquisitionDetails.acquisitionPrice.inPounds(),
-        rebased          = s.acquisitionDetails.shouldUseRebase,
-        rebasedAmount    = s.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds()),
-        disposalPrice    = s.disposalDetails.disposalPrice.inPounds(),
-        improvements     = s.acquisitionDetails.improvementCosts > AmountInPence.zero,
-        improvementCosts = improvementCosts(s),
-        percentOwned     = s.disposalDetails.shareOfProperty.percentageValue,
-        acquiredDate     = s.acquisitionDetails.acquisitionDate.value,
-        disposalType     = DesDisposalType(s.triageAnswers.disposalMethod),
-        acquisitionFees  = s.acquisitionDetails.acquisitionFees.inPounds(),
-        disposalFees     = s.disposalDetails.disposalFees.inPounds(),
-        initialGain      = initialGainOrLoss._1,
-        initialLoss      = initialGainOrLoss._2
-      )
+        SingleDisposalDetails(
+          disposalDate = s.triageAnswers.disposalDate.value,
+          addressDetails = Address.toAddressDetails(s.propertyAddress),
+          assetType = DesAssetTypeValue(s),
+          acquisitionType = DesAcquisitionType(s.acquisitionDetails.acquisitionMethod),
+          landRegistry = false,
+          acquisitionPrice = s.acquisitionDetails.acquisitionPrice.inPounds(),
+          rebased = s.acquisitionDetails.shouldUseRebase,
+          rebasedAmount = s.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds()),
+          disposalPrice = s.disposalDetails.disposalPrice.inPounds(),
+          improvements = s.acquisitionDetails.improvementCosts > AmountInPence.zero,
+          improvementCosts = improvementCosts(s),
+          percentOwned = s.disposalDetails.shareOfProperty.percentageValue,
+          acquiredDate = s.acquisitionDetails.acquisitionDate.value,
+          disposalType = DesDisposalType(s.triageAnswers.disposalMethod),
+          acquisitionFees = s.acquisitionDetails.acquisitionFees.inPounds(),
+          disposalFees = s.disposalDetails.disposalFees.inPounds(),
+          initialGain = initialGainOrLoss._1,
+          initialLoss = initialGainOrLoss._2
+        )
 
-    case m: CompleteMultipleDisposalsReturn =>
-      MultipleDisposalDetails(
-        disposalDate     = m.examplePropertyDetailsAnswers.disposalDate.value,
-        addressDetails   = Address.toAddressDetails(m.examplePropertyDetailsAnswers.address),
-        assetType        = DesAssetTypeValue(m),
-        acquisitionType  = DesAcquisitionType.Other("not captured for multiple disposals"),
-        landRegistry     = false,
-        acquisitionPrice = m.examplePropertyDetailsAnswers.acquisitionPrice.inPounds(),
-        disposalPrice    = m.examplePropertyDetailsAnswers.disposalPrice.inPounds(),
-        rebased          = false,
-        improvements     = false
-      )
-  }
+      case m: CompleteMultipleDisposalsReturn =>
+        MultipleDisposalDetails(
+          disposalDate = m.examplePropertyDetailsAnswers.disposalDate.value,
+          addressDetails = Address.toAddressDetails(m.examplePropertyDetailsAnswers.address),
+          assetType = DesAssetTypeValue(m),
+          acquisitionType = DesAcquisitionType.Other("not captured for multiple disposals"),
+          landRegistry = false,
+          acquisitionPrice = m.examplePropertyDetailsAnswers.acquisitionPrice.inPounds(),
+          disposalPrice = m.examplePropertyDetailsAnswers.disposalPrice.inPounds(),
+          rebased = false,
+          improvements = false
+        )
+    }
 
   private def improvementCosts(c: CompleteSingleDisposalReturn): Option[BigDecimal] =
     if (c.acquisitionDetails.improvementCosts > AmountInPence.zero)
@@ -116,13 +116,13 @@ object DisposalDetails {
 
   implicit val singleDisposalDetailsFormat: OFormat[SingleDisposalDetails]      = Json.format
   implicit val multipleDisposalsDetailsFormat: OFormat[MultipleDisposalDetails] = Json.format
-  implicit val disposalDetailsFormat: OFormat[DisposalDetails] = OFormat(
-    { json: JsValue => singleDisposalDetailsFormat.reads(json).orElse(multipleDisposalsDetailsFormat.reads(json)) }, {
-      d: DisposalDetails =>
-        d match {
-          case s: SingleDisposalDetails   => singleDisposalDetailsFormat.writes(s)
-          case m: MultipleDisposalDetails => multipleDisposalsDetailsFormat.writes(m)
-        }
+  implicit val disposalDetailsFormat: OFormat[DisposalDetails]                  = OFormat(
+    { json: JsValue => singleDisposalDetailsFormat.reads(json).orElse(multipleDisposalsDetailsFormat.reads(json)) },
+    { d: DisposalDetails =>
+      d match {
+        case s: SingleDisposalDetails   => singleDisposalDetailsFormat.writes(s)
+        case m: MultipleDisposalDetails => multipleDisposalsDetailsFormat.writes(m)
+      }
     }
   )
 

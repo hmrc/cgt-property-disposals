@@ -48,8 +48,8 @@ trait CacheRepository[A] {
   val objName: String
 
   private lazy val cacheTtlIndex = Index(
-    key     = Seq("lastUpdated" → IndexType.Ascending),
-    name    = Some(cacheTtlIndexName),
+    key = Seq("lastUpdated" → IndexType.Ascending),
+    name = Some(cacheTtlIndexName),
     options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
   )
 
@@ -65,7 +65,7 @@ trait CacheRepository[A] {
       withCurrentTime { time =>
         val lastUpdated: DateTime = overrideLastUpdatedTime.map(toJodaDateTime).getOrElse(time)
         val selector              = Json.obj("_id" -> id)
-        val modifier = Json.obj(
+        val modifier              = Json.obj(
           "$set" -> Json
             .obj(
               objName       -> Json.toJson(value),
@@ -77,11 +77,10 @@ trait CacheRepository[A] {
           .update(false)
           .one(selector, modifier, upsert = true)
           .map { writeResult =>
-            if (writeResult.ok) {
+            if (writeResult.ok)
               Right(())
-            } else {
+            else
               Left(Error(s"Could not store draft return: ${writeResult.errmsg.getOrElse("-")}"))
-            }
           }
           .recover {
             case NonFatal(e) => Left(Error(e))

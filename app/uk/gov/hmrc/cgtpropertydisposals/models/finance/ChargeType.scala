@@ -35,19 +35,20 @@ object ChargeType {
   final case object TwelveMonthLatePaymentPenalty extends ChargeType
   final case object PenaltyInterest extends ChargeType
 
-  def fromString(s: String): Either[String, ChargeType] = s match {
-    case "CGT PPD Return UK Resident"     => Right(UkResidentReturn)
-    case "CGT PPD Return Non UK Resident" => Right(NonUkResidentReturn)
-    case "CGT PPD Interest"               => Right(Interest)
-    case "CGT PPD Late Filing Penalty"    => Right(LateFilingPenalty)
-    case "CGT PPD 6 Mth LFP"              => Right(SixMonthLateFilingPenalty)
-    case "CGT PPD 12 Mth LFP"             => Right(TwelveMonthLateFilingPenalty)
-    case "CGT PPD Late Payment Penalty"   => Right(LatePaymentPenalty)
-    case "CGT PPD 6 Mth LPP"              => Right(SixMonthLatePaymentPenalty)
-    case "CGT PPD 12 Mth LPP"             => Right(TwelveMonthLatePaymentPenalty)
-    case "CGT PPD Penalty Interest"       => Right(PenaltyInterest)
-    case other                            => Left(s"Could not parse charge type: $other")
-  }
+  def fromString(s: String): Either[String, ChargeType] =
+    s match {
+      case "CGT PPD Return UK Resident"     => Right(UkResidentReturn)
+      case "CGT PPD Return Non UK Resident" => Right(NonUkResidentReturn)
+      case "CGT PPD Interest"               => Right(Interest)
+      case "CGT PPD Late Filing Penalty"    => Right(LateFilingPenalty)
+      case "CGT PPD 6 Mth LFP"              => Right(SixMonthLateFilingPenalty)
+      case "CGT PPD 12 Mth LFP"             => Right(TwelveMonthLateFilingPenalty)
+      case "CGT PPD Late Payment Penalty"   => Right(LatePaymentPenalty)
+      case "CGT PPD 6 Mth LPP"              => Right(SixMonthLatePaymentPenalty)
+      case "CGT PPD 12 Mth LPP"             => Right(TwelveMonthLatePaymentPenalty)
+      case "CGT PPD Penalty Interest"       => Right(PenaltyInterest)
+      case other                            => Left(s"Could not parse charge type: $other")
+    }
 
   implicit val eq: Eq[ChargeType] = Eq.fromUniversalEquals
 

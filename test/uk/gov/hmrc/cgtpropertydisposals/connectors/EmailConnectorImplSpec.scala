@@ -117,7 +117,9 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
             expectedRequestBody
           )(None)
 
-          await(connector.sendSubscriptionConfirmationEmail(subscriptionDetails, cgtReference).value).isLeft shouldBe true
+          await(
+            connector.sendSubscriptionConfirmationEmail(subscriptionDetails, cgtReference).value
+          ).isLeft shouldBe true
         }
       }
     }
@@ -127,7 +129,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
       val submissionId         = "submissionId"
       val submitReturnResponse = sample[SubmitReturnResponse].copy(formBundleId = submissionId)
       val subscribedDetails    = sample[SubscribedDetails]
-      val expectedRequestBody = Json.parse(
+      val expectedRequestBody  = Json.parse(
         s"""{
            |  "to": ["${subscribedDetails.emailAddress.value}"],
            |  "templateId": "$returnSubmittedTemplateId",
@@ -154,7 +156,9 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
               expectedRequestBody
             )(Some(httpResponse))
 
-            await(connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value) shouldBe Right(
+            await(
+              connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value
+            ) shouldBe Right(
               httpResponse
             )
           }
@@ -170,7 +174,9 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
             expectedRequestBody
           )(None)
 
-          await(connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value).isLeft shouldBe true
+          await(
+            connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value
+          ).isLeft shouldBe true
         }
       }
     }

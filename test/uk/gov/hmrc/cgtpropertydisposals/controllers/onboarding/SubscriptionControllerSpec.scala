@@ -496,7 +496,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             Some(TaxEnrolmentRequest("ggCredId", "cgt-reference", UkAddress("line1", None, None, None, Postcode(""))))
           )
         )
-        val result = controller.checkSubscriptionStatus()(request)
+        val result  = controller.checkSubscriptionStatus()(request)
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.obj("value" -> JsString("cgt-reference"))
       }
@@ -510,7 +510,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Right(None))
-        val result = controller.checkSubscriptionStatus()(request)
+        val result  = controller.checkSubscriptionStatus()(request)
         status(result) shouldBe NO_CONTENT
       }
 
@@ -523,7 +523,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(JsString("hi"))
           )
         mockCheckCgtEnrolmentExists(Fake.user.ggCredId)(Left(Error("Some back end error")))
-        val result = controller.checkSubscriptionStatus()(request)
+        val result  = controller.checkSubscriptionStatus()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
@@ -539,7 +539,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       val subscriptionDetails            = sample[SubscriptionDetails]
       val subscriptionDetailsJson        = Json.toJson(subscriptionDetails)
       val subscriptionSuccessfulResponse = sample[SubscriptionSuccessful]
-      val taxEnrolmentRequest = TaxEnrolmentRequest(
+      val taxEnrolmentRequest            = TaxEnrolmentRequest(
         Fake.user.ggCredId,
         subscriptionSuccessfulResponse.cgtReferenceNumber,
         subscriptionDetails.address,

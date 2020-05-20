@@ -39,7 +39,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
         disposalDetails: DisposalDetails
       )(value: SingleDisposalDetails => A): Either[String, A] =
         disposalDetails match {
-          case s: SingleDisposalDetails => Right(value(s))
+          case s: SingleDisposalDetails   => Right(value(s))
           case m: MultipleDisposalDetails =>
             Left(s"Expected single disposal details but got multiple disposal details: $m")
         }
@@ -156,7 +156,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
           val result             = DisposalDetails(completeReturn)
           val acquisitionDetails = completeReturn.acquisitionDetails
 
-          singleDisposalDetailsValue(result)(_.rebased) shouldBe Right(acquisitionDetails.shouldUseRebase)
+          singleDisposalDetailsValue(result)(_.rebased)       shouldBe Right(acquisitionDetails.shouldUseRebase)
           singleDisposalDetailsValue(result)(_.rebasedAmount) shouldBe Right(
             acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds())
           )
@@ -229,7 +229,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
       )(value: MultipleDisposalDetails => A): Either[String, A] =
         disposalDetails match {
           case s: MultipleDisposalDetails => Right(value(s))
-          case m: SingleDisposalDetails =>
+          case m: SingleDisposalDetails   =>
             Left(s"Expected multiple disposals details but got single disposal details: $m")
         }
 

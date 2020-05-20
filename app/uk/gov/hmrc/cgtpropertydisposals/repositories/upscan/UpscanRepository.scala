@@ -54,11 +54,11 @@ trait UpscanRepository {
 }
 
 @Singleton
-class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: Configuration)(
-  implicit val ec: ExecutionContext
+class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: Configuration)(implicit
+  val ec: ExecutionContext
 ) extends ReactiveRepository[UpscanUpload, BSONObjectID](
       collectionName = "upscan",
-      mongo          = mongo.mongoConnector.db,
+      mongo = mongo.mongoConnector.db,
       UpscanUpload.format,
       ReactiveMongoFormats.objectIdFormats
     )

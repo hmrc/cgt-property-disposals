@@ -79,13 +79,13 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
     val validSingleDisposalDetails = sample[SingleDisposalDetails].copy(
       addressDetails = Address.toAddressDetails(ukAddress),
-      disposalType   = DesDisposalType.Sold,
-      assetType      = DesAssetTypeValue("res")
+      disposalType = DesDisposalType.Sold,
+      assetType = DesAssetTypeValue("res")
     )
 
     val validMultipleDisposalDetails = sample[MultipleDisposalDetails].copy(
       addressDetails = Address.toAddressDetails(ukAddress),
-      assetType      = DesAssetTypeValue("res shares")
+      assetType = DesAssetTypeValue("res shares")
     )
 
     "passed details of a single disposal" must {
@@ -94,17 +94,18 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
       val validSingleDisposalDesReturnDetails = sample[DesReturnDetails].copy(
         disposalDetails = List(validSingleDisposalDetails),
-        returnDetails   = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual),
-        reliefDetails   = Some(validReliefDetails)
+        returnDetails = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual),
+        reliefDetails = Some(validReliefDetails)
       )
 
       def completeSingleDisposalReturnValue[A](
         result: Either[Error, CompleteReturn]
-      )(value: CompleteSingleDisposalReturn => A): Either[String, A] = result match {
-        case Left(e)                                   => Left(s"Expected CompleteSingleDisposalReturn but got $e")
-        case Right(m: CompleteMultipleDisposalsReturn) => Left(s"Expected CompleteSingleDisposalReturn but got $m")
-        case Right(s: CompleteSingleDisposalReturn)    => Right(value(s))
-      }
+      )(value: CompleteSingleDisposalReturn => A): Either[String, A] =
+        result match {
+          case Left(e)                                   => Left(s"Expected CompleteSingleDisposalReturn but got $e")
+          case Right(m: CompleteMultipleDisposalsReturn) => Left(s"Expected CompleteSingleDisposalReturn but got $m")
+          case Right(s: CompleteSingleDisposalReturn)    => Right(value(s))
+        }
 
       def mockGetTaxYearAndCalculatedTaxDue(): Unit =
         inSequence {
@@ -136,7 +137,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         "the country of residence for a non-uk resident cannot be found" in {
           val desReturn = validSingleDisposalDesReturnDetails.copy(
             returnDetails = sample[ReturnDetails].copy(
-              isUKResident     = false,
+              isUKResident = false,
               countryResidence = None
             )
           )
@@ -149,7 +150,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         "the country of residence for a non-uk resident is not recognised" in {
           val desReturn = validSingleDisposalDesReturnDetails.copy(
             returnDetails = sample[ReturnDetails].copy(
-              isUKResident     = false,
+              isUKResident = false,
               countryResidence = Some("????")
             )
           )
@@ -163,7 +164,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           val desReturn = validSingleDisposalDesReturnDetails.copy(
             reliefDetails = Some(
               sample[ReliefDetails].copy(
-                otherRelief       = Some("name"),
+                otherRelief = Some("name"),
                 otherReliefAmount = None
               )
             )
@@ -178,7 +179,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           val desReturn = validSingleDisposalDesReturnDetails.copy(
             reliefDetails = Some(
               sample[ReliefDetails].copy(
-                otherRelief       = None,
+                otherRelief = None,
                 otherReliefAmount = Some(BigDecimal(1))
               )
             )
@@ -288,7 +289,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           val result = transformer.toCompleteReturn(
             validSingleDisposalDesReturnDetails.copy(
               returnDetails = sample[ReturnDetails].copy(
-                isUKResident     = false,
+                isUKResident = false,
                 countryResidence = Some("HK")
               )
             )
@@ -652,7 +653,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validSingleDisposalDesReturnDetails.copy(
               reliefDetails = Some(
                 validReliefDetails.copy(
-                  otherRelief       = None,
+                  otherRelief = None,
                   otherReliefAmount = None
                 )
               )
@@ -669,7 +670,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validSingleDisposalDesReturnDetails.copy(
               reliefDetails = Some(
                 validReliefDetails.copy(
-                  otherRelief       = Some("none"),
+                  otherRelief = Some("none"),
                   otherReliefAmount = Some(BigDecimal(0))
                 )
               )
@@ -688,7 +689,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validSingleDisposalDesReturnDetails.copy(
               reliefDetails = Some(
                 validReliefDetails.copy(
-                  otherRelief       = Some("abc"),
+                  otherRelief = Some("abc"),
                   otherReliefAmount = Some(BigDecimal("12.34"))
                 )
               )
@@ -801,7 +802,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.estimatedIncome)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.map(_.estimatedIncome)
+            ) shouldBe Right(
               Right(AmountInPence(12345L))
             )
           }
@@ -817,7 +820,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.estimatedIncome)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.map(_.estimatedIncome)
+            ) shouldBe Right(
               Right(AmountInPence.zero)
             )
           }
@@ -833,7 +838,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.personalAllowance)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.map(_.personalAllowance)
+            ) shouldBe Right(
               Right(Some(AmountInPence(12345L)))
             )
           }
@@ -849,7 +856,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.personalAllowance)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.map(_.personalAllowance)
+            ) shouldBe Right(
               Right(None)
             )
           }
@@ -865,7 +874,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.hasEstimatedDetails)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.map(_.hasEstimatedDetails)
+            ) shouldBe Right(
               Right(true)
             )
           }
@@ -875,7 +886,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
             val result = transformer.toCompleteReturn(validSingleDisposalDesReturnDetails)
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.map(_.calculatedTaxDue)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.map(_.calculatedTaxDue)
+            ) shouldBe Right(
               Right(calculatedTaxDue)
             )
           }
@@ -911,13 +924,15 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             val result = transformer.toCompleteReturn(
               returnDetailsWithOtherReliefs.copy(
                 returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
-                  totalNetLoss     = Some(BigDecimal("1")),
+                  totalNetLoss = Some(BigDecimal("1")),
                   totalTaxableGain = BigDecimal("0")
                 )
               )
             )
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)
+            ) shouldBe Right(
               Left(AmountInPence(-100L))
             )
           }
@@ -928,13 +943,15 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             val result = transformer.toCompleteReturn(
               returnDetailsWithOtherReliefs.copy(
                 returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
-                  totalNetLoss     = None,
+                  totalNetLoss = None,
                   totalTaxableGain = BigDecimal("2")
                 )
               )
             )
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.leftMap(_.taxableGainOrLoss)
+            ) shouldBe Right(
               Left(AmountInPence(200L))
             )
           }
@@ -950,7 +967,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               )
             )
 
-            completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.hasEstimatedDetails)) shouldBe Right(
+            completeSingleDisposalReturnValue(result)(
+              _.yearToDateLiabilityAnswers.leftMap(_.hasEstimatedDetails)
+            ) shouldBe Right(
               Left(true)
             )
           }
@@ -982,16 +1001,17 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
       val validMultipleDisposalsDesReturnDetails = sample[DesReturnDetails].copy(
         disposalDetails = List(validMultipleDisposalDetails),
-        returnDetails   = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual)
+        returnDetails = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual)
       )
 
       def completeMultipleDisposalsReturnValue[A](
         result: Either[Error, CompleteReturn]
-      )(value: CompleteMultipleDisposalsReturn => A): Either[String, A] = result match {
-        case Left(e)                                   => Left(s"Expected CompleteMultipleDisposalsReturn but got $e")
-        case Right(s: CompleteSingleDisposalReturn)    => Left(s"Expected CompleteMultipleDisposalsReturn but got $s")
-        case Right(m: CompleteMultipleDisposalsReturn) => Right(value(m))
-      }
+      )(value: CompleteMultipleDisposalsReturn => A): Either[String, A] =
+        result match {
+          case Left(e)                                   => Left(s"Expected CompleteMultipleDisposalsReturn but got $e")
+          case Right(s: CompleteSingleDisposalReturn)    => Left(s"Expected CompleteMultipleDisposalsReturn but got $s")
+          case Right(m: CompleteMultipleDisposalsReturn) => Right(value(m))
+        }
 
       def mockGetTaxYearSuccess(): Unit =
         inSequence {
@@ -1021,7 +1041,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         "the country of residence for a non-uk resident cannot be found" in {
           val desReturn = validMultipleDisposalsDesReturnDetails.copy(
             returnDetails = sample[ReturnDetails].copy(
-              isUKResident     = false,
+              isUKResident = false,
               countryResidence = None
             )
           )
@@ -1034,7 +1054,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         "the country of residence for a non-uk resident is not recognised" in {
           val desReturn = validMultipleDisposalsDesReturnDetails.copy(
             returnDetails = sample[ReturnDetails].copy(
-              isUKResident     = false,
+              isUKResident = false,
               countryResidence = Some("????")
             )
           )
@@ -1148,7 +1168,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           val result = transformer.toCompleteReturn(
             validMultipleDisposalsDesReturnDetails.copy(
               returnDetails = sample[ReturnDetails].copy(
-                isUKResident     = false,
+                isUKResident = false,
                 countryResidence = Some("HK")
               )
             )
@@ -1348,7 +1368,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           val result = transformer.toCompleteReturn(
             validMultipleDisposalsDesReturnDetails.copy(
               returnDetails = validMultipleDisposalsDesReturnDetails.returnDetails.copy(
-                totalNetLoss     = Some(BigDecimal("1")),
+                totalNetLoss = Some(BigDecimal("1")),
                 totalTaxableGain = BigDecimal("0")
               )
             )
@@ -1365,7 +1385,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           val result = transformer.toCompleteReturn(
             validMultipleDisposalsDesReturnDetails.copy(
               returnDetails = validMultipleDisposalsDesReturnDetails.returnDetails.copy(
-                totalNetLoss     = None,
+                totalNetLoss = None,
                 totalTaxableGain = BigDecimal("2")
               )
             )

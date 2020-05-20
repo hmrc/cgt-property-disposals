@@ -43,16 +43,14 @@ object Country {
     val source = Source.fromInputStream(getClass.getResourceAsStream("/resources/countries.json"))
     try {
       val jsonString = source.getLines().toList.mkString("")
-      val countries =
+      val countries  =
         Json
           .parse(jsonString)
           .validate[List[InternalCountry]]
           .fold(e => sys.error(s"could not parse countries.json file: $e"), identity)
 
       countries.map(c => c.code -> c.name).toMap
-    } finally {
-      source.close()
-    }
+    } finally source.close()
   }
 
   implicit class CountryOps(private val c: Country) extends AnyVal {

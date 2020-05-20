@@ -36,25 +36,26 @@ class BusinessPartnerRecordController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def getBusinessPartnerRecord(): Action[JsValue] = authenticate(parse.json).async { implicit request =>
-    request.body
-      .validate[BusinessPartnerRecordRequest]
-      .fold(
-        jsError => {
-          logger.error(s"Bad JSON payload ${jsError.toString}")
-          Future.successful(BadRequest)
-        },
-        bprRequest =>
-          bprService
-            .getBusinessPartnerRecord(bprRequest)
-            .value
-            .map {
-              case Left(e) =>
-                logger.warn(s"Failed to get BPR for id ${bprRequest.foldOnId(_.toString, _.toString, _.toString)}", e)
-                InternalServerError
-              case Right(bpr) =>
-                Ok(Json.toJson(bpr))
-            }
-      )
-  }
+  def getBusinessPartnerRecord(): Action[JsValue] =
+    authenticate(parse.json).async { implicit request =>
+      request.body
+        .validate[BusinessPartnerRecordRequest]
+        .fold(
+          jsError => {
+            logger.error(s"Bad JSON payload ${jsError.toString}")
+            Future.successful(BadRequest)
+          },
+          bprRequest =>
+            bprService
+              .getBusinessPartnerRecord(bprRequest)
+              .value
+              .map {
+                case Left(e)    =>
+                  logger.warn(s"Failed to get BPR for id ${bprRequest.foldOnId(_.toString, _.toString, _.toString)}", e)
+                  InternalServerError
+                case Right(bpr) =>
+                  Ok(Json.toJson(bpr))
+              }
+        )
+    }
 }

@@ -31,20 +31,21 @@ import scala.concurrent.ExecutionContext
 class TestOnlyController @Inject() (
   draftReturnsService: DraftReturnsService,
   cc: ControllerComponents
-)(
-  implicit ec: ExecutionContext
+)(implicit
+  ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
-  def deleteDraftReturn(cgtReference: String): Action[AnyContent] = Action.async { _ =>
-    draftReturnsService
-      .deleteDraftReturn(CgtReference(cgtReference))
-      .fold(
-        { e =>
-          logger.warn(s"Could not delete draft return with cgtReference $cgtReference", e)
-          InternalServerError
-        },
-        _ => Ok
-      )
-  }
+  def deleteDraftReturn(cgtReference: String): Action[AnyContent] =
+    Action.async { _ =>
+      draftReturnsService
+        .deleteDraftReturn(CgtReference(cgtReference))
+        .fold(
+          { e =>
+            logger.warn(s"Could not delete draft return with cgtReference $cgtReference", e)
+            InternalServerError
+          },
+          _ => Ok
+        )
+    }
 }

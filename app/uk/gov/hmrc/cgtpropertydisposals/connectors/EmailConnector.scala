@@ -34,15 +34,15 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[EmailConnectorImpl])
 trait EmailConnector {
 
-  def sendSubscriptionConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(
-    implicit hc: HeaderCarrier
+  def sendSubscriptionConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
   def sendReturnSubmitConfirmationEmail(
     submitReturnResponse: SubmitReturnResponse,
     subscribedDetails: SubscribedDetails
-  )(
-    implicit hc: HeaderCarrier
+  )(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 }
 
@@ -50,8 +50,8 @@ trait EmailConnector {
 class EmailConnectorImpl @Inject() (
   http: HttpClient,
   servicesConfig: ServicesConfig
-)(
-  implicit ec: ExecutionContext
+)(implicit
+  ec: ExecutionContext
 ) extends EmailConnector {
 
   val sendEmailUrl: String = s"${servicesConfig.baseUrl("email")}/hmrc/email"
@@ -88,8 +88,8 @@ class EmailConnectorImpl @Inject() (
   override def sendReturnSubmitConfirmationEmail(
     submitReturnResponse: SubmitReturnResponse,
     subscribedDetails: SubscribedDetails
-  )(
-    implicit hc: HeaderCarrier
+  )(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http

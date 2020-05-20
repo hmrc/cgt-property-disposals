@@ -48,8 +48,8 @@ trait DmsSubmissionService {
     formBundleId: String,
     cgtReference: CgtReference,
     completeReturn: CompleteReturn
-  )(
-    implicit hc: HeaderCarrier
+  )(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId]
 
 }
@@ -63,7 +63,7 @@ class DefaultDmsSubmissionService @Inject() (
     extends DmsSubmissionService
     with Logging {
 
-  def getDmsMetaConfig[A: Configs](key: String): A =
+  def getDmsMetaConfig[A : Configs](key: String): A =
     configuration.underlying
       .get[A](s"dms.$key")
       .value
@@ -79,24 +79,24 @@ class DefaultDmsSubmissionService @Inject() (
     formBundleId: String,
     cgtReference: CgtReference,
     completeReturn: CompleteReturn
-  )(
-    implicit hc: HeaderCarrier
+  )(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, EnvelopeId] =
     for {
       attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
-      envId <- gFormConnector.submitToDms(
-                DmsSubmissionPayload(
-                  html,
-                  fileAttachments,
-                  DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
-                )
-              )
+      envId           <- gFormConnector.submitToDms(
+                 DmsSubmissionPayload(
+                   html,
+                   fileAttachments,
+                   DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
+                 )
+               )
     } yield envId
 
   private def getUpscanSuccesses(completeReturn: CompleteReturn): List[UpscanSuccess] = {
     val mandatoryEvidence = completeReturn match {
-      case s: CompleteSingleDisposalReturn =>
+      case s: CompleteSingleDisposalReturn    =>
         s.yearToDateLiabilityAnswers.fold(n => Some(n.mandatoryEvidence), _.mandatoryEvidence)
 
       case m: CompleteMultipleDisposalsReturn =>

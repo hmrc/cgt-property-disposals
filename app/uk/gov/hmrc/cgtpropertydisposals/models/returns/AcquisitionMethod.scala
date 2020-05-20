@@ -32,12 +32,13 @@ object AcquisitionMethod {
 
   final case class Other(value: String) extends AcquisitionMethod
 
-  def apply(desAcquisitionType: DesAcquisitionType): AcquisitionMethod = desAcquisitionType match {
-    case DesAcquisitionType.Bought       => Bought
-    case DesAcquisitionType.Inherited    => Inherited
-    case DesAcquisitionType.Gifted       => Gifted
-    case DesAcquisitionType.Other(value) => Other(value)
-  }
+  def apply(desAcquisitionType: DesAcquisitionType): AcquisitionMethod =
+    desAcquisitionType match {
+      case DesAcquisitionType.Bought       => Bought
+      case DesAcquisitionType.Inherited    => Inherited
+      case DesAcquisitionType.Gifted       => Gifted
+      case DesAcquisitionType.Other(value) => Other(value)
+    }
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[AcquisitionMethod] = derived.oformat()
