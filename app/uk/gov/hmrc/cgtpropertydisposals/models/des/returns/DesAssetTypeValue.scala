@@ -26,7 +26,7 @@ final case class DesAssetTypeValue(value: String)
 object DesAssetTypeValue {
 
   def apply(c: CompleteReturn): DesAssetTypeValue = {
-    val assetTypes = c.fold(_.triageAnswers.assetTypes, s => List(s.triageAnswers.assetType)).distinct
+    val assetTypes       = c.fold(_.triageAnswers.assetTypes, s => List(s.triageAnswers.assetType)).distinct
     val assetTypeStrings = assetTypes.map { a =>
       a match {
         case AssetType.Residential      => "res"
@@ -42,7 +42,7 @@ object DesAssetTypeValue {
   implicit class DesAssetTypeValueOps(private val a: DesAssetTypeValue) extends AnyVal {
 
     def toAssetTypes(): Either[String, List[AssetType]] = {
-      val result = a.value.split(' ').toList.map {
+      val result                 = a.value.split(' ').toList.map {
         case "res"    => Right(AssetType.Residential)
         case "nonres" => Right(AssetType.NonResidential)
         case "mix"    => Right(AssetType.MixedUse)

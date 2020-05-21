@@ -38,7 +38,8 @@ object CustomerType {
         case JsString(other)        => JsError(s"Could not parse customer type: $other")
         case other                  => JsError(s"Expected string for customer type but got $other")
       }
-    }, { customerType: CustomerType =>
+    },
+    { customerType: CustomerType =>
       customerType match {
         case Trust      => JsString("trust")
         case Individual => JsString("individual")

@@ -35,9 +35,10 @@ object SubmissionType {
         case other             => JsError(s"Expected type string for submission type but found $other")
       }
 
-    override def writes(o: SubmissionType): JsValue = o match {
-      case New   => JsString("New")
-      case Amend => JsString("Amend")
-    }
+    override def writes(o: SubmissionType): JsValue =
+      o match {
+        case New   => JsString("New")
+        case Amend => JsString("Amend")
+      }
   }
 }

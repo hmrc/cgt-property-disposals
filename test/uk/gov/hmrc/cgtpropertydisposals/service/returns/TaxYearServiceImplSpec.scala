@@ -26,14 +26,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 
 class TaxYearServiceImplSpec extends WordSpec with Matchers {
 
-  val taxYear = {
+  val taxYear =
     sample[TaxYear].copy(
       startDateInclusive = LocalDate.of(2020, 4, 6),
-      endDateExclusive   = LocalDate.of(2021, 4, 6)
+      endDateExclusive = LocalDate.of(2021, 4, 6)
     )
-  }
 
-  val config = Configuration(
+  val config  = Configuration(
     ConfigFactory.parseString(
       s"""
         | tax-years = [

@@ -70,7 +70,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
 
     "handling request to subscribe for individuals" must {
 
-      val expectedUrl = "http://host:123/registration/02.00.00/individual"
+      val expectedUrl         = "http://host:123/registration/02.00.00/individual"
       val registrationDetails = RegistrationDetails(
         IndividualName("name", "surname"),
         Email("email"),
@@ -82,7 +82,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
           Postcode("postcode")
         )
       )
-      val referenceId: UUID = UUID.randomUUID()
+      val referenceId: UUID   = UUID.randomUUID()
 
       val expectedRequest = Json.parse(
         s"""

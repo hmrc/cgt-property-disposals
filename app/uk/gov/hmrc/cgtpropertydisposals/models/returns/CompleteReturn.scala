@@ -67,10 +67,11 @@ object CompleteReturn {
     def fold[A](
       ifMultiple: CompleteMultipleDisposalsReturn => A,
       ifSingle: CompleteSingleDisposalReturn => A
-    ): A = c match {
-      case m: CompleteMultipleDisposalsReturn => ifMultiple(m)
-      case s: CompleteSingleDisposalReturn    => ifSingle(s)
-    }
+    ): A =
+      c match {
+        case m: CompleteMultipleDisposalsReturn => ifMultiple(m)
+        case s: CompleteSingleDisposalReturn    => ifSingle(s)
+      }
 
   }
 

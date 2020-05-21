@@ -208,7 +208,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             "GB",
             Some("postcode")
           )
-        val jsonBody =
+        val jsonBody       =
           s"""
             |{
             | "regime": "CGT",

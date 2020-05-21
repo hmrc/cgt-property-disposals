@@ -43,8 +43,8 @@ import scala.util.Try
 @ImplementedBy(classOf[RegisterWithoutIdServiceImpl])
 trait RegisterWithoutIdService {
 
-  def registerWithoutId(registrationDetails: RegistrationDetails)(
-    implicit hc: HeaderCarrier,
+  def registerWithoutId(registrationDetails: RegistrationDetails)(implicit
+    hc: HeaderCarrier,
     request: Request[_]
   ): EitherT[Future, Error, SapNumber]
 
@@ -60,8 +60,8 @@ class RegisterWithoutIdServiceImpl @Inject() (
     extends RegisterWithoutIdService
     with Logging {
 
-  def registerWithoutId(registrationDetails: RegistrationDetails)(
-    implicit hc: HeaderCarrier,
+  def registerWithoutId(registrationDetails: RegistrationDetails)(implicit
+    hc: HeaderCarrier,
     request: Request[_]
   ): EitherT[Future, Error, SapNumber] = {
     val referenceId = uuidGenerator.nextId()
@@ -74,21 +74,22 @@ class RegisterWithoutIdServiceImpl @Inject() (
         response.body
       )
 
-      if (response.status === OK) {
+      if (response.status === OK)
         response
           .parseJSON[RegisterWithoutIdResponse]()
           .bimap(
             { e =>
               metrics.registerWithIdErrorCounter.inc()
               Error(e)
-            }, { response =>
+            },
+            { response =>
               logger.info(
                 s"For acknowledgement reference id $referenceId, register with id was successful with sap number ${response.sapNumber}"
               )
               SapNumber(response.sapNumber)
             }
           )
-      } else {
+      else {
         metrics.registerWithIdErrorCounter.inc()
         Left(Error(s"call to register with id with reference id $referenceId came back with status ${response.status}"))
       }

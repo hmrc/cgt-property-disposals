@@ -44,8 +44,8 @@ trait S3Connector {
 class S3ConnectorImpl @Inject() (
   playHttpClient: PlayHttpClient,
   config: ServicesConfig
-)(
-  implicit executionContext: ExecutionContext,
+)(implicit
+  executionContext: ExecutionContext,
   system: ActorSystem
 ) extends S3Connector
     with Logging
@@ -65,7 +65,7 @@ class S3ConnectorImpl @Inject() (
           .get(upscanSuccess.downloadUrl, headers, timeout)
           .flatMap { response =>
             response.status match {
-              case status if is4xx(status) | is5xx(status) => {
+              case status if is4xx(status) | is5xx(status) =>
                 logger.warn(
                   s"could not download file from s3 : ${response.toString}" +
                     s"download url : ${upscanSuccess.downloadUrl}" +
@@ -73,8 +73,7 @@ class S3ConnectorImpl @Inject() (
                     s"http body: ${response.body}"
                 )
                 Future.successful(Left(Error("could not download file from s3")))
-              }
-              case _ =>
+              case _                                       =>
                 response.bodyAsSource.limit(maxFileDownloadSize * limitScaleFactor).runWith(Sink.seq).map { bytes =>
                   Right(
                     FileAttachment(
@@ -90,7 +89,7 @@ class S3ConnectorImpl @Inject() (
           .recover {
             case NonFatal(e) => Left(Error(e))
           }
-      case _ =>
+      case _                                =>
         logger.warn(s"could not find file name nor mime type : $upscanSuccess")
         Future.successful(Left(Error("missing file descriptors")))
     }

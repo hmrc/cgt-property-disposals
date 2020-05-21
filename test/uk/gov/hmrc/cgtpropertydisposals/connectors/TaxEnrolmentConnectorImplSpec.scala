@@ -57,14 +57,14 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
 
   val connector = new TaxEnrolmentConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
-  val cgtReference = CgtReference("XACGTP123456789")
-  val ukTaxEnrolment =
+  val cgtReference       = CgtReference("XACGTP123456789")
+  val ukTaxEnrolment     =
     TaxEnrolmentRequest(
       "user-id",
       cgtReference.value,
       Address.UkAddress("line1", None, None, None, Postcode("OK113KO"))
     )
-  val nonUKTaxEnrolment = TaxEnrolmentRequest(
+  val nonUKTaxEnrolment  = TaxEnrolmentRequest(
     "user-id",
     cgtReference.value,
     Address.NonUkAddress("line1", None, None, None, None, Country("NZ", Some("New Zealand")))

@@ -57,7 +57,7 @@ class UpscanRepositorySpec extends WordSpec with Matchers with MongoSupport {
 
         val newUpscanUpload = sample[UpscanUpload].copy(
           uploadReference = UploadReference(s"${upscanUpload.uploadReference}-2"),
-          uploadedOn      = LocalDateTime.now(Clock.systemUTC())
+          uploadedOn = LocalDateTime.now(Clock.systemUTC())
         )
 
         await(

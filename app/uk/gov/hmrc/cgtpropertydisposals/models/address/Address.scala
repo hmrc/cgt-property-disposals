@@ -52,7 +52,7 @@ object Address {
 
   def toAddressDetails(address: Address): AddressDetails =
     address match {
-      case u @ UkAddress(line1, line2, town, county, postcode) =>
+      case u @ UkAddress(line1, line2, town, county, postcode)         =>
         AddressDetails(line1, line2, town, county, Some(postcode.value.trim().toUpperCase()), u.countryCode)
       case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
         AddressDetails(line1, line2, line3, line4, postcode.map(_.value.trim().toUpperCase()), country.code)

@@ -72,10 +72,10 @@ object Generators
     with MoneyGen
     with DesReturnsGen {
 
-  def sample[A: ClassTag](implicit gen: Gen[A]): A =
+  def sample[A : ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
 
-  def sampleOptional[A: ClassTag](implicit gen: Gen[A]): Option[A] =
+  def sampleOptional[A : ClassTag](implicit gen: Gen[A]): Option[A] =
     Gen
       .option(gen)
       .sample

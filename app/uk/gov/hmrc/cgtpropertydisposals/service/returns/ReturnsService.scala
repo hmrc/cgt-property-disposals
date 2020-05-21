@@ -60,17 +60,17 @@ import scala.util.Try
 @ImplementedBy(classOf[DefaultReturnsService])
 trait ReturnsService {
 
-  def submitReturn(returnRequest: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
-    implicit hc: HeaderCarrier,
+  def submitReturn(returnRequest: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(implicit
+    hc: HeaderCarrier,
     request: Request[_]
   ): EitherT[Future, Error, SubmitReturnResponse]
 
-  def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
-    implicit hc: HeaderCarrier
+  def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]]
 
-  def displayReturn(cgtReference: CgtReference, submissionId: String)(
-    implicit hc: HeaderCarrier
+  def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, CompleteReturn]
 
 }
@@ -101,14 +101,14 @@ class DefaultReturnsService @Inject() (
     for {
       _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)
       returnHttpResponse <- submitReturnAndAudit(returnRequest, desSubmitReturnRequest)
-      desResponse <- EitherT.fromEither[Future](
-                      returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
-                    )
-      returnResponse <- prepareSubmitReturnResponse(desResponse)
-      _ <- sendEmailAndAudit(returnRequest, returnResponse).leftFlatMap { e =>
-            logger.warn("Could not send return submission confirmation email or audit event", e)
-            EitherT.pure[Future, Error](())
-          }
+      desResponse        <- EitherT.fromEither[Future](
+                       returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
+                     )
+      returnResponse     <- prepareSubmitReturnResponse(desResponse)
+      _                  <- sendEmailAndAudit(returnRequest, returnResponse).leftFlatMap { e =>
+             logger.warn("Could not send return submission confirmation email or audit event", e)
+             EitherT.pure[Future, Error](())
+           }
     } yield returnResponse
   }
 
@@ -206,19 +206,19 @@ class DefaultReturnsService @Inject() (
       )
       .map(_ => submitReturnResponse)
 
-  def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
-    implicit hc: HeaderCarrier
+  def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]] = {
     lazy val desFinancialData = {
       val timer = metrics.financialDataTimer.time()
       financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
 
-        if (response.status === OK) {
+        if (response.status === OK)
           response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
-        } else if (isNoFinancialDataResponse(response)) {
+        else if (isNoFinancialDataResponse(response))
           Right(DesFinancialDataResponse(List.empty))
-        } else {
+        else {
           metrics.financialDataErrorCounter.inc()
           Left(Error(s"call to get financial data came back with unexpected status ${response.status}"))
         }
@@ -229,11 +229,11 @@ class DefaultReturnsService @Inject() (
       val timer = metrics.listReturnsTimer.time()
       returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
-        if (response.status === OK) {
+        if (response.status === OK)
           response.parseJSON[DesListReturnsResponse]().leftMap(Error(_))
-        } else if (isNoReturnsResponse(response)) {
+        else if (isNoReturnsResponse(response))
           Right(DesListReturnsResponse(List.empty))
-        } else {
+        else {
           metrics.listReturnsErrorCounter.inc()
           Left(Error(s"call to list returns came back with unexpected status ${response.status}"))
         }
@@ -241,16 +241,16 @@ class DefaultReturnsService @Inject() (
     }
 
     for {
-      desReturnList <- desReturnList
+      desReturnList    <- desReturnList
       desFinancialData <- if (desReturnList.returnList.nonEmpty) desFinancialData
-                         else EitherT.pure(DesFinancialDataResponse(List.empty))
-      returnSummaries <- EitherT.fromEither(
-                          if (desReturnList.returnList.nonEmpty)
-                            returnSummaryListTransformerService
-                              .toReturnSummaryList(desReturnList.returnList, desFinancialData.financialTransactions)
-                          else
-                            Right(List.empty)
-                        )
+                          else EitherT.pure(DesFinancialDataResponse(List.empty))
+      returnSummaries  <- EitherT.fromEither(
+                           if (desReturnList.returnList.nonEmpty)
+                             returnSummaryListTransformerService
+                               .toReturnSummaryList(desReturnList.returnList, desFinancialData.financialTransactions)
+                           else
+                             Right(List.empty)
+                         )
     } yield returnSummaries
   }
 
@@ -283,20 +283,20 @@ class DefaultReturnsService @Inject() (
     response.status === NOT_FOUND && hasNoReturnBody
   }
 
-  def displayReturn(cgtReference: CgtReference, submissionId: String)(
-    implicit hc: HeaderCarrier
+  def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, CompleteReturn] = {
     val timer = metrics.displayReturnTimer.time()
     returnsConnector.displayReturn(cgtReference, submissionId).subflatMap { response =>
       timer.close()
-      if (response.status === OK) {
+      if (response.status === OK)
         for {
-          desReturn <- response
-                        .parseJSON[DesReturnDetails]()
-                        .leftMap(Error(_))
+          desReturn      <- response
+                         .parseJSON[DesReturnDetails]()
+                         .leftMap(Error(_))
           completeReturn <- returnTransformerService.toCompleteReturn(desReturn)
         } yield completeReturn
-      } else {
+      else {
         metrics.displayReturnErrorCounter.inc()
         Left(Error(s"call to list returns came back with status ${response.status}"))
       }
@@ -313,8 +313,8 @@ class DefaultReturnsService @Inject() (
         response.processingDate,
         response.ppdReturnResponseDetails.chargeReference
       ) match {
-        case (None, None, _, None)                              => Right(None)
-        case (Some(amount), _, _, _) if amount <= BigDecimal(0) => Right(None)
+        case (None, None, _, None)                                   => Right(None)
+        case (Some(amount), _, _, _) if amount <= BigDecimal(0)      => Right(None)
         case (Some(amount), Some(dueDate), _, Some(chargeReference)) =>
           Right(
             Some(
@@ -325,7 +325,7 @@ class DefaultReturnsService @Inject() (
               )
             )
           )
-        case (amount, dueDate, processingDate, chargeReference) =>
+        case (amount, dueDate, processingDate, chargeReference)      =>
           Left(
             Error(
               s"Found some charge details but not all of them: (amount: $amount, dueDate: $dueDate, processing date: $processingDate, chargeReference: $chargeReference)"
@@ -345,7 +345,7 @@ class DefaultReturnsService @Inject() (
     val responseJson =
       Try(Json.parse(responseBody))
         .getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }"""))
-    val requestJson = Json.toJson(desSubmitReturnRequest)
+    val requestJson  = Json.toJson(desSubmitReturnRequest)
 
     auditService.sendEvent(
       "submitReturnResponse",
@@ -403,6 +403,6 @@ object DefaultReturnsService {
 
   implicit val ppdReturnResponseDetailsFormat: Format[DesSubmitReturnResponseDetails] =
     Json.format[DesSubmitReturnResponseDetails]
-  implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse] = Json.format[DesSubmitReturnResponse]
+  implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse]               = Json.format[DesSubmitReturnResponse]
 
 }

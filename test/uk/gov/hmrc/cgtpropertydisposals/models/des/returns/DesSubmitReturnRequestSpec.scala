@@ -65,7 +65,7 @@ class DesSubmitReturnRequestSpec extends WordSpec {
                 ),
                 _.copy(
                   propertyAddress = sample[UkAddress],
-                  triageAnswers   = sample[CompleteSingleDisposalTriageAnswers]
+                  triageAnswers = sample[CompleteSingleDisposalTriageAnswers]
                 )
               )
           )
@@ -74,7 +74,7 @@ class DesSubmitReturnRequestSpec extends WordSpec {
           _.copy(
             answers = sample[CompleteRepresenteeAnswers].copy(
               contactDetails = sample[RepresenteeContactDetails].copy(
-                address      = sample[UkAddress],
+                address = sample[UkAddress],
                 emailAddress = Email("email@email.com")
               )
             ),

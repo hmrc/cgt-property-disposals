@@ -43,22 +43,23 @@ trait TaxEnrolmentRepository {
 }
 
 @Singleton
-class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(
-  implicit ec: ExecutionContext
+class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(implicit
+  ec: ExecutionContext
 ) extends ReactiveRepository[TaxEnrolmentRequest, BSONObjectID](
       collectionName = "tax-enrolment-requests",
-      mongo          = mongo.mongoConnector.db,
+      mongo = mongo.mongoConnector.db,
       TaxEnrolmentRequest.format,
       ReactiveMongoFormats.objectIdFormats
     )
     with TaxEnrolmentRepository {
 
-  override def indexes: Seq[Index] = Seq(
-    Index(
-      key  = Seq("ggCredId" → IndexType.Ascending),
-      name = Some("ggCredIdIndex")
+  override def indexes: Seq[Index] =
+    Seq(
+      Index(
+        key = Seq("ggCredId" → IndexType.Ascending),
+        name = Some("ggCredIdIndex")
+      )
     )
-  )
 
   override def save(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](

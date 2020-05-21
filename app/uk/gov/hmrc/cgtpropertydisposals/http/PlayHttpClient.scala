@@ -28,8 +28,8 @@ import scala.concurrent.duration.Duration
 trait PlayHttpClient {
 
   def get(url: String, headers: Seq[(String, String)], timeout: Duration): Future[ws.WSResponse]
-  def post[A](url: String, headers: Seq[(String, String)], body: A)(
-    implicit bodyWritable: BodyWritable[A]
+  def post[A](url: String, headers: Seq[(String, String)], body: A)(implicit
+    bodyWritable: BodyWritable[A]
   ): Future[ws.WSResponse]
 
 }
@@ -44,8 +44,8 @@ class PlayHttpClientImpl @Inject() (wsClient: WSClient) extends PlayHttpClient {
       .withRequestTimeout(timeout)
       .stream()
 
-  override def post[A](url: String, headers: Seq[(String, String)], body: A)(
-    implicit bodyWritable: BodyWritable[A]
+  override def post[A](url: String, headers: Seq[(String, String)], body: A)(implicit
+    bodyWritable: BodyWritable[A]
   ): Future[ws.WSResponse] =
     wsClient
       .url(url)

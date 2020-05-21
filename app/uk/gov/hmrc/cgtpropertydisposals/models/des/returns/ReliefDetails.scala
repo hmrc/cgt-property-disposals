@@ -34,12 +34,12 @@ object ReliefDetails {
 
   def apply(cr: CompleteSingleDisposalReturn): ReliefDetails =
     ReliefDetails(
-      reliefs            = reliefs(cr),
-      privateResRelief   = privateResRelief(cr),
-      lettingsReflief    = lettingsRelief(cr),
+      reliefs = reliefs(cr),
+      privateResRelief = privateResRelief(cr),
+      lettingsReflief = lettingsRelief(cr),
       giftHoldOverRelief = None,
-      otherRelief        = cr.reliefDetails.otherReliefs.map(_.fold(r => r.name, () => "none")),
-      otherReliefAmount  = cr.reliefDetails.otherReliefs.map(_.fold(r => r.amount.inPounds(), () => 0))
+      otherRelief = cr.reliefDetails.otherReliefs.map(_.fold(r => r.name, () => "none")),
+      otherReliefAmount = cr.reliefDetails.otherReliefs.map(_.fold(r => r.amount.inPounds(), () => 0))
     )
 
   private def reliefs(cr: CompleteSingleDisposalReturn): Boolean =

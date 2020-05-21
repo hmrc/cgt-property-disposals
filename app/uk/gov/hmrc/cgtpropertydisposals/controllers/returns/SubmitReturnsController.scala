@@ -51,39 +51,41 @@ class SubmitReturnsController @Inject() (
   subscriptionService: SubscriptionService,
   registrationService: RegisterWithoutIdService,
   cc: ControllerComponents
-)(
-  implicit ec: ExecutionContext
+)(implicit
+  ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
-  def submitReturn: Action[JsValue] = authenticate(parse.json).async { implicit request =>
-    withJsonBody[SubmitReturnRequest] { returnRequest =>
-      val result =
-        for {
-          sanitisedHtml      <- EitherT.fromEither[Future](sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
-          representeeDetails <- extractRepresenteeAnswersWithValidId(returnRequest)
-          submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
-          envelopeId <- dmsSubmissionService.submitToDms(
-                         sanitisedHtml,
-                         submissionResult.formBundleId,
-                         returnRequest.subscribedDetails.cgtReference,
-                         returnRequest.completeReturn
-                       )
-          _ = logger.info(
-            s"Submitted documents with envelope id ${envelopeId.value} with details ['formBundleId' :${submissionResult.formBundleId}, 'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
-          )
-          _ <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
-        } yield submissionResult
+  def submitReturn: Action[JsValue] =
+    authenticate(parse.json).async { implicit request =>
+      withJsonBody[SubmitReturnRequest] { returnRequest =>
+        val result =
+          for {
+            sanitisedHtml      <- EitherT.fromEither[Future](sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
+            representeeDetails <- extractRepresenteeAnswersWithValidId(returnRequest)
+            submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
+            envelopeId         <- dmsSubmissionService.submitToDms(
+                            sanitisedHtml,
+                            submissionResult.formBundleId,
+                            returnRequest.subscribedDetails.cgtReference,
+                            returnRequest.completeReturn
+                          )
+            _                   =
+              logger.info(
+                s"Submitted documents with envelope id ${envelopeId.value} with details ['formBundleId' :${submissionResult.formBundleId}, 'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
+              )
+            _                  <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
+          } yield submissionResult
 
-      result.fold(
-        { e =>
-          logger.warn("Could not submit return", e)
-          InternalServerError
-        },
-        s => Ok(Json.toJson(s))
-      )
+        result.fold(
+          { e =>
+            logger.warn("Could not submit return", e)
+            InternalServerError
+          },
+          s => Ok(Json.toJson(s))
+        )
+      }
     }
-  }
 
   private def sanitiseHtml(html: B64Html): Either[Error, B64Html] = {
     val decoded   = new String(Base64.getDecoder.decode(html.value))
@@ -94,44 +96,44 @@ class SubmitReturnsController @Inject() (
 
   private def extractRepresenteeAnswersWithValidId(
     submitReturnRequest: SubmitReturnRequest
-  )(
-    implicit request: Request[_]
+  )(implicit
+    request: Request[_]
   ): EitherT[Future, Error, Option[RepresenteeDetails]] =
     submitReturnRequest.completeReturn.fold(_.representeeAnswers, _.representeeAnswers) match {
-      case None => EitherT.pure(None)
+      case None                                => EitherT.pure(None)
       case Some(c: CompleteRepresenteeAnswers) =>
         c.id match {
           case RepresenteeSautr(sautr)         => EitherT.pure(Some(RepresenteeDetails(c, Left(sautr))))
           case RepresenteeNino(nino)           => EitherT.pure(Some(RepresenteeDetails(c, Right(Left(nino)))))
           case RepresenteeCgtReference(cgtRef) => EitherT.pure(Some(RepresenteeDetails(c, Right(Right(cgtRef)))))
-          case NoReferenceId =>
+          case NoReferenceId                   =>
             for {
-              sapNumber <- registrationService.registerWithoutId(
-                            RegistrationDetails(
-                              c.name,
-                              c.contactDetails.emailAddress,
-                              c.contactDetails.address
-                            )
-                          )
+              sapNumber            <- registrationService.registerWithoutId(
+                             RegistrationDetails(
+                               c.name,
+                               c.contactDetails.emailAddress,
+                               c.contactDetails.address
+                             )
+                           )
               subscriptionResponse <- subscriptionService.subscribe(
-                                       SubscriptionDetails(
-                                         Right(c.name),
-                                         c.contactDetails.contactName,
-                                         c.contactDetails.emailAddress,
-                                         c.contactDetails.address,
-                                         sapNumber
-                                       )
-                                     )
-              cgtReference <- subscriptionResponse match {
-                               case SubscriptionResponse.SubscriptionSuccessful(cgtReferenceNumber) =>
-                                 EitherT.pure[Future, Error](cgtReferenceNumber)
-                               case SubscriptionResponse.AlreadySubscribed =>
-                                 EitherT.leftT(
-                                   Error(
-                                     "Got unexpected 'already subscribed' response to subscription after register with id for representee"
-                                   )
-                                 )
-                             }
+                                        SubscriptionDetails(
+                                          Right(c.name),
+                                          c.contactDetails.contactName,
+                                          c.contactDetails.emailAddress,
+                                          c.contactDetails.address,
+                                          sapNumber
+                                        )
+                                      )
+              cgtReference         <- subscriptionResponse match {
+                                case SubscriptionResponse.SubscriptionSuccessful(cgtReferenceNumber) =>
+                                  EitherT.pure[Future, Error](cgtReferenceNumber)
+                                case SubscriptionResponse.AlreadySubscribed                          =>
+                                  EitherT.leftT(
+                                    Error(
+                                      "Got unexpected 'already subscribed' response to subscription after register with id for representee"
+                                    )
+                                  )
+                              }
             } yield {
               logger.info(
                 s"registered and subscribed representee to cgt with SAP number ${sapNumber.value} and cgtReference"

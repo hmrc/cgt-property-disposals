@@ -107,7 +107,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
           "classificationType" -> Seq(dms.dmsMetadata.classificationType),
           "businessArea"       -> Seq(dms.dmsMetadata.businessArea)
         ),
-        files    = Seq.empty,
+        files = Seq.empty,
         badParts = Nil
       )
 
@@ -153,7 +153,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
           "classificationType" -> Seq(dms.dmsMetadata.classificationType),
           "businessArea"       -> Seq(dms.dmsMetadata.businessArea)
         ),
-        files    = Seq.empty,
+        files = Seq.empty,
         badParts = Nil
       )
 

@@ -122,7 +122,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
       }
       "return the sap number if the call comes back with a 200 status and the JSON body can be parsed" in {
         val sapNumber = "number"
-        val jsonBody = Json.parse(
+        val jsonBody  = Json.parse(
           s"""
              |{
              |  "sapNumber" : "$sapNumber"

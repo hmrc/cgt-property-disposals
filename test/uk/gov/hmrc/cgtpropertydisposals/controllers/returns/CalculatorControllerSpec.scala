@@ -78,12 +78,13 @@ class CalculatorControllerSpec extends ControllerSpec {
     stubControllerComponents()
   )
 
-  def request(body: JsValue) = new AuthenticatedRequest(
-    Fake.user,
-    LocalDateTime.now(),
-    HeaderCarrier(),
-    FakeRequest().withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
-  )
+  def request(body: JsValue) =
+    new AuthenticatedRequest(
+      Fake.user,
+      LocalDateTime.now(),
+      HeaderCarrier(),
+      FakeRequest().withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
+    )
 
   "CalculatorController" when {
 

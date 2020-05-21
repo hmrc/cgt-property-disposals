@@ -72,15 +72,15 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
 
         await(repository.save(draftReturn, cgtReference).value)   shouldBe Right(())
         await(repository.save(draftReturn2, cgtReference2).value) shouldBe Right(())
-        await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
+        await(repository.fetch(cgtReference).value).map(_.toSet)  shouldBe Right(
           Set(draftReturn)
         )
         await(repository.fetch(cgtReference2).value).map(_.toSet) shouldBe Right(
           Set(draftReturn2)
         )
 
-        await(repository.delete(cgtReference).value) shouldBe Right(())
-        await(repository.fetch(cgtReference).value)  shouldBe Right(List.empty)
+        await(repository.delete(cgtReference).value)              shouldBe Right(())
+        await(repository.fetch(cgtReference).value)               shouldBe Right(List.empty)
         await(repository.fetch(cgtReference2).value).map(_.toSet) shouldBe Right(
           Set(draftReturn2)
         )
@@ -104,9 +104,9 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
         val draftReturn  = sample[DraftReturn]
         val draftReturn2 = sample[DraftReturn]
 
-        await(repository.save(draftReturn, cgtReference).value)  shouldBe Right(())
-        await(repository.save(draftReturn2, cgtReference).value) shouldBe Right(())
-        await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
+        await(repository.save(draftReturn, cgtReference).value)                  shouldBe Right(())
+        await(repository.save(draftReturn2, cgtReference).value)                 shouldBe Right(())
+        await(repository.fetch(cgtReference).value).map(_.toSet)                 shouldBe Right(
           Set(draftReturn, draftReturn2)
         )
         await(repository.deleteAll(List(draftReturn.id, draftReturn2.id)).value) shouldBe Right(())

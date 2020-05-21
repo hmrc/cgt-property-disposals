@@ -61,8 +61,8 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
   def queryParams(fromDate: LocalDate, toDate: LocalDate): Map[String, String] =
     Map("dateFrom" -> fromDate.toString, "dateTo" -> toDate.toString)
 
-  val cgtReference       = sample[CgtReference]
-  val (fromDate, toDate) = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
+  val cgtReference                                                             = sample[CgtReference]
+  val (fromDate, toDate)                                                       = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
 
   "FinancialDataConnectorImpl" when {
 

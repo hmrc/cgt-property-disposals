@@ -60,10 +60,11 @@ object SupportingEvidenceAnswers {
     def fold[A](
       ifIncomplete: IncompleteSupportingEvidenceAnswers => A,
       ifComplete: CompleteSupportingEvidenceAnswers => A
-    ): A = a match {
-      case i: IncompleteSupportingEvidenceAnswers => ifIncomplete(i)
-      case c: CompleteSupportingEvidenceAnswers   => ifComplete(c)
-    }
+    ): A =
+      a match {
+        case i: IncompleteSupportingEvidenceAnswers => ifIncomplete(i)
+        case c: CompleteSupportingEvidenceAnswers   => ifComplete(c)
+      }
 
   }
 

@@ -68,8 +68,8 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
 
   val controller = new BusinessPartnerRecordController(
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2019, 9, 24, 15, 47, 20)),
-    bprService   = bprService,
-    cc           = Helpers.stubControllerComponents()
+    bprService = bprService,
+    cc = Helpers.stubControllerComponents()
   )
 
   "BusinessPartnerRecordController" when {

@@ -54,7 +54,7 @@ class TaxEnrolmentRepositoryFailureSpec extends WordSpec with Matchers with Mong
         await(repository.delete(taxEnrolmentRequest.ggCredId).value).isLeft shouldBe true
       }
     }
-    "updating on a broken repository" should {
+    "updating on a broken repository"   should {
       val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
       "fail to update" in {
         await(repository.save(taxEnrolmentRequest).value)

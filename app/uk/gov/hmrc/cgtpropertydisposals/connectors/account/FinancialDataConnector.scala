@@ -34,8 +34,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[FinancialDataConnectorImpl])
 trait FinancialDataConnector {
 
-  def getFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
-    implicit hc: HeaderCarrier
+  def getFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
 }

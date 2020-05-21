@@ -39,17 +39,19 @@ class TaxYearController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def taxYear(date: String): Action[AnyContent] = authenticate { _ =>
-    Try(LocalDate.parse(date, DateTimeFormatter.ISO_DATE)).fold(
-      { _ =>
-        logger.warn(s"Could not parse date: $date")
-        BadRequest
-      }, { d =>
-        val maybeTaxYear = taxYearService.getTaxYear(d)
-        Ok(Json.toJson(TaxYearResponse(maybeTaxYear)))
-      }
-    )
-  }
+  def taxYear(date: String): Action[AnyContent] =
+    authenticate { _ =>
+      Try(LocalDate.parse(date, DateTimeFormatter.ISO_DATE)).fold(
+        { _ =>
+          logger.warn(s"Could not parse date: $date")
+          BadRequest
+        },
+        { d =>
+          val maybeTaxYear = taxYearService.getTaxYear(d)
+          Ok(Json.toJson(TaxYearResponse(maybeTaxYear)))
+        }
+      )
+    }
 
 }
 

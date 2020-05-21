@@ -35,9 +35,9 @@ object DesReturnDetails {
     submitReturnRequest: SubmitReturnRequest,
     representeeDetails: Option[RepresenteeDetails]
   ): DesReturnDetails = {
-    val completeReturn = submitReturnRequest.completeReturn
-    val returnDetails  = ReturnDetails(submitReturnRequest)
-    val lossSummaryDetails = LossSummaryDetails(
+    val completeReturn         = submitReturnRequest.completeReturn
+    val returnDetails          = ReturnDetails(submitReturnRequest)
+    val lossSummaryDetails     = LossSummaryDetails(
       completeReturn.fold(_.exemptionAndLossesAnswers, _.exemptionsAndLossesDetails)
     )
     val reliefDetails          = completeReturn.fold(_ => None, s => Some(ReliefDetails(s)))
@@ -45,13 +45,13 @@ object DesReturnDetails {
     val disposalDetails        = DisposalDetails(completeReturn)
 
     DesReturnDetails(
-      returnType               = CreateReturnType(getSource(submitReturnRequest)),
-      returnDetails            = returnDetails,
+      returnType = CreateReturnType(getSource(submitReturnRequest)),
+      returnDetails = returnDetails,
       representedPersonDetails = representeeDetails.map(RepresentedPersonDetails(_)),
-      disposalDetails          = List(disposalDetails),
-      lossSummaryDetails       = lossSummaryDetails,
-      incomeAllowanceDetails   = incomeAllowanceDetails,
-      reliefDetails            = reliefDetails
+      disposalDetails = List(disposalDetails),
+      lossSummaryDetails = lossSummaryDetails,
+      incomeAllowanceDetails = incomeAllowanceDetails,
+      reliefDetails = reliefDetails
     )
   }
 

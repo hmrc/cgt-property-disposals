@@ -35,22 +35,23 @@ class CalculatorController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def calculate: Action[JsValue] = authenticate(parse.json).async { implicit request =>
-    withJsonBody[CalculateCgtTaxDueRequest] { calculationRequest =>
-      val result = calculatorService.calculateTaxDue(
-        calculationRequest.triageAnswers,
-        calculationRequest.disposalDetails,
-        calculationRequest.acquisitionDetails,
-        calculationRequest.reliefDetails,
-        calculationRequest.exemptionAndLosses,
-        calculationRequest.estimatedIncome,
-        calculationRequest.personalAllowance,
-        calculationRequest.initialGainOrLoss,
-        calculationRequest.isATrust
-      )
+  def calculate: Action[JsValue] =
+    authenticate(parse.json).async { implicit request =>
+      withJsonBody[CalculateCgtTaxDueRequest] { calculationRequest =>
+        val result = calculatorService.calculateTaxDue(
+          calculationRequest.triageAnswers,
+          calculationRequest.disposalDetails,
+          calculationRequest.acquisitionDetails,
+          calculationRequest.reliefDetails,
+          calculationRequest.exemptionAndLosses,
+          calculationRequest.estimatedIncome,
+          calculationRequest.personalAllowance,
+          calculationRequest.initialGainOrLoss,
+          calculationRequest.isATrust
+        )
 
-      Future.successful(Ok(Json.toJson(result)))
+        Future.successful(Ok(Json.toJson(result)))
+      }
     }
-  }
 
 }

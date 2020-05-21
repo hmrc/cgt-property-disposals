@@ -32,25 +32,25 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[TaxEnrolmentConnectorImpl])
 trait TaxEnrolmentConnector {
-  def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
-    implicit hc: HeaderCarrier
+  def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
-  def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(
-    implicit hc: HeaderCarrier
+  def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 }
 
 @Singleton
-class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: ServicesConfig)(
-  implicit ec: ExecutionContext
+class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: ServicesConfig)(implicit
+  ec: ExecutionContext
 ) extends TaxEnrolmentConnector
     with Logging {
 
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
 
-  override def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
-    implicit hc: HeaderCarrier
+  override def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
 
     val updateVerifiersUrl: String =
@@ -78,15 +78,15 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
     )
   }
 
-  override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(
-    implicit hc: HeaderCarrier
+  override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
 
     val serviceName: String  = "HMRC-CGT-PD"
     val enrolmentUrl: String = s"$serviceUrl/tax-enrolments/service/$serviceName/enrolment"
 
     val enrolmentRequest = taxEnrolmentRequest.address match {
-      case Address.UkAddress(_, _, _, _, postcode) =>
+      case Address.UkAddress(_, _, _, _, postcode)          =>
         Enrolments(
           List(KeyValuePair("Postcode", Postcode(postcode.value).value)),
           List(KeyValuePair("CGTPDRef", taxEnrolmentRequest.cgtReference))

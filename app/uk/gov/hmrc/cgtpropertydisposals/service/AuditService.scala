@@ -31,8 +31,7 @@ import scala.concurrent.ExecutionContext
 @ImplementedBy(classOf[AuditServiceImpl])
 trait AuditService {
 
-  def sendEvent[A](auditType: String, detail: A, transactionName: String)(
-    implicit
+  def sendEvent[A](auditType: String, detail: A, transactionName: String)(implicit
     hc: HeaderCarrier,
     writes: Writes[A],
     request: Request[_]
@@ -46,18 +45,18 @@ class AuditServiceImpl @Inject() (
     extends AuditService
     with Logging {
 
-  override def sendEvent[A](auditType: String, detail: A, transactionName: String)(
-    implicit hc: HeaderCarrier,
+  override def sendEvent[A](auditType: String, detail: A, transactionName: String)(implicit
+    hc: HeaderCarrier,
     writes: Writes[A],
     request: Request[_]
   ): Unit = {
     val extendedDataEvent = ExtendedDataEvent(
       auditSource = "cgt-property-disposals",
-      auditType   = auditType,
-      detail      = Json.toJson(detail),
-      tags        = hc.toAuditTags(transactionName, request.uri)
+      auditType = auditType,
+      detail = Json.toJson(detail),
+      tags = hc.toAuditTags(transactionName, request.uri)
     )
-    val _ = auditConnector.sendExtendedEvent(extendedDataEvent)
+    val _                 = auditConnector.sendExtendedEvent(extendedDataEvent)
   }
 
 }

@@ -50,7 +50,7 @@ trait ControllerSpec extends WordSpec with Matchers with BeforeAndAfterAll with 
 
   lazy val fakeApplication: Application = buildFakeApplication()
 
-  def instanceOf[A: ClassTag]: A = fakeApplication.injector.instanceOf[A]
+  def instanceOf[A : ClassTag]: A = fakeApplication.injector.instanceOf[A]
 
   abstract override def beforeAll(): Unit = {
     Play.start(fakeApplication)

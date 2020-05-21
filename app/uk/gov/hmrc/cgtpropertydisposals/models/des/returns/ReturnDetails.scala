@@ -46,60 +46,61 @@ final case class ReturnDetails(
 
 object ReturnDetails {
 
-  def apply(submitReturnRequest: SubmitReturnRequest): ReturnDetails = submitReturnRequest.completeReturn match {
-    case s: CompleteSingleDisposalReturn =>
-      val calculatedTaxDue       = s.yearToDateLiabilityAnswers.map(_.calculatedTaxDue).toOption
-      val taxDue                 = s.yearToDateLiabilityAnswers.fold(_.taxDue, _.taxDue).inPounds()
-      val (taxableGain, netLoss) = getTaxableGainOrNetLoss(s)
+  def apply(submitReturnRequest: SubmitReturnRequest): ReturnDetails =
+    submitReturnRequest.completeReturn match {
+      case s: CompleteSingleDisposalReturn    =>
+        val calculatedTaxDue       = s.yearToDateLiabilityAnswers.map(_.calculatedTaxDue).toOption
+        val taxDue                 = s.yearToDateLiabilityAnswers.fold(_.taxDue, _.taxDue).inPounds()
+        val (taxableGain, netLoss) = getTaxableGainOrNetLoss(s)
 
-      ReturnDetails(
-        customerType          = CustomerType(submitReturnRequest.subscribedDetails),
-        completionDate        = s.triageAnswers.completionDate.value,
-        isUKResident          = s.triageAnswers.countryOfResidence.isUk(),
-        countryResidence      = Some(s.triageAnswers.countryOfResidence).filter(!_.isUk()).map(_.code),
-        numberDisposals       = 1,
-        totalTaxableGain      = taxableGain,
-        totalNetLoss          = netLoss,
-        valueAtTaxBandDetails = calculatedTaxDue.flatMap(ValueAtTaxBandDetails(_)),
-        totalLiability        = taxDue,
-        totalYTDLiability     = taxDue,
-        estimate              = s.yearToDateLiabilityAnswers.fold(_.hasEstimatedDetails, _.hasEstimatedDetails),
-        repayment             = false,
-        attachmentUpload      = s.hasAttachments,
-        declaration           = true,
-        adjustedAmount        = None,
-        attachmentID          = None,
-        entrepreneursRelief   = None
-      )
+        ReturnDetails(
+          customerType = CustomerType(submitReturnRequest.subscribedDetails),
+          completionDate = s.triageAnswers.completionDate.value,
+          isUKResident = s.triageAnswers.countryOfResidence.isUk(),
+          countryResidence = Some(s.triageAnswers.countryOfResidence).filter(!_.isUk()).map(_.code),
+          numberDisposals = 1,
+          totalTaxableGain = taxableGain,
+          totalNetLoss = netLoss,
+          valueAtTaxBandDetails = calculatedTaxDue.flatMap(ValueAtTaxBandDetails(_)),
+          totalLiability = taxDue,
+          totalYTDLiability = taxDue,
+          estimate = s.yearToDateLiabilityAnswers.fold(_.hasEstimatedDetails, _.hasEstimatedDetails),
+          repayment = false,
+          attachmentUpload = s.hasAttachments,
+          declaration = true,
+          adjustedAmount = None,
+          attachmentID = None,
+          entrepreneursRelief = None
+        )
 
-    case m: CompleteMultipleDisposalsReturn =>
-      val taxDue                 = m.yearToDateLiabilityAnswers.taxDue.inPounds()
-      val (taxableGain, netLoss) = getTaxableGainOrNetLoss(m)
+      case m: CompleteMultipleDisposalsReturn =>
+        val taxDue                 = m.yearToDateLiabilityAnswers.taxDue.inPounds()
+        val (taxableGain, netLoss) = getTaxableGainOrNetLoss(m)
 
-      ReturnDetails(
-        customerType          = CustomerType(submitReturnRequest.subscribedDetails),
-        completionDate        = m.triageAnswers.completionDate.value,
-        isUKResident          = m.triageAnswers.countryOfResidence.isUk(),
-        countryResidence      = Some(m.triageAnswers.countryOfResidence).filter(!_.isUk()).map(_.code),
-        numberDisposals       = m.triageAnswers.numberOfProperties,
-        totalTaxableGain      = taxableGain,
-        totalNetLoss          = netLoss,
-        valueAtTaxBandDetails = None,
-        totalLiability        = taxDue,
-        totalYTDLiability     = taxDue,
-        estimate              = m.yearToDateLiabilityAnswers.hasEstimatedDetails,
-        repayment             = false,
-        attachmentUpload      = m.hasAttachments,
-        declaration           = true,
-        adjustedAmount        = None,
-        attachmentID          = None,
-        entrepreneursRelief   = None
-      )
-  }
+        ReturnDetails(
+          customerType = CustomerType(submitReturnRequest.subscribedDetails),
+          completionDate = m.triageAnswers.completionDate.value,
+          isUKResident = m.triageAnswers.countryOfResidence.isUk(),
+          countryResidence = Some(m.triageAnswers.countryOfResidence).filter(!_.isUk()).map(_.code),
+          numberDisposals = m.triageAnswers.numberOfProperties,
+          totalTaxableGain = taxableGain,
+          totalNetLoss = netLoss,
+          valueAtTaxBandDetails = None,
+          totalLiability = taxDue,
+          totalYTDLiability = taxDue,
+          estimate = m.yearToDateLiabilityAnswers.hasEstimatedDetails,
+          repayment = false,
+          attachmentUpload = m.hasAttachments,
+          declaration = true,
+          adjustedAmount = None,
+          attachmentID = None,
+          entrepreneursRelief = None
+        )
+    }
 
   private def getTaxableGainOrNetLoss(c: CompleteReturn): (BigDecimal, Option[BigDecimal]) = {
     val value = c match {
-      case s: CompleteSingleDisposalReturn =>
+      case s: CompleteSingleDisposalReturn    =>
         s.yearToDateLiabilityAnswers.fold(
           _.taxableGainOrLoss,
           _.calculatedTaxDue.taxableGainOrNetLoss

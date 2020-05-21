@@ -31,12 +31,13 @@ object DesAcquisitionType {
 
   final case class Other(value: String) extends DesAcquisitionType
 
-  def apply(m: AcquisitionMethod): DesAcquisitionType = m match {
-    case AcquisitionMethod.Bought       => Bought
-    case AcquisitionMethod.Inherited    => Inherited
-    case AcquisitionMethod.Gifted       => Gifted
-    case AcquisitionMethod.Other(value) => Other(value)
-  }
+  def apply(m: AcquisitionMethod): DesAcquisitionType =
+    m match {
+      case AcquisitionMethod.Bought       => Bought
+      case AcquisitionMethod.Inherited    => Inherited
+      case AcquisitionMethod.Gifted       => Gifted
+      case AcquisitionMethod.Other(value) => Other(value)
+    }
 
   implicit val format: Format[DesAcquisitionType] =
     Format(
@@ -48,7 +49,8 @@ object DesAcquisitionType {
           case JsString(other)       => JsSuccess(Other(other))
           case other                 => JsError(s"Expected string for acquisition type but got $other")
         }
-      }, { acquisitionMethod: DesAcquisitionType =>
+      },
+      { acquisitionMethod: DesAcquisitionType =>
         acquisitionMethod match {
           case Bought       => JsString("bought")
           case Inherited    => JsString("inherited")

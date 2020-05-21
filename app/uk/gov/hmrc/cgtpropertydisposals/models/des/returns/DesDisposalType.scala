@@ -29,12 +29,13 @@ object DesDisposalType {
 
   case object Other extends DesDisposalType
 
-  def apply(m: DisposalMethod): DesDisposalType = m match {
-    case DisposalMethod.Sold   => Sold
-    case DisposalMethod.Gifted => Gifted
-    case DisposalMethod.Other  => Other
+  def apply(m: DisposalMethod): DesDisposalType =
+    m match {
+      case DisposalMethod.Sold   => Sold
+      case DisposalMethod.Gifted => Gifted
+      case DisposalMethod.Other  => Other
 
-  }
+    }
 
   implicit val format: Format[DesDisposalType] =
     Format(
@@ -46,7 +47,8 @@ object DesDisposalType {
           case JsString(other)    => JsError(s"Could not parse disposal type $other")
           case other              => JsError(s"Expected string for acquisition type but got $other")
         }
-      }, { disposalType: DesDisposalType =>
+      },
+      { disposalType: DesDisposalType =>
         disposalType match {
           case Sold   => JsString("sold")
           case Gifted => JsString("gifted")

@@ -42,10 +42,11 @@ object BusinessPartnerRecordRequest {
     def fold[A](
       ifTrust: TrustBusinessPartnerRecordRequest => A,
       ifIndividual: IndividualBusinessPartnerRecordRequest => A
-    ): A = r match {
-      case t: TrustBusinessPartnerRecordRequest      => ifTrust(t)
-      case i: IndividualBusinessPartnerRecordRequest => ifIndividual(i)
-    }
+    ): A =
+      r match {
+        case t: TrustBusinessPartnerRecordRequest      => ifTrust(t)
+        case i: IndividualBusinessPartnerRecordRequest => ifIndividual(i)
+      }
 
     def foldOnId[A](
       ifTrn: TRN => A,

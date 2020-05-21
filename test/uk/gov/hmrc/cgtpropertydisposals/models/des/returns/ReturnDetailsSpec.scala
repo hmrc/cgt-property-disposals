@@ -39,10 +39,10 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
       "given a calculated journey" must {
 
         "return totalTaxableGain value when the user has made a gain" in {
-          val amountInPounds = BigDecimal(1000)
-          val calculatedTaxDue =
+          val amountInPounds      = BigDecimal(1000)
+          val calculatedTaxDue    =
             sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.fromPounds(amountInPounds))
-          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+          val completeReturn      = sample[CompleteSingleDisposalReturn].copy(
             yearToDateLiabilityAnswers = Right(
               sample[CompleteCalculatedYTDAnswers]
                 .copy(calculatedTaxDue = calculatedTaxDue)
@@ -56,9 +56,9 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
         }
 
         "return totalTaxableGain value when the user has made a net loss" in {
-          val calculatedTaxDue =
+          val calculatedTaxDue    =
             sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.zero)
-          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+          val completeReturn      = sample[CompleteSingleDisposalReturn].copy(
             yearToDateLiabilityAnswers = Right(
               sample[CompleteCalculatedYTDAnswers]
                 .copy(calculatedTaxDue = calculatedTaxDue)
@@ -72,10 +72,10 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
         }
 
         "return some value for totalNetLoss when a loss has been made" in {
-          val amountInPounds = BigDecimal(-1000)
-          val calculatedTaxDue =
+          val amountInPounds      = BigDecimal(-1000)
+          val calculatedTaxDue    =
             sample[GainCalculatedTaxDue].copy(taxableGainOrNetLoss = AmountInPence.fromPounds(amountInPounds))
-          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+          val completeReturn      = sample[CompleteSingleDisposalReturn].copy(
             yearToDateLiabilityAnswers = Right(
               sample[CompleteCalculatedYTDAnswers]
                 .copy(calculatedTaxDue = calculatedTaxDue)
@@ -94,8 +94,8 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
 
         def commonBehaviour(toCompleteReturn: CompleteNonCalculatedYTDAnswers => CompleteReturn): Unit = {
           "return totalTaxableGain value when the user has made a gain" in {
-            val amountInPounds = BigDecimal(1000)
-            val completeReturn = toCompleteReturn(
+            val amountInPounds      = BigDecimal(1000)
+            val completeReturn      = toCompleteReturn(
               sample[CompleteNonCalculatedYTDAnswers]
                 .copy(taxableGainOrLoss = AmountInPence.fromPounds(amountInPounds))
             )
@@ -107,7 +107,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
           }
 
           "return totalTaxableGain value when the user has made a net loss" in {
-            val completeReturn = toCompleteReturn(
+            val completeReturn      = toCompleteReturn(
               sample[CompleteNonCalculatedYTDAnswers]
                 .copy(taxableGainOrLoss = AmountInPence.zero)
             )
@@ -119,8 +119,8 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
           }
 
           "return some value for totalNetLoss when a loss has been made" in {
-            val amountInPounds = BigDecimal(-1000)
-            val completeReturn = toCompleteReturn(
+            val amountInPounds      = BigDecimal(-1000)
+            val completeReturn      = toCompleteReturn(
               sample[CompleteNonCalculatedYTDAnswers]
                 .copy(taxableGainOrLoss = AmountInPence.fromPounds(amountInPounds))
             )
@@ -181,17 +181,20 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
       }
 
       "find the correct completion date" in {
-        ReturnDetails(singleDisposalSubmitReturnRequest).completionDate shouldBe completeReturn.triageAnswers.completionDate.value
+        ReturnDetails(
+          singleDisposalSubmitReturnRequest
+        ).completionDate shouldBe completeReturn.triageAnswers.completionDate.value
       }
 
       "find the correct residency status and country" in {
-        def requestWithCountry(country: Country): SubmitReturnRequest = singleDisposalSubmitReturnRequest.copy(
-          completeReturn = completeReturn.copy(
-            triageAnswers = completeReturn.triageAnswers.copy(
-              countryOfResidence = country
+        def requestWithCountry(country: Country): SubmitReturnRequest =
+          singleDisposalSubmitReturnRequest.copy(
+            completeReturn = completeReturn.copy(
+              triageAnswers = completeReturn.triageAnswers.copy(
+                countryOfResidence = country
+              )
             )
           )
-        )
 
         val nonUkCountry = Country("HK", Some("Hong Kong"))
         val ukResult     = ReturnDetails(requestWithCountry(Country.uk))
@@ -221,7 +224,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
       "find the value at band details when the return is a calculated one" in {
         val calculatedYearToDateAnswers = sample[CompleteCalculatedYTDAnswers].copy(
           calculatedTaxDue = sample[GainCalculatedTaxDue].copy(
-            taxDueAtLowerRate  = TaxableAmountOfMoney(BigDecimal("1"), AmountInPence(1L)),
+            taxDueAtLowerRate = TaxableAmountOfMoney(BigDecimal("1"), AmountInPence(1L)),
             taxDueAtHigherRate = TaxableAmountOfMoney(BigDecimal("2"), AmountInPence(2L))
           )
         )
@@ -312,17 +315,20 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
       }
 
       "find the correct completion date" in {
-        ReturnDetails(multipleDisposalsSubmitReturnRequest).completionDate shouldBe completeReturn.triageAnswers.completionDate.value
+        ReturnDetails(
+          multipleDisposalsSubmitReturnRequest
+        ).completionDate shouldBe completeReturn.triageAnswers.completionDate.value
       }
 
       "find the correct residency status and country" in {
-        def requestWithCountry(country: Country): SubmitReturnRequest = multipleDisposalsSubmitReturnRequest.copy(
-          completeReturn = completeReturn.copy(
-            triageAnswers = completeReturn.triageAnswers.copy(
-              countryOfResidence = country
+        def requestWithCountry(country: Country): SubmitReturnRequest =
+          multipleDisposalsSubmitReturnRequest.copy(
+            completeReturn = completeReturn.copy(
+              triageAnswers = completeReturn.triageAnswers.copy(
+                countryOfResidence = country
+              )
             )
           )
-        )
 
         val nonUkCountry = Country("HK", Some("Hong Kong"))
         val ukResult     = ReturnDetails(requestWithCountry(Country.uk))
@@ -336,7 +342,9 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
       }
 
       "populate the correct number of properties" in {
-        ReturnDetails(multipleDisposalsSubmitReturnRequest).numberDisposals shouldBe completeReturn.triageAnswers.numberOfProperties
+        ReturnDetails(
+          multipleDisposalsSubmitReturnRequest
+        ).numberDisposals shouldBe completeReturn.triageAnswers.numberOfProperties
       }
 
       "find the correct total liability and year to date value and estimate flag" in {

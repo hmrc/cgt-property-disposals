@@ -39,22 +39,23 @@ trait VerifiersRepository {
   def delete(ggCredId: String): EitherT[Future, Error, Int]
 }
 
-class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(
-  implicit ec: ExecutionContext
+class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(implicit
+  ec: ExecutionContext
 ) extends ReactiveRepository[UpdateVerifiersRequest, BSONObjectID](
       collectionName = "update-verifiers-requests",
-      mongo          = mongo.mongoConnector.db,
+      mongo = mongo.mongoConnector.db,
       UpdateVerifiersRequest.format,
       ReactiveMongoFormats.objectIdFormats
     )
     with VerifiersRepository {
 
-  override def indexes: Seq[Index] = Seq(
-    Index(
-      key  = Seq("ggCredId" → IndexType.Ascending),
-      name = Some("ggCredIdIndex")
+  override def indexes: Seq[Index] =
+    Seq(
+      Index(
+        key = Seq("ggCredId" → IndexType.Ascending),
+        name = Some("ggCredIdIndex")
+      )
     )
-  )
 
   override def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifiersRequest]] =
     EitherT[Future, Error, Option[UpdateVerifiersRequest]](

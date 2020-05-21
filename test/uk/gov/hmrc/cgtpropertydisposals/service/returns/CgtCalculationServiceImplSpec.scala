@@ -38,16 +38,16 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
     "calculating tax due" must {
       val completeTriageAnswers = sample[CompleteSingleDisposalTriageAnswers]
 
-      val zeroDisposalDetails = sample[CompleteDisposalDetailsAnswers].copy(
+      val zeroDisposalDetails    = sample[CompleteDisposalDetailsAnswers].copy(
         disposalPrice = AmountInPence.zero,
-        disposalFees  = AmountInPence.zero
+        disposalFees = AmountInPence.zero
       )
       val zeroAcquisitionDetails = sample[CompleteAcquisitionDetailsAnswers].copy(
-        acquisitionPrice        = AmountInPence.zero,
-        improvementCosts        = AmountInPence.zero,
-        acquisitionFees         = AmountInPence.zero,
+        acquisitionPrice = AmountInPence.zero,
+        improvementCosts = AmountInPence.zero,
+        acquisitionFees = AmountInPence.zero,
         rebasedAcquisitionPrice = None,
-        shouldUseRebase         = false
+        shouldUseRebase = false
       )
 
       val zeroReliefDetails = CompleteReliefDetailsAnswers(
@@ -63,15 +63,15 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
       )
 
       def calculate(
-        triageAnswers: CompleteSingleDisposalTriageAnswers    = completeTriageAnswers,
-        disposalDetails: CompleteDisposalDetailsAnswers       = zeroDisposalDetails,
+        triageAnswers: CompleteSingleDisposalTriageAnswers = completeTriageAnswers,
+        disposalDetails: CompleteDisposalDetailsAnswers = zeroDisposalDetails,
         acquisitionDetails: CompleteAcquisitionDetailsAnswers = zeroAcquisitionDetails,
-        reliefDetails: CompleteReliefDetailsAnswers           = zeroReliefDetails,
+        reliefDetails: CompleteReliefDetailsAnswers = zeroReliefDetails,
         exemptionAndLosses: CompleteExemptionAndLossesAnswers = zeroExemptionsAndLosses,
-        estimatedIncome: AmountInPence                        = sample[AmountInPence],
-        personalAllowance: AmountInPence                      = sample[AmountInPence],
-        initialGainOrLoss: Option[AmountInPence]              = None,
-        isATrust: Boolean                                     = false
+        estimatedIncome: AmountInPence = sample[AmountInPence],
+        personalAllowance: AmountInPence = sample[AmountInPence],
+        initialGainOrLoss: Option[AmountInPence] = None,
+        isATrust: Boolean = false
       ) =
         service.calculateTaxDue(
           triageAnswers,
@@ -104,11 +104,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             val result =
               calculate(
                 acquisitionDetails = sample[CompleteAcquisitionDetailsAnswers].copy(
-                  acquisitionPrice        = acquisitionPrice,
-                  improvementCosts        = improvementCosts,
-                  acquisitionFees         = acquisitionFees,
+                  acquisitionPrice = acquisitionPrice,
+                  improvementCosts = improvementCosts,
+                  acquisitionFees = acquisitionFees,
                   rebasedAcquisitionPrice = None,
-                  shouldUseRebase         = false
+                  shouldUseRebase = false
                 )
               )
 
@@ -127,11 +127,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               val result =
                 calculate(
                   acquisitionDetails = zeroAcquisitionDetails.copy(
-                    acquisitionPrice        = acquisitionPrice,
-                    improvementCosts        = improvementCosts,
-                    acquisitionFees         = acquisitionFees,
+                    acquisitionPrice = acquisitionPrice,
+                    improvementCosts = improvementCosts,
+                    acquisitionFees = acquisitionFees,
                     rebasedAcquisitionPrice = Some(rebasedAcquisitionPrice),
-                    shouldUseRebase         = true
+                    shouldUseRebase = true
                   )
                 )
 
@@ -150,11 +150,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               val result =
                 calculate(
                   acquisitionDetails = zeroAcquisitionDetails.copy(
-                    acquisitionPrice        = acquisitionPrice,
-                    improvementCosts        = improvementCosts,
-                    acquisitionFees         = acquisitionFees,
+                    acquisitionPrice = acquisitionPrice,
+                    improvementCosts = improvementCosts,
+                    acquisitionFees = acquisitionFees,
                     rebasedAcquisitionPrice = Some(rebasedAcquisitionPrice),
-                    shouldUseRebase         = false
+                    shouldUseRebase = false
                   )
                 )
 
@@ -177,10 +177,10 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         forAll {
           (disposalDetails: CompleteDisposalDetailsAnswers, acquisitionDetails: CompleteAcquisitionDetailsAnswers) =>
             val expectedInitialGainOrLoss = AmountInPence(10L)
-            val result = calculate(
-              disposalDetails    = disposalDetails,
+            val result                    = calculate(
+              disposalDetails = disposalDetails,
               acquisitionDetails = acquisitionDetails,
-              initialGainOrLoss  = Some(expectedInitialGainOrLoss)
+              initialGainOrLoss = Some(expectedInitialGainOrLoss)
             )
 
             result.initialGainOrLoss.amount.value shouldBe expectedInitialGainOrLoss.value
@@ -242,10 +242,10 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               AmountInPence(1L),
               None
             )
-            val result = calculate(
-              disposalDetails    = disposalDetails,
+            val result        = calculate(
+              disposalDetails = disposalDetails,
               acquisitionDetails = zeroAcquisitionDetails,
-              reliefDetails      = reliefDetails
+              reliefDetails = reliefDetails
             )
 
             result.initialGainOrLoss.amount.value shouldBe 100L
@@ -260,10 +260,10 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               AmountInPence(100L),
               None
             )
-            val result = calculate(
-              disposalDetails    = disposalDetails,
+            val result        = calculate(
+              disposalDetails = disposalDetails,
               acquisitionDetails = zeroAcquisitionDetails,
-              reliefDetails      = reliefDetails
+              reliefDetails = reliefDetails
             )
 
             result.initialGainOrLoss.amount.value shouldBe 100L
@@ -283,10 +283,10 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               AmountInPence(1L),
               None
             )
-            val result = calculate(
-              disposalDetails    = zeroDisposalDetails,
+            val result        = calculate(
+              disposalDetails = zeroDisposalDetails,
               acquisitionDetails = acquisitionDetails,
-              reliefDetails      = reliefDetails
+              reliefDetails = reliefDetails
             )
 
             result.initialGainOrLoss.amount.value shouldBe -100L
@@ -300,10 +300,10 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               AmountInPence(100L),
               None
             )
-            val result = calculate(
-              disposalDetails    = zeroDisposalDetails,
+            val result        = calculate(
+              disposalDetails = zeroDisposalDetails,
               acquisitionDetails = acquisitionDetails,
-              reliefDetails      = reliefDetails
+              reliefDetails = reliefDetails
             )
 
             result.initialGainOrLoss.amount.value shouldBe -100L
@@ -317,10 +317,10 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             AmountInPence(1L),
             None
           )
-          val result = calculate(
-            disposalDetails    = zeroDisposalDetails,
+          val result        = calculate(
+            disposalDetails = zeroDisposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = reliefDetails
+            reliefDetails = reliefDetails
           )
 
           result.initialGainOrLoss.amount.value shouldBe 0L
@@ -338,11 +338,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = zeroDisposalDetails,
+            disposalDetails = zeroDisposalDetails,
             acquisitionDetails = acquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(1L),
+              inYearLosses = AmountInPence(1L),
               previousYearsLosses = AmountInPence(3L)
             )
           )
@@ -357,11 +357,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = disposalDetails,
+            disposalDetails = disposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(1L),
+              inYearLosses = AmountInPence(1L),
               previousYearsLosses = AmountInPence(3L)
             )
           )
@@ -372,11 +372,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
         "the gain or loss after reliefs is zero" in {
           val result = calculate(
-            disposalDetails    = zeroDisposalDetails,
+            disposalDetails = zeroDisposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(1L),
+              inYearLosses = AmountInPence(1L),
               previousYearsLosses = AmountInPence(3L)
             )
           )
@@ -384,7 +384,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           result.gainOrLossAfterReliefs.value shouldBe 0L
           // previous years losses can't be applied since gain or loss after relieds
           // is less than in year losses
-          result.totalLosses.value shouldBe 1L
+          result.totalLosses.value            shouldBe 1L
         }
 
         "the gain or loss after reliefs is strictly less than the in year losses" in {
@@ -393,11 +393,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = disposalDetails,
+            disposalDetails = disposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(200L),
+              inYearLosses = AmountInPence(200L),
               previousYearsLosses = AmountInPence(3L)
             )
           )
@@ -412,11 +412,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = disposalDetails,
+            disposalDetails = disposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(1L),
+              inYearLosses = AmountInPence(1L),
               previousYearsLosses = AmountInPence(3L)
             )
           )
@@ -431,11 +431,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = disposalDetails,
+            disposalDetails = disposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(100L),
+              inYearLosses = AmountInPence(100L),
               previousYearsLosses = AmountInPence(3L)
             )
           )
@@ -455,11 +455,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = disposalDetails,
+            disposalDetails = disposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(1L),
+              inYearLosses = AmountInPence(1L),
               previousYearsLosses = AmountInPence(2L)
             )
           )
@@ -476,11 +476,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = disposalDetails,
+            disposalDetails = disposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(1L),
+              inYearLosses = AmountInPence(1L),
               previousYearsLosses = AmountInPence(200L)
             )
           )
@@ -497,11 +497,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = zeroDisposalDetails,
+            disposalDetails = zeroDisposalDetails,
             acquisitionDetails = acquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(1L),
+              inYearLosses = AmountInPence(1L),
               previousYearsLosses = AmountInPence(2L)
             )
           )
@@ -518,11 +518,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = zeroDisposalDetails,
+            disposalDetails = zeroDisposalDetails,
             acquisitionDetails = acquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(200L),
+              inYearLosses = AmountInPence(200L),
               previousYearsLosses = AmountInPence(2L)
             )
           )
@@ -534,11 +534,11 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
         "the gain or loss after reliefs is zero" in {
           val result = calculate(
-            disposalDetails    = zeroDisposalDetails,
+            disposalDetails = zeroDisposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses        = AmountInPence(1L),
+              inYearLosses = AmountInPence(1L),
               previousYearsLosses = AmountInPence(2L)
             )
           )
@@ -558,9 +558,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = zeroDisposalDetails,
+            disposalDetails = zeroDisposalDetails,
             acquisitionDetails = acquisitionDetails,
-            reliefDetails      = zeroReliefDetails.copy(privateResidentsRelief = AmountInPence(2L)),
+            reliefDetails = zeroReliefDetails.copy(privateResidentsRelief = AmountInPence(2L)),
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               inYearLosses = AmountInPence(1L)
             )
@@ -575,9 +575,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
         "the gain or loss after losses is zero" in {
           val result = calculate(
-            disposalDetails    = zeroDisposalDetails,
+            disposalDetails = zeroDisposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               annualExemptAmount = AmountInPence(1L)
             )
@@ -595,9 +595,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = disposalDetails,
+            disposalDetails = disposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               annualExemptAmount = AmountInPence(1L)
             )
@@ -615,9 +615,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           val result = calculate(
-            disposalDetails    = disposalDetails,
+            disposalDetails = disposalDetails,
             acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails      = zeroReliefDetails,
+            reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               annualExemptAmount = AmountInPence(200L)
             )
@@ -636,9 +636,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           forAll { (estimatedIncome: AmountInPence, personalAllowance: AmountInPence) =>
             whenever(estimatedIncome.value - personalAllowance.value >= 0L) {
               val disposalDetails = zeroDisposalDetails.copy(disposalPrice = AmountInPence(100L))
-              val result = calculate(
-                disposalDetails   = disposalDetails,
-                estimatedIncome   = estimatedIncome,
+              val result          = calculate(
+                disposalDetails = disposalDetails,
+                estimatedIncome = estimatedIncome,
                 personalAllowance = personalAllowance
               )
 
@@ -653,9 +653,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           forAll { (estimatedIncome: AmountInPence, personalAllowance: AmountInPence) =>
             whenever(estimatedIncome.value - personalAllowance.value < 0L) {
               val disposalDetails = zeroDisposalDetails.copy(disposalPrice = AmountInPence(100L))
-              val result = calculate(
-                disposalDetails   = disposalDetails,
-                estimatedIncome   = estimatedIncome,
+              val result          = calculate(
+                disposalDetails = disposalDetails,
+                estimatedIncome = estimatedIncome,
                 personalAllowance = personalAllowance
               )
 
@@ -676,7 +676,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
           val triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
             disposalDate = sample[DisposalDate].copy(taxYear = taxYear),
-            assetType    = assetType
+            assetType = assetType
           )
 
           "the taxable gain is less than the income tax higher rate threshold minus " +
@@ -685,16 +685,16 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
             val result = calculate(
-              triageAnswers     = triageAnswers,
-              disposalDetails   = disposalDetails,
-              estimatedIncome   = AmountInPence(100L),
+              triageAnswers = triageAnswers,
+              disposalDetails = disposalDetails,
+              estimatedIncome = AmountInPence(100L),
               personalAllowance = AmountInPence.zero
             )
 
             testOnGainCalculatedTaxDue(result) { calculated =>
               calculated.taxableGainOrNetLoss.value shouldBe 500L
               calculated.taxableIncome.value        shouldBe 100L
-              calculated.taxDueAtLowerRate shouldBe TaxableAmountOfMoney(
+              calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
                 expectedLowerBandRate(taxYear),
                 AmountInPence(500L)
               )
@@ -709,16 +709,16 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
             val result = calculate(
-              triageAnswers     = triageAnswers,
-              disposalDetails   = disposalDetails,
-              estimatedIncome   = AmountInPence(600L),
+              triageAnswers = triageAnswers,
+              disposalDetails = disposalDetails,
+              estimatedIncome = AmountInPence(600L),
               personalAllowance = AmountInPence.zero
             )
 
             testOnGainCalculatedTaxDue(result) { calculated =>
               calculated.taxableGainOrNetLoss.value shouldBe 500L
               calculated.taxableIncome.value        shouldBe 600L
-              calculated.taxDueAtLowerRate shouldBe TaxableAmountOfMoney(
+              calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
                 expectedLowerBandRate(taxYear),
                 AmountInPence(400L)
               )
@@ -732,16 +732,16 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
             val result = calculate(
-              triageAnswers     = triageAnswers,
-              disposalDetails   = disposalDetails,
-              estimatedIncome   = AmountInPence(500L),
+              triageAnswers = triageAnswers,
+              disposalDetails = disposalDetails,
+              estimatedIncome = AmountInPence(500L),
               personalAllowance = AmountInPence.zero
             )
 
             testOnGainCalculatedTaxDue(result) { calculated =>
               calculated.taxableGainOrNetLoss.value shouldBe 500L
               calculated.taxableIncome.value        shouldBe 500L
-              calculated.taxDueAtLowerRate shouldBe TaxableAmountOfMoney(
+              calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
                 expectedLowerBandRate(taxYear),
                 AmountInPence(500L)
               )
@@ -753,16 +753,16 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
             val result = calculate(
-              triageAnswers     = triageAnswers,
-              disposalDetails   = disposalDetails,
-              estimatedIncome   = AmountInPence(2000L),
+              triageAnswers = triageAnswers,
+              disposalDetails = disposalDetails,
+              estimatedIncome = AmountInPence(2000L),
               personalAllowance = AmountInPence.zero
             )
 
             testOnGainCalculatedTaxDue(result) { calculated =>
               calculated.taxableGainOrNetLoss.value shouldBe 500L
               calculated.taxableIncome.value        shouldBe 2000L
-              calculated.taxDueAtLowerRate shouldBe TaxableAmountOfMoney(
+              calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
                 expectedLowerBandRate(taxYear),
                 AmountInPence(0L)
               )
@@ -774,16 +774,16 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
             val result = calculate(
-              triageAnswers     = triageAnswers,
-              disposalDetails   = disposalDetails,
-              estimatedIncome   = AmountInPence(1000L),
+              triageAnswers = triageAnswers,
+              disposalDetails = disposalDetails,
+              estimatedIncome = AmountInPence(1000L),
               personalAllowance = AmountInPence.zero
             )
 
             testOnGainCalculatedTaxDue(result) { calculated =>
               calculated.taxableGainOrNetLoss.value shouldBe 500L
               calculated.taxableIncome.value        shouldBe 1000L
-              calculated.taxDueAtLowerRate shouldBe TaxableAmountOfMoney(
+              calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
                 expectedLowerBandRate(taxYear),
                 AmountInPence(0L)
               )
@@ -816,24 +816,24 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
           val triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
             disposalDate = sample[DisposalDate].copy(taxYear = taxYear),
-            assetType    = AssetType.Residential
+            assetType = AssetType.Residential
           )
 
           val disposalDetails =
             zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
           val result = calculate(
-            triageAnswers     = triageAnswers,
-            disposalDetails   = disposalDetails,
-            estimatedIncome   = AmountInPence(100L),
+            triageAnswers = triageAnswers,
+            disposalDetails = disposalDetails,
+            estimatedIncome = AmountInPence(100L),
             personalAllowance = AmountInPence.zero,
-            isATrust          = true
+            isATrust = true
           )
 
           testOnGainCalculatedTaxDue(result) { calculated =>
             calculated.taxableGainOrNetLoss.value shouldBe 500L
             calculated.taxableIncome.value        shouldBe 100L
-            calculated.taxDueAtLowerRate shouldBe TaxableAmountOfMoney(
+            calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
               taxYear.cgtRateLowerBandResidential,
               AmountInPence(0L)
             )
@@ -848,9 +848,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         def test(assetType: AssetType, expectedHigherRate: TaxYear => BigDecimal): Unit = {
           val incomeTaxHigherRateThreshold = AmountInPence(1000L)
           val taxYear                      = sample[TaxYear].copy(incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold)
-          val triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+          val triageAnswers                = sample[CompleteSingleDisposalTriageAnswers].copy(
             disposalDate = sample[DisposalDate].copy(taxYear = taxYear),
-            assetType    = assetType
+            assetType = assetType
           )
 
           "the taxable gain is greater than the amount to be taxed at the lower rate" in {
@@ -859,16 +859,16 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
             testOnGainCalculatedTaxDue(
               calculate(
-                triageAnswers     = triageAnswers,
-                disposalDetails   = disposalDetails,
-                estimatedIncome   = taxableIncome,
+                triageAnswers = triageAnswers,
+                disposalDetails = disposalDetails,
+                estimatedIncome = taxableIncome,
                 personalAllowance = AmountInPence.zero
               )
             ) { result =>
               result.taxableGainOrNetLoss.value            shouldBe 500L
               result.taxableIncome.value                   shouldBe 600L
               result.taxDueAtLowerRate.taxableAmount.value shouldBe 400L
-              result.taxDueAtHigherRate shouldBe TaxableAmountOfMoney(
+              result.taxDueAtHigherRate                    shouldBe TaxableAmountOfMoney(
                 expectedHigherRate(taxYear),
                 AmountInPence(100L)
               )
@@ -882,16 +882,16 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
             testOnGainCalculatedTaxDue(
               calculate(
-                triageAnswers     = triageAnswers,
-                disposalDetails   = disposalDetails,
-                estimatedIncome   = taxableIncome,
+                triageAnswers = triageAnswers,
+                disposalDetails = disposalDetails,
+                estimatedIncome = taxableIncome,
                 personalAllowance = AmountInPence.zero
               )
             ) { result =>
               result.taxableGainOrNetLoss.value            shouldBe 500L
               result.taxableIncome.value                   shouldBe 500L
               result.taxDueAtLowerRate.taxableAmount.value shouldBe 500L
-              result.taxDueAtHigherRate shouldBe TaxableAmountOfMoney(
+              result.taxDueAtHigherRate                    shouldBe TaxableAmountOfMoney(
                 expectedHigherRate(taxYear),
                 AmountInPence(0L)
               )
@@ -912,9 +912,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         "the user is a trust" in {
           val incomeTaxHigherRateThreshold = AmountInPence(1000L)
           val taxYear                      = sample[TaxYear].copy(incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold)
-          val triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+          val triageAnswers                = sample[CompleteSingleDisposalTriageAnswers].copy(
             disposalDate = sample[DisposalDate].copy(taxYear = taxYear),
-            assetType    = AssetType.NonResidential
+            assetType = AssetType.NonResidential
           )
 
           val disposalDetails = zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
@@ -922,17 +922,17 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
           testOnGainCalculatedTaxDue(
             calculate(
-              triageAnswers     = triageAnswers,
-              disposalDetails   = disposalDetails,
-              estimatedIncome   = taxableIncome,
+              triageAnswers = triageAnswers,
+              disposalDetails = disposalDetails,
+              estimatedIncome = taxableIncome,
               personalAllowance = AmountInPence.zero,
-              isATrust          = true
+              isATrust = true
             )
           ) { result =>
             result.taxableGainOrNetLoss.value            shouldBe 500L
             result.taxableIncome.value                   shouldBe 600L
             result.taxDueAtLowerRate.taxableAmount.value shouldBe 0L
-            result.taxDueAtHigherRate shouldBe TaxableAmountOfMoney(
+            result.taxDueAtHigherRate                    shouldBe TaxableAmountOfMoney(
               taxYear.cgtRateHigherBandNonResidential,
               AmountInPence(500L)
             )
@@ -973,38 +973,38 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
           val taxYear = sample[TaxYear].copy(
             incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold,
-            cgtRateLowerBandResidential  = lowerBandTaxRate,
+            cgtRateLowerBandResidential = lowerBandTaxRate,
             cgtRateHigherBandResidential = higherBandTaxRate
           )
 
           val triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
             disposalDate = sample[DisposalDate].copy(taxYear = taxYear),
-            assetType    = AssetType.Residential
+            assetType = AssetType.Residential
           )
 
           val disposalDetails = zeroDisposalDetails.copy(disposalPrice = AmountInPence(987L))
 
           testOnGainCalculatedTaxDue(
             calculate(
-              triageAnswers     = triageAnswers,
-              disposalDetails   = disposalDetails,
-              estimatedIncome   = AmountInPence(123L),
+              triageAnswers = triageAnswers,
+              disposalDetails = disposalDetails,
+              estimatedIncome = AmountInPence(123L),
               personalAllowance = AmountInPence.zero
             )
           ) { result =>
             result.taxableGainOrNetLoss.value shouldBe 987L
             result.taxableIncome.value        shouldBe 123L
 
-            result.taxDueAtLowerRate.taxRate shouldBe lowerBandTaxRate
+            result.taxDueAtLowerRate.taxRate             shouldBe lowerBandTaxRate
             // threshold - taxable income (1000-123) = 877 is less  than taxable gain (987)
             result.taxDueAtLowerRate.taxableAmount.value shouldBe 877L
             // 1.23% of 877 = 10.7871 --> rounds down to 10
-            result.taxDueAtLowerRate.taxDue().value shouldBe 10L
+            result.taxDueAtLowerRate.taxDue().value      shouldBe 10L
 
             result.taxDueAtHigherRate.taxRate             shouldBe higherBandTaxRate
             result.taxDueAtHigherRate.taxableAmount.value shouldBe 110L
             // 4.56% of 110 = 15.016  --> rounds down to 5
-            result.taxDueAtHigherRate.taxDue().value shouldBe 5L
+            result.taxDueAtHigherRate.taxDue().value      shouldBe 5L
 
             result.amountOfTaxDue.value shouldBe 15L
           }
@@ -1014,9 +1014,10 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
     }
   }
-  def testOnGainCalculatedTaxDue(result: CalculatedTaxDue)(f: GainCalculatedTaxDue => Unit): Unit = result match {
-    case n: NonGainCalculatedTaxDue => fail(s"Expected a gain but got $n")
-    case g: GainCalculatedTaxDue    => f(g)
-  }
+  def testOnGainCalculatedTaxDue(result: CalculatedTaxDue)(f: GainCalculatedTaxDue => Unit): Unit =
+    result match {
+      case n: NonGainCalculatedTaxDue => fail(s"Expected a gain but got $n")
+      case g: GainCalculatedTaxDue    => f(g)
+    }
 
 }

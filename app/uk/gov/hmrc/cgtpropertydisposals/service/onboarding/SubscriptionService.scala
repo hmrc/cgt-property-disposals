@@ -56,17 +56,17 @@ import scala.util.Try
 @ImplementedBy(classOf[SubscriptionServiceImpl])
 trait SubscriptionService {
 
-  def subscribe(subscriptionDetails: SubscriptionDetails)(
-    implicit hc: HeaderCarrier,
+  def subscribe(subscriptionDetails: SubscriptionDetails)(implicit
+    hc: HeaderCarrier,
     request: Request[_]
   ): EitherT[Future, Error, SubscriptionResponse]
 
-  def getSubscription(cgtReference: CgtReference)(
-    implicit hc: HeaderCarrier
+  def getSubscription(cgtReference: CgtReference)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, Option[SubscribedDetails]]
 
-  def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
-    implicit hc: HeaderCarrier
+  def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse]
 }
 
@@ -77,8 +77,8 @@ class SubscriptionServiceImpl @Inject() (
   emailConnector: EmailConnector,
   config: Configuration,
   metrics: Metrics
-)(
-  implicit ec: ExecutionContext
+)(implicit
+  ec: ExecutionContext
 ) extends SubscriptionService
     with Logging {
 
@@ -90,11 +90,11 @@ class SubscriptionServiceImpl @Inject() (
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubscriptionResponse] =
     for {
       subscriptionResponse <- sendSubscriptionRequest(subscriptionDetails)
-      _ <- subscriptionResponse match {
-            case successful: SubscriptionSuccessful =>
-              sendSubscriptionConfirmationEmail(subscriptionDetails, successful)
-            case _ => EitherT.pure[Future, Error](())
-          }
+      _                    <- subscriptionResponse match {
+             case successful: SubscriptionSuccessful =>
+               sendSubscriptionConfirmationEmail(subscriptionDetails, successful)
+             case _                                  => EitherT.pure[Future, Error](())
+           }
     } yield subscriptionResponse
 
   private def sendSubscriptionRequest(
@@ -111,11 +111,11 @@ class SubscriptionServiceImpl @Inject() (
     subscriptionConnector.subscribe(desSubscriptionRequest).subflatMap { response =>
       timer.close()
       auditSubscriptionResponse(response.status, response.body, desSubscriptionRequest)
-      if (response.status === OK) {
+      if (response.status === OK)
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
-      } else if (isAlreadySubscribedResponse(response)) {
+      else if (isAlreadySubscribedResponse(response))
         Right(AlreadySubscribed)
-      } else {
+      else {
         metrics.subscriptionCreateErrorCounter.inc()
         Left(Error(s"call to subscribe came back with status ${response.status}"))
       }
@@ -135,12 +135,11 @@ class SubscriptionServiceImpl @Inject() (
         if (httpResponse.status =!= ACCEPTED) {
           metrics.subscriptionCreateErrorCounter.inc()
           logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
-        } else {
+        } else
           auditSubscriptionConfirmationEmailSent(
             subscriptionDetails.emailAddress.value,
             subscriptionSuccessful.cgtReferenceNumber
           )
-        }
       }
       .leftFlatMap { e =>
         metrics.subscriptionCreateErrorCounter.inc()
@@ -149,8 +148,8 @@ class SubscriptionServiceImpl @Inject() (
       }
   }
 
-  override def getSubscription(cgtReference: CgtReference)(
-    implicit hc: HeaderCarrier
+  override def getSubscription(cgtReference: CgtReference)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, Option[SubscribedDetails]] = {
     def isNoSubscriptionExistsResponse(response: HttpResponse): Boolean = {
       lazy val hasNoReturnBody = response
@@ -173,25 +172,28 @@ class SubscriptionServiceImpl @Inject() (
           "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
         )
 
-      if (response.status === OK) {
+      if (response.status === OK)
         response
           .parseJSON[DesSubscriptionDisplayDetails]()
           .flatMap(toSubscriptionDisplayRecord(_, cgtReference))
-          .bimap({ e =>
-            metrics.subscriptionGetErrorCounter.inc()
-            Error(e, identifiers: _*)
-          }, Some(_))
-      } else if (isNoSubscriptionExistsResponse(response)) {
+          .bimap(
+            { e =>
+              metrics.subscriptionGetErrorCounter.inc()
+              Error(e, identifiers: _*)
+            },
+            Some(_)
+          )
+      else if (isNoSubscriptionExistsResponse(response))
         Right(None)
-      } else {
+      else {
         metrics.subscriptionGetErrorCounter.inc()
         Left(Error(s"call to subscription display api came back with status ${response.status}"))
       }
     }
   }
 
-  override def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
-    implicit hc: HeaderCarrier
+  override def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse] = {
     val desSubscriptionRequest = DesSubscriptionUpdateRequest(subscribedUpdateDetails.newDetails)
     val timer                  = metrics.subscriptionUpdateTimer.time()
@@ -207,14 +209,14 @@ class SubscriptionServiceImpl @Inject() (
             "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
           )
 
-        if (response.status === OK) {
+        if (response.status === OK)
           response
             .parseJSON[SubscriptionUpdateResponse]()
             .leftMap { e =>
               metrics.subscriptionUpdateErrorCounter.inc()
               Error(e, identifiers: _*)
             }
-        } else {
+        else {
           metrics.subscriptionUpdateErrorCounter.inc()
           Left(Error(s"call to subscription update api came back with status ${response.status}"))
         }

@@ -30,11 +30,12 @@ object DisposalMethod {
 
   case object Other extends DisposalMethod
 
-  def apply(desDisposalType: DesDisposalType): DisposalMethod = desDisposalType match {
-    case DesDisposalType.Sold   => Sold
-    case DesDisposalType.Gifted => Gifted
-    case DesDisposalType.Other  => Other
-  }
+  def apply(desDisposalType: DesDisposalType): DisposalMethod =
+    desDisposalType match {
+      case DesDisposalType.Sold   => Sold
+      case DesDisposalType.Gifted => Gifted
+      case DesDisposalType.Other  => Other
+    }
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[DisposalMethod] = derived.oformat()

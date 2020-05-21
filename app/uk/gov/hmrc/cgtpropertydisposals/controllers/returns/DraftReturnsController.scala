@@ -38,52 +38,55 @@ class DraftReturnsController @Inject() (
   authenticate: AuthenticateActions,
   draftReturnsService: DraftReturnsService,
   cc: ControllerComponents
-)(
-  implicit ec: ExecutionContext
+)(implicit
+  ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
 
-  def draftReturns(cgtReference: String): Action[AnyContent] = authenticate.async {
-    draftReturnsService
-      .getDraftReturn(CgtReference(cgtReference))
-      .fold(
-        { e =>
-          logger.warn(s"Failed to get draft return with $cgtReference", e)
-          InternalServerError
-        },
-        draftReturns => Ok(Json.toJson(GetDraftReturnResponse(draftReturns)))
-      )
-  }
-
-  def storeDraftReturn(cgtReference: String): Action[JsValue] = authenticate(parse.json).async { implicit request =>
-    withJsonBody[DraftReturn] { draftReturn =>
+  def draftReturns(cgtReference: String): Action[AnyContent] =
+    authenticate.async {
       draftReturnsService
-        .saveDraftReturn(draftReturn, CgtReference(cgtReference))
+        .getDraftReturn(CgtReference(cgtReference))
         .fold(
           { e =>
-            logger.warn("Could not store draft return", e)
+            logger.warn(s"Failed to get draft return with $cgtReference", e)
             InternalServerError
           },
-          _ => Ok
+          draftReturns => Ok(Json.toJson(GetDraftReturnResponse(draftReturns)))
         )
     }
-  }
 
-  def deleteDraftReturns(): Action[JsValue] = authenticate(parse.json).async { implicit request =>
-    withJsonBody[DeleteDraftReturnsRequest] { deleteRequest =>
-      draftReturnsService
-        .deleteDraftReturns(deleteRequest.draftReturnIds)
-        .fold(
-          { e =>
-            logger.warn(s"Could not delete draft return with ids ${deleteRequest.draftReturnIds}", e)
-            InternalServerError
-          },
-          _ => Ok
-        )
-
+  def storeDraftReturn(cgtReference: String): Action[JsValue] =
+    authenticate(parse.json).async { implicit request =>
+      withJsonBody[DraftReturn] { draftReturn =>
+        draftReturnsService
+          .saveDraftReturn(draftReturn, CgtReference(cgtReference))
+          .fold(
+            { e =>
+              logger.warn("Could not store draft return", e)
+              InternalServerError
+            },
+            _ => Ok
+          )
+      }
     }
 
-  }
+  def deleteDraftReturns(): Action[JsValue] =
+    authenticate(parse.json).async { implicit request =>
+      withJsonBody[DeleteDraftReturnsRequest] { deleteRequest =>
+        draftReturnsService
+          .deleteDraftReturns(deleteRequest.draftReturnIds)
+          .fold(
+            { e =>
+              logger.warn(s"Could not delete draft return with ids ${deleteRequest.draftReturnIds}", e)
+              InternalServerError
+            },
+            _ => Ok
+          )
+
+      }
+
+    }
 
 }
 
