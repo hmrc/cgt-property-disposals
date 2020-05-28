@@ -315,7 +315,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
           val sapNumber = sample[SapNumber]
 
-          val subscriptionDetails  =
+          val subscriptionDetails =
             SubscriptionDetails(
               Right(representeeAnswers.name),
               representeeAnswers.contactDetails.contactName,
@@ -323,7 +323,6 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
               representeeAnswers.contactDetails.address,
               sapNumber
             )
-          val subscriptionResponse = sample[SubscriptionSuccessful]
 
           val requestBody = sample[SubmitReturnRequest].copy(
             checkYourAnswerPageHtml = B64Html(""),

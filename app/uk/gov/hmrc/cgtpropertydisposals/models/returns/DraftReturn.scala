@@ -68,6 +68,17 @@ final case class DraftSingleIndirectDisposalReturn(
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 
+final case class DraftSingleMixedUseDisposalReturn(
+  id: UUID,
+  triageAnswers: SingleDisposalTriageAnswers,
+  examplePropertyDetailsAnswers: Option[ExamplePropertyDetailsAnswers],
+  exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
+  yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
+  supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
+  representeeAnswers: Option[RepresenteeAnswers],
+  lastUpdatedDate: LocalDate
+) extends DraftReturn
+
 object DraftReturn {
 
   implicit val ukAddressFormat: OFormat[UkAddress] = Json.format[UkAddress]
