@@ -99,7 +99,7 @@ class SubmitReturnsController @Inject() (
   )(implicit
     request: Request[_]
   ): EitherT[Future, Error, Option[RepresenteeDetails]] =
-    submitReturnRequest.completeReturn.fold(_.representeeAnswers, _.representeeAnswers) match {
+    submitReturnRequest.completeReturn.fold(_.representeeAnswers, _.representeeAnswers, _.representeeAnswers) match {
       case None                                => EitherT.pure(None)
       case Some(c: CompleteRepresenteeAnswers) =>
         c.id match {

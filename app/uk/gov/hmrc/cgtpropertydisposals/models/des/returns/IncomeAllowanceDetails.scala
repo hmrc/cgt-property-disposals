@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
 
 final case class IncomeAllowanceDetails(
   annualExemption: BigDecimal,
@@ -32,7 +32,7 @@ object IncomeAllowanceDetails {
   def apply(c: CompleteReturn): IncomeAllowanceDetails =
     c match {
 
-      case s: CompleteSingleDisposalReturn    =>
+      case s: CompleteSingleDisposalReturn         =>
         IncomeAllowanceDetails(
           annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
           estimatedIncome = s.yearToDateLiabilityAnswers.map(_.estimatedIncome.inPounds()).toOption,
@@ -40,12 +40,20 @@ object IncomeAllowanceDetails {
           threshold = Some(s.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
 
-      case m: CompleteMultipleDisposalsReturn =>
+      case m: CompleteMultipleDisposalsReturn      =>
         IncomeAllowanceDetails(
           annualExemption = m.exemptionAndLossesAnswers.annualExemptAmount.inPounds(),
           estimatedIncome = None,
           personalAllowance = None,
           threshold = Some(m.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
+        )
+
+      case s: CompleteSingleIndirectDisposalReturn =>
+        IncomeAllowanceDetails(
+          annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
+          estimatedIncome = None,
+          personalAllowance = None,
+          threshold = Some(s.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
     }
 

@@ -102,9 +102,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         result: Either[Error, CompleteReturn]
       )(value: CompleteSingleDisposalReturn => A): Either[String, A] =
         result match {
-          case Left(e)                                   => Left(s"Expected CompleteSingleDisposalReturn but got $e")
-          case Right(m: CompleteMultipleDisposalsReturn) => Left(s"Expected CompleteSingleDisposalReturn but got $m")
-          case Right(s: CompleteSingleDisposalReturn)    => Right(value(s))
+          case Left(e)                                => Left(s"Expected CompleteSingleDisposalReturn but got $e")
+          case Right(s: CompleteSingleDisposalReturn) => Right(value(s))
+          case Right(other)                           => Left(s"Expected CompleteSingleDisposalReturn but got $other")
         }
 
       def mockGetTaxYearAndCalculatedTaxDue(): Unit =
@@ -1009,8 +1009,8 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
       )(value: CompleteMultipleDisposalsReturn => A): Either[String, A] =
         result match {
           case Left(e)                                   => Left(s"Expected CompleteMultipleDisposalsReturn but got $e")
-          case Right(s: CompleteSingleDisposalReturn)    => Left(s"Expected CompleteMultipleDisposalsReturn but got $s")
           case Right(m: CompleteMultipleDisposalsReturn) => Right(value(m))
+          case Right(other)                              => Left(s"Expected CompleteMultipleDisposalsReturn but got $other")
         }
 
       def mockGetTaxYearSuccess(): Unit =
