@@ -26,7 +26,9 @@ final case class DesAssetTypeValue(value: String)
 object DesAssetTypeValue {
 
   def apply(c: CompleteReturn): DesAssetTypeValue = {
-    val assetTypes       = c.fold(_.triageAnswers.assetTypes, s => List(s.triageAnswers.assetType)).distinct
+    val assetTypes       = c
+      .fold(_.triageAnswers.assetTypes, s => List(s.triageAnswers.assetType), s => List(s.triageAnswers.assetType))
+      .distinct
     val assetTypeStrings = assetTypes.map { a =>
       a match {
         case AssetType.Residential      => "res"

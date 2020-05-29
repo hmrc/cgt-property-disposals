@@ -20,6 +20,7 @@ import com.github.ghik.silencer.silent
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
@@ -62,15 +63,29 @@ object CompleteReturn {
     hasAttachments: Boolean
   ) extends CompleteReturn
 
+  final case class CompleteSingleIndirectDisposalReturn(
+    triageAnswers: CompleteSingleDisposalTriageAnswers,
+    companyAddress: Address,
+    disposalDetails: CompleteDisposalDetailsAnswers,
+    acquisitionDetails: CompleteAcquisitionDetailsAnswers,
+    exemptionsAndLossesDetails: CompleteExemptionAndLossesAnswers,
+    yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
+    supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
+    representeeAnswers: Option[CompleteRepresenteeAnswers],
+    hasAttachments: Boolean
+  ) extends CompleteReturn
+
   implicit class CompleteReturnOps(private val c: CompleteReturn) extends AnyVal {
 
     def fold[A](
       ifMultiple: CompleteMultipleDisposalsReturn => A,
-      ifSingle: CompleteSingleDisposalReturn => A
+      ifSingle: CompleteSingleDisposalReturn => A,
+      whenSingleIndirect: CompleteSingleIndirectDisposalReturn => A
     ): A =
       c match {
-        case m: CompleteMultipleDisposalsReturn => ifMultiple(m)
-        case s: CompleteSingleDisposalReturn    => ifSingle(s)
+        case m: CompleteMultipleDisposalsReturn      => ifMultiple(m)
+        case s: CompleteSingleDisposalReturn         => ifSingle(s)
+        case s: CompleteSingleIndirectDisposalReturn => whenSingleIndirect(s)
       }
 
   }

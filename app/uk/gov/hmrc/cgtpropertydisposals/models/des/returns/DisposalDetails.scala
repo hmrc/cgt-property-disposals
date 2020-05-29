@@ -23,7 +23,7 @@ import play.api.libs.json.{JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 sealed trait DisposalDetails extends Product with Serializable
@@ -65,7 +65,7 @@ object DisposalDetails {
 
   def apply(c: CompleteReturn): DisposalDetails =
     c match {
-      case s: CompleteSingleDisposalReturn    =>
+      case s: CompleteSingleDisposalReturn         =>
         val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
           s.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
             if (f < AmountInPence.zero)
@@ -95,7 +95,7 @@ object DisposalDetails {
           initialLoss = initialGainOrLoss._2
         )
 
-      case m: CompleteMultipleDisposalsReturn =>
+      case m: CompleteMultipleDisposalsReturn      =>
         MultipleDisposalDetails(
           disposalDate = m.examplePropertyDetailsAnswers.disposalDate.value,
           addressDetails = Address.toAddressDetails(m.examplePropertyDetailsAnswers.address),
@@ -106,6 +106,28 @@ object DisposalDetails {
           disposalPrice = m.examplePropertyDetailsAnswers.disposalPrice.inPounds(),
           rebased = false,
           improvements = false
+        )
+
+      case s: CompleteSingleIndirectDisposalReturn =>
+        SingleDisposalDetails(
+          disposalDate = s.triageAnswers.disposalDate.value,
+          addressDetails = Address.toAddressDetails(s.companyAddress),
+          assetType = DesAssetTypeValue(s),
+          acquisitionType = DesAcquisitionType(s.acquisitionDetails.acquisitionMethod),
+          landRegistry = false,
+          acquisitionPrice = s.acquisitionDetails.acquisitionPrice.inPounds(),
+          rebased = s.acquisitionDetails.shouldUseRebase,
+          rebasedAmount = s.acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds()),
+          disposalPrice = s.disposalDetails.disposalPrice.inPounds(),
+          improvements = false,
+          improvementCosts = None,
+          percentOwned = s.disposalDetails.shareOfProperty.percentageValue,
+          acquiredDate = s.acquisitionDetails.acquisitionDate.value,
+          disposalType = DesDisposalType(s.triageAnswers.disposalMethod),
+          acquisitionFees = s.acquisitionDetails.acquisitionFees.inPounds(),
+          disposalFees = s.disposalDetails.disposalFees.inPounds(),
+          initialGain = None,
+          initialLoss = None
         )
     }
 

@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{Mult
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, Source}
 
@@ -306,6 +306,137 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
       }
 
     }
+
+    "given a single indirect disposal return" must {
+
+      def singleIndirectDisposalValue[A](
+        disposalDetails: DisposalDetails
+      )(value: SingleDisposalDetails => A): Either[String, A] =
+        disposalDetails match {
+          case s: SingleDisposalDetails   => Right(value(s))
+          case m: MultipleDisposalDetails =>
+            Left(s"Expected single disposal details but got multiple disposal details: $m")
+        }
+
+      "populate the initial gain or loss correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          val result = DisposalDetails(completeReturn)
+          singleIndirectDisposalValue(result)(_.initialGain) shouldBe Right(None)
+          singleIndirectDisposalValue(result)(_.initialLoss) shouldBe Right(None)
+        }
+      }
+
+      "populate the improvement costs correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          val result = DisposalDetails(completeReturn)
+          singleIndirectDisposalValue(result)(_.improvements)     shouldBe Right(false)
+          singleIndirectDisposalValue(result)(_.improvementCosts) shouldBe Right(None)
+        }
+      }
+
+      "populate the disposal date correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(
+            _.disposalDate
+          ) shouldBe Right(completeReturn.triageAnswers.disposalDate.value)
+        }
+      }
+
+      "populate the address correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(
+            _.addressDetails
+          ) shouldBe Right(Address.toAddressDetails(completeReturn.companyAddress))
+        }
+      }
+
+      "populate the asset type correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(
+            _.assetType
+          ) shouldBe Right(DesAssetTypeValue(completeReturn))
+        }
+      }
+
+      "populate the acquisition price correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(
+            _.acquisitionPrice
+          ) shouldBe Right(completeReturn.acquisitionDetails.acquisitionPrice.inPounds())
+        }
+      }
+
+      "populate the rebased acquisition price fields correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          val result             = DisposalDetails(completeReturn)
+          val acquisitionDetails = completeReturn.acquisitionDetails
+
+          singleIndirectDisposalValue(result)(_.rebased)       shouldBe Right(acquisitionDetails.shouldUseRebase)
+          singleIndirectDisposalValue(result)(_.rebasedAmount) shouldBe Right(
+            acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds())
+          )
+
+        }
+      }
+
+      "populate the disposal price correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(_.disposalPrice) shouldBe Right(
+            completeReturn.disposalDetails.disposalPrice.inPounds()
+          )
+        }
+      }
+
+      "populate the percent owned field correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(_.percentOwned) shouldBe Right(
+            completeReturn.disposalDetails.shareOfProperty.percentageValue
+          )
+        }
+      }
+
+      "populate the acquisition date field correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(_.acquiredDate) shouldBe Right(
+            completeReturn.acquisitionDetails.acquisitionDate.value
+          )
+        }
+      }
+
+      "populate the disposal type field correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(_.disposalType) shouldBe Right(
+            DesDisposalType(completeReturn.triageAnswers.disposalMethod)
+          )
+        }
+      }
+
+      "populate the acquisition fees field correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(_.acquisitionFees) shouldBe Right(
+            completeReturn.acquisitionDetails.acquisitionFees.inPounds()
+          )
+        }
+      }
+
+      "populate the disposal fees field correctly" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(_.disposalFees) shouldBe Right(
+            completeReturn.disposalDetails.disposalFees.inPounds()
+          )
+        }
+      }
+
+      "set the land registry flag to false" in {
+        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
+          singleIndirectDisposalValue(DisposalDetails(completeReturn))(
+            _.landRegistry
+          ) shouldBe Right(false)
+        }
+      }
+
+    }
+
   }
 
 }
