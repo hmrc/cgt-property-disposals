@@ -68,6 +68,17 @@ final case class DraftSingleIndirectDisposalReturn(
   lastUpdatedDate: LocalDate
 ) extends DraftReturn
 
+final case class DraftMultipleIndirectDisposalsReturn(
+  id: UUID,
+  triageAnswers: MultipleDisposalsTriageAnswers,
+  exampleCompanyDetailsAnswers: Option[ExampleCompanyDetailsAnswers],
+  exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
+  yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
+  supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
+  representeeAnswers: Option[RepresenteeAnswers],
+  lastUpdatedDate: LocalDate
+) extends DraftReturn
+
 final case class DraftSingleMixedUseDisposalReturn(
   id: UUID,
   triageAnswers: SingleDisposalTriageAnswers,
