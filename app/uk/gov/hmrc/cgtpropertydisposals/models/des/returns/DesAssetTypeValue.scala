@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import cats.instances.string._
+import cats.syntax.eq._
+
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
@@ -25,16 +28,23 @@ final case class DesAssetTypeValue(value: String)
 
 object DesAssetTypeValue {
 
+  private object Values {
+    val residential: String      = "res"
+    val nonResidential: String   = "nonres"
+    val mixedUse: String         = "mix"
+    val indirectDisposal: String = "shares"
+  }
+
   def apply(c: CompleteReturn): DesAssetTypeValue = {
     val assetTypes       = c
       .fold(_.triageAnswers.assetTypes, s => List(s.triageAnswers.assetType), s => List(s.triageAnswers.assetType))
       .distinct
     val assetTypeStrings = assetTypes.map { a =>
       a match {
-        case AssetType.Residential      => "res"
-        case AssetType.NonResidential   => "nonres"
-        case AssetType.MixedUse         => "mix"
-        case AssetType.IndirectDisposal => "shares"
+        case AssetType.Residential      => Values.residential
+        case AssetType.NonResidential   => Values.nonResidential
+        case AssetType.MixedUse         => Values.mixedUse
+        case AssetType.IndirectDisposal => Values.indirectDisposal
       }
     }
 
@@ -45,11 +55,11 @@ object DesAssetTypeValue {
 
     def toAssetTypes(): Either[String, List[AssetType]] = {
       val result                 = a.value.split(' ').toList.map {
-        case "res"    => Right(AssetType.Residential)
-        case "nonres" => Right(AssetType.NonResidential)
-        case "mix"    => Right(AssetType.MixedUse)
-        case "shares" => Right(AssetType.IndirectDisposal)
-        case other    => Left(other)
+        case Values.residential      => Right(AssetType.Residential)
+        case Values.nonResidential   => Right(AssetType.NonResidential)
+        case Values.mixedUse         => Right(AssetType.MixedUse)
+        case Values.indirectDisposal => Right(AssetType.IndirectDisposal)
+        case other                   => Left(other)
       }
       val (unknowns, assetTypes) = result.partitionWith(identity)
       if (unknowns.nonEmpty)
@@ -57,6 +67,8 @@ object DesAssetTypeValue {
       else
         Right(assetTypes)
     }
+
+    def isIndirectDisposal(): Boolean = a.value === Values.indirectDisposal
 
   }
 
