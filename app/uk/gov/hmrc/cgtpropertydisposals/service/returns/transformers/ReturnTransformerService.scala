@@ -26,14 +26,15 @@ import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.Trust
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesReturnDetails, ReliefDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.IndirectDisposal
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
@@ -71,7 +72,10 @@ class ReturnTransformerServiceImpl @Inject() (
   ): ValidatedNel[String, CompleteReturn] =
     desReturn.disposalDetails match {
       case (singleDisposalDetails: SingleDisposalDetails) :: Nil      =>
-        validateSingleDisposal(desReturn, singleDisposalDetails)
+        if (singleDisposalDetails.assetType.isIndirectDisposal())
+          validateSingleIndirectDisposal(desReturn, singleDisposalDetails)
+        else
+          validateSingleDisposal(desReturn, singleDisposalDetails)
 
       case (multipleDisposalsDetails: MultipleDisposalDetails) :: Nil =>
         validateMultipleDisposal(desReturn, multipleDisposalsDetails)
@@ -89,7 +93,7 @@ class ReturnTransformerServiceImpl @Inject() (
     multipleDisposalDetails: MultipleDisposalDetails
   ): ValidatedNel[String, CompleteMultipleDisposalsReturn] =
     (
-      addressValidation(multipleDisposalDetails.addressDetails),
+      ukAddressValidation(multipleDisposalDetails.addressDetails),
       disposalDateValidation(multipleDisposalDetails.disposalDate),
       assetTypesValidation(multipleDisposalDetails),
       countryValidation(desReturn)
@@ -135,7 +139,7 @@ class ReturnTransformerServiceImpl @Inject() (
     singleDisposalDetails: SingleDisposalDetails
   ): ValidatedNel[String, CompleteSingleDisposalReturn] =
     (
-      addressValidation(singleDisposalDetails.addressDetails),
+      ukAddressValidation(singleDisposalDetails.addressDetails),
       disposalDateValidation(singleDisposalDetails.disposalDate),
       assetTypeValidation(singleDisposalDetails),
       countryValidation(desReturn),
@@ -209,6 +213,49 @@ class ReturnTransformerServiceImpl @Inject() (
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
           initialGainOrLoss,
+          CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
+          None,
+          hasAttachments = desReturn.returnDetails.attachmentUpload
+        )
+    }
+
+  private def validateSingleIndirectDisposal(
+    desReturn: DesReturnDetails,
+    singleDisposalDetails: SingleDisposalDetails
+  ): ValidatedNel[String, CompleteSingleIndirectDisposalReturn] =
+    (
+      addressValidation(singleDisposalDetails.addressDetails),
+      disposalDateValidation(singleDisposalDetails.disposalDate),
+      countryValidation(desReturn)
+    ).mapN {
+      case (
+            address,
+            disposalDate,
+            country
+          ) =>
+        val triageAnswers             =
+          constructTriageAnswers(
+            desReturn,
+            singleDisposalDetails,
+            country,
+            disposalDate,
+            DisposalMethod(singleDisposalDetails.disposalType),
+            IndirectDisposal
+          )
+        val disposalDetailsAnswers    = constructDisposalDetailsAnswers(singleDisposalDetails)
+        val acquisitionDetailsAnswers = constructAcquisitionDetailsAnswers(singleDisposalDetails)
+        val exemptionAndLossesAnswers = constructExemptionAndLossesAnswers(desReturn)
+
+        val yearToDateLiabilityAnswers =
+          constructNonCalculatedYearToDateAnswers(desReturn)
+
+        CompleteSingleIndirectDisposalReturn(
+          triageAnswers,
+          address,
+          disposalDetailsAnswers,
+          acquisitionDetailsAnswers,
+          exemptionAndLossesAnswers,
+          yearToDateLiabilityAnswers,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           hasAttachments = desReturn.returnDetails.attachmentUpload
@@ -345,13 +392,17 @@ class ReturnTransformerServiceImpl @Inject() (
       otherReliefsOption.map(reliefDetails -> _)
     }
 
-  private def addressValidation(addressDetails: AddressDetails): Validation[UkAddress] =
+  private def ukAddressValidation(addressDetails: AddressDetails): Validation[UkAddress] =
     AddressDetails
       .fromDesAddressDetails(addressDetails)(List.empty, Map.empty)
       .andThen {
         case _: NonUkAddress => invalid("Expected uk address but got non-uk address")
         case a: UkAddress    => Valid(a)
       }
+
+  private def addressValidation(addressDetails: AddressDetails): Validation[Address] =
+    AddressDetails
+      .fromDesAddressDetails(addressDetails)(List.empty, Map.empty)
 
   private def disposalDateValidation(disposalDate: LocalDate): Validation[DisposalDate] =
     taxYearService
