@@ -34,8 +34,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesRet
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.IndirectDisposal
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExampleCompanyDetailsAnswers.CompleteExampleCompanyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
@@ -78,7 +79,10 @@ class ReturnTransformerServiceImpl @Inject() (
           validateSingleDisposal(desReturn, singleDisposalDetails)
 
       case (multipleDisposalsDetails: MultipleDisposalDetails) :: Nil =>
-        validateMultipleDisposal(desReturn, multipleDisposalsDetails)
+        if (multipleDisposalsDetails.assetType.isIndirectDisposal())
+          validateMultipleIndirectDisposal(desReturn, multipleDisposalsDetails)
+        else
+          validateMultipleDisposal(desReturn, multipleDisposalsDetails)
 
       case other                                                      =>
         Invalid(
@@ -254,6 +258,51 @@ class ReturnTransformerServiceImpl @Inject() (
           address,
           disposalDetailsAnswers,
           acquisitionDetailsAnswers,
+          exemptionAndLossesAnswers,
+          yearToDateLiabilityAnswers,
+          CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
+          None,
+          hasAttachments = desReturn.returnDetails.attachmentUpload
+        )
+    }
+
+  private def validateMultipleIndirectDisposal(
+    desReturn: DesReturnDetails,
+    multipleDisposalDetails: MultipleDisposalDetails
+  ): ValidatedNel[String, CompleteMultipleIndirectDisposalReturn] =
+    (
+      addressValidation(multipleDisposalDetails.addressDetails),
+      disposalDateValidation(multipleDisposalDetails.disposalDate),
+      assetTypesValidation(multipleDisposalDetails),
+      countryValidation(desReturn)
+    ).mapN {
+      case (
+            address,
+            disposalDate,
+            assetTypes,
+            country
+          ) =>
+        val triageAnswers = CompleteMultipleDisposalsTriageAnswers(
+          getIndividualUserType(desReturn),
+          desReturn.returnDetails.numberDisposals,
+          country,
+          assetTypes,
+          disposalDate.taxYear,
+          CompletionDate(desReturn.returnDetails.completionDate)
+        )
+
+        val exampleCompanyDetailsAnswers = CompleteExampleCompanyDetailsAnswers(
+          address,
+          AmountInPence.fromPounds(multipleDisposalDetails.disposalPrice),
+          AmountInPence.fromPounds(multipleDisposalDetails.acquisitionPrice)
+        )
+
+        val exemptionAndLossesAnswers  = constructExemptionAndLossesAnswers(desReturn)
+        val yearToDateLiabilityAnswers = constructNonCalculatedYearToDateAnswers(desReturn)
+
+        CompleteMultipleIndirectDisposalReturn(
+          triageAnswers,
+          exampleCompanyDetailsAnswers,
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
