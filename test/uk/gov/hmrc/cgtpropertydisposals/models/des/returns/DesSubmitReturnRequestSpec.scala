@@ -25,6 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.NINO
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.IndirectDisposal
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExampleCompanyDetailsAnswers.CompleteExampleCompanyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
@@ -71,6 +72,10 @@ class DesSubmitReturnRequestSpec extends WordSpec {
                 _.copy(
                   companyAddress = sample[NonUkAddress],
                   triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(assetType = IndirectDisposal)
+                ),
+                _.copy(
+                  exampleCompanyDetailsAnswers =
+                    sample[CompleteExampleCompanyDetailsAnswers].copy(address = sample[UkAddress])
                 )
               )
           )

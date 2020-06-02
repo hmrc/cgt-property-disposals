@@ -97,11 +97,13 @@ class DefaultDmsSubmissionService @Inject() (
     val mandatoryEvidence = completeReturn.fold(
       m => Some(m.yearToDateLiabilityAnswers.mandatoryEvidence),
       s => s.yearToDateLiabilityAnswers.fold(n => Some(n.mandatoryEvidence), _.mandatoryEvidence),
-      s => Some(s.yearToDateLiabilityAnswers.mandatoryEvidence)
+      s => Some(s.yearToDateLiabilityAnswers.mandatoryEvidence),
+      m => Some(m.yearToDateLiabilityAnswers.mandatoryEvidence)
     )
 
     val supportingEvidences = completeReturn
       .fold(
+        _.supportingDocumentAnswers.evidences,
         _.supportingDocumentAnswers.evidences,
         _.supportingDocumentAnswers.evidences,
         _.supportingDocumentAnswers.evidences

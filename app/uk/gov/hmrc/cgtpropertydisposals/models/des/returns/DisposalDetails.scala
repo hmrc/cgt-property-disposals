@@ -23,7 +23,7 @@ import play.api.libs.json.{JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 sealed trait DisposalDetails extends Product with Serializable
@@ -65,7 +65,7 @@ object DisposalDetails {
 
   def apply(c: CompleteReturn): DisposalDetails =
     c match {
-      case s: CompleteSingleDisposalReturn         =>
+      case s: CompleteSingleDisposalReturn           =>
         val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
           s.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
             if (f < AmountInPence.zero)
@@ -95,7 +95,7 @@ object DisposalDetails {
           initialLoss = initialGainOrLoss._2
         )
 
-      case m: CompleteMultipleDisposalsReturn      =>
+      case m: CompleteMultipleDisposalsReturn        =>
         MultipleDisposalDetails(
           disposalDate = m.examplePropertyDetailsAnswers.disposalDate.value,
           addressDetails = Address.toAddressDetails(m.examplePropertyDetailsAnswers.address),
@@ -108,7 +108,7 @@ object DisposalDetails {
           improvements = false
         )
 
-      case s: CompleteSingleIndirectDisposalReturn =>
+      case s: CompleteSingleIndirectDisposalReturn   =>
         SingleDisposalDetails(
           disposalDate = s.triageAnswers.disposalDate.value,
           addressDetails = Address.toAddressDetails(s.companyAddress),
@@ -128,6 +128,19 @@ object DisposalDetails {
           disposalFees = s.disposalDetails.disposalFees.inPounds(),
           initialGain = None,
           initialLoss = None
+        )
+
+      case m: CompleteMultipleIndirectDisposalReturn =>
+        MultipleDisposalDetails(
+          disposalDate = m.triageAnswers.completionDate.value,
+          addressDetails = Address.toAddressDetails(m.exampleCompanyDetailsAnswers.address),
+          assetType = DesAssetTypeValue(m),
+          acquisitionType = DesAcquisitionType.Other("not captured for multiple disposals"),
+          landRegistry = false,
+          acquisitionPrice = m.exampleCompanyDetailsAnswers.acquisitionPrice.inPounds(),
+          disposalPrice = m.exampleCompanyDetailsAnswers.disposalPrice.inPounds(),
+          rebased = false,
+          improvements = false
         )
     }
 

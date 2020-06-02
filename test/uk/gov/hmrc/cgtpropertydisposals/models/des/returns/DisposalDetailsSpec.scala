@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{Mult
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, Source}
 
@@ -431,6 +431,91 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
         forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
           singleIndirectDisposalValue(DisposalDetails(completeReturn))(
             _.landRegistry
+          ) shouldBe Right(false)
+        }
+      }
+
+    }
+
+    "given a multiple indirect disposals return" must {
+
+      def multipleDisposalsDetailsValue[A](
+        disposalDetails: DisposalDetails
+      )(value: MultipleDisposalDetails => A): Either[String, A] =
+        disposalDetails match {
+          case s: MultipleDisposalDetails => Right(value(s))
+          case m: SingleDisposalDetails   =>
+            Left(s"Expected multiple disposals details but got single disposal details: $m")
+        }
+
+      "populate the disposal date correctly" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.disposalDate
+          ) shouldBe Right(completeReturn.triageAnswers.completionDate.value)
+        }
+      }
+
+      "populate the address correctly" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.addressDetails
+          ) shouldBe Right(Address.toAddressDetails(completeReturn.exampleCompanyDetailsAnswers.address))
+        }
+      }
+
+      "populate the asset types correctly" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.assetType
+          ) shouldBe Right(DesAssetTypeValue(completeReturn))
+        }
+      }
+
+      "set the acquisition type to a dummy value" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.acquisitionType
+          ) shouldBe Right(DesAcquisitionType.Other("not captured for multiple disposals"))
+        }
+      }
+
+      "set the land registry flag to false" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.landRegistry
+          ) shouldBe Right(false)
+        }
+      }
+
+      "populate the acquisition price field correctly" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.acquisitionPrice
+          ) shouldBe Right(completeReturn.exampleCompanyDetailsAnswers.acquisitionPrice.inPounds())
+        }
+      }
+
+      "populate the disposal price correctly" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.disposalPrice
+          ) shouldBe Right(completeReturn.exampleCompanyDetailsAnswers.disposalPrice.inPounds())
+        }
+      }
+
+      "set the rebased flag to false" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.rebased
+          ) shouldBe Right(false)
+        }
+      }
+
+      "set the improvements flag to false" in {
+        forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
+          multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
+            _.improvements
           ) shouldBe Right(false)
         }
       }

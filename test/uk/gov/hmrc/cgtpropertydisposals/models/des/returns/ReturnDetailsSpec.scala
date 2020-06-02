@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, TaxableAmountOfMoney}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
@@ -464,6 +464,96 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
         result.adjustedAmount      shouldBe None
         result.attachmentID        shouldBe None
         result.entrepreneursRelief shouldBe None
+      }
+
+    }
+
+    "given a multiple indirect disposals return" must {
+
+      val completeReturn = sample[CompleteMultipleIndirectDisposalReturn].copy(hasAttachments = true)
+
+      val multipleIndirectDisposalsSubmitReturnRequest = sample[SubmitReturnRequest].copy(
+        completeReturn = completeReturn
+      )
+
+      "find the correct customer type" in {
+
+        ReturnDetails(
+          multipleIndirectDisposalsSubmitReturnRequest.copy(
+            subscribedDetails = sample[SubscribedDetails].copy(
+              name = Left(sample[TrustName])
+            )
+          )
+        ).customerType shouldBe CustomerType.Trust
+
+        ReturnDetails(
+          multipleIndirectDisposalsSubmitReturnRequest.copy(
+            subscribedDetails = sample[SubscribedDetails].copy(
+              name = Right(sample[IndividualName])
+            )
+          )
+        ).customerType shouldBe CustomerType.Individual
+      }
+
+      "find the correct completion date" in {
+        ReturnDetails(
+          multipleIndirectDisposalsSubmitReturnRequest
+        ).completionDate shouldBe completeReturn.triageAnswers.completionDate.value
+      }
+
+      "find the correct residency status and country" in {
+        def requestWithCountry(country: Country): SubmitReturnRequest =
+          multipleIndirectDisposalsSubmitReturnRequest.copy(
+            completeReturn = completeReturn.copy(
+              triageAnswers = completeReturn.triageAnswers.copy(
+                countryOfResidence = country
+              )
+            )
+          )
+
+        val nonUkCountry = Country("HK", Some("Hong Kong"))
+        val ukResult     = ReturnDetails(requestWithCountry(Country.uk))
+        val nonUkResult  = ReturnDetails(requestWithCountry(nonUkCountry))
+
+        ukResult.isUKResident    shouldBe true
+        nonUkResult.isUKResident shouldBe false
+
+        ukResult.countryResidence    shouldBe None
+        nonUkResult.countryResidence shouldBe Some(nonUkCountry.code)
+      }
+
+      "populate the correct number of properties" in {
+        ReturnDetails(
+          multipleIndirectDisposalsSubmitReturnRequest
+        ).numberDisposals shouldBe completeReturn.triageAnswers.numberOfProperties
+      }
+
+      "find the correct total liability and year to date value and estimate flag" in {
+        forAll { nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
+          val result = ReturnDetails(
+            multipleIndirectDisposalsSubmitReturnRequest.copy(
+              completeReturn = completeReturn.copy(
+                yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
+              )
+            )
+          )
+
+          result.totalLiability    shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
+          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
+          result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
+
+        }
+      }
+      "set the underived fields properly" in {
+        val result = ReturnDetails(multipleIndirectDisposalsSubmitReturnRequest)
+
+        result.valueAtTaxBandDetails shouldBe None
+        result.repayment             shouldBe false
+        result.attachmentUpload      shouldBe true
+        result.declaration           shouldBe true
+        result.adjustedAmount        shouldBe None
+        result.attachmentID          shouldBe None
+        result.entrepreneursRelief   shouldBe None
       }
 
     }
