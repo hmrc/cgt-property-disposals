@@ -37,7 +37,12 @@ object DesAssetTypeValue {
 
   def apply(c: CompleteReturn): DesAssetTypeValue = {
     val assetTypes       = c
-      .fold(_.triageAnswers.assetTypes, s => List(s.triageAnswers.assetType), s => List(s.triageAnswers.assetType))
+      .fold(
+        _.triageAnswers.assetTypes,
+        s => List(s.triageAnswers.assetType),
+        s => List(s.triageAnswers.assetType),
+        _.triageAnswers.assetTypes
+      )
       .distinct
     val assetTypeStrings = assetTypes.map { a =>
       a match {

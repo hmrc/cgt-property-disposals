@@ -38,9 +38,14 @@ object DesReturnDetails {
     val completeReturn         = submitReturnRequest.completeReturn
     val returnDetails          = ReturnDetails(submitReturnRequest)
     val lossSummaryDetails     = LossSummaryDetails(
-      completeReturn.fold(_.exemptionAndLossesAnswers, _.exemptionsAndLossesDetails, _.exemptionsAndLossesDetails)
+      completeReturn.fold(
+        _.exemptionAndLossesAnswers,
+        _.exemptionsAndLossesDetails,
+        _.exemptionsAndLossesDetails,
+        _.exemptionsAndLossesDetails
+      )
     )
-    val reliefDetails          = completeReturn.fold(_ => None, s => Some(ReliefDetails(s)), _ => None)
+    val reliefDetails          = completeReturn.fold(_ => None, s => Some(ReliefDetails(s)), _ => None, _ => None)
     val incomeAllowanceDetails = IncomeAllowanceDetails(completeReturn)
     val disposalDetails        = DisposalDetails(completeReturn)
 
