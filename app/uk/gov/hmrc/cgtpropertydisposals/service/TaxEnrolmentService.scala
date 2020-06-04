@@ -111,8 +111,8 @@ class TaxEnrolmentServiceImpl @Inject() (
       result       <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
                         error: Error =>
                           logger.warn(
-                              s"Failed to allocate enrolments due to error: $error; will store enrolment details"
-                            )
+                            s"Failed to allocate enrolments due to error: $error; will store enrolment details"
+                          )
                           taxEnrolmentRepository
                             .save(taxEnrolmentRequest)
                             .leftMap(error => Error(s"Could not store enrolment details: $error"))
