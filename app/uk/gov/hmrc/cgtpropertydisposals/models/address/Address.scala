@@ -60,8 +60,8 @@ object Address {
 
   def toVerifierFormat(address: Address): KeyValuePair =
     address match {
-      case UkAddress(line1, line2, town, county, postcode)             => KeyValuePair("Postcode", postcode.value)
-      case NonUkAddress(line1, line2, line3, line4, postcode, country) => KeyValuePair("CountryCode", country.code)
+      case UkAddress(_, _, _, _, postcode)      => KeyValuePair("Postcode", postcode.value)
+      case NonUkAddress(_, _, _, _, _, country) => KeyValuePair("CountryCode", country.code)
     }
 
   implicit val eq: Eq[Address] = Eq.fromUniversalEquals

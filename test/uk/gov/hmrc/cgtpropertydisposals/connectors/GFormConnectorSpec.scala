@@ -16,23 +16,19 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
-import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.Files.TemporaryFile
 import play.api.libs.ws
 import play.api.libs.ws.ahc.AhcWSResponse
 import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseHeaders, CacheableHttpResponseStatus}
 import play.api.libs.ws.{BodyWritable, WSResponse}
-import play.api.mvc.MultipartFormData
 import play.api.test.Helpers.{await, _}
 import play.api.{Configuration, Mode}
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
 import play.shaded.ahc.org.asynchttpclient.Response
 import play.shaded.ahc.org.asynchttpclient.uri.Uri
-import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector._
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
@@ -77,7 +73,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
         .build()
     )
 
-  def mockPost[A](url: String, headers: Seq[(String, String)], body: A)(
+  def mockPost[A](url: String, headers: Seq[(String, String)])(
     response: Future[ws.WSResponse]
   ) =
     (mockWsClient
@@ -99,23 +95,6 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
         DmsMetadata("id", "cId", "ct", "ba")
       )
 
-      val s = MultipartFormData[TemporaryFile](
-        dataParts = Map(
-          "html"               -> Seq(dms.b64Html.value),
-          "dmsFormId"          -> Seq(dms.dmsMetadata.dmsFormId),
-          "customerId"         -> Seq(dms.dmsMetadata.customerId),
-          "classificationType" -> Seq(dms.dmsMetadata.classificationType),
-          "businessArea"       -> Seq(dms.dmsMetadata.businessArea)
-        ),
-        files = Seq.empty,
-        badParts = Nil
-      )
-
-      val payload = Source.apply(s.dataParts.flatMap {
-        case (key, values) =>
-          values.map(value => MultipartFormData.DataPart(key, value): MultipartFormData.Part[Source[ByteString, _]])
-      } ++ filePartToByteString(s.files))
-
       List(
         buildWsResponse(400, "error body"),
         buildWsResponse(500, "error body")
@@ -123,8 +102,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
         withClue(s"For http response [${httpResponse.toString}]") {
           mockPost(
             "http://localhost:9196/gform/dms/submit-with-attachments",
-            hc.headers,
-            payload
+            hc.headers
           )(Future.successful(httpResponse))
           await(
             connector
@@ -145,31 +123,13 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
         DmsMetadata("id", "cId", "ct", "ba")
       )
 
-      val s = MultipartFormData[TemporaryFile](
-        dataParts = Map(
-          "html"               -> Seq(dms.b64Html.value),
-          "dmsFormId"          -> Seq(dms.dmsMetadata.dmsFormId),
-          "customerId"         -> Seq(dms.dmsMetadata.customerId),
-          "classificationType" -> Seq(dms.dmsMetadata.classificationType),
-          "businessArea"       -> Seq(dms.dmsMetadata.businessArea)
-        ),
-        files = Seq.empty,
-        badParts = Nil
-      )
-
-      val payload = Source.apply(s.dataParts.flatMap {
-        case (key, values) =>
-          values.map(value => MultipartFormData.DataPart(key, value): MultipartFormData.Part[Source[ByteString, _]])
-      } ++ filePartToByteString(s.files))
-
       List(
         buildWsResponse(200, "id")
       ).foreach { httpResponse =>
         withClue(s"For http response [${httpResponse.toString}]") {
           mockPost(
             "http://localhost:9196/gform/dms/submit-with-attachments",
-            hc.headers,
-            payload
+            hc.headers
           )(Future.successful(httpResponse))
           await(
             connector

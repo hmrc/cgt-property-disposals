@@ -223,10 +223,10 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         "do a post http call and return the result" in {
           for {
             httpResponse        <- List(
-                              HttpResponse(200),
-                              HttpResponse(200, Some(JsString("hi"))),
-                              HttpResponse(500)
-                            )
+                                     HttpResponse(200),
+                                     HttpResponse(200, Some(JsString("hi"))),
+                                     HttpResponse(500)
+                                   )
             idsWithExpectedUrls <- idsWithExpectedUrlsList
           } withClue(s"For http response [${httpResponse.toString}] and id ${idsWithExpectedUrls._1}") {
             mockPost(idsWithExpectedUrls._2, expectedHeaders, expectedBody(None))(

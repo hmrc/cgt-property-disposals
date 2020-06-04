@@ -144,7 +144,7 @@ class UpscanServiceSpec extends WordSpec with Matchers with MockFactory {
       }
       "return some upscan upload" when {
         "it successfully stores the data" in {
-          mockUpdateUpscanUpload(upscanUpload.uploadReference, upscanUpload)(Right(Some(upscanUpload)))
+          mockUpdateUpscanUpload(upscanUpload.uploadReference, upscanUpload)(Right(()))
           await(service.updateUpscanUpload(upscanUpload.uploadReference, upscanUpload).value) shouldBe Right(())
         }
       }

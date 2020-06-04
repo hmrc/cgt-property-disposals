@@ -109,15 +109,14 @@ class TaxEnrolmentServiceImpl @Inject() (
     for {
       httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
       result       <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
-                  error: Error =>
-                    logger
-                      .warn(
-                        s"Failed to allocate enrolments due to error: $error; will store enrolment details"
-                      )
-                    taxEnrolmentRepository
-                      .save(taxEnrolmentRequest)
-                      .leftMap(error => Error(s"Could not store enrolment details: $error"))
-                }
+                        error: Error =>
+                          logger.warn(
+                              s"Failed to allocate enrolments due to error: $error; will store enrolment details"
+                            )
+                          taxEnrolmentRepository
+                            .save(taxEnrolmentRequest)
+                            .leftMap(error => Error(s"Could not store enrolment details: $error"))
+                      }
     } yield result
 
   def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
@@ -136,8 +135,8 @@ class TaxEnrolmentServiceImpl @Inject() (
           httpResponse <- EitherT.liftF(makeES8call(createEnrolmentRequest)) // attempt to create enrolment
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
           _            <- taxEnrolmentRepository.delete(
-                 createEnrolmentRequest.ggCredId
-               ) // delete record if enrolment was successful
+                            createEnrolmentRequest.ggCredId
+                          ) // delete record if enrolment was successful
         } yield ()
         result
           .bimap(

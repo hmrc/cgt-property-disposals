@@ -82,8 +82,8 @@ class SubscriptionController @Inject() (
       val result = for {
         registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))
         sapNumber           <- registerWithoutIdService
-                       .registerWithoutId(registrationDetails)
-                       .leftMap[SubscriptionError](BackendError)
+                                 .registerWithoutId(registrationDetails)
+                                 .leftMap[SubscriptionError](BackendError)
       } yield sapNumber
 
       result.fold(
@@ -130,11 +130,10 @@ class SubscriptionController @Inject() (
         for {
           subscribedUpdateDetails <- EitherT.fromEither[Future](extractRequest[SubscribedUpdateDetails](request))
           subscriptionResponse    <- subscriptionService
-                                    .updateSubscription(subscribedUpdateDetails)
-                                    .leftMap[SubscriptionError](BackendError)
-          _                       <- taxEnrolmentService
-                 .updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
-                 .leftMap[SubscriptionError](BackendError)
+                                       .updateSubscription(subscribedUpdateDetails)
+                                       .leftMap[SubscriptionError](BackendError)
+          _                       <- taxEnrolmentService.updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
+                                       .leftMap[SubscriptionError](BackendError)
         } yield subscriptionResponse
 
       result.fold(
@@ -168,19 +167,18 @@ class SubscriptionController @Inject() (
     for {
       subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails)
       _                    <- subscriptionResponse match {
-             case SubscriptionSuccessful(cgtReferenceNumber) =>
-               taxEnrolmentService
-                 .allocateEnrolmentToGroup(
-                   TaxEnrolmentRequest(
-                     request.user.ggCredId,
-                     cgtReferenceNumber,
-                     subscriptionDetails.address,
-                     timestamp = request.timestamp
-                   )
-                 )
+                                case SubscriptionSuccessful(cgtReferenceNumber) =>
+                                  taxEnrolmentService.allocateEnrolmentToGroup(
+                                      TaxEnrolmentRequest(
+                                        request.user.ggCredId,
+                                        cgtReferenceNumber,
+                                        subscriptionDetails.address,
+                                        timestamp = request.timestamp
+                                      )
+                                    )
 
-             case AlreadySubscribed                          => EitherT.pure[Future, Error](())
-           }
+                                case AlreadySubscribed                          => EitherT.pure[Future, Error](())
+                              }
     } yield subscriptionResponse
 }
 

@@ -53,8 +53,8 @@ class S3ConnectorImpl @Inject() (
 
   implicit val mat: ActorMaterializer        = ActorMaterializer()
   private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposals")
-  private lazy val maxFileDownloadSize: Long = config.getConfInt("s3.max-file-download-size-in-mb", 5)
-  private val limitScaleFactor: Long         = config.getConfInt("s3.upstream-element-limit-scale-factor", 200)
+  private lazy val maxFileDownloadSize       = config.getConfInt("s3.max-file-download-size-in-mb", 5).toLong
+  private val limitScaleFactor               = config.getConfInt("s3.upstream-element-limit-scale-factor", 200).toLong
   private lazy val timeout: Duration         = config.getDuration("s3.file-download-timeout")
   private val headers: Seq[(String, String)] = Seq(USER_AGENT -> userAgent)
 
@@ -74,16 +74,19 @@ class S3ConnectorImpl @Inject() (
                 )
                 Future.successful(Left(Error("could not download file from s3")))
               case _                                       =>
-                response.bodyAsSource.limit(maxFileDownloadSize * limitScaleFactor).runWith(Sink.seq).map { bytes =>
-                  Right(
-                    FileAttachment(
-                      UUID.randomUUID().toString,
-                      filename,
-                      Some(mimeType),
-                      bytes
+                response.bodyAsSource
+                  .limit(maxFileDownloadSize * limitScaleFactor)
+                  .runWith(Sink.seq)
+                  .map { bytes =>
+                    Right(
+                      FileAttachment(
+                        UUID.randomUUID().toString,
+                        filename,
+                        Some(mimeType),
+                        bytes
+                      )
                     )
-                  )
-                }
+                  }
             }
           }
           .recover {

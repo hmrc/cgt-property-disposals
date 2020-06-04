@@ -85,12 +85,12 @@ class DefaultDmsSubmissionService @Inject() (
       attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
       envId           <- gFormConnector.submitToDms(
-                 DmsSubmissionPayload(
-                   html,
-                   fileAttachments,
-                   DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
-                 )
-               )
+                           DmsSubmissionPayload(
+                             html,
+                             fileAttachments,
+                             DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
+                           )
+                         )
     } yield envId
 
   private def getUpscanSuccesses(completeReturn: CompleteReturn): List[UpscanSuccess] = {

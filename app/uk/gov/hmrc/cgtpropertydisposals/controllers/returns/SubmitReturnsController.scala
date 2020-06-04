@@ -65,11 +65,11 @@ class SubmitReturnsController @Inject() (
             representeeDetails <- extractRepresenteeAnswersWithValidId(returnRequest)
             submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
             envelopeId         <- dmsSubmissionService.submitToDms(
-                            sanitisedHtml,
-                            submissionResult.formBundleId,
-                            returnRequest.subscribedDetails.cgtReference,
-                            returnRequest.completeReturn
-                          )
+                                    sanitisedHtml,
+                                    submissionResult.formBundleId,
+                                    returnRequest.subscribedDetails.cgtReference,
+                                    returnRequest.completeReturn
+                                  )
             _                   =
               logger.info(
                 s"Submitted documents with envelope id ${envelopeId.value} with details ['formBundleId' :${submissionResult.formBundleId}, 'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
@@ -110,12 +110,12 @@ class SubmitReturnsController @Inject() (
           case NoReferenceId                   =>
             for {
               sapNumber            <- registrationService.registerWithoutId(
-                             RegistrationDetails(
-                               c.name,
-                               c.contactDetails.emailAddress,
-                               c.contactDetails.address
-                             )
-                           )
+                                        RegistrationDetails(
+                                          c.name,
+                                          c.contactDetails.emailAddress,
+                                          c.contactDetails.address
+                                        )
+                                      )
               subscriptionResponse <- subscriptionService.subscribe(
                                         SubscriptionDetails(
                                           Right(c.name),
@@ -126,15 +126,15 @@ class SubmitReturnsController @Inject() (
                                         )
                                       )
               cgtReference         <- subscriptionResponse match {
-                                case SubscriptionResponse.SubscriptionSuccessful(cgtReferenceNumber) =>
-                                  EitherT.pure[Future, Error](cgtReferenceNumber)
-                                case SubscriptionResponse.AlreadySubscribed                          =>
-                                  EitherT.leftT(
-                                    Error(
-                                      "Got unexpected 'already subscribed' response to subscription after register with id for representee"
-                                    )
-                                  )
-                              }
+                                        case SubscriptionResponse.SubscriptionSuccessful(cgtReferenceNumber) =>
+                                          EitherT.pure[Future, Error](cgtReferenceNumber)
+                                        case SubscriptionResponse.AlreadySubscribed                          =>
+                                          EitherT.leftT(
+                                            Error(
+                                              "Got unexpected 'already subscribed' response to subscription after register with id for representee"
+                                            )
+                                          )
+                                      }
             } yield {
               logger.info(
                 s"registered and subscribed representee to cgt with SAP number ${sapNumber.value} and cgtReference"

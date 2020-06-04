@@ -62,9 +62,9 @@ lazy val microservice = Project(appName, file("."))
     addCompilerPlugin(scalafixSemanticdb),
     scalacOptions ++= List(
       "-Yrangepos",
-      "-Ywarn-unused:imports",
-      "-Ypartial-unification"
-    )
+      "-language:postfixOps"
+    ),
+    scalacOptions in Test --= Seq("-Ywarn-value-discard")
   )
   .settings(scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused:imports"))
   .settings(publishingSettings: _*)
