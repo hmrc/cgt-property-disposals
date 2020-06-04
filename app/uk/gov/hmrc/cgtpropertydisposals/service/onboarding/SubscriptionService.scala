@@ -91,10 +91,10 @@ class SubscriptionServiceImpl @Inject() (
     for {
       subscriptionResponse <- sendSubscriptionRequest(subscriptionDetails)
       _                    <- subscriptionResponse match {
-             case successful: SubscriptionSuccessful =>
-               sendSubscriptionConfirmationEmail(subscriptionDetails, successful)
-             case _                                  => EitherT.pure[Future, Error](())
-           }
+                                case successful: SubscriptionSuccessful =>
+                                  sendSubscriptionConfirmationEmail(subscriptionDetails, successful)
+                                case _                                  => EitherT.pure[Future, Error](())
+                              }
     } yield subscriptionResponse
 
   private def sendSubscriptionRequest(

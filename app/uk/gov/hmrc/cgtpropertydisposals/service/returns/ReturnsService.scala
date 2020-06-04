@@ -102,13 +102,13 @@ class DefaultReturnsService @Inject() (
       _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)
       returnHttpResponse <- submitReturnAndAudit(returnRequest, desSubmitReturnRequest)
       desResponse        <- EitherT.fromEither[Future](
-                       returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
-                     )
+                              returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
+                            )
       returnResponse     <- prepareSubmitReturnResponse(desResponse)
       _                  <- sendEmailAndAudit(returnRequest, returnResponse).leftFlatMap { e =>
-             logger.warn("Could not send return submission confirmation email or audit event", e)
-             EitherT.pure[Future, Error](())
-           }
+                              logger.warn("Could not send return submission confirmation email or audit event", e)
+                              EitherT.pure[Future, Error](())
+                            }
     } yield returnResponse
   }
 
@@ -245,12 +245,12 @@ class DefaultReturnsService @Inject() (
       desFinancialData <- if (desReturnList.returnList.nonEmpty) desFinancialData
                           else EitherT.pure(DesFinancialDataResponse(List.empty))
       returnSummaries  <- EitherT.fromEither(
-                           if (desReturnList.returnList.nonEmpty)
-                             returnSummaryListTransformerService
-                               .toReturnSummaryList(desReturnList.returnList, desFinancialData.financialTransactions)
-                           else
-                             Right(List.empty)
-                         )
+                            if (desReturnList.returnList.nonEmpty)
+                              returnSummaryListTransformerService
+                                .toReturnSummaryList(desReturnList.returnList, desFinancialData.financialTransactions)
+                            else
+                              Right(List.empty)
+                          )
     } yield returnSummaries
   }
 
@@ -292,8 +292,8 @@ class DefaultReturnsService @Inject() (
       if (response.status === OK)
         for {
           desReturn      <- response
-                         .parseJSON[DesReturnDetails]()
-                         .leftMap(Error(_))
+                              .parseJSON[DesReturnDetails]()
+                              .leftMap(Error(_))
           completeReturn <- returnTransformerService.toCompleteReturn(desReturn)
         } yield completeReturn
       else {

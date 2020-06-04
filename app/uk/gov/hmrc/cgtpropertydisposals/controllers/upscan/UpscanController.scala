@@ -130,25 +130,25 @@ class UpscanController @Inject() (
     val result = for {
       maybeUpscanUpload <- upscanService.readUpscanUpload(uploadReference)
       upscanUpload      <- EitherT.fromOption(
-                        maybeUpscanUpload,
-                        Error(
-                          s"could not get upscan upload value from db for upload reference $uploadReference"
-                        )
-                      )
+                             maybeUpscanUpload,
+                             Error(
+                               s"could not get upscan upload value from db for upload reference $uploadReference"
+                             )
+                           )
       callBackResult    <- if (fileStatus === READY_FOR_DOWNLOAD)
-                          EitherT.fromOption(
-                            request.body.asOpt[UpscanSuccess],
-                            Error(
-                              s"could not parse upscan call back response body : ${request.body.toString}"
-                            )
-                          )
-                        else
-                          EitherT.fromOption(
-                            request.body.asOpt[UpscanFailure],
-                            Error(
-                              s"could not parse upscan call back response body : ${request.body.toString}"
-                            )
-                          )
+                             EitherT.fromOption(
+                               request.body.asOpt[UpscanSuccess],
+                               Error(
+                                 s"could not parse upscan call back response body : ${request.body.toString}"
+                               )
+                             )
+                           else
+                             EitherT.fromOption(
+                               request.body.asOpt[UpscanFailure],
+                               Error(
+                                 s"could not parse upscan call back response body : ${request.body.toString}"
+                               )
+                             )
 
       newUpscanUpload    = upscanUpload.copy(upscanCallBack = Some(callBackResult))
       _                 <- upscanService.updateUpscanUpload(uploadReference, newUpscanUpload)

@@ -45,12 +45,12 @@ object ReturnType {
           submissionType <- (json \ "submissionType").validate[SubmissionType]
           submissionId   <- (json \ "submissionID").validateOpt[String]
           result         <- submissionType match {
-                      case SubmissionType.New   => JsSuccess(CreateReturnType(source))
-                      case SubmissionType.Amend =>
-                        submissionId.fold[JsResult[AmendReturnType]](
-                          JsError("Could not find submission id for amend return type")
-                        )(id => JsSuccess(AmendReturnType(source, id)))
-                    }
+                              case SubmissionType.New   => JsSuccess(CreateReturnType(source))
+                              case SubmissionType.Amend =>
+                                submissionId.fold[JsResult[AmendReturnType]](
+                                  JsError("Could not find submission id for amend return type")
+                                )(id => JsSuccess(AmendReturnType(source, id)))
+                            }
         } yield result,
       { r: ReturnType =>
         r match {

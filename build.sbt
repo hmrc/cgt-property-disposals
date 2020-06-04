@@ -62,9 +62,9 @@ lazy val microservice = Project(appName, file("."))
     addCompilerPlugin(scalafixSemanticdb),
     scalacOptions ++= List(
       "-Yrangepos",
-      "-Ywarn-unused:imports",
-      "-Ypartial-unification"
-    )
+      "-language:postfixOps"
+    ),
+    scalacOptions in Test --= Seq("-Ywarn-value-discard")
   )
   .settings(scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused:imports"))
   .settings(publishingSettings: _*)
@@ -84,7 +84,3 @@ dependencyOverrides += "com.typesafe.akka" %% "akka-protobuf"  % akkaVersion
 dependencyOverrides += "com.typesafe.akka" %% "akka-slf4j"     % akkaVersion
 dependencyOverrides += "com.typesafe.akka" %% "akka-actor"     % akkaVersion
 dependencyOverrides += "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion
-scalacOptions ++= Seq("-Ywarn-unused:params",
-  "-Ywarn-unused:privates",
-  "-Ywarn-unused:locals",
-  "-Ywarn-unused:patvars")

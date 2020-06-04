@@ -81,9 +81,9 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
 
     for {
       fileparts  <- EitherT.fromOption[Future](
-                     makeTemporaryFiles(dmsSubmissionPayload),
-                     Error("Could not construct temporary files")
-                   )
+                      makeTemporaryFiles(dmsSubmissionPayload),
+                      Error("Could not construct temporary files")
+                    )
       formdata   <- EitherT.pure[Future, Error](createFormData(dmsSubmissionPayload, fileparts))
       payload    <- EitherT.pure[Future, Error](convertToPayload(formdata))
       envelopeId <- sendFormdata(payload)
