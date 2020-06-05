@@ -169,13 +169,13 @@ class SubscriptionController @Inject() (
       _                    <- subscriptionResponse match {
                                 case SubscriptionSuccessful(cgtReferenceNumber) =>
                                   taxEnrolmentService.allocateEnrolmentToGroup(
-                                      TaxEnrolmentRequest(
-                                        request.user.ggCredId,
-                                        cgtReferenceNumber,
-                                        subscriptionDetails.address,
-                                        timestamp = request.timestamp
-                                      )
+                                    TaxEnrolmentRequest(
+                                      request.user.ggCredId,
+                                      cgtReferenceNumber,
+                                      subscriptionDetails.address,
+                                      timestamp = request.timestamp
                                     )
+                                  )
 
                                 case AlreadySubscribed                          => EitherT.pure[Future, Error](())
                               }

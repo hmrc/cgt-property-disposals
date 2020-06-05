@@ -239,7 +239,6 @@ class ReturnTransformerServiceImpl @Inject() (
         val triageAnswers             =
           constructTriageAnswers(
             desReturn,
-            singleDisposalDetails,
             country,
             disposalDate,
             DisposalMethod(singleDisposalDetails.disposalType),
