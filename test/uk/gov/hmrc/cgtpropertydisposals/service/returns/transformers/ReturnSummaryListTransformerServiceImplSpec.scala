@@ -20,7 +20,7 @@ import java.time.LocalDate
 
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, ChargeType, Payment, PaymentMethod}
@@ -334,6 +334,34 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         }
 
+      }
+
+      "accept non uk addresses" in {
+        val nonUkAddress          = NonUkAddress("1 the Street", None, None, None, None, sample[Country])
+        val mainCharge            = DesCharge(
+          "CGT PPD Return UK Resident",
+          LocalDate.ofEpochDay(1),
+          "reference1"
+        )
+        val validDesReturnSummary =
+          sample[DesReturnSummary].copy(
+            propertyAddress = Address.toAddressDetails(nonUkAddress),
+            charges = Some(List(mainCharge))
+          )
+
+        val mainChargeFinancialTransaction = sample[DesFinancialTransaction].copy(
+          chargeReference = mainCharge.chargeReference,
+          items = None
+        )
+
+        val result = transformer.toReturnSummaryList(
+          List(validDesReturnSummary),
+          List(mainChargeFinancialTransaction)
+        )
+
+        result.map(_.map(_.propertyAddress)) shouldBe Right(
+          List(nonUkAddress)
+        )
       }
 
     }

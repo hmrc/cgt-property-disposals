@@ -26,7 +26,7 @@ import cats.syntax.eq._
 import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReturnSummary
@@ -67,12 +67,8 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     chargeReferenceToFinancialData: Map[String, DesFinancialTransaction]
   ): Validation[ReturnSummary] = {
     val chargesValidation: Validation[List[Charge]] = validateCharges(returnSummary, chargeReferenceToFinancialData)
-    val addressValidation: Validation[UkAddress]    = AddressDetails
-      .fromDesAddressDetails(returnSummary.propertyAddress)(List.empty, Map.empty)
-      .andThen {
-        case a: UkAddress    => Valid(a)
-        case _: NonUkAddress => invalid("Expected uk address but found non-uk address")
-      }
+    val addressValidation: Validation[Address]      =
+      AddressDetails.fromDesAddressDetails(returnSummary.propertyAddress)(List.empty, Map.empty)
 
     val mainReturnChargeAmountValidation: Validation[AmountInPence] = chargesValidation.andThen { charges =>
       if (returnSummary.totalCGTLiability === BigDecimal("0") && charges.isEmpty)
