@@ -21,18 +21,14 @@ import cats.data.{EitherT, NonEmptyList}
 import cats.instances.future._
 import cats.instances.int._
 import cats.instances.string._
-import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
-import play.api.Configuration
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.{BusinessPartnerRecordConnector, SubscriptionConnector}
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, CountryCodeMapping}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, SubscriptionStatus}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
@@ -58,19 +54,12 @@ trait BusinessPartnerRecordService {
 class BusinessPartnerRecordServiceImpl @Inject() (
   bprConnector: BusinessPartnerRecordConnector,
   subscriptionConnector: SubscriptionConnector,
-  config: Configuration,
   metrics: Metrics
 )(implicit
   ec: ExecutionContext
 ) extends BusinessPartnerRecordService {
 
-  val desNonIsoCountryCodes: List[CountryCode] =
-    config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
-
-  val countryCodeMappings: Map[CountryCode, CountryCode] =
-    config.underlying.get[List[CountryCodeMapping]]("des.country-code-mappings").value.map(m => m.from -> m.to).toMap
-
-  val correlationIdHeaderKey                             = "CorrelationId"
+  val correlationIdHeaderKey = "CorrelationId"
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
     hc: HeaderCarrier
@@ -98,7 +87,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
       if (response.status === OK)
         response
           .parseJSON[DesBusinessPartnerRecord]()
-          .flatMap(toBusinessPartnerRecord(_))
+          .flatMap(toBusinessPartnerRecord)
           .map(Some(_))
           .leftMap { e =>
             metrics.registerWithIdErrorCounter.inc()
@@ -154,10 +143,8 @@ class BusinessPartnerRecordServiceImpl @Inject() (
     response.status === NOT_FOUND && response.parseJSON[DesErrorResponse]().map(_.code).exists(_ === "NOT_FOUND")
 
   private def toBusinessPartnerRecord(d: DesBusinessPartnerRecord): Either[String, BusinessPartnerRecord] = {
-    val a = d.address
-
-    val addressValidation: Validation[Address] =
-      AddressDetails.fromDesAddressDetails(a)(desNonIsoCountryCodes, countryCodeMappings)
+    val address: Option[Address] =
+      AddressDetails.fromDesAddressDetails(d.address, allowNonIsoCountryCodes = false).toOption
 
     val nameValidation: Validation[Either[TrustName, IndividualName]] =
       d.individual -> d.organisation match {
@@ -170,15 +157,14 @@ class BusinessPartnerRecordServiceImpl @Inject() (
           Invalid(NonEmptyList.one("BPR contained contained neither an organisation name or an individual name"))
       }
 
-    (addressValidation, nameValidation)
-      .mapN {
-        case (address, name) =>
-          BusinessPartnerRecord(
-            d.contactDetails.emailAddress,
-            address,
-            SapNumber(d.sapNumber),
-            name
-          )
+    nameValidation
+      .map { name =>
+        BusinessPartnerRecord(
+          d.contactDetails.emailAddress,
+          address,
+          SapNumber(d.sapNumber),
+          name
+        )
       }
       .toEither
       .leftMap(errors => s"Could not read DES response: ${errors.toList.mkString("; ")}")

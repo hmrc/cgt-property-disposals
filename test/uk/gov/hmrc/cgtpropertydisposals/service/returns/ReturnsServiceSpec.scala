@@ -20,10 +20,8 @@ import java.time.{LocalDate, LocalDateTime, LocalTime}
 
 import cats.data.EitherT
 import cats.instances.future._
-import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.Configuration
 import play.api.libs.json._
 import play.api.mvc.Request
 import play.api.test.FakeRequest
@@ -65,14 +63,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   val mockEmailConnector = mock[EmailConnector]
 
-  val config = Configuration(
-    ConfigFactory.parseString(
-      """
-        |des.non-iso-country-codes = []
-        |""".stripMargin
-    )
-  )
-
   val returnsService =
     new DefaultReturnsService(
       returnsConnector,
@@ -81,7 +71,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       mockReturnListSummaryTransformerService,
       mockEmailConnector,
       mockAuditService,
-      config,
       MockMetrics.metrics
     )
 

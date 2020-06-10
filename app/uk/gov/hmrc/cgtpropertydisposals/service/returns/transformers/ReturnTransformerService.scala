@@ -440,7 +440,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
   private def ukAddressValidation(addressDetails: AddressDetails): Validation[UkAddress] =
     AddressDetails
-      .fromDesAddressDetails(addressDetails)(List.empty, Map.empty)
+      .fromDesAddressDetails(addressDetails, allowNonIsoCountryCodes = false)
       .andThen {
         case _: NonUkAddress => invalid("Expected uk address but got non-uk address")
         case a: UkAddress    => Valid(a)
@@ -448,7 +448,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
   private def addressValidation(addressDetails: AddressDetails): Validation[Address] =
     AddressDetails
-      .fromDesAddressDetails(addressDetails)(List.empty, Map.empty)
+      .fromDesAddressDetails(addressDetails, allowNonIsoCountryCodes = false)
 
   private def disposalDateValidation(disposalDate: LocalDate): Validation[DisposalDate] =
     taxYearService
