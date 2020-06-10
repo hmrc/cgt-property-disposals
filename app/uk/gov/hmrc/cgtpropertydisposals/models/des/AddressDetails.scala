@@ -23,7 +23,6 @@ import cats.syntax.eq._
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.Validation
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 
 final case class AddressDetails(
@@ -39,8 +38,9 @@ object AddressDetails {
   implicit val format: OFormat[AddressDetails] = Json.format[AddressDetails]
 
   def fromDesAddressDetails(
-    addressDetails: AddressDetails
-  )(desNonIsoCountryCodes: List[CountryCode], countryCodeMappings: Map[CountryCode, CountryCode]): Validation[Address] =
+    addressDetails: AddressDetails,
+    allowNonIsoCountryCodes: Boolean
+  ): Validation[Address] =
     if (addressDetails.countryCode === Country.uk.code)
       addressDetails.postalCode.fold[ValidatedNel[String, Address]](
         Invalid(NonEmptyList.one("Could not find postcode for UK address"))
@@ -56,12 +56,11 @@ object AddressDetails {
         )
       )
     else {
-      val countryCode = countryCodeMappings.getOrElse(addressDetails.countryCode, addressDetails.countryCode)
+      val countryCode = addressDetails.countryCode
       val country     = Country.countryCodeToCountryName.get(countryCode) match {
-        case Some(countryName)                                   => Some(Country(countryCode, Some(countryName)))
-        case None if desNonIsoCountryCodes.contains(countryCode) =>
-          Some(Country(countryCode, None))
-        case None                                                => None
+        case Some(countryName)               => Some(Country(countryCode, Some(countryName)))
+        case None if allowNonIsoCountryCodes => Some(Country(countryCode, None))
+        case None                            => None
       }
 
       country.fold[ValidatedNel[String, Address]](

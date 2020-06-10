@@ -25,8 +25,6 @@ import cats.syntax.either._
 import cats.syntax.eq._
 import com.codahale.metrics.Timer.Context
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
-import play.api.Configuration
 import play.api.http.Status.{ACCEPTED, NOT_FOUND, OK}
 import play.api.libs.json._
 import play.api.mvc.Request
@@ -35,7 +33,6 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnecto
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
@@ -44,7 +41,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtRef
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, RepresenteeDetails, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -83,14 +80,10 @@ class DefaultReturnsService @Inject() (
   returnSummaryListTransformerService: ReturnSummaryListTransformerService,
   emailConnector: EmailConnector,
   auditService: AuditService,
-  config: Configuration,
   metrics: Metrics
 )(implicit ec: ExecutionContext)
     extends ReturnsService
     with Logging {
-
-  val desNonIsoCountryCodes: List[CountryCode] =
-    config.underlying.get[List[CountryCode]]("des.non-iso-country-codes").value
 
   override def submitReturn(
     returnRequest: SubmitReturnRequest,

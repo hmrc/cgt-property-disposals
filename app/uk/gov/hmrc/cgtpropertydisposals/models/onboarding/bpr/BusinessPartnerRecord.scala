@@ -24,7 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat._
 
 final case class BusinessPartnerRecord(
   emailAddress: Option[String],
-  address: Address,
+  address: Option[Address],
   sapNumber: SapNumber,
   name: Either[TrustName, IndividualName]
 )

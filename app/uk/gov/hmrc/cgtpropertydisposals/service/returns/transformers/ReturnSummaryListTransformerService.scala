@@ -68,7 +68,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
   ): Validation[ReturnSummary] = {
     val chargesValidation: Validation[List[Charge]] = validateCharges(returnSummary, chargeReferenceToFinancialData)
     val addressValidation: Validation[Address]      =
-      AddressDetails.fromDesAddressDetails(returnSummary.propertyAddress)(List.empty, Map.empty)
+      AddressDetails.fromDesAddressDetails(returnSummary.propertyAddress, allowNonIsoCountryCodes = false)
 
     val mainReturnChargeAmountValidation: Validation[AmountInPence] = chargesValidation.andThen { charges =>
       if (returnSummary.totalCGTLiability === BigDecimal("0") && charges.isEmpty)
