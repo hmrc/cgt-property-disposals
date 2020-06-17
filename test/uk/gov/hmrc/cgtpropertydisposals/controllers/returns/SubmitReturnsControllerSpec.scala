@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, EnvelopeId}
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
@@ -39,12 +39,14 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{Subscrip
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId.{NoReferenceId, RepresenteeCgtReference, RepresenteeNino, RepresenteeSautr}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, RepresenteeDetails, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdService, SubscriptionService}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HtmlSanitizer
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.workitem.WorkItem
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -59,6 +61,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
   implicit val headerCarrier          = HeaderCarrier()
   implicit lazy val mat: Materializer = fakeApplication.materializer
+  val dmsSubmissionRequestWorkItem    = sample[WorkItem[DmsSubmissionRequest]]
 
   val request = new AuthenticatedRequest(
     Fake.user,
@@ -93,17 +96,11 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       .expects(List(id))
       .returning(EitherT.fromEither[Future](response))
 
-  def mockSubmitToDms() =
+  def mockDmsRequestEnqueue() =
     (dmsService
-      .submitToDms(_: B64Html, _: String, _: CgtReference, _: CompleteReturn)(_: HeaderCarrier))
-      .expects(*, *, *, *, *)
-      .returning(EitherT.pure(EnvelopeId("envelope")))
-
-  def mockSubmitSanitizedToDms(submitReturnRequest: SubmitReturnRequest) =
-    (dmsService
-      .submitToDms(_: B64Html, _: String, _: CgtReference, _: CompleteReturn)(_: HeaderCarrier))
-      .expects(*, *, *, submitReturnRequest.completeReturn, *)
-      .returning(EitherT.pure(EnvelopeId("envelope")))
+      .enqueue(_: DmsSubmissionRequest))
+      .expects(*)
+      .returning(EitherT.pure(dmsSubmissionRequestWorkItem))
 
   def mockRegisterWithoutId(registrationDetails: RegistrationDetails)(response: Either[Error, SapNumber]) =
     (registrationService
@@ -127,10 +124,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           checkYourAnswerPageHtml = B64Html(""),
           completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None)
         )
-
         inSequence {
           mockSubmitReturnService(requestBody, None)(Right(expectedResponseBody))
-          mockSubmitToDms()
+          mockDmsRequestEnqueue()
           mockDeleteDraftReturnService(requestBody.id)(Right(()))
         }
 
@@ -175,7 +171,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
           mockSubscribe(subscriptionDetails)(Right(subscriptionResponse))
           mockSubmitReturnService(requestBody, Some(representeeDetails))(Right(expectedResponseBody))
-          mockSubmitToDms()
+          mockDmsRequestEnqueue()
           mockDeleteDraftReturnService(requestBody.id)(Right(()))
         }
 
@@ -209,10 +205,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
                 representeeAnswers = Some(representeeAnswers)
               )
             )
-
             inSequence {
               mockSubmitReturnService(requestBody, Some(representeeDetails))(Right(expectedResponseBody))
-              mockSubmitToDms()
+              mockDmsRequestEnqueue()
               mockDeleteDraftReturnService(requestBody.id)(Right(()))
             }
 
@@ -237,16 +232,6 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
                  |</html>
                  |""".stripMargin
 
-            val sanitizedHtml =
-              s"""<html>
-                 |<body>
-                 |<h1>My First Heading</h1>
-                 |<$allowedElement>Sample value</$allowedElement>
-                 |<p>My first paragraph.</p>
-                 |</body>
-                 |</html>
-                 |""".stripMargin
-
             val expectedResponseBody = sample[SubmitReturnResponse]
 
             val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(
@@ -255,13 +240,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
                 B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes())))
             )
 
-            val sanitizedRequestBody = requestBodyWithForbiddenElements.copy(checkYourAnswerPageHtml =
-              B64Html(new String(Base64.getEncoder.encode(sanitizedHtml.getBytes())))
-            )
-
             inSequence {
               mockSubmitReturnService(requestBodyWithForbiddenElements, None)(Right(expectedResponseBody))
-              mockSubmitSanitizedToDms(sanitizedRequestBody)
+              mockDmsRequestEnqueue()
               mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
             }
 
@@ -290,10 +271,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           completeReturn = sample[CompleteMultipleDisposalsReturn].copy(representeeAnswers = None),
           checkYourAnswerPageHtml = B64Html("")
         )
-
         inSequence {
           mockSubmitReturnService(requestBody, None)(Right(sample[SubmitReturnResponse]))
-          mockSubmitToDms()
+          mockDmsRequestEnqueue()
           mockDeleteDraftReturnService(requestBody.id)(Left(Error.apply("error while deleting draft return")))
         }
 

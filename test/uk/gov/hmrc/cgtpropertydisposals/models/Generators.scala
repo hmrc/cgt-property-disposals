@@ -19,8 +19,10 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 
 import akka.util.ByteString
+import org.joda.time.DateTime
 import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
+import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
@@ -54,7 +56,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
+import uk.gov.hmrc.workitem.WorkItem
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -109,6 +113,13 @@ sealed trait GenUtils {
         .map(l => LocalDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.systemDefault()))
     )
 
+  implicit val jodaDateTime: Arbitrary[DateTime] =
+    Arbitrary(
+      Gen
+        .chooseNum(0L, 10000L)
+        .map(l => new DateTime(l))
+    )
+
   implicit val localDateArb: Arbitrary[LocalDate] = Arbitrary(
     Gen.chooseNum(0, 10000L).map(LocalDate.ofEpochDay(_))
   )
@@ -118,6 +129,13 @@ sealed trait GenUtils {
       Gen
         .choose(0L, Long.MaxValue)
         .map(s => ByteString(s))
+    )
+
+  implicit val bsonObjectId: Arbitrary[BSONObjectID] =
+    Arbitrary(
+      Gen
+        .choose(0L, 10000L)
+        .map(_ => BSONObjectID.generate())
     )
 
 }
@@ -194,6 +212,8 @@ trait DmsSubmissionGen {
   implicit val dmsMetadataGen: Gen[DmsMetadata]                   = gen[DmsMetadata]
   implicit val fileAttachmentGen: Gen[FileAttachment]             = gen[FileAttachment]
   implicit val dmsSubmissionPayloadGen: Gen[DmsSubmissionPayload] = gen[DmsSubmissionPayload]
+  implicit val dmsSubmissionRequestGen: Gen[DmsSubmissionRequest] = gen[DmsSubmissionRequest]
+  implicit val workItemGen: Gen[WorkItem[DmsSubmissionRequest]]   = gen[WorkItem[DmsSubmissionRequest]]
 }
 
 trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
