@@ -3,6 +3,8 @@ import sbt._
 
 object AppDependencies {
 
+  val akkaVersion = "2.5.23"
+
   val compile = Seq(
     "uk.gov.hmrc"                             %% "simple-reactivemongo"      % "7.26.0-play-26",
     "uk.gov.hmrc"                             %% "bootstrap-play-26"         % "1.7.0",
@@ -23,7 +25,8 @@ object AppDependencies {
     "uk.gov.hmrc"                %% "service-integration-test"   % "0.10.0-play-26" % "test, it",
     "org.scalatestplus.play"     %% "scalatestplus-play"         % "3.1.2"          % "test, it",
     "uk.gov.hmrc"                %% "reactivemongo-test"         % "4.19.0-play-26" % "test",
-    "com.eclipsesource"          %% "play-json-schema-validator" % "0.9.5"          % "test"
+    "com.eclipsesource"          %% "play-json-schema-validator" % "0.9.5"          % "test",
+    "com.typesafe.akka"          %% "akka-testkit"               % akkaVersion      % Test
   )
 
 }
