@@ -76,10 +76,10 @@ class DmsSubmissionPollerSpec
         |    queue-name = "queue-name"
         |    b64-business-area = "YnVzaW5lc3MtYXJlYQ=="
         |    submission-poller {
-        |        jitter-period = 5 seconds
-        |        initial-delay = 10 minutes
+        |        jitter-period = 1 millisecond
+        |        initial-delay = 1 millisecond
         |        interval = 120 seconds
-        |        failure-count-limit = 50
+        |        failure-count-limit = 10
         |        in-progress-retry-after = 5000 # milliseconds as required by work-item-repo library
         |        mongo {
         |            ttl = 7 days
@@ -167,7 +167,7 @@ class DmsSubmissionPollerSpec
     "process the work item and set it to permanently failed if failure count has been reached" in {
       val onCompleteListener = TestProbe()
 
-      val workItem = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 10, status = InProgress)
+      val workItem = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 10, status = Failed)
       inSequence {
         mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
         mockSetResultStatus(workItem.id, PermanentlyFailed)(Right(true))
