@@ -27,20 +27,32 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.Configs
 import configs.syntax._
 import play.api.Configuration
+import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
+import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionPollerExecutionContext, DmsSubmissionRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultDmsSubmissionService])
 trait DmsSubmissionService {
+
+  def enqueue(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]]
+
+  def dequeue: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]]
+
+  def setProcessingStatus(id: BSONObjectID, status: ProcessingStatus): EitherT[Future, Error, Boolean]
+
+  def setResultStatus(id: BSONObjectID, status: ResultStatus): EitherT[Future, Error, Boolean]
 
   def submitToDms(
     html: B64Html,
@@ -57,8 +69,9 @@ trait DmsSubmissionService {
 class DefaultDmsSubmissionService @Inject() (
   gFormConnector: GFormConnector,
   upscanService: UpscanService,
+  dmsSubmissionRepo: DmsSubmissionRepo,
   configuration: Configuration
-)(implicit ec: ExecutionContext)
+)(implicit ec: DmsSubmissionPollerExecutionContext)
     extends DmsSubmissionService
     with Logging {
 
@@ -69,8 +82,7 @@ class DefaultDmsSubmissionService @Inject() (
 
   val queue: String           = getDmsMetaConfig[String]("queue-name")
   val b64businessArea: String = getDmsMetaConfig[String]("b64-business-area")
-
-  val businessArea = new String(Base64.getDecoder.decode(b64businessArea))
+  val businessArea            = new String(Base64.getDecoder.decode(b64businessArea))
 
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def submitToDms(
@@ -112,5 +124,19 @@ class DefaultDmsSubmissionService @Inject() (
 
     mandatoryEvidence.toList.map(_.upscanSuccess) ::: supportingEvidences
   }
+
+  override def enqueue(
+    dmsSubmissionRequest: DmsSubmissionRequest
+  ): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]] =
+    dmsSubmissionRepo.set(dmsSubmissionRequest)
+
+  override def dequeue: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]] =
+    dmsSubmissionRepo.get
+
+  override def setProcessingStatus(id: BSONObjectID, status: ProcessingStatus): EitherT[Future, Error, Boolean] =
+    dmsSubmissionRepo.setProcessingStatus(id, status)
+
+  override def setResultStatus(id: BSONObjectID, status: ResultStatus): EitherT[Future, Error, Boolean] =
+    dmsSubmissionRepo.setResultStatus(id, status)
 
 }

@@ -34,6 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.Comple
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdService, SubscriptionService}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
@@ -64,16 +65,20 @@ class SubmitReturnsController @Inject() (
             sanitisedHtml      <- EitherT.fromEither[Future](sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
             representeeDetails <- extractRepresenteeAnswersWithValidId(returnRequest)
             submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
-            envelopeId         <- dmsSubmissionService.submitToDms(
-                                    sanitisedHtml,
-                                    submissionResult.formBundleId,
-                                    returnRequest.subscribedDetails.cgtReference,
-                                    returnRequest.completeReturn
+            _                  <- dmsSubmissionService.enqueue(
+                                    DmsSubmissionRequest(
+                                      request.headerCarrier,
+                                      sanitisedHtml,
+                                      submissionResult.formBundleId,
+                                      returnRequest.subscribedDetails.cgtReference,
+                                      returnRequest.completeReturn
+                                    )
                                   )
-            _                   =
-              logger.info(
-                s"Submitted documents with envelope id ${envelopeId.value} with details ['formBundleId' :${submissionResult.formBundleId}, 'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
-              )
+            _                   = logger.info(
+                                    s"Enqueued documents to be submitted with details " +
+                                      s"['formBundleId' :${submissionResult.formBundleId}, " +
+                                      s"'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
+                                  )
             _                  <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
           } yield submissionResult
 
