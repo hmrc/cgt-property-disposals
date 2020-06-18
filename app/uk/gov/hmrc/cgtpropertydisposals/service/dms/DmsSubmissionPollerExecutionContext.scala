@@ -20,5 +20,5 @@ import akka.actor.ActorSystem
 import com.google.inject.Inject
 import play.api.libs.concurrent.CustomExecutionContext
 
-class DmsSubmissionPollerContext @Inject() (actorSystem: ActorSystem)
+class DmsSubmissionPollerExecutionContext @Inject() (actorSystem: ActorSystem)
     extends CustomExecutionContext(actorSystem, "dms-submission-poller-dispatcher")

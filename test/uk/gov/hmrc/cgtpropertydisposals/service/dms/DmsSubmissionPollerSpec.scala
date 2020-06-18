@@ -40,7 +40,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.workitem._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class DmsSubmissionPollerSpec
@@ -62,7 +61,7 @@ class DmsSubmissionPollerSpec
   override def afterAll(): Unit =
     TestKit.shutdownActorSystem(system)
 
-  val executionContext: ExecutionContextExecutor = ExecutionContext.global
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
   val mockGFormConnector    = mock[GFormConnector]
   val mockUpscanService     = mock[UpscanService]
@@ -77,12 +76,13 @@ class DmsSubmissionPollerSpec
         |    queue-name = "queue-name"
         |    b64-business-area = "YnVzaW5lc3MtYXJlYQ=="
         |    submission-poller {
-        |        initial-delay = 1 seconds
-        |        interval = 10 minutes
-        |        failure-count-limit = 10
-        |        in-progress-retry-after = 1000
+        |        jitter-period = 5 seconds
+        |        initial-delay = 10 minutes
+        |        interval = 120 seconds
+        |        failure-count-limit = 50
+        |        in-progress-retry-after = 5000 # milliseconds as required by work-item-repo library
         |        mongo {
-        |            ttl = 604800 seconds # 7 days
+        |            ttl = 7 days
         |        }
         |    }
         |}
@@ -91,10 +91,9 @@ class DmsSubmissionPollerSpec
     )
   )
 
-  implicit val actorSystem     = system
-  val mockDmsSubmissionService = mock[DmsSubmissionService]
-  val mockDmsSubmissionContext = new DmsSubmissionPollerContext(actorSystem)
-  val servicesConfig           = new ServicesConfig(config, new RunMode(config, Mode.Test))
+  val mockDmsSubmissionService                     = mock[DmsSubmissionService]
+  implicit val dmsSubmissionPollerExecutionContext = new DmsSubmissionPollerExecutionContext(system)
+  val servicesConfig                               = new ServicesConfig(config, new RunMode(config, Mode.Test))
 
   def mockDmsSubmissionRequestDequeue()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
     (mockDmsSubmissionService.dequeue _)
@@ -132,13 +131,11 @@ class DmsSubmissionPollerSpec
 
         val _ =
           new DmsSubmissionPoller(
-            actorSystem,
+            system,
             mockDmsSubmissionService,
-            mockDmsSubmissionContext,
+            dmsSubmissionPollerExecutionContext,
             servicesConfig,
             new TestOnCompleteHandler(onCompleteListener.ref)
-          )(
-            executionContext
           )
 
         onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
@@ -157,13 +154,11 @@ class DmsSubmissionPollerSpec
 
       val _ =
         new DmsSubmissionPoller(
-          actorSystem,
+          system,
           mockDmsSubmissionService,
-          mockDmsSubmissionContext,
+          dmsSubmissionPollerExecutionContext,
           servicesConfig,
           new TestOnCompleteHandler(onCompleteListener.ref)
-        )(
-          executionContext
         )
 
       onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
@@ -180,13 +175,11 @@ class DmsSubmissionPollerSpec
 
       val _ =
         new DmsSubmissionPoller(
-          actorSystem,
+          system,
           mockDmsSubmissionService,
-          mockDmsSubmissionContext,
+          dmsSubmissionPollerExecutionContext,
           servicesConfig,
           new TestOnCompleteHandler(onCompleteListener.ref)
-        )(
-          executionContext
         )
 
       onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
@@ -199,13 +192,11 @@ class DmsSubmissionPollerSpec
         mockDmsSubmissionRequestDequeue()(Right(None))
         val _ =
           new DmsSubmissionPoller(
-            actorSystem,
+            system,
             mockDmsSubmissionService,
-            mockDmsSubmissionContext,
+            dmsSubmissionPollerExecutionContext,
             servicesConfig,
             new TestOnCompleteHandler(onCompleteListener.ref)
-          )(
-            executionContext
           )
 
         onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)

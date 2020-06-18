@@ -32,7 +32,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, Succeeded, WorkItem}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -40,18 +40,18 @@ import scala.util.Random
 class DmsSubmissionPoller @Inject() (
   actorSystem: ActorSystem,
   dmsSubmissionService: DmsSubmissionService,
-  dmsSubmissionPollerContext: DmsSubmissionPollerContext,
+  dmsSubmissionPollerContext: DmsSubmissionPollerExecutionContext,
   servicesConfig: ServicesConfig,
   onCompleteHandler: OnCompleteHandler
 )(implicit
-  executionContext: DmsSubmissionPollerContext
+  executionContext: ExecutionContext
 ) extends Logging {
 
   private val jitteredInitialDelay: FiniteDuration = FiniteDuration(
     servicesConfig.getDuration("dms.submission-poller.initial-delay").toNanos,
     TimeUnit.NANOSECONDS
   ) + FiniteDuration(
-    Random.nextInt((servicesConfig.getInt("dms.submission-poller.jitter-factor") - 0) + 1).toLong,
+    Random.nextInt((servicesConfig.getDuration("dms.submission-poller.jitter-period").toSeconds.toInt + 1)).toLong,
     TimeUnit.NANOSECONDS
   )
 

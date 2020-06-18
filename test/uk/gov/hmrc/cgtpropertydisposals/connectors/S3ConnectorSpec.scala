@@ -33,12 +33,12 @@ import play.shaded.ahc.org.asynchttpclient.uri.Uri
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPollerExecutionContext
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, _}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, Future}
 
 class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport with BeforeAndAfterAll {
 
@@ -80,11 +80,12 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
       .expects(url, headers, timeout)
       .returning(response)
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-  implicit val actorSystem       = ActorSystem()
+  implicit val hc: HeaderCarrier  = HeaderCarrier()
+  implicit val actorSystem        = ActorSystem()
+  implicit val dmsExectionContext = new DmsSubmissionPollerExecutionContext(actorSystem)
 
   val connector =
-    new S3ConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+    new S3ConnectorImpl(actorSystem, mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
 
   override def afterAll(): Unit = {
     Await.ready(actorSystem.terminate(), 10.seconds)

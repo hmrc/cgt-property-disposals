@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
 import java.util.concurrent.TimeUnit
 
+import akka.actor.ActorSystem
 import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
 import cats.instances.future._
@@ -111,10 +112,11 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
       .expects(upscanSuccesses)
       .returning(Future.successful(response))
 
+  val actorSystem                                  = ActorSystem()
+  implicit val dmsSubmissionPollerExecutionContext = new DmsSubmissionPollerExecutionContext(actorSystem)
+
   val dmsSubmissionService =
-    new DefaultDmsSubmissionService(mockGFormConnector, mockUpscanService, mockDmsSubmissionRepo, config)(
-      executionContext
-    )
+    new DefaultDmsSubmissionService(mockGFormConnector, mockUpscanService, mockDmsSubmissionRepo, config)
 
   "Dms Submission Service" when {
 
