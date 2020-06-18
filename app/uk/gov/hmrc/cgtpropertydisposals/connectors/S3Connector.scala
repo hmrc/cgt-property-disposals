@@ -19,20 +19,21 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
+import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.HeaderNames.USER_AGENT
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPollerContext
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HttpErrorFunctions
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[S3ConnectorImpl])
@@ -42,23 +43,27 @@ trait S3Connector {
 
 @Singleton
 class S3ConnectorImpl @Inject() (
+  actorSystem: ActorSystem,
   playHttpClient: PlayHttpClient,
   config: ServicesConfig
 )(implicit
-  executionContext: ExecutionContext,
+  executionContext: DmsSubmissionPollerContext,
   system: ActorSystem
 ) extends S3Connector
     with Logging
     with HttpErrorFunctions {
 
-  implicit val mat: ActorMaterializer        = ActorMaterializer()
+  implicit val mat                           = ActorMaterializer(
+    ActorMaterializerSettings(actorSystem).withDispatcher("dms-submission-poller-dispatcher")
+  )
   private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposals")
   private lazy val maxFileDownloadSize       = config.getConfInt("s3.max-file-download-size-in-mb", 5).toLong
   private val limitScaleFactor               = config.getConfInt("s3.upstream-element-limit-scale-factor", 200).toLong
   private lazy val timeout: Duration         = config.getDuration("s3.file-download-timeout")
   private val headers: Seq[(String, String)] = Seq(USER_AGENT -> userAgent)
 
-  override def downloadFile(upscanSuccess: UpscanSuccess): Future[Either[Error, FileAttachment]] =
+  override def downloadFile(upscanSuccess: UpscanSuccess): Future[Either[Error, FileAttachment]] = {
+    logger.info(s"Downloading files from S3")
     (upscanSuccess.uploadDetails.get("fileName"), upscanSuccess.uploadDetails.get("fileMimeType")) match {
       case (Some(filename), Some(mimeType)) =>
         playHttpClient
@@ -78,6 +83,7 @@ class S3ConnectorImpl @Inject() (
                   .limit(maxFileDownloadSize * limitScaleFactor)
                   .runWith(Sink.seq)
                   .map { bytes =>
+                    logger.info("Successfully downloaded files from S3")
                     Right(
                       FileAttachment(
                         UUID.randomUUID().toString,
@@ -96,4 +102,5 @@ class S3ConnectorImpl @Inject() (
         logger.warn(s"could not find file name nor mime type : $upscanSuccess")
         Future.successful(Left(Error("missing file descriptors")))
     }
+  }
 }

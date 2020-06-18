@@ -35,13 +35,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionPollerContext, DmsSubmissionRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultDmsSubmissionService])
 trait DmsSubmissionService {
@@ -71,7 +71,7 @@ class DefaultDmsSubmissionService @Inject() (
   upscanService: UpscanService,
   dmsSubmissionRepo: DmsSubmissionRepo,
   configuration: Configuration
-)(implicit ec: ExecutionContext)
+)(implicit ec: DmsSubmissionPollerContext)
     extends DmsSubmissionService
     with Logging {
 
