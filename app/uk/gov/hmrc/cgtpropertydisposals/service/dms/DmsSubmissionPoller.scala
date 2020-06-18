@@ -29,6 +29,7 @@ import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, Succeeded}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.Random
 
 @Singleton
 class DmsSubmissionPoller @Inject() (
@@ -40,21 +41,30 @@ class DmsSubmissionPoller @Inject() (
   executionContext: ExecutionContext
 ) extends Logging {
 
-  private val initialPollerDelay: FiniteDuration =
-    FiniteDuration(servicesConfig.getDuration("dms.submission-poller.initial-delay").toNanos, TimeUnit.NANOSECONDS)
+  private val jitteredInitialDelay: FiniteDuration = FiniteDuration(
+    servicesConfig.getDuration("dms.submission-poller.initial-delay").toNanos,
+    TimeUnit.NANOSECONDS
+  ) + FiniteDuration(
+    Random.nextInt((servicesConfig.getInt("dms.submission-poller.jitter-factor") - 0) + 1).toLong,
+    TimeUnit.NANOSECONDS
+  )
 
   private val pollerInterval: FiniteDuration =
     FiniteDuration(servicesConfig.getDuration("dms.submission-poller.interval").toNanos, TimeUnit.NANOSECONDS)
 
   private val failureCountLimit: Int = servicesConfig.getInt("dms.submission-poller.failure-count-limit")
 
-  val _ = actorSystem.scheduler.schedule(initialPollerDelay, pollerInterval)(poller())(dmsSubmissionPollerContext)
+  val _ = actorSystem.scheduler.schedule(jitteredInitialDelay, pollerInterval)(poller())(dmsSubmissionPollerContext)
 
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   def poller(): Unit = {
     val _ = dmsSubmissionService.dequeue.map {
       case Some(workItem) =>
         if (workItem.failureCount === failureCountLimit) {
+          logger.info(
+            s"DMS Submission poller: " +
+              s"work item failed after $failureCountLimit retries:  ${workItem.item}"
+          )
           val _ = dmsSubmissionService.setResultStatus(workItem.id, PermanentlyFailed)
           ()
         } else {
@@ -77,14 +87,14 @@ class DmsSubmissionPoller @Inject() (
               case Left(error)       =>
                 logger.warn(
                   s"DMS Submission poller: " +
-                    s"submission failed for work item ${workItem.toString} " +
+                    s"submission failed for work item ${workItem.item} " +
                     s"with error - re-schedule for retry: ${error.toString}"
                 )
                 val _ = dmsSubmissionService.setProcessingStatus(workItem.id, Failed)
               case Right(envelopeId) =>
                 logger.info(
                   s"DMS Submission poller: " +
-                    s"submission succeeded for work item ${workItem.toString} " +
+                    s"submission succeeded for work item ${workItem.item} " +
                     s"with envelope id : ${envelopeId.toString}"
                 )
                 val _ = dmsSubmissionService.setResultStatus(workItem.id, Succeeded)

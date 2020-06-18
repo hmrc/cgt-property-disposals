@@ -75,7 +75,7 @@ class SubmitReturnsController @Inject() (
                                     )
                                   )
             _                   = logger.info(
-                                    s"Submitted documents with details " +
+                                    s"Enqueued documents to be submitted with details " +
                                       s"['formBundleId' :${submissionResult.formBundleId}, " +
                                       s"'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
                                   )

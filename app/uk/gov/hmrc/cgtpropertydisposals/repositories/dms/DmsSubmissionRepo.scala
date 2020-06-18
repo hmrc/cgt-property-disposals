@@ -76,6 +76,8 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl").toSeconds
 
+  private val retryPeriod = inProgressRetryAfter.getMillis.toInt
+
   override def indexes: Seq[Index] =
     super.indexes ++ Seq(
       Index(
@@ -95,7 +97,7 @@ class DefaultDmsSubmissionRepo @Inject() (
   override def get: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]] =
     EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]](
       super
-        .pullOutstanding(failedBefore = now.minusMillis(inProgressRetryAfter.getMillis.toInt), availableBefore = now)
+        .pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
         .map(workItem => Right(workItem))
         .recover {
           case exception: Exception => Left(Error(exception))
@@ -107,7 +109,7 @@ class DefaultDmsSubmissionRepo @Inject() (
     status: ProcessingStatus
   ): EitherT[Future, Error, Boolean] =
     EitherT[Future, Error, Boolean](
-      markAs(id, status, Some(now.plusMillis(inProgressRetryAfter.getMillis.toInt)))
+      markAs(id, status, Some(now.plusMillis(retryPeriod)))
         .map(result => Right(result))
         .recover {
           case exception: Exception => Left(Error(exception))
