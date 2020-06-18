@@ -16,38 +16,51 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import java.util.concurrent.TimeUnit
-
-import akka.actor.ActorSystem
-import akka.util.Timeout
+import akka.actor.{ActorRef, ActorSystem}
+import akka.testkit.{TestKit, TestProbe}
 import cats.data.EitherT
 import cats.instances.future._
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import play.api.{Configuration, Mode}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
-import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
-import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
-import uk.gov.hmrc.workitem.{Failed, InProgress, PermanentlyFailed, ProcessingStatus, ResultStatus, Succeeded, ToDo, WorkItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, EnvelopeId}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
+import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller.OnCompleteHandler
+import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.workitem._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class DmsSubmissionPollerSpec extends WordSpec with Matchers with MockFactory with Eventually {
+class DmsSubmissionPollerSpec
+    extends TestKit(ActorSystem.create("dms-submission-poller"))
+    with WordSpecLike
+    with Matchers
+    with MockFactory
+    with Eventually
+    with BeforeAndAfterAll {
 
-  implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
+  object TestOnCompleteHandler {
+    case object Completed
+  }
+
+  class TestOnCompleteHandler(reportTo: ActorRef) extends OnCompleteHandler {
+    override def onComplete(): Unit = reportTo ! TestOnCompleteHandler.Completed
+  }
+
+  override def afterAll(): Unit =
+    TestKit.shutdownActorSystem(system)
 
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
@@ -65,7 +78,7 @@ class DmsSubmissionPollerSpec extends WordSpec with Matchers with MockFactory wi
         |    b64-business-area = "YnVzaW5lc3MtYXJlYQ=="
         |    submission-poller {
         |        initial-delay = 1 seconds
-        |        interval = 2 seconds
+        |        interval = 10 minutes
         |        failure-count-limit = 10
         |        in-progress-retry-after = 1000
         |        mongo {
@@ -78,7 +91,7 @@ class DmsSubmissionPollerSpec extends WordSpec with Matchers with MockFactory wi
     )
   )
 
-  implicit val actorSystem     = ActorSystem.create("dms-submission-poller")
+  implicit val actorSystem     = system
   val mockDmsSubmissionService = mock[DmsSubmissionService]
   val mockDmsSubmissionContext = new DmsSubmissionPollerContext(actorSystem)
   val servicesConfig           = new ServicesConfig(config, new RunMode(config, Mode.Test))
@@ -109,7 +122,8 @@ class DmsSubmissionPollerSpec extends WordSpec with Matchers with MockFactory wi
   "DMS Submission Poller" when {
     "it picks up a work item" must {
       "process the work item and set it to succeed if the dms submission is successful" in {
-        val workItem = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 0, status = ToDo)
+        val onCompleteListener = TestProbe()
+        val workItem           = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 0, status = ToDo)
         inSequence {
           mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
           mockSubmitToDms()(Right(EnvelopeId("id")))
@@ -117,15 +131,23 @@ class DmsSubmissionPollerSpec extends WordSpec with Matchers with MockFactory wi
         }
 
         val _ =
-          new DmsSubmissionPoller(actorSystem, mockDmsSubmissionService, mockDmsSubmissionContext, servicesConfig)(
+          new DmsSubmissionPoller(
+            actorSystem,
+            mockDmsSubmissionService,
+            mockDmsSubmissionContext,
+            servicesConfig,
+            new TestOnCompleteHandler(onCompleteListener.ref)
+          )(
             executionContext
           )
 
-        Thread.sleep(3000)
+        onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
       }
     }
 
     "process the work item and set it to fail if the dms submission is not successful" in {
+      val onCompleteListener = TestProbe()
+
       val workItem = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 0, status = ToDo)
       inSequence {
         mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
@@ -134,14 +156,22 @@ class DmsSubmissionPollerSpec extends WordSpec with Matchers with MockFactory wi
       }
 
       val _ =
-        new DmsSubmissionPoller(actorSystem, mockDmsSubmissionService, mockDmsSubmissionContext, servicesConfig)(
+        new DmsSubmissionPoller(
+          actorSystem,
+          mockDmsSubmissionService,
+          mockDmsSubmissionContext,
+          servicesConfig,
+          new TestOnCompleteHandler(onCompleteListener.ref)
+        )(
           executionContext
         )
 
-      Thread.sleep(2000)
+      onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
     }
 
     "process the work item and set it to permanently failed if failure count has been reached" in {
+      val onCompleteListener = TestProbe()
+
       val workItem = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 10, status = InProgress)
       inSequence {
         mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
@@ -149,21 +179,36 @@ class DmsSubmissionPollerSpec extends WordSpec with Matchers with MockFactory wi
       }
 
       val _ =
-        new DmsSubmissionPoller(actorSystem, mockDmsSubmissionService, mockDmsSubmissionContext, servicesConfig)(
+        new DmsSubmissionPoller(
+          actorSystem,
+          mockDmsSubmissionService,
+          mockDmsSubmissionContext,
+          servicesConfig,
+          new TestOnCompleteHandler(onCompleteListener.ref)
+        )(
           executionContext
         )
 
-      Thread.sleep(3000)
+      onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
     }
 
     "it polls and there are no work items" must {
       "do nothing" in {
+        val onCompleteListener = TestProbe()
+
         mockDmsSubmissionRequestDequeue()(Right(None))
         val _ =
-          new DmsSubmissionPoller(actorSystem, mockDmsSubmissionService, mockDmsSubmissionContext, servicesConfig)(
+          new DmsSubmissionPoller(
+            actorSystem,
+            mockDmsSubmissionService,
+            mockDmsSubmissionContext,
+            servicesConfig,
+            new TestOnCompleteHandler(onCompleteListener.ref)
+          )(
             executionContext
           )
-        Thread.sleep(2000)
+
+        onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
       }
     }
   }

@@ -19,15 +19,20 @@ package uk.gov.hmrc.cgtpropertydisposals.service.dms
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
-import cats.implicits._
-import javax.inject.{Inject, Singleton}
+import cats.data.EitherT
+import cats.syntax.eq._
+import cats.instances.int._
+import cats.instances.future._
+import com.google.inject.{ImplementedBy, Inject, Singleton}
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller.OnCompleteHandler
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, Succeeded}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 @Singleton
@@ -35,7 +40,8 @@ class DmsSubmissionPoller @Inject() (
   actorSystem: ActorSystem,
   dmsSubmissionService: DmsSubmissionService,
   dmsSubmissionPollerContext: DmsSubmissionPollerContext,
-  servicesConfig: ServicesConfig
+  servicesConfig: ServicesConfig,
+  onCompleteHandler: OnCompleteHandler
 )(implicit
   executionContext: ExecutionContext
 ) extends Logging {
@@ -50,13 +56,12 @@ class DmsSubmissionPoller @Inject() (
 
   val _ = actorSystem.scheduler.schedule(initialPollerDelay, pollerInterval)(poller())(dmsSubmissionPollerContext)
 
-  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   def poller(): Unit = {
-    val _ = dmsSubmissionService.dequeue.map {
+    val result: EitherT[Future, Error, Unit] = dmsSubmissionService.dequeue.semiflatMap {
       case Some(workItem) =>
         if (workItem.failureCount === failureCountLimit) {
           val _ = dmsSubmissionService.setResultStatus(workItem.id, PermanentlyFailed)
-          ()
+          Future.successful(())
         } else {
           logger.info(
             s"DMS Submission poller: " +
@@ -72,27 +77,46 @@ class DmsSubmissionPoller @Inject() (
               workItem.item.cgtReference,
               workItem.item.completeReturn
             )
-            .value
-            .map {
-              case Left(error)       =>
+            .fold(
+              { error =>
                 logger.warn(
                   s"DMS Submission poller: " +
                     s"submission failed for work item ${workItem.toString} " +
                     s"with error - re-schedule for retry: ${error.toString}"
                 )
                 val _ = dmsSubmissionService.setProcessingStatus(workItem.id, Failed)
-              case Right(envelopeId) =>
+              },
+              { envelopeId =>
                 logger.info(
                   s"DMS Submission poller: " +
                     s"submission succeeded for work item ${workItem.toString} " +
                     s"with envelope id : ${envelopeId.toString}"
                 )
                 val _ = dmsSubmissionService.setResultStatus(workItem.id, Succeeded)
-            }
+              }
+            )
         }
+
       case None           =>
         logger.info("DMS Submission poller: no work items")
+        Future.successful(())
     }
+
+    result.value.onComplete(_ => onCompleteHandler.onComplete())
+  }
+
+}
+
+object DmsSubmissionPoller {
+
+  @ImplementedBy(classOf[DefaultOnCompleteHandler])
+  trait OnCompleteHandler {
+    def onComplete(): Unit
+  }
+
+  @Singleton
+  class DefaultOnCompleteHandler extends OnCompleteHandler {
+    override def onComplete(): Unit = ()
   }
 
 }
