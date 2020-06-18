@@ -52,7 +52,7 @@ class DmsSubmissionPoller @Inject() (
     TimeUnit.NANOSECONDS
   ) + FiniteDuration(
     Random.nextInt((servicesConfig.getDuration("dms.submission-poller.jitter-period").toSeconds.toInt + 1)).toLong,
-    TimeUnit.NANOSECONDS
+    TimeUnit.SECONDS
   )
 
   private val pollerInterval: FiniteDuration =
