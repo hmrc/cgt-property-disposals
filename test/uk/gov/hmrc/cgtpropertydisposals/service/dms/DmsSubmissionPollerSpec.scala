@@ -26,7 +26,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import play.api.{Configuration, Mode}
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, EnvelopeId}

@@ -42,7 +42,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{Subscrip
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.{RegisteredWithoutId, RegistrationDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
-import uk.gov.hmrc.cgtpropertydisposals.service.TaxEnrolmentService
+import uk.gov.hmrc.cgtpropertydisposals.service.enrolments.TaxEnrolmentService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdService, SubscriptionService}
 import uk.gov.hmrc.http.HeaderCarrier
 

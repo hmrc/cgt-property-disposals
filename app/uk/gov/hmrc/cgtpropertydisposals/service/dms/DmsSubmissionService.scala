@@ -28,7 +28,7 @@ import configs.Configs
 import configs.syntax._
 import play.api.Configuration
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference

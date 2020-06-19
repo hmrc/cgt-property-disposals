@@ -28,7 +28,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import play.api.test.Helpers.await
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
