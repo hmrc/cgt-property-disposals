@@ -82,7 +82,7 @@ final case class DraftMultipleIndirectDisposalsReturn(
 final case class DraftSingleMixedUseDisposalReturn(
   id: UUID,
   triageAnswers: SingleDisposalTriageAnswers,
-  examplePropertyDetailsAnswers: Option[ExamplePropertyDetailsAnswers],
+  mixedUsePropertyDetailsAnswers: Option[MixedUsePropertyDetailsAnswers],
   exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers],
   yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers],
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
