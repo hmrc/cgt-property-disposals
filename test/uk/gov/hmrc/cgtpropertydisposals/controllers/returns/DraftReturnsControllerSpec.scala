@@ -124,6 +124,7 @@ class DraftReturnsControllerSpec extends ControllerSpec {
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
       }
+
     }
 
     "handling requests to get draft returns" must {

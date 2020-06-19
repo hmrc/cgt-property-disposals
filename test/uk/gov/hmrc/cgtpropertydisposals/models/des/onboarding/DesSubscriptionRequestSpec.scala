@@ -65,7 +65,7 @@ class DesSubscriptionRequestSpec extends WordSpec with Matchers {
             |      "addressLine2": "line2",
             |      "addressLine3": "line3",
             |      "addressLine4": "line4",
-            |      "postalCode": "postcode",
+            |      "postalCode": "POSTCODE",
             |      "countryCode": "HK"
             |    },
             |    "contactDetails": {
@@ -106,7 +106,7 @@ class DesSubscriptionRequestSpec extends WordSpec with Matchers {
             |      "addressLine2": "line2",
             |      "addressLine3": "town",
             |      "addressLine4": "county",
-            |      "postalCode": "postcode",
+            |      "postalCode": "POSTCODE",
             |      "countryCode": "GB"
             |    },
             |    "contactDetails": {
