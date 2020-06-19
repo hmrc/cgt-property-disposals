@@ -48,15 +48,15 @@ class DmsSubmissionPoller @Inject() (
 ) extends Logging {
 
   private val jitteredInitialDelay: FiniteDuration = FiniteDuration(
-    servicesConfig.getDuration("dms.submission-poller.initial-delay").toNanos,
-    TimeUnit.NANOSECONDS
+    servicesConfig.getDuration("dms.submission-poller.initial-delay").toMillis,
+    TimeUnit.MILLISECONDS
   ) + FiniteDuration(
-    Random.nextInt((servicesConfig.getDuration("dms.submission-poller.jitter-period").toSeconds.toInt + 1)).toLong,
-    TimeUnit.SECONDS
+    Random.nextInt((servicesConfig.getDuration("dms.submission-poller.jitter-period").toMillis.toInt + 1)).toLong,
+    TimeUnit.MILLISECONDS
   )
 
   private val pollerInterval: FiniteDuration =
-    FiniteDuration(servicesConfig.getDuration("dms.submission-poller.interval").toNanos, TimeUnit.NANOSECONDS)
+    FiniteDuration(servicesConfig.getDuration("dms.submission-poller.interval").toMillis, TimeUnit.MILLISECONDS)
 
   private val failureCountLimit: Int = servicesConfig.getInt("dms.submission-poller.failure-count-limit")
 
