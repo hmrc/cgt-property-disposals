@@ -56,7 +56,11 @@ class RepresentedPersonDetailsSpec extends WordSpec with Matchers {
             None,
             None,
             None,
-            Some(desAddress),
+            Some(
+              desAddress.copy(
+                postalCode = Some(address.postcode.stripAllSpaces)
+              )
+            ),
             Some(answers.contactDetails.emailAddress.value)
           )
         }
@@ -111,7 +115,11 @@ class RepresentedPersonDetailsSpec extends WordSpec with Matchers {
             None,
             None,
             None,
-            Some(desAddress),
+            Some(
+              desAddress.copy(
+                postalCode = Some(address.postcode.stripAllSpaces)
+              )
+            ),
             Some(answers.contactDetails.emailAddress.value)
           )
         }

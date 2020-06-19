@@ -23,6 +23,11 @@ final case class Postcode(value: String) extends AnyVal
 
 object Postcode {
 
+  implicit class PostcodeOps(private val p: Postcode) {
+    def stripAllSpaces(): String =
+      p.value.replaceAll("\\s+", "")
+  }
+
   implicit val format: Format[Postcode] =
     implicitly[Format[String]].inmap(Postcode(_), _.value)
 }

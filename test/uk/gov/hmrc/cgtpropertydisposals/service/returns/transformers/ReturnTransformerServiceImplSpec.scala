@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -379,7 +379,11 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
         val result = transformer.toCompleteReturn(validSingleDisposalDesReturnDetails)
 
-        completeSingleDisposalReturnValue(result)(_.propertyAddress) shouldBe Right(ukAddress)
+        completeSingleDisposalReturnValue(result)(_.propertyAddress) shouldBe Right(
+          ukAddress.copy(
+            postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+          )
+        )
       }
 
       "transform disposal details answers correctly" when {
@@ -1237,7 +1241,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           val result = transformer.toCompleteReturn(validMultipleDisposalsDesReturnDetails)
 
           completeMultipleDisposalsReturnValue(result)(_.examplePropertyDetailsAnswers.address) shouldBe Right(
-            ukAddress
+            ukAddress.copy(
+              postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+            )
           )
         }
 
@@ -1655,7 +1661,11 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           val result = transformer.toCompleteReturn(validSingleIndirectDisposalDesReturnDetails)
 
-          completeSingleIndirectDisposalReturnValue(result)(_.companyAddress) shouldBe Right(ukAddress)
+          completeSingleIndirectDisposalReturnValue(result)(_.companyAddress) shouldBe Right(
+            ukAddress.copy(
+              postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+            )
+          )
         }
 
         "the address is a non-uk address" in {
@@ -2255,7 +2265,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           val result = transformer.toCompleteReturn(validMultipleIndirectDisposalsDesReturnDetails)
 
           completeMultipleIndirectDisposalsReturnValue(result)(_.exampleCompanyDetailsAnswers.address) shouldBe Right(
-            ukAddress
+            ukAddress.copy(
+              postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+            )
           )
         }
 

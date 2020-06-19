@@ -20,7 +20,7 @@ import java.time.LocalDate
 
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, ChargeType, Payment, PaymentMethod}
@@ -272,7 +272,14 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         "finding the property address" in {
           result.map(_.map(_.propertyAddress)) shouldBe Right(
-            List(ukAddress1, ukAddress2)
+            List(
+              ukAddress1.copy(
+                postcode = Postcode(ukAddress1.postcode.stripAllSpaces)
+              ),
+              ukAddress2.copy(
+                postcode = Postcode(ukAddress2.postcode.stripAllSpaces)
+              )
+            )
           )
         }
 

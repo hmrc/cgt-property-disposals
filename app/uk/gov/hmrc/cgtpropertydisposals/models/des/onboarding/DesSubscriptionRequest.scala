@@ -36,19 +36,12 @@ object DesSubscriptionRequest {
       individualName => TypeOfPersonDetails.Individual(individualName.firstName, individualName.lastName)
     )
 
-    val addressDetails = s.address match {
-      case ukAddress @ Address.UkAddress(line1, line2, town, county, postcode) =>
-        AddressDetails(line1, line2, town, county, Some(postcode.value), ukAddress.countryCode)
-      case Address.NonUkAddress(line1, line2, line3, line4, postcode, country) =>
-        AddressDetails(line1, line2, line3, line4, postcode.map(_.value), country.code)
-    }
-
     DesSubscriptionRequest(
       "CGT",
       Identity("sapNumber", s.sapNumber.value),
       DesSubscriptionDetails(
         typeOfPersonDetails,
-        addressDetails,
+        Address.toAddressDetails(s.address),
         ContactDetails(s.contactName.value, s.emailAddress.value)
       )
     )
