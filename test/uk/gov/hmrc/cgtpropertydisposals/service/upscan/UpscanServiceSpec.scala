@@ -24,7 +24,7 @@ import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers.await
-import uk.gov.hmrc.cgtpropertydisposals.connectors.S3Connector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.S3Connector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment

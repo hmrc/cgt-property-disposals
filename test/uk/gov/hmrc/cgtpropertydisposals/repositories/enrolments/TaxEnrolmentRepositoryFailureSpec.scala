@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories
+package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
 import java.time.LocalDateTime
 
@@ -22,36 +22,44 @@ import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class VerifiersRepositoryFailureSpec extends WordSpec with Matchers with MongoSupport {
+class TaxEnrolmentRepositoryFailureSpec extends WordSpec with Matchers with MongoSupport {
 
-  val repository = new DefaultVerifiersRepository(reactiveMongoComponent)
+  val repository = new DefaultTaxEnrolmentRepository(reactiveMongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary((LocalDateTime.now()))
 
-  val updateVerifierDetails = sample[UpdateVerifiersRequest]
+  val taxEnrolmentRequest = sample[TaxEnrolmentRequest]
 
-  "The Update Verifiers repository" when {
+  "The Tax Enrolment Retry repository" when {
     reactiveMongoComponent.mongoConnector.helper.driver.close()
     "inserting into a broken repository" should {
       "fail the insert" in {
-        await(repository.insert(updateVerifierDetails).value).isLeft shouldBe true
+        await(repository.save(taxEnrolmentRequest).value).isLeft shouldBe true
       }
     }
 
     "getting from a broken repository" should {
       "fail the get" in {
-        await(repository.get(updateVerifierDetails.ggCredId).value).isLeft shouldBe true
+        await(repository.get(taxEnrolmentRequest.ggCredId).value).isLeft shouldBe true
       }
     }
 
     "deleting from a broken repository" should {
       "fail the delete" in {
-        await(repository.delete(updateVerifierDetails.ggCredId).value).isLeft shouldBe true
+        await(repository.delete(taxEnrolmentRequest.ggCredId).value).isLeft shouldBe true
+      }
+    }
+    "updating on a broken repository"   should {
+      val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
+      "fail to update" in {
+        await(repository.save(taxEnrolmentRequest).value)
+        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value).isLeft shouldBe true
       }
     }
   }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.service
+package uk.gov.hmrc.cgtpropertydisposals.service.audit
 
 import com.google.inject.ImplementedBy
 import javax.inject.Inject

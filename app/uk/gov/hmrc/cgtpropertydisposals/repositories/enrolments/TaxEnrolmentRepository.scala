@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories
+package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}

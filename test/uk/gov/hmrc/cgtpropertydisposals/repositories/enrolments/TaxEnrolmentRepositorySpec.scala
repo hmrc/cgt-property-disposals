@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories
+package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
 import java.time.LocalDateTime
 
@@ -22,30 +22,31 @@ import org.scalacheck.Arbitrary
 import org.scalatest.{Matchers, WordSpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class VerifiersRepositorySpec extends WordSpec with Matchers with MongoSupport {
+class TaxEnrolmentRepositorySpec extends WordSpec with Matchers with MongoSupport {
 
-  val repository = new DefaultVerifiersRepository(reactiveMongoComponent)
+  val repository = new DefaultTaxEnrolmentRepository(reactiveMongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary((LocalDateTime.now()))
 
-  val verifierDetails = sample[UpdateVerifiersRequest]
+  val taxEnrolmentRequest = sample[TaxEnrolmentRequest]
 
-  "The Update Verifiers repository" when {
+  "The Tax Enrolment Retry repository" when {
     "inserting" should {
-      "create a new record" in {
-        await(repository.insert(verifierDetails).value) shouldBe Right(())
+      "create a new tax enrolment record" in {
+        await(repository.save(taxEnrolmentRequest).value) shouldBe Right(())
       }
     }
 
     "getting" should {
       "retrieve an existing record" in {
-        await(repository.insert(verifierDetails).value)       shouldBe Right(())
-        await(repository.get(verifierDetails.ggCredId).value) shouldBe (Right(Some(verifierDetails)))
+        await(repository.save(taxEnrolmentRequest).value)         shouldBe Right(())
+        await(repository.get(taxEnrolmentRequest.ggCredId).value) shouldBe (Right(Some(taxEnrolmentRequest)))
       }
       "return none if the record does not exist" in {
         await(repository.get("this-gg-cred-id-does-not-exist").value) shouldBe (Right(None))
@@ -54,12 +55,23 @@ class VerifiersRepositorySpec extends WordSpec with Matchers with MongoSupport {
 
     "deleting" should {
       "return a count of one when deleting a unique tax enrolment record" in {
-        await(repository.insert(verifierDetails).value)
-        await(repository.delete(verifierDetails.ggCredId).value) shouldBe (Right(1))
+        await(repository.save(taxEnrolmentRequest).value)
+        await(repository.delete(taxEnrolmentRequest.ggCredId).value) shouldBe (Right(1))
       }
       "return a count of zero when the tax enrolment record does not exist" in {
         await(repository.delete("this-gg-cred-id-does-not-exist").value) shouldBe (Right(0))
       }
     }
+
+    "updating" should {
+      val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
+      "return a the updated tax enrolment record" in {
+        await(repository.save(taxEnrolmentRequest).value)
+        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe (Right(
+          Some(updatedTaxEnrolmentRequest)
+        ))
+      }
+    }
+
   }
 }

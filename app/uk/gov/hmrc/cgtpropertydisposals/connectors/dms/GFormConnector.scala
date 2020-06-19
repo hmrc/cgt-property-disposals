@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.connectors
+package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import java.io.File
 import java.nio.file.{Files, _}
@@ -28,7 +28,7 @@ import play.api.http.DefaultWriteables
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.mvc.MultipartFormData
 import play.api.mvc.MultipartFormData.FilePart
-import uk.gov.hmrc.cgtpropertydisposals.connectors.GFormConnector._
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector._
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsSubmissionPayload, EnvelopeId, FileAttachment}

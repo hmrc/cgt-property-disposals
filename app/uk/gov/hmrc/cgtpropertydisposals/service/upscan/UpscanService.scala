@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.S3Connector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.S3Connector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
