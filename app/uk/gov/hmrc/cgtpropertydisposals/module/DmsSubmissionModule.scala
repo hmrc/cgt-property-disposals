@@ -14,24 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.module
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import com.google.inject.AbstractModule
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller
 
-sealed trait IndividualUserType extends Product with Serializable
-
-object IndividualUserType {
-
-  case object Self extends IndividualUserType
-
-  case object Capacitor extends IndividualUserType
-
-  case object PersonalRepresentative extends IndividualUserType
-
-  case object PersonalRepresentativeInPeriodOfAdmin extends IndividualUserType
-
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[IndividualUserType] = derived.oformat()
-
+class DmsSubmissionModule extends AbstractModule {
+  override def configure(): Unit =
+    bind(classOf[DmsSubmissionPoller]).asEagerSingleton()
 }

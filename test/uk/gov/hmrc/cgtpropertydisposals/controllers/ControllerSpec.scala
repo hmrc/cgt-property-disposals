@@ -23,6 +23,7 @@ import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.{Application, Configuration, Play}
 import uk.gov.hmrc.cgtpropertydisposals.metrics.{Metrics, MockMetrics}
+import uk.gov.hmrc.cgtpropertydisposals.module.DmsSubmissionModule
 
 import scala.reflect.ClassTag
 
@@ -44,6 +45,7 @@ trait ControllerSpec extends WordSpec with Matchers with BeforeAndAfterAll with 
           )
         )
       )
+      .bindings(new DmsSubmissionModule)
       .overrides(metricsBinding :: overrideBindings: _*)
       .build()
   }

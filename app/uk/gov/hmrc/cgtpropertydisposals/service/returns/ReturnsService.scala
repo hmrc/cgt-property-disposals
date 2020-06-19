@@ -42,7 +42,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscribe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
-import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
+import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._

@@ -14,24 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import akka.actor.ActorSystem
+import com.google.inject.Inject
+import play.api.libs.concurrent.CustomExecutionContext
 
-sealed trait IndividualUserType extends Product with Serializable
-
-object IndividualUserType {
-
-  case object Self extends IndividualUserType
-
-  case object Capacitor extends IndividualUserType
-
-  case object PersonalRepresentative extends IndividualUserType
-
-  case object PersonalRepresentativeInPeriodOfAdmin extends IndividualUserType
-
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  implicit val format: OFormat[IndividualUserType] = derived.oformat()
-
-}
+class DmsSubmissionPollerExecutionContext @Inject() (actorSystem: ActorSystem)
+    extends CustomExecutionContext(actorSystem, "dms-submission-poller-dispatcher")

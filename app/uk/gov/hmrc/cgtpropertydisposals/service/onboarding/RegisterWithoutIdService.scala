@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.RegistrationResponseEvent
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
-import uk.gov.hmrc.cgtpropertydisposals.service.AuditService
+import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.RegisterWithoutIdServiceImpl.RegisterWithoutIdResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
