@@ -52,7 +52,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
           Left(s"Expected multiple disposals details but got $other")
       }
 
-    def singleeMixedUseDisposalDetailsValue[A](
+    def singleMixedUseDisposalDetailsValue[A](
       disposalDetails: DisposalDetails
     )(value: SingleMixedUseDisposalDetails => A): Either[String, A] =
       disposalDetails match {
@@ -522,7 +522,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "populate the disposal date correctly" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.disposalDate
           ) shouldBe Right(completeReturn.triageAnswers.disposalDate.value)
         }
@@ -530,7 +530,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "populate the address correctly" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.addressDetails
           ) shouldBe Right(Address.toAddressDetails(completeReturn.propertyDetailsAnswers.address))
         }
@@ -538,7 +538,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "populate the asset types correctly" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.assetType
           ) shouldBe Right(DesAssetTypeValue(completeReturn))
         }
@@ -546,7 +546,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "populate the disposal type field correctly" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(_.disposalType) shouldBe Right(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(_.disposalType) shouldBe Right(
             DesDisposalType(completeReturn.triageAnswers.disposalMethod)
           )
         }
@@ -554,7 +554,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "set the acquisition type to a dummy value" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.acquisitionType
           ) shouldBe Right(DesAcquisitionType.Other("not captured for single mixed use disposals"))
         }
@@ -562,7 +562,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "set the land registry flag to false" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.landRegistry
           ) shouldBe Right(false)
         }
@@ -570,7 +570,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "populate the rebased acquisition price field correctly" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.acquisitionPrice
           ) shouldBe Right(completeReturn.propertyDetailsAnswers.acquisitionPrice.inPounds())
         }
@@ -578,7 +578,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "populate the disposal price correctly" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.disposalPrice
           ) shouldBe Right(completeReturn.propertyDetailsAnswers.disposalPrice.inPounds())
         }
@@ -586,7 +586,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "set the rebased flag to false" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.rebased
           ) shouldBe Right(false)
         }
@@ -594,7 +594,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
       "set the improvements flag to false" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
-          singleeMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
+          singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.improvements
           ) shouldBe Right(false)
         }
