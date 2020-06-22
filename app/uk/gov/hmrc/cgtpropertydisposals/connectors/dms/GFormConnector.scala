@@ -64,7 +64,8 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
 
     def sendFormdata(
       multipartFormData: Source[MultipartFormData.Part[Source[ByteString, _]], _]
-    ): EitherT[Future, Error, EnvelopeId] =
+    ): EitherT[Future, Error, EnvelopeId] = {
+      logger.info("Sending dms payload to GFORM service...")
       EitherT[Future, Error, EnvelopeId](
         playHttpClient
           .post(gformUrl, hc.headers, multipartFormData)
@@ -74,10 +75,18 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
               case status if is4xx(status) || is5xx(status) =>
                 logger.warn(s"Bad response status from gform service ${response.body}")
                 Left(Error(response.body))
-              case _                                        => Left(Error("Invalid HTTP response status from gform service"))
+              case _                                        =>
+                logger.warn("could not send dms payload to GFORM service")
+                Left(Error("Invalid HTTP response status from gform service"))
             }
           }
+          .recover {
+            case e: Exception =>
+              logger.warn(s"failed to send dms payload to gform service due to http exception: $e")
+              Left(Error("http exception"))
+          }
       )
+    }
 
     for {
       fileparts  <- EitherT.fromOption[Future](
