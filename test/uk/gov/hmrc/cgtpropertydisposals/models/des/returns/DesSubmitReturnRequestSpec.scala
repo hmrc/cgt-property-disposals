@@ -24,9 +24,10 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.NINO
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.IndirectDisposal
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.{IndirectDisposal, MixedUse}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExampleCompanyDetailsAnswers.CompleteExampleCompanyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.MixedUsePropertyDetailsAnswers.CompleteMixedUsePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
@@ -76,6 +77,11 @@ class DesSubmitReturnRequestSpec extends WordSpec {
                 _.copy(
                   exampleCompanyDetailsAnswers =
                     sample[CompleteExampleCompanyDetailsAnswers].copy(address = sample[UkAddress])
+                ),
+                _.copy(
+                  propertyDetailsAnswers =
+                    sample[CompleteMixedUsePropertyDetailsAnswers].copy(address = sample[UkAddress]),
+                  triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(assetType = MixedUse)
                 )
               )
           )

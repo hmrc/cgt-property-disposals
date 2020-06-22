@@ -23,7 +23,7 @@ import play.api.libs.json.{JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 sealed trait DisposalDetails extends Product with Serializable
@@ -55,6 +55,19 @@ object DisposalDetails {
     disposalDate: LocalDate,
     addressDetails: AddressDetails,
     assetType: DesAssetTypeValue,
+    acquisitionType: DesAcquisitionType,
+    landRegistry: Boolean,
+    acquisitionPrice: BigDecimal,
+    disposalPrice: BigDecimal,
+    rebased: Boolean,
+    improvements: Boolean
+  ) extends DisposalDetails
+
+  final case class SingleMixedUseDisposalDetails(
+    disposalDate: LocalDate,
+    addressDetails: AddressDetails,
+    assetType: DesAssetTypeValue,
+    disposalType: DesDisposalType,
     acquisitionType: DesAcquisitionType,
     landRegistry: Boolean,
     acquisitionPrice: BigDecimal,
@@ -142,6 +155,20 @@ object DisposalDetails {
           rebased = false,
           improvements = false
         )
+
+      case s: CompleteSingleMixedUseDisposalReturn   =>
+        SingleMixedUseDisposalDetails(
+          disposalDate = s.triageAnswers.disposalDate.value,
+          addressDetails = Address.toAddressDetails(s.propertyDetailsAnswers.address),
+          assetType = DesAssetTypeValue(s),
+          disposalType = DesDisposalType(s.triageAnswers.disposalMethod),
+          acquisitionType = DesAcquisitionType.Other("not captured for single mixed use disposals"),
+          landRegistry = false,
+          acquisitionPrice = s.propertyDetailsAnswers.acquisitionPrice.inPounds(),
+          disposalPrice = s.propertyDetailsAnswers.disposalPrice.inPounds(),
+          rebased = false,
+          improvements = false
+        )
     }
 
   private def improvementCosts(c: CompleteSingleDisposalReturn): Option[BigDecimal] =
@@ -149,14 +176,22 @@ object DisposalDetails {
       Some(c.acquisitionDetails.improvementCosts.inPounds())
     else None
 
-  implicit val singleDisposalDetailsFormat: OFormat[SingleDisposalDetails]      = Json.format
-  implicit val multipleDisposalsDetailsFormat: OFormat[MultipleDisposalDetails] = Json.format
-  implicit val disposalDetailsFormat: OFormat[DisposalDetails]                  = OFormat(
-    { json: JsValue => singleDisposalDetailsFormat.reads(json).orElse(multipleDisposalsDetailsFormat.reads(json)) },
+  implicit val singleDisposalDetailsFormat: OFormat[SingleDisposalDetails]                 = Json.format
+  implicit val multipleDisposalsDetailsFormat: OFormat[MultipleDisposalDetails]            = Json.format
+  implicit val singleMixedUseDisposalDetailsFormat: OFormat[SingleMixedUseDisposalDetails] = Json.format
+
+  implicit val disposalDetailsFormat: OFormat[DisposalDetails] = OFormat(
+    { json: JsValue =>
+      singleDisposalDetailsFormat
+        .reads(json)
+        .orElse(singleMixedUseDisposalDetailsFormat.reads(json))
+        .orElse(multipleDisposalsDetailsFormat.reads(json))
+    },
     { d: DisposalDetails =>
       d match {
-        case s: SingleDisposalDetails   => singleDisposalDetailsFormat.writes(s)
-        case m: MultipleDisposalDetails => multipleDisposalsDetailsFormat.writes(m)
+        case s: SingleDisposalDetails         => singleDisposalDetailsFormat.writes(s)
+        case m: MultipleDisposalDetails       => multipleDisposalsDetailsFormat.writes(m)
+        case s: SingleMixedUseDisposalDetails => singleMixedUseDisposalDetailsFormat.writes(s)
       }
     }
   )

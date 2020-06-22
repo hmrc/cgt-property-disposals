@@ -20,7 +20,7 @@ import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 
@@ -51,6 +51,19 @@ class DesAssetTypeValueSpec extends WordSpec with Matchers with ScalaCheckDriven
 
           DesAssetTypeValue(completeReturn).toAssetTypes().map(_.toSet) shouldBe Right(assetTypes.toSet)
         }
+      }
+
+    }
+
+    "have a method which can convert asset types in single mixed use disposals and convert them back" in {
+      forAll { assetType: AssetType =>
+        val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
+          triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+            assetType = assetType
+          )
+        )
+
+        DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
       }
 
     }

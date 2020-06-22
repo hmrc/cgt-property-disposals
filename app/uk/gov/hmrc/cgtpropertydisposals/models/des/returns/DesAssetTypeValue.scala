@@ -41,7 +41,8 @@ object DesAssetTypeValue {
         _.triageAnswers.assetTypes,
         s => List(s.triageAnswers.assetType),
         s => List(s.triageAnswers.assetType),
-        _.triageAnswers.assetTypes
+        _.triageAnswers.assetTypes,
+        s => List(s.triageAnswers.assetType)
       )
       .distinct
     val assetTypeStrings = assetTypes.map { a =>
