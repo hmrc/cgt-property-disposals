@@ -38,6 +38,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
+import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[GFormConnectorImpl])
 trait GFormConnector {
@@ -81,7 +82,7 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
             }
           }
           .recover {
-            case e: Exception =>
+            case NonFatal(e) =>
               logger.warn(s"failed to send dms payload to gform service due to http exception: $e")
               Left(Error("http exception"))
           }
