@@ -26,7 +26,7 @@ import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesSubscriptionUpdateRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
@@ -40,11 +40,12 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscript
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExampleCompanyDetailsAnswers.CompleteExampleCompanyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.MixedUsePropertyDetailsAnswers.CompleteMixedUsePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
@@ -300,6 +301,12 @@ trait LowerPriorityReturnsGen { this: GenUtils =>
   implicit val completeMultipleIndirectDisposalReturnGen: Gen[CompleteMultipleIndirectDisposalReturn] =
     gen[CompleteMultipleIndirectDisposalReturn]
 
+  implicit val completeSingleMixedUseDisposalReturnGen: Gen[CompleteSingleMixedUseDisposalReturn] =
+    gen[CompleteSingleMixedUseDisposalReturn]
+
+  implicit val completeMixedUsePropertyDetailsGen: Gen[CompleteMixedUsePropertyDetailsAnswers] =
+    gen[CompleteMixedUsePropertyDetailsAnswers]
+
 }
 
 trait DesReturnsGen { this: GenUtils =>
@@ -308,7 +315,11 @@ trait DesReturnsGen { this: GenUtils =>
 
   implicit val desSingleDisposalDetailsGen: Gen[SingleDisposalDetails] = gen[SingleDisposalDetails]
 
-  implicit val desMultipleDisposaslDetailsGen: Gen[MultipleDisposalDetails] = gen[MultipleDisposalDetails]
+  implicit val desMultipleDisposalsDetailsGen: Gen[MultipleDisposalDetails] =
+    gen[MultipleDisposalDetails]
+
+  implicit val desSingleMixedUseDisposalsDetailsGen: Gen[SingleMixedUseDisposalDetails] =
+    gen[SingleMixedUseDisposalDetails]
 
   implicit val returnDetailsGen: Gen[ReturnDetails] = gen[ReturnDetails]
 

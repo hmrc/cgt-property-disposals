@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 
 final case class IncomeAllowanceDetails(
   annualExemption: BigDecimal,
@@ -62,6 +62,14 @@ object IncomeAllowanceDetails {
           estimatedIncome = None,
           personalAllowance = None,
           threshold = Some(m.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
+        )
+
+      case s: CompleteSingleMixedUseDisposalReturn   =>
+        IncomeAllowanceDetails(
+          annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
+          estimatedIncome = None,
+          personalAllowance = None,
+          threshold = Some(s.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
     }
 

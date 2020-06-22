@@ -29,16 +29,17 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, Uk
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.Trust
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesReturnDetails, ReliefDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.IndirectDisposal
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.{IndirectDisposal, MixedUse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExampleCompanyDetailsAnswers.CompleteExampleCompanyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.MixedUsePropertyDetailsAnswers.CompleteMixedUsePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
@@ -72,19 +73,22 @@ class ReturnTransformerServiceImpl @Inject() (
     desReturn: DesReturnDetails
   ): ValidatedNel[String, CompleteReturn] =
     desReturn.disposalDetails match {
-      case (singleDisposalDetails: SingleDisposalDetails) :: Nil      =>
+      case (singleDisposalDetails: SingleDisposalDetails) :: Nil                 =>
         if (singleDisposalDetails.assetType.isIndirectDisposal())
           validateSingleIndirectDisposal(desReturn, singleDisposalDetails)
         else
           validateSingleDisposal(desReturn, singleDisposalDetails)
 
-      case (multipleDisposalsDetails: MultipleDisposalDetails) :: Nil =>
+      case (multipleDisposalsDetails: MultipleDisposalDetails) :: Nil            =>
         if (multipleDisposalsDetails.assetType.isIndirectDisposal())
           validateMultipleIndirectDisposal(desReturn, multipleDisposalsDetails)
         else
           validateMultipleDisposal(desReturn, multipleDisposalsDetails)
 
-      case other                                                      =>
+      case (singleMixedUseDisposalDetails: SingleMixedUseDisposalDetails) :: Nil =>
+        validateSingleMixedUseMultipleDisposal(desReturn, singleMixedUseDisposalDetails)
+
+      case other                                                                 =>
         Invalid(
           NonEmptyList.one(
             s"Expected either one single disposal detail or one multiple disposal details but got ${other.length} disposals"
@@ -309,6 +313,48 @@ class ReturnTransformerServiceImpl @Inject() (
         )
     }
 
+  private def validateSingleMixedUseMultipleDisposal(
+    desReturn: DesReturnDetails,
+    disposalDetails: SingleMixedUseDisposalDetails
+  ): ValidatedNel[String, CompleteSingleMixedUseDisposalReturn] =
+    (
+      ukAddressValidation(disposalDetails.addressDetails),
+      disposalDateValidation(disposalDetails.disposalDate),
+      countryValidation(desReturn)
+    ).mapN {
+      case (
+            address,
+            disposalDate,
+            country
+          ) =>
+        val triageAnswers = constructTriageAnswers(
+          desReturn,
+          country,
+          disposalDate,
+          DisposalMethod(disposalDetails.disposalType),
+          MixedUse
+        )
+
+        val examplePropertyDetailsAnswers = CompleteMixedUsePropertyDetailsAnswers(
+          address,
+          AmountInPence.fromPounds(disposalDetails.disposalPrice),
+          AmountInPence.fromPounds(disposalDetails.acquisitionPrice)
+        )
+
+        val exemptionAndLossesAnswers  = constructExemptionAndLossesAnswers(desReturn)
+        val yearToDateLiabilityAnswers = constructNonCalculatedYearToDateAnswers(desReturn)
+
+        CompleteSingleMixedUseDisposalReturn(
+          triageAnswers,
+          examplePropertyDetailsAnswers,
+          exemptionAndLossesAnswers,
+          yearToDateLiabilityAnswers,
+          CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
+          None,
+          hasAttachments = desReturn.returnDetails.attachmentUpload
+        )
+    }
+
   private def constructNonCalculatedYearToDateAnswers(desReturn: DesReturnDetails): CompleteNonCalculatedYTDAnswers =
     CompleteNonCalculatedYTDAnswers(
       AmountInPence.fromPounds(
@@ -468,7 +514,9 @@ class ReturnTransformerServiceImpl @Inject() (
       }
       .toValidatedNel
 
-  private def assetTypesValidation(multipleDisposalDetails: MultipleDisposalDetails): Validation[List[AssetType]] =
+  private def assetTypesValidation(
+    multipleDisposalDetails: MultipleDisposalDetails
+  ): Validation[List[AssetType]] =
     multipleDisposalDetails.assetType
       .toAssetTypes()
       .toValidatedNel

@@ -20,7 +20,7 @@ import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
@@ -110,6 +110,22 @@ class IncomeAllowanceDetailsSpec extends WordSpec with Matchers with ScalaCheckD
               None,
               None,
               Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
+            )
+          }
+        }
+
+        "the return passed in is for a single mixed use disposal journey" in {
+          forAll { nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
+            val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
+              exemptionsAndLossesDetails =
+                sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
+              yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
+            )
+            IncomeAllowanceDetails(completeReturn) shouldBe IncomeAllowanceDetails(
+              BigDecimal("0.01"),
+              None,
+              None,
+              Some(completeReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
         }

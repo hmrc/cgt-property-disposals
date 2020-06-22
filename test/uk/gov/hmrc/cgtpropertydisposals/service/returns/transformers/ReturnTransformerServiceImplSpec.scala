@@ -24,11 +24,11 @@ import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -99,6 +99,11 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
     val validMultipleIndirectDisposalDetails = sample[MultipleDisposalDetails].copy(
       addressDetails = Address.toAddressDetails(ukAddress),
       assetType = DesAssetTypeValue("shares")
+    )
+
+    val validSingleMixedUseDisposalDetails = sample[SingleMixedUseDisposalDetails].copy(
+      addressDetails = Address.toAddressDetails(ukAddress),
+      assetType = DesAssetTypeValue("mix")
     )
 
     "passed details of a single disposal" must {
@@ -2477,6 +2482,454 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeMultipleIndirectDisposalsReturnValue(result)(_.yearToDateLiabilityAnswers.taxDue) shouldBe Right(
+            AmountInPence(300L)
+          )
+
+        }
+
+      }
+
+    }
+
+    "passed details of a single mixed use disposal" must {
+
+      val validSingleMixedUseDisposalDesReturnDetails = sample[DesReturnDetails].copy(
+        disposalDetails = List(validSingleMixedUseDisposalDetails),
+        returnDetails = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual)
+      )
+
+      def completeSingleMixedUseDisposalsReturnValue[A](
+        result: Either[Error, CompleteReturn]
+      )(value: CompleteSingleMixedUseDisposalReturn => A): Either[String, A] =
+        result match {
+          case Left(e)                                        => Left(s"Expected CompleteMultipleDisposalsReturn but got $e")
+          case Right(m: CompleteSingleMixedUseDisposalReturn) => Right(value(m))
+          case Right(other)                                   => Left(s"Expected CompleteSingleMixedUseDisposalReturn but got $other")
+        }
+
+      def mockGetTaxYearSuccess(): Unit =
+        inSequence {
+          mockGetTaxYear(validSingleMixedUseDisposalDetails.disposalDate)(Some(taxYear))
+        }
+
+      "return an error" when {
+
+        "the address is a non uk address" in {
+          mockGetTaxYearSuccess()
+
+          val desReturn = validSingleMixedUseDisposalDesReturnDetails.copy(
+            disposalDetails = List(
+              validSingleMixedUseDisposalDetails.copy(addressDetails = Address.toAddressDetails(sample[NonUkAddress]))
+            )
+          )
+
+          transformer.toCompleteReturn(desReturn).isLeft shouldBe true
+        }
+
+        "a tax year cannot be found for the disposal date" in {
+          mockGetTaxYear(validSingleMixedUseDisposalDetails.disposalDate)(None)
+
+          transformer.toCompleteReturn(validSingleMixedUseDisposalDesReturnDetails).isLeft shouldBe true
+        }
+
+        "the country of residence for a non-uk resident cannot be found" in {
+          val desReturn = validSingleMixedUseDisposalDesReturnDetails.copy(
+            returnDetails = sample[ReturnDetails].copy(
+              isUKResident = false,
+              countryResidence = None
+            )
+          )
+
+          mockGetTaxYearSuccess()
+
+          transformer.toCompleteReturn(desReturn).isLeft shouldBe true
+        }
+
+        "the country of residence for a non-uk resident is not recognised" in {
+          val desReturn = validSingleMixedUseDisposalDesReturnDetails.copy(
+            returnDetails = sample[ReturnDetails].copy(
+              isUKResident = false,
+              countryResidence = Some("????")
+            )
+          )
+
+          mockGetTaxYearSuccess()
+
+          transformer.toCompleteReturn(desReturn).isLeft shouldBe true
+        }
+
+      }
+
+      "transform triage answers correctly" when {
+
+        "there are no represented personal details" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              representedPersonDetails = None
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
+            Some(
+              IndividualUserType.Self
+            )
+          )
+        }
+
+        "there are represented personal details but no date of death" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              representedPersonDetails = Some(
+                sample[RepresentedPersonDetails].copy(
+                  dateOfDeath = None
+                )
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
+            Some(IndividualUserType.Capacitor)
+          )
+        }
+
+        "there are represented personal details with a date of death" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              representedPersonDetails = Some(
+                sample[RepresentedPersonDetails].copy(
+                  dateOfDeath = Some(LocalDate.of(2000, 1, 1))
+                )
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
+            Some(IndividualUserType.PersonalRepresentative)
+          )
+        }
+
+        "the user was a trust" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnDetails = validSingleMixedUseDisposalDesReturnDetails.returnDetails.copy(
+                customerType = CustomerType.Trust
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(None)
+        }
+
+        "the user was a uk resident" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnDetails = sample[ReturnDetails].copy(
+                isUKResident = true
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(
+            Country.uk
+          )
+        }
+
+        "the user was not a uk resident and there is a valid country code" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnDetails = sample[ReturnDetails].copy(
+                isUKResident = false,
+                countryResidence = Some("HK")
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(
+            Country("HK", Some("Hong Kong"))
+          )
+        }
+
+        "finding the disposal method" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              disposalDetails = List(
+                validSingleMixedUseDisposalDetails.copy(
+                  disposalType = DesDisposalType.Sold
+                )
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.disposalMethod) shouldBe Right(
+            DisposalMethod.Sold
+          )
+        }
+
+        "finding the asset type" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(validSingleMixedUseDisposalDesReturnDetails)
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.assetType) shouldBe Right(
+            AssetType.MixedUse
+          )
+        }
+
+        "a tax year can be found for the disposal date" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(validSingleMixedUseDisposalDesReturnDetails)
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.disposalDate) shouldBe Right(
+            DisposalDate(validSingleMixedUseDisposalDetails.disposalDate, taxYear)
+          )
+        }
+
+        "finding the completion data" in {
+          val completionDate = LocalDate.now()
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnDetails = validSingleMixedUseDisposalDesReturnDetails.returnDetails.copy(
+                completionDate = completionDate
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.completionDate) shouldBe Right(
+            CompletionDate(completionDate)
+          )
+        }
+
+      }
+
+      "transform example property details answers correctly" when {
+
+        "finding the address " in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(validSingleMixedUseDisposalDesReturnDetails)
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.propertyDetailsAnswers.address) shouldBe Right(
+            ukAddress.copy(
+              postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+            )
+          )
+        }
+
+        "finding the disposal price" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              disposalDetails = List(
+                validSingleMixedUseDisposalDetails.copy(
+                  disposalPrice = BigDecimal("123.45")
+                )
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.propertyDetailsAnswers.disposalPrice) shouldBe Right(
+            AmountInPence(12345L)
+          )
+        }
+
+        "finding the acquisition price" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              disposalDetails = List(
+                validSingleMixedUseDisposalDetails.copy(
+                  acquisitionPrice = BigDecimal("12345")
+                )
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.propertyDetailsAnswers.acquisitionPrice) shouldBe Right(
+            AmountInPence(1234500L)
+          )
+        }
+
+      }
+
+      "transform exemption and losses answers correctly" when {
+
+        "the in year losses is defined" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              lossSummaryDetails = validSingleMixedUseDisposalDesReturnDetails.lossSummaryDetails.copy(
+                inYearLossUsed = Some(BigDecimal("123.45"))
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.exemptionsAndLossesDetails.inYearLosses) shouldBe Right(
+            AmountInPence(12345L)
+          )
+        }
+
+        "the in year losses is not defined" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              lossSummaryDetails = validSingleMixedUseDisposalDesReturnDetails.lossSummaryDetails.copy(
+                inYearLossUsed = None
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.exemptionsAndLossesDetails.inYearLosses) shouldBe Right(
+            AmountInPence.zero
+          )
+        }
+
+        "the previous year losses is defined" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              lossSummaryDetails = validSingleMixedUseDisposalDesReturnDetails.lossSummaryDetails.copy(
+                preYearLossUsed = Some(BigDecimal("123.45"))
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(
+            _.exemptionsAndLossesDetails.previousYearsLosses
+          ) shouldBe Right(
+            AmountInPence(12345L)
+          )
+        }
+
+        "the previous year losses is not defined" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              lossSummaryDetails = validSingleMixedUseDisposalDesReturnDetails.lossSummaryDetails.copy(
+                preYearLossUsed = None
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(
+            _.exemptionsAndLossesDetails.previousYearsLosses
+          ) shouldBe Right(
+            AmountInPence.zero
+          )
+        }
+
+        "finding the annual exempt amount" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              incomeAllowanceDetails = validSingleMixedUseDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                annualExemption = BigDecimal("12.34")
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(
+            _.exemptionsAndLossesDetails.annualExemptAmount
+          ) shouldBe Right(
+            AmountInPence(1234L)
+          )
+        }
+
+      }
+
+      "transform year to date liability answers correctly" when {
+
+        "finding the taxableGainOrLoss when a loss has been made" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnDetails = validSingleMixedUseDisposalDesReturnDetails.returnDetails.copy(
+                totalNetLoss = Some(BigDecimal("1")),
+                totalTaxableGain = BigDecimal("0")
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(
+            _.yearToDateLiabilityAnswers.taxableGainOrLoss
+          ) shouldBe Right(
+            AmountInPence(-100L)
+          )
+        }
+
+        "finding the taxableGainOrLoss when a gain has been made" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnDetails = validSingleMixedUseDisposalDesReturnDetails.returnDetails.copy(
+                totalNetLoss = None,
+                totalTaxableGain = BigDecimal("2")
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(
+            _.yearToDateLiabilityAnswers.taxableGainOrLoss
+          ) shouldBe Right(
+            AmountInPence(200L)
+          )
+        }
+
+        "finding whether a user has estimated any details" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnDetails = validSingleMixedUseDisposalDesReturnDetails.returnDetails.copy(
+                estimate = true
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(
+            _.yearToDateLiabilityAnswers.hasEstimatedDetails
+          ) shouldBe Right(
+            true
+          )
+        }
+
+        "finding the tax due for the user" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnDetails = validSingleMixedUseDisposalDesReturnDetails.returnDetails.copy(
+                totalLiability = BigDecimal("3")
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.yearToDateLiabilityAnswers.taxDue) shouldBe Right(
             AmountInPence(300L)
           )
 
