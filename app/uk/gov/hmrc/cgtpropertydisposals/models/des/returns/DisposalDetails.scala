@@ -162,7 +162,7 @@ object DisposalDetails {
           addressDetails = Address.toAddressDetails(s.propertyDetailsAnswers.address),
           assetType = DesAssetTypeValue(s),
           disposalType = DesDisposalType(s.triageAnswers.disposalMethod),
-          acquisitionType = DesAcquisitionType.Other("not captured for single mixed use disposals"),
+          acquisitionType = DesAcquisitionType.Other("not captured for single mixed use"),
           landRegistry = false,
           acquisitionPrice = s.propertyDetailsAnswers.acquisitionPrice.inPounds(),
           disposalPrice = s.propertyDetailsAnswers.disposalPrice.inPounds(),
