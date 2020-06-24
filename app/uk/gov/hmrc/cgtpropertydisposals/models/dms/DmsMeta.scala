@@ -18,7 +18,13 @@ package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
 import play.api.libs.json.{Format, Json}
 
-final case class DmsMetadata(dmsFormId: String, customerId: String, classificationType: String, businessArea: String)
+final case class DmsMetadata(
+  dmsFormId: String,
+  customerId: String,
+  classificationType: String,
+  businessArea: String,
+  backscan: Boolean
+)
 
 object DmsMetadata {
   implicit val format: Format[DmsMetadata] = Json.format[DmsMetadata]
