@@ -556,7 +556,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
           singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
             _.acquisitionType
-          ) shouldBe Right(DesAcquisitionType.Other("not captured for single mixed use disposals"))
+          ) shouldBe Right(DesAcquisitionType.Other("not captured for single mixed use"))
         }
       }
 
