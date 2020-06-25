@@ -170,8 +170,7 @@ object GFormConnector {
         "dmsFormId"          -> Seq(dmsSubmissionPayload.dmsMetadata.dmsFormId),
         "customerId"         -> Seq(dmsSubmissionPayload.dmsMetadata.customerId),
         "classificationType" -> Seq(dmsSubmissionPayload.dmsMetadata.classificationType),
-        "businessArea"       -> Seq(dmsSubmissionPayload.dmsMetadata.businessArea),
-        "backscan"           -> Seq(dmsSubmissionPayload.dmsMetadata.backscan.toString)
+        "businessArea"       -> Seq(dmsSubmissionPayload.dmsMetadata.businessArea)
       ),
       files = temporaryFiles,
       badParts = Nil

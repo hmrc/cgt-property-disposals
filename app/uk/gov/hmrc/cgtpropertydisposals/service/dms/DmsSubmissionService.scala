@@ -100,7 +100,7 @@ class DefaultDmsSubmissionService @Inject() (
                            DmsSubmissionPayload(
                              html,
                              fileAttachments,
-                             DmsMetadata(formBundleId, cgtReference.value, queue, businessArea, backscan = true)
+                             DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
                            )
                          )
     } yield envId
