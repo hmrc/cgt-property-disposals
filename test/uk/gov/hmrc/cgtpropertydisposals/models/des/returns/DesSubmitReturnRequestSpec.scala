@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import com.eclipsesource.schema.drafts.Version7
+import com.eclipsesource.schema.drafts.Version4
 import com.eclipsesource.schema.{SchemaType, SchemaValidator}
 import org.scalatest.WordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
@@ -41,7 +41,7 @@ class DesSubmitReturnRequestSpec extends WordSpec {
   "DesSubmitReturnRequest" must {
 
     "have a method which transforms submit requests correctly" in {
-      import Version7._
+      import Version4._
       val schemaToBeValidated = Json
         .fromJson[SchemaType](
           Json.parse(
@@ -54,7 +54,7 @@ class DesSubmitReturnRequestSpec extends WordSpec {
         )
         .get
 
-      val validator = SchemaValidator(Some(Version7))
+      val validator = SchemaValidator(Some(Version4))
 
       for (_ <- 1 to 1000) {
         val submitReturnRequest: SubmitReturnRequest =
