@@ -30,14 +30,16 @@ object RepresenteeAnswers {
     dateOfDeath: Option[DateOfDeath],
     contactDetails: Option[RepresenteeContactDetails],
     hasConfirmedPerson: Boolean,
-    hasConfirmedContactDetails: Boolean
+    hasConfirmedContactDetails: Boolean,
+    isFirstReturn: Option[Boolean]
   ) extends RepresenteeAnswers
 
   final case class CompleteRepresenteeAnswers(
     name: IndividualName,
     id: RepresenteeReferenceId,
     dateOfDeath: Option[DateOfDeath],
-    contactDetails: RepresenteeContactDetails
+    contactDetails: RepresenteeContactDetails,
+    isFirstReturn: Boolean
   ) extends RepresenteeAnswers
 
   implicit val format: OFormat[RepresenteeAnswers] = derived.oformat()
