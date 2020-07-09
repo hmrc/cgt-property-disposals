@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
+import java.util.UUID
+
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
+import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -62,6 +65,30 @@ class DraftReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
           Set(draftReturn, draftReturn2)
         )
       }
+
+      "filter out draft returns which cannot be parsed" in {
+        implicit val w: OWrites[JsObject] = OWrites.apply(identity)
+        val draftReturn                   = sample[DraftReturn]
+
+        val result = repository.collection.insert.one(
+          Json
+            .parse(
+              s"""{
+              |  "return" : {
+              |    "draftId" : "${UUID.randomUUID().toString}",
+              |    "cgtReference" : { "value" : "${cgtReference.value}" },
+              |    "draftReturn" : { }
+              |  }
+              |}""".stripMargin
+            )
+            .as[JsObject]
+        )
+        await(result).writeErrors                               shouldBe Seq.empty
+        await(repository.save(draftReturn, cgtReference).value) shouldBe Right(())
+
+        await(repository.fetch(cgtReference).value) shouldBe Right(List(draftReturn))
+      }
+
     }
 
     "deleting" should {

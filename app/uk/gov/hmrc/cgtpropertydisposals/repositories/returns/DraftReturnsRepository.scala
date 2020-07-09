@@ -19,11 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 import java.util.UUID
 
 import cats.data.EitherT
-import cats.instances.either._
 import cats.instances.future._
-import cats.instances.list._
 import cats.syntax.either._
-import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
@@ -36,6 +33,7 @@ import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
@@ -137,7 +135,11 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
         val p: List[Either[Error, DraftReturnWithCgtReference]] = l.map { json =>
           (json \ objName).validate[DraftReturnWithCgtReference].asEither.leftMap(toError)
         }
-        p.sequence[Either[Error, ?], DraftReturnWithCgtReference]
+        val (errors, draftReturns)                              = p.partitionWith(identity)
+        if (errors.nonEmpty)
+          logger.warn(s"Not returning ${errors.size} draft returns: ${errors.mkString("; ")}")
+
+        Right(draftReturns)
       }
       .recover {
         case NonFatal(e) => Left(Error(e))
