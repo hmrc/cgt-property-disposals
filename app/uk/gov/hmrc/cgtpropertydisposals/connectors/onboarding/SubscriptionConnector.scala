@@ -28,7 +28,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-
+import cats.instances.string._
+import cats.syntax.eq._
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[SubscriptionConnectorImpl])
@@ -55,7 +56,15 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
     extends SubscriptionConnector
     with DesConnector {
 
-  val baseUrl: String = config.baseUrl("subscription")
+  val domain: String = config.getConfString("subscription.domain", "")
+
+  val serviceUrl = config.baseUrl("subscription")
+
+  val baseUrl =
+    if (domain =!= "")
+      s"""$serviceUrl/$domain"""
+    else
+      serviceUrl
 
   val subscribeUrl: String = s"$baseUrl/subscriptions/create/CGT"
 

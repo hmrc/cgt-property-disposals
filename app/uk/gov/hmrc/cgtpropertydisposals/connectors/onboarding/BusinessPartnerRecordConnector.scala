@@ -27,7 +27,8 @@ import uk.gov.hmrc.cgtpropertydisposals.util.StringOps._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-
+import cats.instances.string._
+import cats.syntax.eq._
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[BusinessPartnerRecordConnectorImpl])
@@ -49,7 +50,15 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
 
   import BusinessPartnerRecordConnectorImpl._
 
-  val baseUrl: String = config.baseUrl("business-partner-record")
+  val domain: String = config.getConfString("business-partner-record.domain", "")
+
+  val serviceUrl = config.baseUrl("business-partner-record")
+
+  val baseUrl =
+    if (domain =!= "")
+      s"""$serviceUrl/$domain"""
+    else
+      serviceUrl
 
   def url(bprRequest: BusinessPartnerRecordRequest): String = {
     val entityType = bprRequest.fold(_ => "organisation", _ => "individual")

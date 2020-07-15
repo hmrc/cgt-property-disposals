@@ -30,7 +30,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-
+import cats.instances.string._
+import cats.syntax.eq._
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[ReturnsConnectorImpl])
@@ -55,7 +56,15 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
     extends ReturnsConnector
     with DesConnector {
 
-  val baseUrl: String = config.baseUrl("returns")
+  val domain: String = config.getConfString("returns.domain", "")
+
+  val serviceUrl = config.baseUrl("returns")
+
+  val baseUrl =
+    if (domain =!= "")
+      s"""$serviceUrl/$domain"""
+    else
+      serviceUrl
 
   override def submit(
     cgtReference: CgtReference,

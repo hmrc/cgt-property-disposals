@@ -20,6 +20,7 @@ import java.util.UUID
 
 import cats.data.EitherT
 import cats.instances.char._
+import cats.instances.string._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, Writes}
@@ -51,7 +52,15 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: Se
     with DesConnector {
   import RegisterWithoutIdConnectorImpl._
 
-  val baseUrl: String = config.baseUrl("register-without-id")
+  val domain: String = config.getConfString("register-without-id.domain", "")
+
+  val serviceUrl = config.baseUrl("register-without-id")
+
+  val baseUrl =
+    if (domain =!= "")
+      s"""$serviceUrl/$domain"""
+    else
+      serviceUrl
 
   val url: String = s"$baseUrl/registration/02.00.00/individual"
 
