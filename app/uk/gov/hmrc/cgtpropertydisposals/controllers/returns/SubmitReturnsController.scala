@@ -39,7 +39,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdSer
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.cgtpropertydisposals.util.{HtmlSanitizer, Logging}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 

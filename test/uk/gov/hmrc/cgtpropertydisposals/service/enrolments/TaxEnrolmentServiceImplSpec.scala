@@ -205,6 +205,8 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
     )
   )
 
+  private val emptyJsonBody = "{}"
+
   "TaxEnrolment Service Implementation" when {
 
     "it receives a request to check if a user has a CGT enrolment" must {
@@ -235,7 +237,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
             mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
             mockInsertVerifier(addressChange)(Right(()))
             mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(None))
-            mockUpdateVerifier(addressChange)(Right(HttpResponse(204)))
+            mockUpdateVerifier(addressChange)(Right(HttpResponse(204, emptyJsonBody)))
             mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
           }
           await(service.updateVerifiers(addressChange).value) shouldBe Right(())
@@ -247,7 +249,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
             mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
             mockInsertVerifier(addressChange)(Right(()))
             mockGetEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(None))
-            mockUpdateVerifier(addressChange)(Right(HttpResponse(500)))
+            mockUpdateVerifier(addressChange)(Right(HttpResponse(500, emptyJsonBody)))
           }
           await(service.updateVerifiers(addressChange).value) shouldBe Right(())
         }
@@ -268,7 +270,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
             mockAllocateEnrolment(
               taxEnrolmentRequestWithUkAddress.copy(address = addressChange.subscribedUpdateDetails.newDetails.address)
             )(
-              Right(HttpResponse(204))
+              Right(HttpResponse(204, emptyJsonBody))
             )
             mockDeleteEnrolment(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
             mockDeleteVerifier(taxEnrolmentRequestWithUkAddress.ggCredId)(Right(1))
@@ -305,7 +307,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
               Right(Some(taxEnrolmentRequestWithNonUkAddress))
             )
             mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
-            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204, emptyJsonBody)))
             mockDeleteEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Left(Error("Database error")))
           }
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value) shouldBe Right(
@@ -322,7 +324,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
               Right(Some(taxEnrolmentRequestWithNonUkAddress))
             )
             mockGetUpdateVerifier(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(None))
-            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204, emptyJsonBody)))
             mockDeleteEnrolment(taxEnrolmentRequestWithNonUkAddress.ggCredId)(Right(1))
           }
           await(service.hasCgtSubscription(taxEnrolmentRequestWithNonUkAddress.ggCredId).value).isRight shouldBe true
@@ -337,7 +339,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       "return an error" when {
         "the http call comes back with a status other than 204 and the recording of the enrolment request fails" in {
           inSequence {
-            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401, emptyJsonBody)))
             mockInsertEnrolment(taxEnrolmentRequestWithNonUkAddress)(Left(Error("Connection Error")))
           }
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isLeft shouldBe true
@@ -355,7 +357,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       "return a tax enrolment created success response" when {
         "the http call comes back with a status other than 204" in {
           inSequence {
-            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401, emptyJsonBody)))
             mockInsertEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(()))
           }
 
@@ -363,7 +365,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         }
         "the http call comes back with a status other than no content and the insert into mongo succeeds" in {
           inSequence {
-            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401)))
+            mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(401, emptyJsonBody)))
             mockInsertEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(()))
           }
 
@@ -380,11 +382,11 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
         }
 
         "the http call comes back with a status of no content and the address is a UK address with a postcode" in {
-          mockAllocateEnrolment(taxEnrolmentRequestWithUkAddress)(Right(HttpResponse(204)))
+          mockAllocateEnrolment(taxEnrolmentRequestWithUkAddress)(Right(HttpResponse(204, emptyJsonBody)))
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithUkAddress).value).isRight shouldBe true
         }
         "the http call comes back with a status of no content and the address is a Non-UK address with a country code" in {
-          mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204)))
+          mockAllocateEnrolment(taxEnrolmentRequestWithNonUkAddress)(Right(HttpResponse(204, emptyJsonBody)))
           await(service.allocateEnrolmentToGroup(taxEnrolmentRequestWithNonUkAddress).value).isRight shouldBe true
         }
       }

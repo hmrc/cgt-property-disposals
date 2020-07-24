@@ -76,7 +76,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         "subscriptionResponse",
         SubscriptionResponseEvent(
           httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: null" }""")),
+          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
           desSubscriptionRequest
         ),
         "subscription-response",
@@ -136,6 +136,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(subscriptionDetails, cgtReference, *)
       .returning(EitherT(Future.successful(response)))
 
+  private val emptyJsonBody = "{}"
+  private val noJsonInBody  = ""
+
   "SubscriptionServiceImpl" when {
     val cgtReference = CgtReference("XFCGT123456789")
 
@@ -167,18 +170,18 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
       "return an error" when {
         "the http call comes back with a status other than 200" in {
-          mockUpdateSubscriptionDetails(expectedUpdateRequest, cgtReference)(Right(HttpResponse(500)))
+          mockUpdateSubscriptionDetails(expectedUpdateRequest, cgtReference)(Right(HttpResponse(500, emptyJsonBody)))
           await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
-          mockUpdateSubscriptionDetails(expectedUpdateRequest, cgtReference)(Right(HttpResponse(200)))
+          mockUpdateSubscriptionDetails(expectedUpdateRequest, cgtReference)(Right(HttpResponse(200, emptyJsonBody)))
           await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
           mockUpdateSubscriptionDetails(expectedUpdateRequest, cgtReference)(
-            Right(HttpResponse(200, Some(JsNumber(1))))
+            Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
           )
           await(service.updateSubscription(updatedDetails).value).isLeft shouldBe true
         }
@@ -208,7 +211,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |""".stripMargin
 
         mockUpdateSubscriptionDetails(expectedUpdateRequest, cgtReference)(
-          Right(HttpResponse(200, Some(Json.parse(jsonBody))))
+          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
         )
         await(service.updateSubscription(updatedDetails).value) shouldBe Right(updateResponse)
       }
@@ -220,17 +223,17 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
       "return an error" when {
         "the http call comes back with a status other than 200" in {
-          mockGetSubscription(cgtReference)(Right(HttpResponse(500)))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(500, emptyJsonBody)))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200)))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, emptyJsonBody)))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(JsNumber(1)))))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
@@ -261,7 +264,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
               |}
               |""".stripMargin
 
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+          mockGetSubscription(cgtReference)(
+            Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+          )
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
@@ -291,7 +296,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
               |}
               |""".stripMargin)
 
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
@@ -318,7 +323,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
               |}
               |""".stripMargin)
 
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
@@ -349,7 +354,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
                          |}
                          |""".stripMargin)
 
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
@@ -379,7 +384,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
                          |}
                          |""".stripMargin)
 
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
@@ -410,7 +415,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
                          |}
                          |""".stripMargin)
 
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
@@ -440,7 +445,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
                          |}
                          |""".stripMargin)
 
-          mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(jsonBody))))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
 
@@ -482,7 +487,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Some(TelephoneNumber("(+013)32752856")),
           true
         )
-        mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+        mockGetSubscription(cgtReference)(
+          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+        )
         await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
       }
 
@@ -531,7 +538,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Some(TelephoneNumber("(+013)32752856")),
           true
         )
-        mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+        mockGetSubscription(cgtReference)(
+          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+        )
         await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
       }
 
@@ -576,7 +585,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Some(TelephoneNumber("(+013)32752856")),
           true
         )
-        mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+        mockGetSubscription(cgtReference)(
+          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+        )
         await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
       }
 
@@ -627,7 +638,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
           Some(TelephoneNumber("(+013)32752856")),
           true
         )
-        mockGetSubscription(cgtReference)(Right(HttpResponse(200, Some(Json.parse(jsonBody)))))
+        mockGetSubscription(cgtReference)(
+          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+        )
         await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
       }
 
@@ -638,7 +651,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             """{ "failures": [ { "code": "NOT_FOUND", "reason" : "Data not found for the provided Registration Number." } ] }"""
           )
         ).foreach { desResponseBody =>
-          mockGetSubscription(cgtReference)(Right(HttpResponse(404, Some(desResponseBody))))
+          mockGetSubscription(cgtReference)(Right(HttpResponse(404, desResponseBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value) shouldBe Right(None)
         }
 
@@ -656,19 +669,19 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
       "return an error" when {
         "the http call comes back with a status other than 200" in {
-          mockSubscribe(subscriptionRequest)(Right(HttpResponse(500)))
+          mockSubscribe(subscriptionRequest)(Right(HttpResponse(500, noJsonInBody)))
           mockAuditSubscriptionResponse(500, None, subscriptionRequest)
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
-          mockSubscribe(subscriptionRequest)(Right(HttpResponse(200)))
+          mockSubscribe(subscriptionRequest)(Right(HttpResponse(200, noJsonInBody)))
           mockAuditSubscriptionResponse(200, None, subscriptionRequest)
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
-          mockSubscribe(subscriptionRequest)(Right(HttpResponse(200, Some(JsNumber(1)))))
+          mockSubscribe(subscriptionRequest)(Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]])))
           mockAuditSubscriptionResponse(200, Some(JsNumber(1)), subscriptionRequest)
           await(service.subscribe(subscriptionDetails).value).isLeft shouldBe true
         }
@@ -686,9 +699,11 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         "the subscription call comes back with a 200 status and the JSON body can be parsed" in {
           inSequence {
-            mockSubscribe(subscriptionRequest)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
+            mockSubscribe(subscriptionRequest)(
+              Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
+            )
             mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
-            mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(ACCEPTED)))
+            mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(ACCEPTED, emptyJsonBody)))
             mockAuditSubscriptionEmailEvent(subscriptionDetails.emailAddress.value, cgtReference.value)
           }
 
@@ -699,7 +714,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
         "the call to send an email fails" in {
           inSequence {
-            mockSubscribe(subscriptionRequest)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
+            mockSubscribe(subscriptionRequest)(
+              Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
+            )
             mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
             mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Left(Error("")))
           }
@@ -712,9 +729,11 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         "the call to send an email comes back with a status other than 202" in {
           List(OK, BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE).foreach { status =>
             inSequence {
-              mockSubscribe(subscriptionRequest)(Right(HttpResponse(200, Some(subscriptionResponseJsonBody))))
+              mockSubscribe(subscriptionRequest)(
+                Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
+              )
               mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
-              mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(status)))
+              mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(status, emptyJsonBody)))
             }
             await(service.subscribe(subscriptionDetails).value) shouldBe Right(
               SubscriptionSuccessful(cgtReference.value)
@@ -734,7 +753,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
         )
 
         inSequence {
-          mockSubscribe(subscriptionRequest)(Right(HttpResponse(403, Some(subscriptionResponseJsonBody))))
+          mockSubscribe(subscriptionRequest)(
+            Right(HttpResponse(403, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
+          )
           mockAuditSubscriptionResponse(403, Some(subscriptionResponseJsonBody), subscriptionRequest)
         }
 

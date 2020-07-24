@@ -20,14 +20,13 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -70,8 +69,9 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .post(subscribeUrl, Json.toJson(subscriptionRequest), headers)(
+        .POST[JsValue, HttpResponse](subscribeUrl, Json.toJson(subscriptionRequest), headers)(
           implicitly[Writes[JsValue]],
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )
@@ -84,7 +84,8 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .get(subscriptionUrl(cgtReference), Map.empty, headers)(
+        .GET[HttpResponse](subscriptionUrl(cgtReference), Seq.empty, headers)(
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )
@@ -99,12 +100,13 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .put(
+        .PUT[JsValue, HttpResponse](
           subscriptionUrl(cgtReference),
           Json.toJson(subscriptionRequest),
           headers
         )(
           implicitly[Writes[JsValue]],
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )
@@ -119,10 +121,12 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .get(
+        .GET[HttpResponse](
           subscriptionStatusUrl(sapNumber),
-          headers = headers
+          Seq.empty,
+          headers
         )(
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )

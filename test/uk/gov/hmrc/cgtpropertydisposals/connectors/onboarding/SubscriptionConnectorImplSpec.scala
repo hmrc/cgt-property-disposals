@@ -19,16 +19,16 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
-import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -57,12 +57,14 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
     )
   )
 
-  val connector = new SubscriptionConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector = new SubscriptionConnectorImpl(mockHttp, new ServicesConfig(config))
+
+  private val emptyJsonBody = "{}"
 
   "SubscriptionConnectorImpl" when {
 
     implicit val hc: HeaderCarrier                                 = HeaderCarrier()
-    val expectedHeaders                                            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedHeaders                                            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
     val expectedSubscriptionUrl                                    = "http://host:123/subscriptions/create/CGT"
     def expectedSubscriptionDisplayUrl(cgtReference: CgtReference) =
       s"http://host:123/subscriptions/CGT/ZCGT/${cgtReference.value}"
@@ -85,8 +87,8 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
       "do a put http call and return the result" in {
         List(
-          HttpResponse(200, Some(Json.parse(expectedResponse))),
-          HttpResponse(500)
+          HttpResponse(200, Json.parse(expectedResponse), Map.empty[String, Seq[String]]),
+          HttpResponse(500, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockPut(
@@ -147,13 +149,13 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
       "do a get http call and return the result" in {
         List(
-          HttpResponse(200, Some(Json.parse(expectedResponse))),
-          HttpResponse(500)
+          HttpResponse(200, Json.parse(expectedResponse), Map.empty[String, Seq[String]]),
+          HttpResponse(500, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockGet(
+            mockGetWithQueryWithHeaders(
               expectedSubscriptionDisplayUrl(cgtReference),
-              Map.empty,
+              Seq.empty,
               expectedHeaders
             )(
               Some(httpResponse)
@@ -165,7 +167,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockGet(expectedSubscriptionDisplayUrl(cgtReference), Map.empty, expectedHeaders)(
+        mockGetWithQueryWithHeaders(expectedSubscriptionDisplayUrl(cgtReference), Seq.empty, expectedHeaders)(
           None
         )
 
@@ -181,9 +183,9 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       "do a post http call and return the result" in {
 
         List(
-          HttpResponse(200),
-          HttpResponse(200, Some(JsString("hi"))),
-          HttpResponse(500)
+          HttpResponse(200, "{}"),
+          HttpResponse(200, JsString("hi"), Map.empty[String, Seq[String]]),
+          HttpResponse(500, "{}")
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockPost(expectedSubscriptionUrl, expectedHeaders, Json.toJson(request))(
@@ -210,12 +212,12 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
 
       "do a post http call and return the result" in {
         List(
-          HttpResponse(200),
-          HttpResponse(200, Some(JsString("hi"))),
-          HttpResponse(500)
+          HttpResponse(200, "{}"),
+          HttpResponse(200, JsString("hi"), Map.empty[String, Seq[String]]),
+          HttpResponse(500, "{}")
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockGet(expectedSubscriptionStatusUrl, Map.empty, expectedHeaders)(
+            mockGetWithQueryWithHeaders(expectedSubscriptionStatusUrl, Seq.empty, expectedHeaders)(
               Some(httpResponse)
             )
 
@@ -225,7 +227,7 @@ class SubscriptionConnectorImplSpec extends WordSpec with Matchers with MockFact
       }
 
       "return an error when the future fails" in {
-        mockGet(expectedSubscriptionStatusUrl, Map.empty, expectedHeaders)(None)
+        mockGetWithQueryWithHeaders(expectedSubscriptionStatusUrl, Seq.empty, expectedHeaders)(None)
 
         await(connector.getSubscriptionStatus(sapNumber).value).isLeft shouldBe true
       }

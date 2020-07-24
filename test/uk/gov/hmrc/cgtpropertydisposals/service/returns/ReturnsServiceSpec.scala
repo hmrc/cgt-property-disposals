@@ -171,7 +171,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         "submitReturnResponse",
         SubmitReturnResponseEvent(
           httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: null" }""")),
+          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
           Json.toJson(desSubmitReturnRequest),
           name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
           agentReferenceNumber.map(_.value)
@@ -205,6 +205,9 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         *
       )
       .returning(())
+
+  private val emptyJsonBody = "{}"
+  private val noJsonInBody  = ""
 
   "CompleteReturnsService" when {
 
@@ -252,7 +255,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockSubmitReturn(
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
-            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
             mockAuditSubmitReturnResponseEvent(
               200,
               Some(responseJsonBody),
@@ -261,7 +264,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
-              Right(HttpResponse(ACCEPTED))
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
             mockAuditReturnConfirmationEmailEvent(
               submitReturnRequest.subscribedDetails.emailAddress.value,
@@ -306,7 +309,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockSubmitReturn(
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
-            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
             mockAuditSubmitReturnResponseEvent(
               200,
               Some(responseJsonBody),
@@ -315,7 +318,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
-              Right(HttpResponse(ACCEPTED))
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
             mockAuditReturnConfirmationEmailEvent(
               submitReturnRequest.subscribedDetails.emailAddress.value,
@@ -353,7 +356,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockSubmitReturn(
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
-            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
             mockAuditSubmitReturnResponseEvent(
               200,
               Some(responseJsonBody),
@@ -362,7 +365,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
-              Right(HttpResponse(ACCEPTED))
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
             mockAuditReturnConfirmationEmailEvent(
               submitReturnRequest.subscribedDetails.emailAddress.value,
@@ -402,7 +405,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockSubmitReturn(
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
-            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
             mockAuditSubmitReturnResponseEvent(
               200,
               Some(responseJsonBody),
@@ -411,7 +414,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
-              Right(HttpResponse(ACCEPTED))
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
             mockAuditReturnConfirmationEmailEvent(
               submitReturnRequest.subscribedDetails.emailAddress.value,
@@ -463,7 +466,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockSubmitReturn(
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
-            )(Right(HttpResponse(200, Some(responseJsonBody))))
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
             mockAuditSubmitReturnResponseEvent(
               200,
               Some(responseJsonBody),
@@ -472,7 +475,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.agentReferenceNumber
             )
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
-              Right(HttpResponse(500))
+              Right(HttpResponse(500, emptyJsonBody))
             )
           }
 
@@ -498,7 +501,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               mockSubmitReturn(
                 submitReturnRequest.subscribedDetails.cgtReference,
                 desSubmitReturnRequest
-              )(Right(HttpResponse(200, Some(jsonResponseBody))))
+              )(Right(HttpResponse(200, jsonResponseBody, Map.empty[String, Seq[String]])))
               mockAuditSubmitReturnResponseEvent(
                 200,
                 Some(jsonResponseBody),
@@ -601,7 +604,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockSubmitReturn(
               submitReturnRequest.subscribedDetails.cgtReference,
               desSubmitReturnRequest
-            )(Right(HttpResponse(500)))
+            )(Right(HttpResponse(500, noJsonInBody)))
             mockAuditSubmitReturnResponseEvent(
               500,
               None,
@@ -846,20 +849,24 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "the http call to get the list of returns returns with a status which is not 200" in {
-          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(404)))
+          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(404, emptyJsonBody)))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
 
         "the response body when getting the list of returns cannot be parsed" in {
-          mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(JsString("Hi!")))))
+          mockListReturn(cgtReference, fromDate, toDate)(
+            Right(HttpResponse(200, JsString("Hi!"), Map.empty[String, Seq[String]]))
+          )
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
         }
 
         "the call to get financial data fails" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+            )
             mockGetFinancialData(cgtReference, fromDate, toDate)(Left(Error("")))
           }
 
@@ -868,8 +875,10 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "the http call to get financial data returns with a status which is not 200" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
-            mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(400)))
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(400, emptyJsonBody)))
           }
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
@@ -877,8 +886,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "the response body when getting financial data cannot be parsed" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
-            mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(JsNumber(1)))))
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+            )
           }
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
@@ -886,9 +899,11 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "the data cannot be transformed" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+            )
             mockGetFinancialData(cgtReference, fromDate, toDate)(
-              Right(HttpResponse(200, Some(desFinancialDataResponse)))
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
             )
             mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions)(
               Left(Error(""))
@@ -906,9 +921,11 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           val summaries = List(sample[ReturnSummary])
 
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+            )
             mockGetFinancialData(cgtReference, fromDate, toDate)(
-              Right(HttpResponse(200, Some(desFinancialDataResponse)))
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
             )
             mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions)(
               Right(summaries)
@@ -927,12 +944,13 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             Right(
               HttpResponse(
                 404,
-                Some(Json.parse("""
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
                       |}
-                      |""".stripMargin))
+                      |""".stripMargin),
+                Map.empty[String, Seq[String]]
               )
             )
           )
@@ -946,7 +964,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             Right(
               HttpResponse(
                 404,
-                Some(Json.parse("""
+                Json.parse("""
                                   |{
                                   |  "failures" : [ 
                                   |    {
@@ -955,7 +973,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                                   |    }
                                   |  ]
                                   |}  
-                                  |""".stripMargin))
+                                  |""".stripMargin),
+                Map.empty[String, Seq[String]]
               )
             )
           )
@@ -965,17 +984,20 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "the response to get financial data comes back with status 404 and a single error in the body" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+            )
             mockGetFinancialData(cgtReference, fromDate, toDate)(
               Right(
                 HttpResponse(
                   404,
-                  Some(Json.parse("""
+                  Json.parse("""
                                     |{
                                     |  "code" : "NOT_FOUND",
                                     |  "reason" : "The remote endpoint has indicated that no data can be found."
                                     |}
-                                    |""".stripMargin))
+                                    |""".stripMargin),
+                  Map.empty[String, Seq[String]]
                 )
               )
             )
@@ -990,12 +1012,14 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "the response to get financial data comes back with status 404 and multiple errors in the body" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(Right(HttpResponse(200, Some(desListReturnResponseBody))))
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+            )
             mockGetFinancialData(cgtReference, fromDate, toDate)(
               Right(
                 HttpResponse(
                   404,
-                  Some(Json.parse("""
+                  Json.parse("""
                                     |{
                                     |  "failures" : [ 
                                     |    {
@@ -1004,7 +1028,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                                     |    }
                                     |  ]
                                     |}  
-                                    |""".stripMargin))
+                                    |""".stripMargin),
+                  Map.empty[String, Seq[String]]
                 )
               )
             )
@@ -1145,20 +1170,22 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         }
 
         "the http call returns with a status which is not 200" in {
-          mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(500)))
+          mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(500, emptyJsonBody)))
 
           await(returnsService.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
         }
 
         "there is no response body" in {
-          mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(200)))
+          mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(200, emptyJsonBody)))
 
           await(returnsService.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
         }
 
         "there is an error transforming the des return" in {
           inSequence {
-            mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(200, Some(desResponseBodyString))))
+            mockDisplayReturn(cgtReference, submissionId)(
+              Right(HttpResponse(200, desResponseBodyString, Map.empty[String, Seq[String]]))
+            )
             mockTransformReturn(desReturnDetails)(Left(Error("")))
           }
 
@@ -1173,7 +1200,9 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           val completeReturn = sample[CompleteReturn]
 
           inSequence {
-            mockDisplayReturn(cgtReference, submissionId)(Right(HttpResponse(200, Some(desResponseBodyString))))
+            mockDisplayReturn(cgtReference, submissionId)(
+              Right(HttpResponse(200, desResponseBodyString, Map.empty[String, Seq[String]]))
+            )
             mockTransformReturn(desReturnDetails)(Right(completeReturn))
           }
 

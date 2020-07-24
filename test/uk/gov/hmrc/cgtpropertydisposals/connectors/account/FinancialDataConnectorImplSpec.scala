@@ -21,13 +21,13 @@ import java.time.LocalDate
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.test.Helpers._
-import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -56,18 +56,20 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
     )
   )
 
-  val connector = new FinancialDataConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector = new FinancialDataConnectorImpl(mockHttp, new ServicesConfig(config))
 
-  def queryParams(fromDate: LocalDate, toDate: LocalDate): Map[String, String] =
-    Map("dateFrom" -> fromDate.toString, "dateTo" -> toDate.toString)
+  def queryParams(fromDate: LocalDate, toDate: LocalDate): Seq[(String, String)] =
+    Seq("dateFrom" -> fromDate.toString, "dateTo" -> toDate.toString)
 
-  val cgtReference                                                             = sample[CgtReference]
-  val (fromDate, toDate)                                                       = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
+  val cgtReference                                                               = sample[CgtReference]
+  val (fromDate, toDate)                                                         = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
+
+  private val emptyJsonBody = "{}"
 
   "FinancialDataConnectorImpl" when {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     def expectedFinancialDataUrl(cgtReference: CgtReference): String =
       s"http://localhost:7022/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT"
@@ -77,16 +79,16 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
       "do a GET http call and get the result" in {
 
         List(
-          HttpResponse(200),
-          HttpResponse(400),
-          HttpResponse(401),
-          HttpResponse(403),
-          HttpResponse(500),
-          HttpResponse(502),
-          HttpResponse(503)
+          HttpResponse(200, emptyJsonBody),
+          HttpResponse(400, emptyJsonBody),
+          HttpResponse(401, emptyJsonBody),
+          HttpResponse(403, emptyJsonBody),
+          HttpResponse(500, emptyJsonBody),
+          HttpResponse(502, emptyJsonBody),
+          HttpResponse(503, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockGet(
+            mockGetWithQueryWithHeaders(
               expectedFinancialDataUrl(cgtReference),
               queryParams(fromDate, toDate),
               expectedHeaders
@@ -105,7 +107,7 @@ class FinancialDataConnectorImplSpec extends WordSpec with Matchers with MockFac
     "return an error" when {
 
       "the call fails" in {
-        mockGet(
+        mockGetWithQueryWithHeaders(
           expectedFinancialDataUrl(cgtReference),
           queryParams(fromDate, toDate),
           expectedHeaders

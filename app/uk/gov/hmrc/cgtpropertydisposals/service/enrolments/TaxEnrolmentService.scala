@@ -75,7 +75,7 @@ class TaxEnrolmentServiceImpl @Inject() (
         result match {
           case Left(error)         =>
             metrics.eacdCreateEnrolmentErrorCounter.inc()
-            HttpResponse(999, Some(JsString(error.toString)))
+            HttpResponse(999, JsString(error.toString), Map.empty[String, Seq[String]])
 
           case Right(httpResponse) => httpResponse
         }
@@ -96,7 +96,7 @@ class TaxEnrolmentServiceImpl @Inject() (
         result match {
           case Left(error)         =>
             metrics.eacdUpdateEnrolmentErrorCounter.inc()
-            HttpResponse(999, Some(JsString(error.toString)))
+            HttpResponse(999, JsString(error.toString), Map.empty[String, Seq[String]])
 
           case Right(httpResponse) => httpResponse
         }

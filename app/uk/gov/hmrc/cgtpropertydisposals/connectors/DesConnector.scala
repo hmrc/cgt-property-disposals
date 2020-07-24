@@ -26,7 +26,7 @@ trait DesConnector {
 
   val environment: String = config.getString("des.environment")
 
-  val headers: Map[String, String] = Map(
+  val headers: Seq[(String, String)] = Seq(
     "Authorization" -> s"Bearer $bearerToken",
     "Environment"   -> environment
   )

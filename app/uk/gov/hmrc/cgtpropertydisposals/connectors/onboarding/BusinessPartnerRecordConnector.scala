@@ -20,13 +20,12 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, OFormat, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.StringOps._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -80,8 +79,9 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
 
     EitherT[Future, Error, HttpResponse](
       http
-        .post(url(bprRequest), Json.toJson(registerDetails), headers)(
+        .POST[JsValue, HttpResponse](url(bprRequest), Json.toJson(registerDetails), headers)(
           implicitly[Writes[JsValue]],
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )

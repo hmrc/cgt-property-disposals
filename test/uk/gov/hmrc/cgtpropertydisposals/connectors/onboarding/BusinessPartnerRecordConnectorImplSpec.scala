@@ -19,15 +19,15 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.test.Helpers._
-import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR, TRN}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.{IndividualBusinessPartnerRecordRequest, TrustBusinessPartnerRecordRequest}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -57,14 +57,16 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
   )
 
   val connector =
-    new BusinessPartnerRecordConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+    new BusinessPartnerRecordConnectorImpl(mockHttp, new ServicesConfig(config))
+
+  private val emptyJsonBody = "{}"
 
   "BusinessPartnerRecordConnectorImpl" when {
 
     "handling request to get the business partner records" when {
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
-      val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+      val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
       val name = IndividualName("forename", "surname")
 
@@ -96,9 +98,9 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
         "do a post http call and return the result" in {
           List(
-            HttpResponse(200),
-            HttpResponse(200, Some(JsString("hi"))),
-            HttpResponse(500)
+            HttpResponse(200, emptyJsonBody),
+            HttpResponse(200, JsString("hi"), Map.empty[String, Seq[String]]),
+            HttpResponse(500, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
               mockPost(
@@ -145,9 +147,9 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
         "do a post http call and return the result" in {
           List(
-            HttpResponse(200),
-            HttpResponse(200, Some(JsString("hi"))),
-            HttpResponse(500)
+            HttpResponse(200, emptyJsonBody),
+            HttpResponse(200, JsString("hi"), Map.empty[String, Seq[String]]),
+            HttpResponse(500, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
               mockPost(
@@ -223,9 +225,9 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         "do a post http call and return the result" in {
           for {
             httpResponse        <- List(
-                                     HttpResponse(200),
-                                     HttpResponse(200, Some(JsString("hi"))),
-                                     HttpResponse(500)
+                                     HttpResponse(200, emptyJsonBody),
+                                     HttpResponse(200, JsString("hi"), Map.empty[String, Seq[String]]),
+                                     HttpResponse(500, emptyJsonBody)
                                    )
             idsWithExpectedUrls <- idsWithExpectedUrlsList
           } withClue(s"For http response [${httpResponse.toString}] and id ${idsWithExpectedUrls._1}") {
@@ -241,7 +243,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
         "pass in the trust name for name matching if one is passed in" in {
           val trustName    = TrustName("trust")
-          val httpResponse = HttpResponse(200)
+          val httpResponse = HttpResponse(200, emptyJsonBody)
 
           idsWithExpectedUrlsList.foreach {
             case (id, expectedUrl) =>

@@ -19,8 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.test.Helpers.{await, _}
-import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
@@ -30,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -56,7 +56,9 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val connector = new TaxEnrolmentConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector = new TaxEnrolmentConnectorImpl(mockHttp, new ServicesConfig(config))
+
+  private val emptyJsonBody = "{}"
 
   val cgtReference       = CgtReference("XACGTP123456789")
   val ukTaxEnrolment     =
@@ -116,9 +118,9 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
     "it receives a request to update the verifiers" must {
       "make a http put call and return a result" in {
         List(
-          HttpResponse(204),
-          HttpResponse(401),
-          HttpResponse(400)
+          HttpResponse(204, emptyJsonBody),
+          HttpResponse(401, emptyJsonBody),
+          HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockPut[TaxEnrolmentUpdateRequest](
@@ -152,9 +154,9 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
 
       "make a http put call and return a result" in {
         List(
-          HttpResponse(204),
-          HttpResponse(401),
-          HttpResponse(400)
+          HttpResponse(204, emptyJsonBody),
+          HttpResponse(401, emptyJsonBody),
+          HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockPut[Enrolments](
@@ -172,9 +174,9 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
 
       "make a http put call and return a result" in {
         List(
-          HttpResponse(204),
-          HttpResponse(401),
-          HttpResponse(400)
+          HttpResponse(204, emptyJsonBody),
+          HttpResponse(401, emptyJsonBody),
+          HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockPut[Enrolments](

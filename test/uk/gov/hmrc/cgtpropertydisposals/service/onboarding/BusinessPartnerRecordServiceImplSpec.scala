@@ -68,6 +68,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val sapNumber = sample[SapNumber]
 
+  private val emptyJsonBody = "{}"
+
   "The BusinessPartnerRecordServiceImpl" when {
 
     "getting a business partner record" must {
@@ -120,7 +122,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(bprResponseBody))))
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprResponseBody, Map.empty[String, Seq[String]])))
             mockGetSubscriptionStatus(sapNumber)(response)
           }
 
@@ -128,17 +130,17 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
         }
 
         "the response to get BPR comes back with a status other than 200" in {
-          List(400, 401, 403, 404, 500, 501, 502).foreach(status => testGetBprError(Right(HttpResponse(status))))
+          List(400, 401, 403, 404, 500, 501, 502).foreach(status => testGetBprError(Right(HttpResponse(status, ""))))
         }
 
         "the json in the response to get BPR cannot be parsed" in {
-          testGetBprError(Right(HttpResponse(200, Some(JsNumber(0)))))
-          testGetBprError(Right(HttpResponse(200, responseString = Some("hello"))))
+          testGetBprError(Right(HttpResponse(200, JsNumber(0), Map.empty[String, Seq[String]])))
+          testGetBprError(Right(HttpResponse(200, "hello")))
 
         }
 
         "there is no json in the http response body when getting a BPR" in {
-          testGetBprError(Right(HttpResponse(200)))
+          testGetBprError(Right(HttpResponse(200, emptyJsonBody)))
         }
 
         "the call to get a BPR fails" in {
@@ -159,7 +161,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             None
           )
 
-          testGetBprError(Right(HttpResponse(200, Some(body))))
+          testGetBprError(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
         }
 
         "there is both an organisation name and an individual name in the response body when getting a BPR" in {
@@ -175,7 +177,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             Some(name)
           )
 
-          testGetBprError(Right(HttpResponse(200, Some(body))))
+          testGetBprError(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
         }
 
         "the call to get subscription status fails" in {
@@ -183,15 +185,15 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
         }
 
         "the call to get subscription status returns with an error status code" in {
-          testGetSubscriptionStatusError(Right(HttpResponse(500)))
+          testGetSubscriptionStatusError(Right(HttpResponse(500, emptyJsonBody)))
         }
 
         "the response body to get subscription status contains no JSON" in {
-          testGetSubscriptionStatusError(Right(HttpResponse(200)))
+          testGetSubscriptionStatusError(Right(HttpResponse(200, emptyJsonBody)))
         }
 
         "the response body to get subscription status contains JSON which cannot be parsed" in {
-          testGetSubscriptionStatusError(Right(HttpResponse(200, Some(JsNumber(1)))))
+          testGetSubscriptionStatusError(Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]])))
 
         }
 
@@ -203,7 +205,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "ZCGT"}""")
           ).foreach { json =>
             withClue(s"For JSON $json ") {
-              testGetSubscriptionStatusError(Right(HttpResponse(200, Some(json))))
+              testGetSubscriptionStatusError(Right(HttpResponse(200, json, Map.empty[String, Seq[String]])))
             }
           }
         }
@@ -213,9 +215,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             Right(
               HttpResponse(
                 200,
-                Some(
-                  Json.parse("""{ "subscriptionStatus" : "HELLO" }""")
-                )
+                Json.parse("""{ "subscriptionStatus" : "HELLO" }"""),
+                Map.empty[String, Seq[String]]
               )
             )
           )
@@ -246,8 +247,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), Postcode("postcode"))
 
           inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(
+              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
+            )
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
@@ -271,8 +274,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(
+              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
+            )
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
@@ -299,8 +304,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
 
           inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(
+              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
+            )
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
@@ -324,8 +331,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(
+              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
+            )
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
@@ -343,7 +352,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |""".stripMargin
           )
 
-          mockGetBPR(bprRequest)(Right(HttpResponse(404, Some(body))))
+          mockGetBPR(bprRequest)(Right(HttpResponse(404, body, Map.empty[String, Seq[String]])))
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(None, None)
@@ -375,8 +384,8 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
 
           inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(bprBody))))
-            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(statusBody))))
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, statusBody, Map.empty[String, Seq[String]])))
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
@@ -417,8 +426,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
 
               inSequence {
-                mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(bprBody))))
-                mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(statusBody))))
+                mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+                mockGetSubscriptionStatus(sapNumber)(
+                  Right(HttpResponse(200, statusBody, Map.empty[String, Seq[String]]))
+                )
               }
 
               await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
@@ -447,8 +458,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
 
           inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, Some(body))))
-            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, Some(notSubscribedJsonBody))))
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(
+              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
+            )
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(

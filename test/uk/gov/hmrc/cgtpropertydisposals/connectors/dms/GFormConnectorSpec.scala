@@ -20,12 +20,12 @@ import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.ws
 import play.api.libs.ws.ahc.AhcWSResponse
 import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseHeaders, CacheableHttpResponseStatus}
 import play.api.libs.ws.{BodyWritable, WSResponse}
 import play.api.test.Helpers.{await, _}
-import play.api.{Configuration, Mode}
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
 import play.shaded.ahc.org.asynchttpclient.Response
 import play.shaded.ahc.org.asynchttpclient.uri.Uri
@@ -35,7 +35,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -85,7 +85,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val connector = new GFormConnectorImpl(mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector = new GFormConnectorImpl(mockWsClient, new ServicesConfig(config))
 
   "GForm Connector" when {
 

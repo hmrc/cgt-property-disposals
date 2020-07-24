@@ -71,7 +71,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
         "registrationResponse",
         RegistrationResponseEvent(
           httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: null" }"""))
+          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }"""))
         ),
         "registration-response",
         *,
@@ -79,6 +79,8 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
         *
       )
       .returning(())
+
+  private val noJsonInBody = ""
 
   "RegisterWithoutIdServiceImpl" when {
 
@@ -93,7 +95,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
         "the http call comes back with a status other than 200" in {
           inSequence {
             mockGenerateUUID(referenceId)
-            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(500)))
+            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(500, noJsonInBody)))
             mockAuditRegistrationResponse(500, None)
           }
 
@@ -103,7 +105,7 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
         "there is no JSON in the body of the http response" in {
           inSequence {
             mockGenerateUUID(referenceId)
-            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200)))
+            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, noJsonInBody)))
             mockAuditRegistrationResponse(200, None)
           }
 
@@ -113,7 +115,9 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
         "the JSON body of the response cannot be parsed" in {
           inSequence {
             mockGenerateUUID(referenceId)
-            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(JsNumber(1)))))
+            mockRegisterWithoutId(registrationDetails, referenceId)(
+              Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+            )
             mockAuditRegistrationResponse(200, Some(JsNumber(1)))
           }
 
@@ -132,7 +136,9 @@ class RegisterWithoutIdServiceImplSpec extends WordSpec with Matchers with MockF
 
         inSequence {
           mockGenerateUUID(referenceId)
-          mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, Some(jsonBody))))
+          mockRegisterWithoutId(registrationDetails, referenceId)(
+            Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]]))
+          )
           mockAuditRegistrationResponse(200, Some(jsonBody))
         }
 

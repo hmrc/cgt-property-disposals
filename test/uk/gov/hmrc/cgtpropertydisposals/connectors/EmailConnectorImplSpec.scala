@@ -19,15 +19,15 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -64,8 +64,10 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
+  private val emptyJsonBody = "{}"
+
   val connector =
-    new EmailConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+    new EmailConnectorImpl(mockHttp, new ServicesConfig(config))
 
   "EmailConnectorImpl" when {
 
@@ -89,15 +91,15 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
 
       "make a http put call and return a result" in {
         List(
-          HttpResponse(204),
-          HttpResponse(401),
-          HttpResponse(400)
+          HttpResponse(204, emptyJsonBody),
+          HttpResponse(401, emptyJsonBody),
+          HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
 
             mockPost(
               s"http://host:123/hmrc/email",
-              Map.empty,
+              Seq.empty,
               expectedRequestBody
             )(Some(httpResponse))
 
@@ -113,7 +115,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
         "the call fails" in {
           mockPost(
             s"http://host:123/hmrc/email",
-            Map.empty,
+            Seq.empty,
             expectedRequestBody
           )(None)
 
@@ -144,15 +146,15 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
 
       "make a http put call and return a result" in {
         List(
-          HttpResponse(204),
-          HttpResponse(401),
-          HttpResponse(400)
+          HttpResponse(204, emptyJsonBody),
+          HttpResponse(401, emptyJsonBody),
+          HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
 
             mockPost(
               s"http://host:123/hmrc/email",
-              Map.empty,
+              Seq.empty,
               expectedRequestBody
             )(Some(httpResponse))
 
@@ -170,7 +172,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
         "the call fails" in {
           mockPost(
             s"http://host:123/hmrc/email",
-            Map.empty,
+            Seq.empty,
             expectedRequestBody
           )(None)
 
