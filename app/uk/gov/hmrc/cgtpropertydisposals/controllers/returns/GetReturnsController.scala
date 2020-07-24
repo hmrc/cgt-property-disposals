@@ -29,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ListReturnsResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.ReturnsService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try

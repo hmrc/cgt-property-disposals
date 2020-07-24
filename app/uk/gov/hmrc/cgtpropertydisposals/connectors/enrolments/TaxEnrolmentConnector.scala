@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient.HttpClientOps
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
@@ -26,7 +25,8 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersReques
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -62,7 +62,7 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
 
     EitherT[Future, Error, HttpResponse](
       http
-        .put[TaxEnrolmentUpdateRequest](
+        .PUT[TaxEnrolmentUpdateRequest, HttpResponse](
           updateVerifiersUrl,
           TaxEnrolmentUpdateRequest(
             List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.newDetails.address)),
@@ -100,7 +100,7 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
 
     EitherT[Future, Error, HttpResponse](
       http
-        .put[Enrolments](enrolmentUrl, enrolmentRequest)
+        .PUT[Enrolments, HttpResponse](enrolmentUrl, enrolmentRequest)
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )

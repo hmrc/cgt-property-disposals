@@ -23,13 +23,12 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -65,8 +64,9 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
 
     EitherT[Future, Error, HttpResponse](
       http
-        .post(returnUrl, Json.toJson(submitReturnRequest), headers)(
+        .POST[JsValue, HttpResponse](returnUrl, Json.toJson(submitReturnRequest), headers)(
           implicitly[Writes[JsValue]],
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )
@@ -79,14 +79,15 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
     val url: String     = s"$baseUrl/capital-gains-tax/returns/${cgtReference.value}"
-    val queryParameters = Map(
+    val queryParameters = Seq(
       "fromDate" -> fromDate.format(dateFormatter),
       "toDate"   -> toDate.format(dateFormatter)
     )
 
     EitherT[Future, Error, HttpResponse](
       http
-        .get(url, queryParameters, headers)(
+        .GET(url, queryParameters, headers)(
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )
@@ -102,7 +103,8 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
 
     EitherT[Future, Error, HttpResponse](
       http
-        .get(url, headers = headers)(
+        .GET(url, Seq.empty, headers)(
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )

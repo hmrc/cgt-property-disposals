@@ -24,14 +24,13 @@ import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -71,8 +70,9 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: Se
 
     EitherT[Future, Error, HttpResponse](
       http
-        .post(url, Json.toJson(registerWithoutIdRequest), headers)(
+        .POST[JsValue, HttpResponse](url, Json.toJson(registerWithoutIdRequest), headers)(
           implicitly[Writes[JsValue]],
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )

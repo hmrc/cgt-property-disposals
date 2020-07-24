@@ -24,7 +24,7 @@ import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import play.api.{Configuration, Mode}
+import play.api.Configuration
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -37,7 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller.OnCompleteHandler
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
@@ -93,7 +93,7 @@ class DmsSubmissionPollerSpec
 
   val mockDmsSubmissionService                     = mock[DmsSubmissionService]
   implicit val dmsSubmissionPollerExecutionContext = new DmsSubmissionPollerExecutionContext(system)
-  val servicesConfig                               = new ServicesConfig(config, new RunMode(config, Mode.Test))
+  val servicesConfig                               = new ServicesConfig(config)
 
   def mockDmsSubmissionRequestDequeue()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
     (mockDmsSubmissionService.dequeue _)

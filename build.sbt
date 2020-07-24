@@ -75,11 +75,3 @@ lazy val microservice = Project(appName, file("."))
   .settings(wartremoverSettings: _*)
   .settings(scoverageSettings: _*)
   .settings(PlayKeys.playDefaultPort := 7021)
-
-val akkaHttpVersion = "10.0.15"
-
-dependencyOverrides += "com.typesafe.akka" %% "akka-stream"    % AppDependencies.akkaVersion
-dependencyOverrides += "com.typesafe.akka" %% "akka-protobuf"  % AppDependencies.akkaVersion
-dependencyOverrides += "com.typesafe.akka" %% "akka-slf4j"     % AppDependencies.akkaVersion
-dependencyOverrides += "com.typesafe.akka" %% "akka-actor"     % AppDependencies.akkaVersion
-dependencyOverrides += "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion

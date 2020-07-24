@@ -21,12 +21,12 @@ import com.typesafe.config.ConfigFactory
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.ws
 import play.api.libs.ws.WSResponse
 import play.api.libs.ws.ahc.AhcWSResponse
 import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseHeaders, CacheableHttpResponseStatus}
 import play.api.test.Helpers.{await, _}
-import play.api.{Configuration, Mode}
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
 import play.shaded.ahc.org.asynchttpclient.Response
 import play.shaded.ahc.org.asynchttpclient.uri.Uri
@@ -36,7 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPollerExecutionContext
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
@@ -86,7 +86,7 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
   implicit val dmsExectionContext = new DmsSubmissionPollerExecutionContext(actorSystem)
 
   val connector =
-    new S3ConnectorImpl(actorSystem, mockWsClient, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+    new S3ConnectorImpl(actorSystem, mockWsClient, new ServicesConfig(config))
 
   override def afterAll(): Unit = {
     Await.ready(actorSystem.terminate(), 10.seconds)

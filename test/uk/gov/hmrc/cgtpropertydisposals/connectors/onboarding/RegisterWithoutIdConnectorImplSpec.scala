@@ -21,9 +21,9 @@ import java.util.UUID
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
-import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -61,12 +61,14 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
   )
 
   val connector =
-    new RegisterWithoutIdConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+    new RegisterWithoutIdConnectorImpl(mockHttp, new ServicesConfig(config))
+
+  private val emptyJsonBody = "{}"
 
   "RegisterWithoutIdConnectorImpl" when {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     "handling request to subscribe for individuals" must {
 
@@ -112,9 +114,9 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
 
       "do a post http call and return the result" in {
         List(
-          HttpResponse(200),
-          HttpResponse(200, Some(JsString("hi"))),
-          HttpResponse(500)
+          HttpResponse(200, emptyJsonBody),
+          HttpResponse(200, JsString("hi"), Map.empty[String, Seq[String]]),
+          HttpResponse(500, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
             mockPost(expectedUrl, expectedHeaders, expectedRequest)(
@@ -133,7 +135,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
       }
 
       "be able to convert non uk addresses" in {
-        val httpResponse = HttpResponse(200)
+        val httpResponse = HttpResponse(200, emptyJsonBody)
 
         val registrationDetails = RegistrationDetails(
           IndividualName("name", "surname"),

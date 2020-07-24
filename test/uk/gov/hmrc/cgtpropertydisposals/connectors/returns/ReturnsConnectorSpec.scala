@@ -21,14 +21,14 @@ import java.time.LocalDate
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.test.Helpers.{await, _}
-import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesSubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -57,12 +57,14 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
     )
   )
 
-  val connector = new ReturnsConnectorImpl(mockHttp, new ServicesConfig(config, new RunMode(config, Mode.Test)))
+  val connector = new ReturnsConnectorImpl(mockHttp, new ServicesConfig(config))
+
+  private val emptyJsonBody = "{}"
 
   "SubmitReturnsConnectorImpl" when {
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val expectedHeaders            = Map("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     "handling request to submit return" must {
 
@@ -76,13 +78,13 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
           val submitReturnRequest = sample[DesSubmitReturnRequest]
 
           List(
-            HttpResponse(200),
-            HttpResponse(400),
-            HttpResponse(401),
-            HttpResponse(403),
-            HttpResponse(500),
-            HttpResponse(502),
-            HttpResponse(503)
+            HttpResponse(200, emptyJsonBody),
+            HttpResponse(400, emptyJsonBody),
+            HttpResponse(401, emptyJsonBody),
+            HttpResponse(403, emptyJsonBody),
+            HttpResponse(500, emptyJsonBody),
+            HttpResponse(502, emptyJsonBody),
+            HttpResponse(503, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
               mockPost(
@@ -123,21 +125,23 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
 
         val cgtReference            = sample[CgtReference]
         val (fromDate, toDate)      = LocalDate.of(2000, 1, 2) -> LocalDate.of(2000, 2, 2)
-        val expectedQueryParameters = Map("fromDate" -> "2000-01-02", "toDate" -> "2000-02-02")
+        val expectedQueryParameters = Seq("fromDate" -> "2000-01-02", "toDate" -> "2000-02-02")
 
         "do a get request and return the response" in {
           List(
-            HttpResponse(200),
-            HttpResponse(400),
-            HttpResponse(401),
-            HttpResponse(403),
-            HttpResponse(500),
-            HttpResponse(502),
-            HttpResponse(503)
+            HttpResponse(200, emptyJsonBody),
+            HttpResponse(400, emptyJsonBody),
+            HttpResponse(401, emptyJsonBody),
+            HttpResponse(403, emptyJsonBody),
+            HttpResponse(500, emptyJsonBody),
+            HttpResponse(502, emptyJsonBody),
+            HttpResponse(503, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
 
-              mockGet(expectedUrl(cgtReference), expectedQueryParameters, expectedHeaders)(Some(httpResponse))
+              mockGetWithQueryWithHeaders(expectedUrl(cgtReference), expectedQueryParameters, expectedHeaders)(
+                Some(httpResponse)
+              )
               await(connector.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(httpResponse)
             }
           }
@@ -147,7 +151,7 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
         "return an error" when {
 
           "the call fails" in {
-            mockGet(expectedUrl(cgtReference), expectedQueryParameters, expectedHeaders)(None)
+            mockGetWithQueryWithHeaders(expectedUrl(cgtReference), expectedQueryParameters, expectedHeaders)(None)
             await(connector.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
           }
 
@@ -165,16 +169,18 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
 
         "do a get request and return the response" in {
           List(
-            HttpResponse(200),
-            HttpResponse(400),
-            HttpResponse(401),
-            HttpResponse(403),
-            HttpResponse(500),
-            HttpResponse(502),
-            HttpResponse(503)
+            HttpResponse(200, emptyJsonBody),
+            HttpResponse(400, emptyJsonBody),
+            HttpResponse(401, emptyJsonBody),
+            HttpResponse(403, emptyJsonBody),
+            HttpResponse(500, emptyJsonBody),
+            HttpResponse(502, emptyJsonBody),
+            HttpResponse(503, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockGet(expectedUrl(cgtReference, submissionId), Map.empty, expectedHeaders)(Some(httpResponse))
+              mockGetWithQueryWithHeaders(expectedUrl(cgtReference, submissionId), Seq.empty, expectedHeaders)(
+                Some(httpResponse)
+              )
               await(connector.displayReturn(cgtReference, submissionId).value) shouldBe Right(httpResponse)
             }
           }
@@ -184,7 +190,7 @@ class ReturnsConnectorSpec extends WordSpec with Matchers with MockFactory with 
         "return an error" when {
 
           "the call fails" in {
-            mockGet(expectedUrl(cgtReference, submissionId), Map.empty, expectedHeaders)(None)
+            mockGetWithQueryWithHeaders(expectedUrl(cgtReference, submissionId), Seq.empty, expectedHeaders)(None)
             await(connector.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
           }
 

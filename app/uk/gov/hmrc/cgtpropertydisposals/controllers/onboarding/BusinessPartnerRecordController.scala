@@ -24,7 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRec
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 

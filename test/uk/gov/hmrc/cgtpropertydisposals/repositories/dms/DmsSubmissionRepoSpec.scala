@@ -19,13 +19,13 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.dms
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import play.api.Configuration
 import play.api.test.Helpers._
-import play.api.{Configuration, Mode}
 import uk.gov.hmrc.cgtpropertydisposals.models
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem.{Failed, InProgress, PermanentlyFailed, WorkItem}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,7 +54,7 @@ class DmsSubmissionRepoSpec extends WordSpec with Matchers with MongoSupport wit
   val repository = new DefaultDmsSubmissionRepo(
     reactiveMongoComponent,
     config,
-    new ServicesConfig(config, new RunMode(config, Mode.Test))
+    new ServicesConfig(config)
   )
 
   "DmsSubmission Repo" when {

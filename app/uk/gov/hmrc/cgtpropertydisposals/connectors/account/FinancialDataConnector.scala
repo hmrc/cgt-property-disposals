@@ -23,11 +23,10 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.http.HttpClient._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -60,11 +59,12 @@ class FinancialDataConnectorImpl @Inject() (http: HttpClient, val config: Servic
     val to   = toDate.format(DateTimeFormatter.ISO_DATE)
 
     val fdUrl       = financialDataUrl(cgtReference)
-    val queryParams = Map("dateFrom" -> from, "dateTo" -> to)
+    val queryParams = Seq("dateFrom" -> from, "dateTo" -> to)
 
     EitherT[Future, Error, HttpResponse](
       http
-        .get(fdUrl, queryParams, headers)(
+        .GET[HttpResponse](fdUrl, queryParams, headers)(
+          HttpReads[HttpResponse],
           hc.copy(authorization = None),
           ec
         )
