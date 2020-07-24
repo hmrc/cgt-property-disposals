@@ -362,7 +362,8 @@ class ReturnTransformerServiceImpl @Inject() (
       ),
       desReturn.returnDetails.estimate,
       AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
-      dummyMandatoryEvidence // we cannot read the details of the mandatory evidence back
+      dummyMandatoryEvidence, // we cannot read the details of the mandatory evidence back
+      None
     )
 
   private val dummyMandatoryEvidence = MandatoryEvidence(
