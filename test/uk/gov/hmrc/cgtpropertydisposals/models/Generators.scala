@@ -348,10 +348,7 @@ trait AddressGen extends AddressLowerPriorityGen { this: GenUtils =>
     } yield a.copy(postcode = p)
   }
 
-  implicit val countryGen: Gen[Country] = {
-    val countries = Country.countryCodeToCountryName.map { case (code, name) => Country(code, Some(name)) }.toList
-    Gen.oneOf(countries)
-  }
+  implicit val countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
 
 }
 

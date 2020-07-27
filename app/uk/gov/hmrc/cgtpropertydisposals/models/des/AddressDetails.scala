@@ -57,11 +57,9 @@ object AddressDetails {
       )
     else {
       val countryCode = addressDetails.countryCode
-      val country     = Country.countryCodeToCountryName.get(countryCode) match {
-        case Some(countryName)               => Some(Country(countryCode, Some(countryName)))
-        case None if allowNonIsoCountryCodes => Some(Country(countryCode, None))
-        case None                            => None
-      }
+      val country     =
+        if (Country.countryCodes.contains(countryCode) || allowNonIsoCountryCodes) Some(Country(countryCode))
+        else None
 
       country.fold[ValidatedNel[String, Address]](
         Invalid(NonEmptyList.one(s"Received unknown country code: ${addressDetails.countryCode}"))

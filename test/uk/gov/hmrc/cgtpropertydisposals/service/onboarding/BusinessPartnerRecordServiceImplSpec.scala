@@ -301,7 +301,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           val expectedAddress =
-            NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
+            NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK"))
 
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
@@ -455,7 +455,7 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           val expectedAddress =
-            NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK", Some("Hong Kong")))
+            NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK"))
 
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))

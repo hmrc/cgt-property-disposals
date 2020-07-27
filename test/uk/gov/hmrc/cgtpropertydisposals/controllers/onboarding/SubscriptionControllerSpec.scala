@@ -119,7 +119,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       .expects(registrationDetails, *, *)
       .returning(EitherT.fromEither(response))
 
-  val (nonUkCountry, nonUkCountryCode) = Country("HK", Some("Hong Kong")) -> "HK"
+  val (nonUkCountry, nonUkCountryCode) = Country("HK") -> "HK"
 
   val taxEnrolmentRequestWithNonUkAddress = TaxEnrolmentRequest(
     "ggCredId",
@@ -217,7 +217,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
               None,
               None,
               None,
-              Country("NZ", Some("New Zealand"))
+              Country("NZ")
             ),
             ContactName("Stefano Bosco"),
             cgtReference,
@@ -233,7 +233,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
               None,
               None,
               None,
-              Country("NZ", Some("New Zealand"))
+              Country("NZ")
             ),
             ContactName("Stefano Bosco"),
             cgtReference,
@@ -318,7 +318,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
               None,
               None,
               None,
-              Country("NZ", Some("New Zealand"))
+              Country("NZ")
             ),
             ContactName("Stefano Bosco"),
             CgtReference("XFCGT123456789"),
@@ -334,7 +334,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
               None,
               None,
               None,
-              Country("NZ", Some("New Zealand"))
+              Country("NZ")
             ),
             ContactName("Stefano Bosco"),
             CgtReference("XFCGT123456789"),

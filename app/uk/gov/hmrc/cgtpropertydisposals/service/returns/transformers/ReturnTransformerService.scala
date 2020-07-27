@@ -459,11 +459,8 @@ class ReturnTransformerServiceImpl @Inject() (
       desReturn.returnDetails.countryResidence.fold(
         invalid[Country]("Could not find country code for person who was a non-uk resident")
       )(code =>
-        Country.countryCodeToCountryName
-          .get(code)
-          .fold(
-            invalid[Country](s"Invalid country code found for person who was a non-uk resident: $code")
-          )(name => Valid(Country(code, Some(name))))
+        if (Country.countryCodes.contains(code)) Valid(Country(code))
+        else invalid[Country](s"Invalid country code found for person who was a non-uk resident: $code")
       )
 
   private def reliefsValidation(desReturn: DesReturnDetails): Validation[(ReliefDetails, Option[OtherReliefsOption])] =

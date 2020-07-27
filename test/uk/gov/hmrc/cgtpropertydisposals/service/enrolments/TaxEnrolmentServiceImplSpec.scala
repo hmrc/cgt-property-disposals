@@ -117,7 +117,7 @@ class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(ggCredId, taxEnrolmentRequest)
       .returning(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
 
-  val (nonUkCountry, nonUkCountryCode) = Country("HK", Some("Hong Kong")) -> "HK"
+  val (nonUkCountry, nonUkCountryCode) = Country("HK") -> "HK"
   implicit val hc: HeaderCarrier       = HeaderCarrier()
   val cgtReference                     = "XACGTP123456789"
 
