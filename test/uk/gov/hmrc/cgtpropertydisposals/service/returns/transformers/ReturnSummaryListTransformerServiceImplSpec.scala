@@ -23,7 +23,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesFinancialTransactionItem}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, ChargeType, Payment, PaymentMethod}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, ChargeType, ClearingReason, Payment, PaymentMethod}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
 
 class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers {
@@ -51,7 +51,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val validDesFinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = validDesCharge.chargeReference,
-          items = Some(List(DesFinancialTransactionItem(None, None, None)))
+          items = Some(List(DesFinancialTransactionItem(None, None, None, None)))
         )
 
         "there is a charge in a return summary with a charge type which is not recognised" in {
@@ -83,20 +83,23 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
         }
 
         "some but not all payment information is found" in {
-          val date          = LocalDate.ofEpochDay(0L)
-          val amount        = BigDecimal(1)
-          val paymentMethod = "CHAPS"
+          val date           = LocalDate.ofEpochDay(0L)
+          val amount         = BigDecimal(1)
+          val paymentMethod  = "CHAPS"
+          val clearingReason = "Write-Off"
 
           List(
-            (None, Some(paymentMethod), Some(date)),
-            (Some(amount), None, Some(date)),
-            (Some(amount), Some(paymentMethod), None),
-            (None, None, Some(date)),
-            (Some(amount), None, None),
-            (None, Some(paymentMethod), None)
+            (None, Some(paymentMethod), Some(date), Some(clearingReason)),
+            (Some(amount), None, Some(date), None),
+            (Some(amount), Some(paymentMethod), None, Some(clearingReason)),
+            (None, None, Some(date), None),
+            (Some(amount), None, None, Some(clearingReason)),
+            (None, Some(paymentMethod), None, None)
           ).foreach {
-            case (amount, paymentMethod, date) =>
-              withClue(s"For (amount, paymentMethod, date) = ($amount, $paymentMethod, $date): ") {
+            case (amount, paymentMethod, date, clearingReason) =>
+              withClue(
+                s"For (amount, paymentMethod, date, clearingReason) = ($amount, $paymentMethod, $date, $clearingReason): "
+              ) {
                 val result = transformer.toReturnSummaryList(
                   List(
                     validDesReturnSummary
@@ -104,7 +107,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                   List(
                     validDesFinancialTransaction.copy(
                       items = Some(
-                        List(DesFinancialTransactionItem(amount, paymentMethod, date))
+                        List(DesFinancialTransactionItem(amount, paymentMethod, date, clearingReason))
                       )
                     )
                   )
@@ -210,8 +213,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
           items = None
         )
 
-        val (mainCharge2PaymentAmount, mainCharge2PaymentMethod, mainCharge2PaymentDate) =
-          (BigDecimal(10), "CHAPS", LocalDate.ofEpochDay(5L))
+        val (mainCharge2PaymentAmount, mainCharge2PaymentMethod, mainCharge2PaymentDate, mainCharge2ClearingReason) =
+          (BigDecimal(10), "CHAPS", LocalDate.ofEpochDay(5L), "Reversal")
 
         val mainCharge2FinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = mainCharge2.chargeReference,
@@ -220,7 +223,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
               DesFinancialTransactionItem(
                 Some(mainCharge2PaymentAmount),
                 Some(mainCharge2PaymentMethod),
-                Some(mainCharge2PaymentDate)
+                Some(mainCharge2PaymentDate),
+                Some(mainCharge2ClearingReason)
               )
             )
           )
@@ -228,7 +232,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val penaltyChargeFinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = penaltyCharge.chargeReference,
-          items = Some(List(DesFinancialTransactionItem(None, None, None)))
+          items = Some(List(DesFinancialTransactionItem(None, None, None, None)))
         )
 
         val result = transformer.toReturnSummaryList(
@@ -312,8 +316,9 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
               List(
                 Payment(
                   AmountInPence.fromPounds(mainCharge2PaymentAmount),
-                  PaymentMethod.CHAPS,
-                  mainCharge2PaymentDate
+                  Some(PaymentMethod.CHAPS),
+                  mainCharge2PaymentDate,
+                  Some(ClearingReason.fromString(mainCharge2ClearingReason))
                 )
               ),
               List.empty // penalty has no payments

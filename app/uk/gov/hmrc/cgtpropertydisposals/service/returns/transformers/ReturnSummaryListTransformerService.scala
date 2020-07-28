@@ -32,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReturnSummary
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
 @ImplementedBy(classOf[ReturnSummaryListTransformerServiceImpl])
 trait ReturnSummaryListTransformerService {
@@ -44,7 +45,7 @@ trait ReturnSummaryListTransformerService {
 }
 
 @Singleton
-class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransformerService {
+class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransformerService with Logging {
 
   def toReturnSummaryList(
     returns: List[DesReturnSummary],
@@ -57,7 +58,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
       returns.map(returnSummary => validateReturnSummary(returnSummary, chargeReferenceToFinancialData))
 
     returnSummaries
-      .sequence[Validated[NonEmptyList[String], ?], ReturnSummary]
+      .sequence[Validated[NonEmptyList[String], *], ReturnSummary]
       .toEither
       .leftMap(e => Error(s"Could not convert return summaries with financial data: [${e.toList.mkString("; ")}]"))
   }
@@ -139,7 +140,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               )
           }
         }
-    charges.sequence[Validated[NonEmptyList[String], ?], Charge]
+    charges.sequence[Validated[NonEmptyList[String], *], Charge]
   }
 
   private def validatePayments(
@@ -148,18 +149,90 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     val (paymentErrors, payments) = transaction.items
       .getOrElse(List.empty)
       .map {
-        case DesFinancialTransactionItem(Some(paymentAmount), Some(paymentMethod), Some(clearingDate)) =>
+        case DesFinancialTransactionItem(
+              Some(paymentAmount),
+              Some(paymentMethod),
+              Some(clearingDate),
+              Some(clearingReason)
+            ) =>
+          PaymentMethod
+            .fromString(paymentMethod) match {
+            case Left(_)              =>
+              Right(
+                Some(
+                  Payment(
+                    AmountInPence.fromPounds(paymentAmount),
+                    None,
+                    clearingDate,
+                    Some(ClearingReason.fromString(clearingReason))
+                  )
+                )
+              )
+            case Right(paymentMethod) =>
+              Right(
+                Some(
+                  Payment(
+                    AmountInPence.fromPounds(paymentAmount),
+                    Some(paymentMethod),
+                    clearingDate,
+                    Some(ClearingReason.fromString(clearingReason))
+                  )
+                )
+              )
+          }
+        case DesFinancialTransactionItem(
+              Some(paymentAmount),
+              None,
+              Some(clearingDate),
+              Some(clearingReason)
+            ) =>
+          Right(
+            Some(
+              Payment(
+                AmountInPence.fromPounds(paymentAmount),
+                None,
+                clearingDate,
+                Some(ClearingReason.fromString(clearingReason))
+              )
+            )
+          )
+
+        case DesFinancialTransactionItem(
+              Some(paymentAmount),
+              Some(paymentMethod),
+              Some(clearingDate),
+              None
+            ) =>
           PaymentMethod
             .fromString(paymentMethod)
-            .map(method => Some(Payment(AmountInPence.fromPounds(paymentAmount), method, clearingDate)))
+            .map(paymentMethod =>
+              Some(
+                Payment(
+                  AmountInPence.fromPounds(paymentAmount),
+                  Some(paymentMethod),
+                  clearingDate,
+                  None
+                )
+              )
+            )
 
-        case DesFinancialTransactionItem(None, None, None)                                             =>
+        case DesFinancialTransactionItem(
+              Some(_),
+              None,
+              Some(_),
+              None
+            ) =>
+          Left(s"Both payment method and clearing reason are missing.")
+
+        case DesFinancialTransactionItem(None, None, None, None) =>
+          logger.info(s"Could not any payment fields.")
           Right(None)
 
-        case other                                                                                     =>
+        case other                                               =>
           Left(
-            s"Could not find all required fields for a payment: (paymentAmount = ${other.paymentAmount}, " +
-              s"paymentMethod = ${other.paymentMethod}, clearingDate = ${other.clearingDate}  "
+            s"Could not find some of the required fields for a payment: (paymentAmount = ${other.paymentAmount}, " +
+              s"paymentMethod = ${other.paymentMethod}, clearingDate = ${other.clearingDate} " +
+              s"clearingReason = ${other.clearingReason} "
           )
       }
       .partitionWith(identity)
