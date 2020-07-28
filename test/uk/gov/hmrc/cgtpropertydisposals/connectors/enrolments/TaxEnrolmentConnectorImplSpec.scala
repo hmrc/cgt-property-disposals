@@ -70,7 +70,7 @@ class TaxEnrolmentConnectorImplSpec extends WordSpec with Matchers with MockFact
   val nonUKTaxEnrolment  = TaxEnrolmentRequest(
     "user-id",
     cgtReference.value,
-    Address.NonUkAddress("line1", None, None, None, None, Country("NZ", Some("New Zealand")))
+    Address.NonUkAddress("line1", None, None, None, None, Country("NZ"))
   )
   val ukEnrolmentRequest =
     Enrolments(List(KeyValuePair("Postcode", "OK113KO")), List(KeyValuePair("CGTPDRef", cgtReference.value)))

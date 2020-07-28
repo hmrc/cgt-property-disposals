@@ -196,7 +196,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
             )
           )
 
-        val nonUkCountry = Country("HK", Some("Hong Kong"))
+        val nonUkCountry = Country("HK")
         val ukResult     = ReturnDetails(requestWithCountry(Country.uk))
         val nonUkResult  = ReturnDetails(requestWithCountry(nonUkCountry))
 
@@ -330,7 +330,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
             )
           )
 
-        val nonUkCountry = Country("HK", Some("Hong Kong"))
+        val nonUkCountry = Country("HK")
         val ukResult     = ReturnDetails(requestWithCountry(Country.uk))
         val nonUkResult  = ReturnDetails(requestWithCountry(nonUkCountry))
 
@@ -420,7 +420,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
             )
           )
 
-        val nonUkCountry = Country("HK", Some("Hong Kong"))
+        val nonUkCountry = Country("HK")
         val ukResult     = ReturnDetails(requestWithCountry(Country.uk))
         val nonUkResult  = ReturnDetails(requestWithCountry(nonUkCountry))
 
@@ -511,7 +511,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
             )
           )
 
-        val nonUkCountry = Country("HK", Some("Hong Kong"))
+        val nonUkCountry = Country("HK")
         val ukResult     = ReturnDetails(requestWithCountry(Country.uk))
         val nonUkResult  = ReturnDetails(requestWithCountry(nonUkCountry))
 
@@ -599,7 +599,7 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
             )
           )
 
-        val nonUkCountry = Country("HK", Some("Hong Kong"))
+        val nonUkCountry = Country("HK")
         val ukResult     = ReturnDetails(requestWithCountry(Country.uk))
         val nonUkResult  = ReturnDetails(requestWithCountry(nonUkCountry))
 

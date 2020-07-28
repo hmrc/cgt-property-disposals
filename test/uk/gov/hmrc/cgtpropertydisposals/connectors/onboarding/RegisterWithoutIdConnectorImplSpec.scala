@@ -146,7 +146,7 @@ class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with Moc
             Some("addressLine3"),
             Some("addressLine4"),
             Some(Postcode("postcode")),
-            Country("HK", Some("Hong Kong"))
+            Country("HK")
           )
         )
 

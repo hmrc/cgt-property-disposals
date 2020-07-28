@@ -42,7 +42,7 @@ class DesSubscriptionRequestSpec extends WordSpec with Matchers {
             Some("line3"),
             Some("line4"),
             Some(Postcode("postcode")),
-            Country("HK", Some("Hong Kong"))
+            Country("HK")
           ),
           SapNumber("sap")
         )

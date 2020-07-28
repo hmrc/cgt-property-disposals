@@ -18,39 +18,29 @@ package uk.gov.hmrc.cgtpropertydisposals.models.address
 
 import cats.Eq
 import cats.syntax.eq._
-import play.api.libs.json.{Json, OFormat, Reads}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.{CountryCode, CountryName}
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
+
 import scala.io.Source
 
 final case class Country(
-  code: CountryCode,
-  name: Option[CountryName]
+  code: CountryCode
 )
 
 object Country {
 
-  val uk: Country = Country("GB", Some("United Kingdom"))
+  val uk: Country = Country("GB")
 
   implicit val countryFormat: OFormat[Country] = Json.format[Country]
 
   type CountryCode = String
-  type CountryName = String
 
-  private final case class InternalCountry(code: CountryCode, name: CountryName)
-  private implicit val reads: Reads[InternalCountry] = Json.reads[InternalCountry]
-
-  val countryCodeToCountryName: Map[CountryCode, CountryName] = {
-    val source = Source.fromInputStream(getClass.getResourceAsStream("/resources/countries.json"))
-    try {
-      val jsonString = source.getLines().toList.mkString("")
-      val countries  =
-        Json
-          .parse(jsonString)
-          .validate[List[InternalCountry]]
-          .fold(e => sys.error(s"could not parse countries.json file: $e"), identity)
-
-      countries.map(c => c.code -> c.name).toMap
-    } finally source.close()
+  val countryCodes: List[CountryCode] = {
+    val source = Source.fromInputStream(
+      getClass.getResourceAsStream("/resources/countries.txt")
+    )
+    try source.getLines().toList
+    finally source.close()
   }
 
   implicit class CountryOps(private val c: Country) extends AnyVal {

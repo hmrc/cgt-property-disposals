@@ -314,7 +314,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleDisposalReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(
-            Country("HK", Some("Hong Kong"))
+            Country("HK")
           )
         }
 
@@ -1197,7 +1197,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeMultipleDisposalsReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(
-            Country("HK", Some("Hong Kong"))
+            Country("HK")
           )
         }
 
@@ -1608,7 +1608,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleIndirectDisposalReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(
-            Country("HK", Some("Hong Kong"))
+            Country("HK")
           )
         }
 
@@ -2229,7 +2229,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeMultipleIndirectDisposalsReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(
-            Country("HK", Some("Hong Kong"))
+            Country("HK")
           )
         }
 
@@ -2657,7 +2657,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.countryOfResidence) shouldBe Right(
-            Country("HK", Some("Hong Kong"))
+            Country("HK")
           )
         }
 
