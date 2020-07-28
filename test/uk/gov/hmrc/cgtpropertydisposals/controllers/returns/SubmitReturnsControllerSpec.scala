@@ -235,21 +235,18 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
       "return a 500" when {
 
-        "there is no reference id for a representee and" when {
+        "there is no reference id for a representee" in {
 
-          val representeeAnswers = sample[CompleteRepresenteeAnswers].copy(id = NoReferenceId)
-
-          val requestBody = sample[SubmitReturnRequest].copy(
-            checkYourAnswerPageHtml = B64Html(""),
-            completeReturn = sample[CompleteSingleDisposalReturn].copy(
-              representeeAnswers = Some(representeeAnswers)
+            val requestBody = sample[SubmitReturnRequest].copy(
+              checkYourAnswerPageHtml = B64Html(""),
+              completeReturn = sample[CompleteSingleDisposalReturn].copy(
+                representeeAnswers = Some(
+                  sample[CompleteRepresenteeAnswers].copy(id = NoReferenceId)
+                )
+              )
             )
-          )
-
-          "the call fails" in {
             val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
             status(result) shouldBe INTERNAL_SERVER_ERROR
-          }
 
         }
 
