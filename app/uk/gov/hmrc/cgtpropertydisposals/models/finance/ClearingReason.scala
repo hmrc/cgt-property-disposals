@@ -17,8 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
 import cats.Eq
-import cats.instances.int._
-import cats.syntax.eq._
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 
@@ -32,18 +30,16 @@ object ClearingReason {
   case object MassWriteOff extends ClearingReason
   case object AutomaticClearing extends ClearingReason
   case object SomeOtherClearingReason extends ClearingReason
-  case object InvalidClearingReason extends ClearingReason
 
   def fromString(clearingReason: String): ClearingReason =
     clearingReason match {
-      case "Incoming Payment"            => IncomingPayment
-      case "Outgoing Payment"            => OutgoingPayment
-      case "Write-Off"                   => WriteOff
-      case "Reversal"                    => Reversal
-      case "Mass Write-Off"              => MassWriteOff
-      case "Automatic Clearing"          => AutomaticClearing
-      case reason if reason.length =!= 0 => SomeOtherClearingReason
-      case reason if reason.length === 0 => InvalidClearingReason
+      case "Incoming Payment"   => IncomingPayment
+      case "Outgoing Payment"   => OutgoingPayment
+      case "Write-Off"          => WriteOff
+      case "Reversal"           => Reversal
+      case "Mass Write-Off"     => MassWriteOff
+      case "Automatic Clearing" => AutomaticClearing
+      case _                    => SomeOtherClearingReason
     }
 
   implicit val eq: Eq[ClearingReason]          = Eq.fromUniversalEquals
