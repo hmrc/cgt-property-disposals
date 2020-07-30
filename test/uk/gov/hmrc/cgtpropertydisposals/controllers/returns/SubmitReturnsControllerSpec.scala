@@ -237,16 +237,16 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
 
         "there is no reference id for a representee" in {
 
-            val requestBody = sample[SubmitReturnRequest].copy(
-              checkYourAnswerPageHtml = B64Html(""),
-              completeReturn = sample[CompleteSingleDisposalReturn].copy(
-                representeeAnswers = Some(
-                  sample[CompleteRepresenteeAnswers].copy(id = NoReferenceId)
-                )
+          val requestBody = sample[SubmitReturnRequest].copy(
+            checkYourAnswerPageHtml = B64Html(""),
+            completeReturn = sample[CompleteSingleDisposalReturn].copy(
+              representeeAnswers = Some(
+                sample[CompleteRepresenteeAnswers].copy(id = NoReferenceId)
               )
             )
-            val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
-            status(result) shouldBe INTERNAL_SERVER_ERROR
+          )
+          val result      = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
+          status(result) shouldBe INTERNAL_SERVER_ERROR
 
         }
 
