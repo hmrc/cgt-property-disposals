@@ -118,7 +118,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       "return 200 for successful submission" in {
         val expectedResponseBody = sample[SubmitReturnResponse]
         val requestBody          = sample[SubmitReturnRequest].copy(
-          checkYourAnswerPageHtml = B64Html(""),
+          checkYourAnswerPageHtml = sample[B64Html],
           completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None)
         )
         inSequence {
@@ -152,7 +152,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
             val expectedResponseBody = sample[SubmitReturnResponse]
             val representeeAnswers   = representeeDetails.answers
             val requestBody          = sample[SubmitReturnRequest].copy(
-              checkYourAnswerPageHtml = B64Html(""),
+              checkYourAnswerPageHtml = sample[B64Html],
               completeReturn = sample[CompleteSingleDisposalReturn].copy(
                 representeeAnswers = Some(representeeAnswers)
               )
@@ -209,7 +209,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       "return 500 when des call fails" in {
         val requestBody = sample[SubmitReturnRequest].copy(
           completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None),
-          checkYourAnswerPageHtml = B64Html("")
+          checkYourAnswerPageHtml = sample[B64Html]
         )
 
         mockSubmitReturnService(requestBody, None)(Left(Error.apply("error while submitting return to DES")))
@@ -221,7 +221,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       "return 500 when deleting draft return fails" in {
         val requestBody = sample[SubmitReturnRequest].copy(
           completeReturn = sample[CompleteMultipleDisposalsReturn].copy(representeeAnswers = None),
-          checkYourAnswerPageHtml = B64Html("")
+          checkYourAnswerPageHtml = sample[B64Html]
         )
         inSequence {
           mockSubmitReturnService(requestBody, None)(Right(sample[SubmitReturnResponse]))
@@ -238,7 +238,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         "there is no reference id for a representee" in {
 
           val requestBody = sample[SubmitReturnRequest].copy(
-            checkYourAnswerPageHtml = B64Html(""),
+            checkYourAnswerPageHtml = sample[B64Html],
             completeReturn = sample[CompleteSingleDisposalReturn].copy(
               representeeAnswers = Some(
                 sample[CompleteRepresenteeAnswers].copy(id = NoReferenceId)
