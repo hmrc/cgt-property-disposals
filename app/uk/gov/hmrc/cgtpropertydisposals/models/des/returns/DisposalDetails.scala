@@ -60,7 +60,9 @@ object DisposalDetails {
     acquisitionPrice: BigDecimal,
     disposalPrice: BigDecimal,
     rebased: Boolean,
-    improvements: Boolean
+    improvements: Boolean,
+    initialGain: Option[BigDecimal],
+    initialLoss: Option[BigDecimal]
   ) extends DisposalDetails
 
   final case class SingleMixedUseDisposalDetails(
@@ -73,19 +75,24 @@ object DisposalDetails {
     acquisitionPrice: BigDecimal,
     disposalPrice: BigDecimal,
     rebased: Boolean,
-    improvements: Boolean
+    improvements: Boolean,
+    initialGain: Option[BigDecimal],
+    initialLoss: Option[BigDecimal]
   ) extends DisposalDetails
 
-  def apply(c: CompleteReturn): DisposalDetails =
+  def apply(c: CompleteReturn): DisposalDetails = {
+    def extractGainOrLoss(a: Option[AmountInPence]): (Option[BigDecimal], Option[BigDecimal]) =
+      a.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
+        if (f < AmountInPence.zero)
+          None               -> Some(-f.inPounds())
+        else
+          Some(f.inPounds()) -> None
+      }
+
     c match {
       case s: CompleteSingleDisposalReturn           =>
         val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
-          s.initialGainOrLoss.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
-            if (f < AmountInPence.zero)
-              None               -> Some(-f.inPounds())
-            else
-              Some(f.inPounds()) -> None
-          }
+          extractGainOrLoss(s.initialGainOrLoss.orElse(s.gainOrLossAfterReliefs))
 
         SingleDisposalDetails(
           disposalDate = s.triageAnswers.disposalDate.value,
@@ -109,6 +116,10 @@ object DisposalDetails {
         )
 
       case m: CompleteMultipleDisposalsReturn        =>
+        val gainOrLossAfterReliefs: (Option[BigDecimal], Option[BigDecimal]) = extractGainOrLoss(
+          m.gainOrLossAfterReliefs
+        )
+
         MultipleDisposalDetails(
           disposalDate = m.examplePropertyDetailsAnswers.disposalDate.value,
           addressDetails = Address.toAddressDetails(m.examplePropertyDetailsAnswers.address),
@@ -118,10 +129,16 @@ object DisposalDetails {
           acquisitionPrice = m.examplePropertyDetailsAnswers.acquisitionPrice.inPounds(),
           disposalPrice = m.examplePropertyDetailsAnswers.disposalPrice.inPounds(),
           rebased = false,
-          improvements = false
+          improvements = false,
+          initialGain = gainOrLossAfterReliefs._1,
+          initialLoss = gainOrLossAfterReliefs._2
         )
 
       case s: CompleteSingleIndirectDisposalReturn   =>
+        val gainOrLossAfterReliefs: (Option[BigDecimal], Option[BigDecimal]) = extractGainOrLoss(
+          s.gainOrLossAfterReliefs
+        )
+
         SingleDisposalDetails(
           disposalDate = s.triageAnswers.disposalDate.value,
           addressDetails = Address.toAddressDetails(s.companyAddress),
@@ -139,11 +156,15 @@ object DisposalDetails {
           disposalType = DesDisposalType(s.triageAnswers.disposalMethod),
           acquisitionFees = s.acquisitionDetails.acquisitionFees.inPounds(),
           disposalFees = s.disposalDetails.disposalFees.inPounds(),
-          initialGain = None,
-          initialLoss = None
+          initialGain = gainOrLossAfterReliefs._1,
+          initialLoss = gainOrLossAfterReliefs._2
         )
 
       case m: CompleteMultipleIndirectDisposalReturn =>
+        val gainOrLossAfterReliefs: (Option[BigDecimal], Option[BigDecimal]) = extractGainOrLoss(
+          m.gainOrLossAfterReliefs
+        )
+
         MultipleDisposalDetails(
           disposalDate = m.triageAnswers.completionDate.value,
           addressDetails = Address.toAddressDetails(m.exampleCompanyDetailsAnswers.address),
@@ -153,10 +174,16 @@ object DisposalDetails {
           acquisitionPrice = m.exampleCompanyDetailsAnswers.acquisitionPrice.inPounds(),
           disposalPrice = m.exampleCompanyDetailsAnswers.disposalPrice.inPounds(),
           rebased = false,
-          improvements = false
+          improvements = false,
+          initialGain = gainOrLossAfterReliefs._1,
+          initialLoss = gainOrLossAfterReliefs._2
         )
 
       case s: CompleteSingleMixedUseDisposalReturn   =>
+        val gainOrLossAfterReliefs: (Option[BigDecimal], Option[BigDecimal]) = extractGainOrLoss(
+          s.gainOrLossAfterReliefs
+        )
+
         SingleMixedUseDisposalDetails(
           disposalDate = s.triageAnswers.disposalDate.value,
           addressDetails = Address.toAddressDetails(s.propertyDetailsAnswers.address),
@@ -167,9 +194,12 @@ object DisposalDetails {
           acquisitionPrice = s.propertyDetailsAnswers.acquisitionPrice.inPounds(),
           disposalPrice = s.propertyDetailsAnswers.disposalPrice.inPounds(),
           rebased = false,
-          improvements = false
+          improvements = false,
+          initialGain = gainOrLossAfterReliefs._1,
+          initialLoss = gainOrLossAfterReliefs._2
         )
     }
+  }
 
   private def improvementCosts(c: CompleteSingleDisposalReturn): Option[BigDecimal] =
     if (c.acquisitionDetails.improvementCosts > AmountInPence.zero)

@@ -269,15 +269,37 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
           )
 
           result.totalLiability    shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
-          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
+          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.yearToDateLiability
+            .getOrElse(nonCalculatedYtdAnswers.taxDue)
+            .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
 
         }
       }
+
+      "set the repayment flag to false for a calculated return" in {
+        forAll { ytdAnswers: CompleteCalculatedYTDAnswers =>
+          val completeReturn      = sample[CompleteSingleDisposalReturn]
+            .copy(yearToDateLiabilityAnswers = Right(ytdAnswers))
+          val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
+
+          ReturnDetails(submitReturnRequest).repayment shouldBe false
+        }
+      }
+
+      "set the repayment flag correctly for a non-calculated return" in {
+        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+          val completeReturn      = sample[CompleteSingleDisposalReturn]
+            .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
+          val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
+
+          ReturnDetails(submitReturnRequest).repayment shouldBe ytdAnswers.checkForRepayment.getOrElse(false)
+        }
+      }
+
       "set the underived fields properly" in {
         val result = ReturnDetails(singleDisposalSubmitReturnRequest)
 
-        result.repayment           shouldBe false
         result.attachmentUpload    shouldBe false
         result.declaration         shouldBe true
         result.adjustedAmount      shouldBe None
@@ -358,16 +380,28 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
           )
 
           result.totalLiability    shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
-          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
+          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.yearToDateLiability
+            .getOrElse(nonCalculatedYtdAnswers.taxDue)
+            .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
 
         }
       }
+
+      "set the repayment flag correctly" in {
+        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+          val completeReturn      = sample[CompleteSingleDisposalReturn]
+            .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
+          val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
+
+          ReturnDetails(submitReturnRequest).repayment shouldBe ytdAnswers.checkForRepayment.getOrElse(false)
+        }
+      }
+
       "set the underived fields properly" in {
         val result = ReturnDetails(multipleDisposalsSubmitReturnRequest)
 
         result.valueAtTaxBandDetails shouldBe None
-        result.repayment             shouldBe false
         result.attachmentUpload      shouldBe true
         result.declaration           shouldBe true
         result.adjustedAmount        shouldBe None
@@ -450,15 +484,27 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
           )
 
           result.totalLiability    shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
-          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
+          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.yearToDateLiability
+            .getOrElse(nonCalculatedYtdAnswers.taxDue)
+            .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
 
         }
       }
+
+      "set the repayment flag correctly" in {
+        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+          val completeReturn      = sample[CompleteSingleDisposalReturn]
+            .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
+          val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
+
+          ReturnDetails(submitReturnRequest).repayment shouldBe ytdAnswers.checkForRepayment.getOrElse(false)
+        }
+      }
+
       "set the underived fields properly" in {
         val result = ReturnDetails(singleIndirectDisposalSubmitReturnRequest)
 
-        result.repayment           shouldBe false
         result.attachmentUpload    shouldBe true
         result.declaration         shouldBe true
         result.adjustedAmount      shouldBe None
@@ -539,16 +585,28 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
           )
 
           result.totalLiability    shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
-          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
+          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.yearToDateLiability
+            .getOrElse(nonCalculatedYtdAnswers.taxDue)
+            .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
 
         }
       }
+
+      "set the repayment flag correctly" in {
+        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+          val completeReturn      = sample[CompleteSingleDisposalReturn]
+            .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
+          val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
+
+          ReturnDetails(submitReturnRequest).repayment shouldBe ytdAnswers.checkForRepayment.getOrElse(false)
+        }
+      }
+
       "set the underived fields properly" in {
         val result = ReturnDetails(multipleIndirectDisposalsSubmitReturnRequest)
 
         result.valueAtTaxBandDetails shouldBe None
-        result.repayment             shouldBe false
         result.attachmentUpload      shouldBe true
         result.declaration           shouldBe true
         result.adjustedAmount        shouldBe None
@@ -627,16 +685,28 @@ class ReturnDetailsSpec extends WordSpec with Matchers with MockFactory with Sca
           )
 
           result.totalLiability    shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
-          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.taxDue.inPounds()
+          result.totalYTDLiability shouldBe nonCalculatedYtdAnswers.yearToDateLiability
+            .getOrElse(nonCalculatedYtdAnswers.taxDue)
+            .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
 
         }
       }
+
+      "set the repayment flag correctly" in {
+        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+          val completeReturn      = sample[CompleteSingleDisposalReturn]
+            .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
+          val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
+
+          ReturnDetails(submitReturnRequest).repayment shouldBe ytdAnswers.checkForRepayment.getOrElse(false)
+        }
+      }
+
       "set the underived fields properly" in {
         val result = ReturnDetails(submitReturnRequest)
 
         result.valueAtTaxBandDetails shouldBe None
-        result.repayment             shouldBe false
         result.attachmentUpload      shouldBe true
         result.declaration           shouldBe true
         result.adjustedAmount        shouldBe None
