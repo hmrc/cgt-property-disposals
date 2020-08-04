@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models
 
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
+import java.util.Base64
 
 import akka.util.ByteString
 import org.joda.time.DateTime
@@ -29,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionReq
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesSubscriptionUpdateRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR, SapNumber}
@@ -76,7 +77,8 @@ object Generators
     with ReturnsGen
     with AddressGen
     with MoneyGen
-    with DesReturnsGen {
+    with DesReturnsGen
+    with B64HtmlGen {
 
   def sample[A : ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -151,6 +153,11 @@ trait IdGen { this: GenUtils =>
 
   implicit val ninoGen: Gen[NINO] = gen[NINO]
 
+}
+
+trait B64HtmlGen { this: GenUtils =>
+  implicit val b64HtmlGen: Gen[B64Html] =
+    Gen.asciiStr.map(s => B64Html(new String(Base64.getEncoder.encode(s.getBytes()))))
 }
 
 trait NameGen { this: GenUtils =>
