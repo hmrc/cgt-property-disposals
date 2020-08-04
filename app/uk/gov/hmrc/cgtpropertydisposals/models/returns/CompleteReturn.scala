@@ -48,6 +48,7 @@ object CompleteReturn {
     yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
+    gainOrLossAfterReliefs: Option[AmountInPence],
     hasAttachments: Boolean
   ) extends CompleteReturn
 
@@ -62,6 +63,7 @@ object CompleteReturn {
     initialGainOrLoss: Option[AmountInPence],
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
+    gainOrLossAfterReliefs: Option[AmountInPence],
     hasAttachments: Boolean
   ) extends CompleteReturn
 
@@ -74,6 +76,7 @@ object CompleteReturn {
     yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
+    gainOrLossAfterReliefs: Option[AmountInPence],
     hasAttachments: Boolean
   ) extends CompleteReturn
 
@@ -84,6 +87,7 @@ object CompleteReturn {
     yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
+    gainOrLossAfterReliefs: Option[AmountInPence],
     hasAttachments: Boolean
   ) extends CompleteReturn
 
@@ -94,6 +98,7 @@ object CompleteReturn {
     yearToDateLiabilityAnswers: CompleteNonCalculatedYTDAnswers,
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
+    gainOrLossAfterReliefs: Option[AmountInPence],
     hasAttachments: Boolean
   ) extends CompleteReturn
 

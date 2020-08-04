@@ -29,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, Source}
 
 class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with ScalaCheckDrivenPropertyChecks {
@@ -70,6 +71,7 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
 
           val completeReturn = sample[CompleteSingleDisposalReturn].copy(
             initialGainOrLoss = None,
+            gainOrLossAfterReliefs = None,
             yearToDateLiabilityAnswers =
               Right(sample[CompleteCalculatedYTDAnswers].copy(calculatedTaxDue = calculatedTaxDue))
           )
@@ -110,6 +112,55 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
           singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
           singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(Some(BigDecimal("1234.56")))
         }
+
+        "there is no initial gain or loss for a non calculated return" in {
+          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+            initialGainOrLoss = None,
+            gainOrLossAfterReliefs = None,
+            yearToDateLiabilityAnswers = Left(sample[CompleteNonCalculatedYTDAnswers])
+          )
+
+          val result = DisposalDetails(completeReturn)
+          singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
+          singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+        }
+
+        "there is no initial gain or loss but there is a gain after reliefs for a non calculated return" in {
+          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+            initialGainOrLoss = None,
+            gainOrLossAfterReliefs = Some(AmountInPence(1L)),
+            yearToDateLiabilityAnswers = Left(sample[CompleteNonCalculatedYTDAnswers])
+          )
+
+          val result = DisposalDetails(completeReturn)
+          singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0.01")))
+          singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+        }
+
+        "there is no initial gain or loss but there is a loss after reliefs for a non calculated return" in {
+          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+            initialGainOrLoss = None,
+            gainOrLossAfterReliefs = Some(AmountInPence(-1L)),
+            yearToDateLiabilityAnswers = Left(sample[CompleteNonCalculatedYTDAnswers])
+          )
+
+          val result = DisposalDetails(completeReturn)
+          singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
+          singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(Some(BigDecimal("0.01")))
+        }
+
+        "there is no initial gain or loss but there is zero gain or loss after reliefs for a non calculated return" in {
+          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+            initialGainOrLoss = None,
+            gainOrLossAfterReliefs = Some(AmountInPence(0L)),
+            yearToDateLiabilityAnswers = Left(sample[CompleteNonCalculatedYTDAnswers])
+          )
+
+          val result = DisposalDetails(completeReturn)
+          singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0")))
+          singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+        }
+
       }
 
       "populate the improvement costs correctly" when {
@@ -319,17 +370,53 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
         }
       }
 
+      "set the initial gain or loss when there is a gain after reliefs" in {
+        val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(1L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0.01")))
+        multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
+      "set the initial gain or loss when there is a loss after reliefs" in {
+        val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(-1L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(None)
+        multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(Some(BigDecimal("0.01")))
+      }
+
+      "set the initial gain or loss when there is zero gain or loss after reliefs" in {
+        val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(0L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0")))
+        multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
+      "set the initial gain or loss when there is no gain or loss after reliefs given" in {
+        val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(
+          gainOrLossAfterReliefs = None,
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(None)
+        multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
     }
 
     "given a single indirect disposal return" must {
-
-      "populate the initial gain or loss correctly" in {
-        forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
-          val result = DisposalDetails(completeReturn)
-          singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
-          singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
-        }
-      }
 
       "populate the improvement costs correctly" in {
         forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
@@ -440,6 +527,50 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
         }
       }
 
+      "set the initial gain or loss when there is a gain after reliefs" in {
+        val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(1L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0.01")))
+        singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
+      "set the initial gain or loss when there is a loss after reliefs" in {
+        val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(-1L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
+        singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(Some(BigDecimal("0.01")))
+      }
+
+      "set the initial gain or loss when there is zero gain or loss after reliefs" in {
+        val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(0L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0")))
+        singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
+      "set the initial gain or loss when there is no gain or loss after reliefs given" in {
+        val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = None,
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
+        singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
     }
 
     "given a multiple indirect disposals return" must {
@@ -514,6 +645,50 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
             _.improvements
           ) shouldBe Right(false)
         }
+      }
+
+      "set the initial gain or loss when there is a gain after reliefs" in {
+        val completeReturn = sample[CompleteMultipleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(1L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0.01")))
+        multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
+      "set the initial gain or loss when there is a loss after reliefs" in {
+        val completeReturn = sample[CompleteMultipleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(-1L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(None)
+        multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(Some(BigDecimal("0.01")))
+      }
+
+      "set the initial gain or loss when there is zero gain or loss after reliefs" in {
+        val completeReturn = sample[CompleteMultipleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(0L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0")))
+        multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
+      "set the initial gain or loss when there is no gain or loss after reliefs given" in {
+        val completeReturn = sample[CompleteMultipleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = None,
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(None)
+        multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(None)
       }
 
     }
@@ -598,6 +773,50 @@ class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with S
             _.improvements
           ) shouldBe Right(false)
         }
+      }
+
+      "set the initial gain or loss when there is a gain after reliefs" in {
+        val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(1L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0.01")))
+        singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
+      "set the initial gain or loss when there is a loss after reliefs" in {
+        val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(-1L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
+        singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(Some(BigDecimal("0.01")))
+      }
+
+      "set the initial gain or loss when there is zero gain or loss after reliefs" in {
+        val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = Some(AmountInPence(0L)),
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0")))
+        singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
+      }
+
+      "set the initial gain or loss when there is no gain or loss after reliefs given" in {
+        val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+          gainOrLossAfterReliefs = None,
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers]
+        )
+
+        val result = DisposalDetails(completeReturn)
+        singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
+        singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
       }
 
     }

@@ -51,6 +51,8 @@ object ReturnDetails {
       case s: CompleteSingleDisposalReturn           =>
         val calculatedTaxDue       = s.yearToDateLiabilityAnswers.map(_.calculatedTaxDue).toOption
         val taxDue                 = s.yearToDateLiabilityAnswers.fold(_.taxDue, _.taxDue).inPounds()
+        val ytdLiability           =
+          s.yearToDateLiabilityAnswers.fold(n => n.yearToDateLiability.getOrElse(n.taxDue), _.taxDue).inPounds()
         val (taxableGain, netLoss) = getTaxableGainOrNetLoss(s)
 
         ReturnDetails(
@@ -63,9 +65,9 @@ object ReturnDetails {
           totalNetLoss = netLoss,
           valueAtTaxBandDetails = calculatedTaxDue.flatMap(ValueAtTaxBandDetails(_)),
           totalLiability = taxDue,
-          totalYTDLiability = taxDue,
+          totalYTDLiability = ytdLiability,
           estimate = s.yearToDateLiabilityAnswers.fold(_.hasEstimatedDetails, _.hasEstimatedDetails),
-          repayment = false,
+          repayment = s.yearToDateLiabilityAnswers.fold(_.checkForRepayment.getOrElse(false), _ => false),
           attachmentUpload = s.hasAttachments,
           declaration = true,
           adjustedAmount = None,
@@ -87,9 +89,9 @@ object ReturnDetails {
           totalNetLoss = netLoss,
           valueAtTaxBandDetails = None,
           totalLiability = taxDue,
-          totalYTDLiability = taxDue,
+          totalYTDLiability = m.yearToDateLiabilityAnswers.yearToDateLiability.map(_.inPounds()).getOrElse(taxDue),
           estimate = m.yearToDateLiabilityAnswers.hasEstimatedDetails,
-          repayment = false,
+          repayment = m.yearToDateLiabilityAnswers.checkForRepayment.getOrElse(false),
           attachmentUpload = m.hasAttachments,
           declaration = true,
           adjustedAmount = None,
@@ -111,9 +113,9 @@ object ReturnDetails {
           totalNetLoss = netLoss,
           valueAtTaxBandDetails = None,
           totalLiability = taxDue,
-          totalYTDLiability = taxDue,
+          totalYTDLiability = s.yearToDateLiabilityAnswers.yearToDateLiability.map(_.inPounds()).getOrElse(taxDue),
           estimate = s.yearToDateLiabilityAnswers.hasEstimatedDetails,
-          repayment = false,
+          repayment = s.yearToDateLiabilityAnswers.checkForRepayment.getOrElse(false),
           attachmentUpload = s.hasAttachments,
           declaration = true,
           adjustedAmount = None,
@@ -135,9 +137,9 @@ object ReturnDetails {
           totalNetLoss = netLoss,
           valueAtTaxBandDetails = None,
           totalLiability = taxDue,
-          totalYTDLiability = taxDue,
+          totalYTDLiability = m.yearToDateLiabilityAnswers.yearToDateLiability.map(_.inPounds()).getOrElse(taxDue),
           estimate = m.yearToDateLiabilityAnswers.hasEstimatedDetails,
-          repayment = false,
+          repayment = m.yearToDateLiabilityAnswers.checkForRepayment.getOrElse(false),
           attachmentUpload = m.hasAttachments,
           declaration = true,
           adjustedAmount = None,
@@ -159,9 +161,9 @@ object ReturnDetails {
           totalNetLoss = netLoss,
           valueAtTaxBandDetails = None,
           totalLiability = taxDue,
-          totalYTDLiability = taxDue,
+          totalYTDLiability = s.yearToDateLiabilityAnswers.yearToDateLiability.map(_.inPounds()).getOrElse(taxDue),
           estimate = s.yearToDateLiabilityAnswers.hasEstimatedDetails,
-          repayment = false,
+          repayment = s.yearToDateLiabilityAnswers.checkForRepayment.getOrElse(false),
           attachmentUpload = s.hasAttachments,
           declaration = true,
           adjustedAmount = None,
