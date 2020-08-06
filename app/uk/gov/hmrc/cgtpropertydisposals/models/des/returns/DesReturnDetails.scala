@@ -64,7 +64,7 @@ object DesReturnDetails {
   }
 
   private def getSource(submitReturnRequest: SubmitReturnRequest): String = {
-    val timestamp = Instant.now.getEpochSecond.toString
+    val timestamp = if (submitReturnRequest.isFurtherReturn) Instant.now.getEpochSecond.toString else ""
     submitReturnRequest.agentReferenceNumber
       .fold(s"${"self digital " + timestamp}")(_ => s"${"agent digital " + timestamp}")
   }
