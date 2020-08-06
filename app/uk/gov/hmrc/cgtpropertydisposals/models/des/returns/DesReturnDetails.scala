@@ -64,12 +64,9 @@ object DesReturnDetails {
   }
 
   private def getSource(submitReturnRequest: SubmitReturnRequest): String = {
-    val source =
-      if (submitReturnRequest.isFurtherReturn)
-        s"${"self digital " + Instant.now.getEpochSecond.toString}"
-      else
-        "self digital"
-    submitReturnRequest.agentReferenceNumber.fold(source)(_ => "agent digital")
+    val timestamp = Instant.now.getEpochSecond.toString
+    submitReturnRequest.agentReferenceNumber
+      .fold(s"${"self digital " + timestamp}")(_ => s"${"agent digital " + timestamp}")
   }
 
   implicit val ppdReturnDetailsFormat: OFormat[DesReturnDetails] = Json.format[DesReturnDetails]
