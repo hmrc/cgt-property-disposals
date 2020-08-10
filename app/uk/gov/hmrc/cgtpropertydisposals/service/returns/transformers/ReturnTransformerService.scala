@@ -21,6 +21,7 @@ import java.time.{LocalDate, LocalDateTime}
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, ValidatedNel}
 import cats.instances.bigDecimal._
+import cats.instances.int._
 import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
@@ -139,7 +140,8 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           None,
-          desReturn.returnDetails.attachmentUpload
+          desReturn.returnDetails.attachmentUpload,
+          !isFurtherReturn(desReturn)
         )
     }
 
@@ -183,9 +185,9 @@ class ReturnTransformerServiceImpl @Inject() (
             val estimatedIncome =
               zeroOrAmountInPenceFromPounds(desReturn.incomeAllowanceDetails.estimatedIncome)
 
-            val personalAllowance =
+            val personalAllowance                  =
               desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
-            val calculatedTaxDue  = cgtCalculationService.calculateTaxDue(
+            val calculatedTaxDue: CalculatedTaxDue = cgtCalculationService.calculateTaxDue(
               triageAnswers,
               disposalDetailsAnswers,
               acquisitionDetailsAnswers,
@@ -220,11 +222,12 @@ class ReturnTransformerServiceImpl @Inject() (
           reliefAnswers,
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
-          initialGainOrLoss,
+          if (isFurtherReturn(desReturn)) None else initialGainOrLoss,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
-          None,
-          hasAttachments = desReturn.returnDetails.attachmentUpload
+          if (isFurtherReturn(desReturn)) initialGainOrLoss else None,
+          hasAttachments = desReturn.returnDetails.attachmentUpload,
+          !isFurtherReturn(desReturn)
         )
     }
 
@@ -267,7 +270,8 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           None,
-          hasAttachments = desReturn.returnDetails.attachmentUpload
+          hasAttachments = desReturn.returnDetails.attachmentUpload,
+          !isFurtherReturn(desReturn)
         )
     }
 
@@ -313,7 +317,8 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           None,
-          hasAttachments = desReturn.returnDetails.attachmentUpload
+          hasAttachments = desReturn.returnDetails.attachmentUpload,
+          !isFurtherReturn(desReturn)
         )
     }
 
@@ -356,7 +361,8 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           None,
-          hasAttachments = desReturn.returnDetails.attachmentUpload
+          hasAttachments = desReturn.returnDetails.attachmentUpload,
+          !isFurtherReturn(desReturn)
         )
     }
 
@@ -368,8 +374,9 @@ class ReturnTransformerServiceImpl @Inject() (
       desReturn.returnDetails.estimate,
       AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
       dummyMandatoryEvidence, // we cannot read the details of the mandatory evidence back
-      None,
-      None
+      if (isFurtherReturn(desReturn)) Some(AmountInPence.fromPounds(desReturn.returnDetails.totalYTDLiability))
+      else None,
+      if (isFurtherReturn(desReturn)) Some(desReturn.returnDetails.repayment) else None
     )
 
   private val dummyMandatoryEvidence = MandatoryEvidence(
@@ -527,5 +534,15 @@ class ReturnTransformerServiceImpl @Inject() (
 
   private def zeroOrAmountInPenceFromPounds(d: Option[BigDecimal]): AmountInPence =
     d.fold(AmountInPence.zero)(AmountInPence.fromPounds)
+
+  /*
+    This function determines if a timestamp is present in the source string
+    by tokenising it and then counting the number of tokens. Three tokens
+    is supposed to indicate a timestamp is present and with some level of
+    confidence can be inferred that it is a further return. Otherwise it
+    is supposed to indicate that the return is a first return.
+   */
+  private def isFurtherReturn(desReturn: DesReturnDetails): Boolean =
+    if (desReturn.returnType.source.split(' ').length === 3) true else false
 
 }
