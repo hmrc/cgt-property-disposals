@@ -68,7 +68,7 @@ trait ReturnsService {
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
     hc: HeaderCarrier
-  ): EitherT[Future, Error, CompleteReturn]
+  ): EitherT[Future, Error, DisplayReturn]
 
 }
 
@@ -278,7 +278,7 @@ class DefaultReturnsService @Inject() (
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
     hc: HeaderCarrier
-  ): EitherT[Future, Error, CompleteReturn] = {
+  ): EitherT[Future, Error, DisplayReturn] = {
     val timer = metrics.displayReturnTimer.time()
     returnsConnector.displayReturn(cgtReference, submissionId).subflatMap { response =>
       timer.close()

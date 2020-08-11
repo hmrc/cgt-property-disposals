@@ -117,12 +117,16 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
       )
 
       def completeSingleDisposalReturnValue[A](
-        result: Either[Error, CompleteReturn]
+        result: Either[Error, DisplayReturn]
       )(value: CompleteSingleDisposalReturn => A): Either[String, A] =
         result match {
-          case Left(e)                                => Left(s"Expected CompleteSingleDisposalReturn but got $e")
-          case Right(s: CompleteSingleDisposalReturn) => Right(value(s))
-          case Right(other)                           => Left(s"Expected CompleteSingleDisposalReturn but got $other")
+          case Left(e)                 => Left(s"Expected CompleteSingleDisposalReturn but got $e")
+          case Right(d: DisplayReturn) =>
+            d.completeReturn match {
+              case s @ CompleteSingleDisposalReturn(_, _, _, _, _, _, _, _, _, _, _, _) => Right(value(s))
+              case other                                                                => Left(s"Expected CompleteSingleDisposalReturn but got $other")
+            }
+          case Right(other)            => Left(s"Expected CompleteSingleDisposalReturn but got $other")
         }
 
       def mockGetTaxYearAndCalculatedTaxDue(): Unit =
@@ -1027,12 +1031,16 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
       )
 
       def completeMultipleDisposalsReturnValue[A](
-        result: Either[Error, CompleteReturn]
+        result: Either[Error, DisplayReturn]
       )(value: CompleteMultipleDisposalsReturn => A): Either[String, A] =
         result match {
-          case Left(e)                                   => Left(s"Expected CompleteMultipleDisposalsReturn but got $e")
-          case Right(m: CompleteMultipleDisposalsReturn) => Right(value(m))
-          case Right(other)                              => Left(s"Expected CompleteMultipleDisposalsReturn but got $other")
+          case Left(e)                 => Left(s"Expected CompleteMultipleDisposalsReturn but got $e")
+          case Right(d: DisplayReturn) =>
+            d.completeReturn match {
+              case m @ CompleteMultipleDisposalsReturn(_, _, _, _, _, _, _, _) => Right(value(m))
+              case other                                                       => Left(s"Expected CompleteMultipleDisposalsReturn but got $other")
+            }
+          case Right(other)            => Left(s"Expected CompleteMultipleDisposalsReturn but got $other")
         }
 
       def mockGetTaxYearSuccess(): Unit =
@@ -1107,7 +1115,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         "there are no represented personal details" in {
           mockGetTaxYearSuccess()
 
-          val result = transformer.toCompleteReturn(
+          val result: Either[Error, DisplayReturn] = transformer.toCompleteReturn(
             validMultipleDisposalsDesReturnDetails.copy(
               representedPersonDetails = None
             )
@@ -1466,12 +1474,16 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
       )
 
       def completeSingleIndirectDisposalReturnValue[A](
-        result: Either[Error, CompleteReturn]
+        result: Either[Error, DisplayReturn]
       )(value: CompleteSingleIndirectDisposalReturn => A): Either[String, A] =
         result match {
-          case Left(e)                                        => Left(s"Expected CompleteSingleDisposalReturn but got $e")
-          case Right(s: CompleteSingleIndirectDisposalReturn) => Right(value(s))
-          case Right(other)                                   => Left(s"Expected CompleteSingleDisposalReturn but got $other")
+          case Left(e)                 => Left(s"Expected CompleteSingleDisposalReturn but got $e")
+          case Right(d: DisplayReturn) =>
+            d.completeReturn match {
+              case s @ CompleteSingleIndirectDisposalReturn(_, _, _, _, _, _, _, _, _, _) => Right(value(s))
+              case other                                                                  => Left(s"Expected CompleteSingleDisposalReturn but got $other")
+            }
+          case Right(other)            => Left(s"Expected CompleteSingleDisposalReturn but got $other")
         }
 
       def mockGetValidTaxYear(taxYear: TaxYear = sample[TaxYear]) =
@@ -2083,12 +2095,16 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
       )
 
       def completeMultipleIndirectDisposalsReturnValue[A](
-        result: Either[Error, CompleteReturn]
+        result: Either[Error, DisplayReturn]
       )(value: CompleteMultipleIndirectDisposalReturn => A): Either[String, A] =
         result match {
-          case Left(e)                                          => Left(s"Expected CompleteMultipleIndirectDisposalReturn but got $e")
-          case Right(m: CompleteMultipleIndirectDisposalReturn) => Right(value(m))
-          case Right(other)                                     => Left(s"Expected CompleteMultipleIndirectDisposalReturn but got $other")
+          case Left(e)                 => Left(s"Expected CompleteMultipleIndirectDisposalReturn but got $e")
+          case Right(m: DisplayReturn) =>
+            m.completeReturn match {
+              case m @ CompleteMultipleIndirectDisposalReturn(_, _, _, _, _, _, _, _) => Right(value(m))
+              case other                                                              => Left(s"Expected CompleteMultipleIndirectDisposalReturn but got $other")
+            }
+          case Right(other)            => Left(s"Expected CompleteMultipleIndirectDisposalReturn but got $other")
         }
 
       def mockGetTaxYearSuccess(): Unit =
@@ -2499,12 +2515,16 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
       )
 
       def completeSingleMixedUseDisposalsReturnValue[A](
-        result: Either[Error, CompleteReturn]
+        result: Either[Error, DisplayReturn]
       )(value: CompleteSingleMixedUseDisposalReturn => A): Either[String, A] =
         result match {
-          case Left(e)                                        => Left(s"Expected CompleteMultipleDisposalsReturn but got $e")
-          case Right(m: CompleteSingleMixedUseDisposalReturn) => Right(value(m))
-          case Right(other)                                   => Left(s"Expected CompleteSingleMixedUseDisposalReturn but got $other")
+          case Left(e)                 => Left(s"Expected CompleteMultipleDisposalsReturn but got $e")
+          case Right(d: DisplayReturn) =>
+            d.completeReturn match {
+              case m @ CompleteSingleMixedUseDisposalReturn(_, _, _, _, _, _, _, _) => Right(value(m))
+              case other                                                            => Left(s"Expected CompleteSingleMixedUseDisposalReturn but got $other")
+            }
+          case Right(other)            => Left(s"Expected CompleteSingleMixedUseDisposalReturn but got $other")
         }
 
       def mockGetTaxYearSuccess(): Unit =

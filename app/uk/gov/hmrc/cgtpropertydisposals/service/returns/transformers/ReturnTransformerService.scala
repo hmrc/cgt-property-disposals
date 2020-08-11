@@ -56,7 +56,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, 
 @ImplementedBy(classOf[ReturnTransformerServiceImpl])
 trait ReturnTransformerService {
 
-  def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteReturn]
+  def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, DisplayReturn]
 
 }
 
@@ -66,8 +66,9 @@ class ReturnTransformerServiceImpl @Inject() (
   taxYearService: TaxYearService
 ) extends ReturnTransformerService {
 
-  override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, CompleteReturn] =
+  override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, DisplayReturn] =
     fromDesReturn(desReturn).toEither
+      .map(completeReturn => DisplayReturn(completeReturn, isFurtherReturn(desReturn)))
       .leftMap(e => Error(s"Could not convert des response to complete return: [${e.toList.mkString("; ")}]"))
 
   private def fromDesReturn(
@@ -140,8 +141,7 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           None,
-          desReturn.returnDetails.attachmentUpload,
-          !isFurtherReturn(desReturn)
+          desReturn.returnDetails.attachmentUpload
         )
     }
 
@@ -226,8 +226,7 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           if (isFurtherReturn(desReturn)) initialGainOrLoss else None,
-          hasAttachments = desReturn.returnDetails.attachmentUpload,
-          !isFurtherReturn(desReturn)
+          hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
 
@@ -270,8 +269,7 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           None,
-          hasAttachments = desReturn.returnDetails.attachmentUpload,
-          !isFurtherReturn(desReturn)
+          hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
 
@@ -317,8 +315,7 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           None,
-          hasAttachments = desReturn.returnDetails.attachmentUpload,
-          !isFurtherReturn(desReturn)
+          hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
 
@@ -361,8 +358,7 @@ class ReturnTransformerServiceImpl @Inject() (
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
           None,
-          hasAttachments = desReturn.returnDetails.attachmentUpload,
-          !isFurtherReturn(desReturn)
+          hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
 

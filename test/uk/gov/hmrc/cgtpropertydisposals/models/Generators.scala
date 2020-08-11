@@ -228,6 +228,8 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
   implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
 
+  implicit val displayReturnGen: Gen[DisplayReturn] = gen[DisplayReturn]
+
   implicit val completeSingleDisposalReturnGen: Gen[CompleteSingleDisposalReturn] = gen[CompleteSingleDisposalReturn]
 
   implicit val completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =

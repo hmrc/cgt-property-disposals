@@ -49,8 +49,7 @@ object CompleteReturn {
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
     gainOrLossAfterReliefs: Option[AmountInPence],
-    hasAttachments: Boolean,
-    isFirstReturn: Boolean
+    hasAttachments: Boolean
   ) extends CompleteReturn
 
   final case class CompleteSingleDisposalReturn(
@@ -65,8 +64,7 @@ object CompleteReturn {
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
     gainOrLossAfterReliefs: Option[AmountInPence],
-    hasAttachments: Boolean,
-    isFirstReturn: Boolean
+    hasAttachments: Boolean
   ) extends CompleteReturn
 
   final case class CompleteSingleIndirectDisposalReturn(
@@ -79,8 +77,7 @@ object CompleteReturn {
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
     gainOrLossAfterReliefs: Option[AmountInPence],
-    hasAttachments: Boolean,
-    isFirstReturn: Boolean
+    hasAttachments: Boolean
   ) extends CompleteReturn
 
   final case class CompleteMultipleIndirectDisposalReturn(
@@ -91,8 +88,7 @@ object CompleteReturn {
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
     gainOrLossAfterReliefs: Option[AmountInPence],
-    hasAttachments: Boolean,
-    isFirstReturn: Boolean
+    hasAttachments: Boolean
   ) extends CompleteReturn
 
   final case class CompleteSingleMixedUseDisposalReturn(
@@ -103,8 +99,7 @@ object CompleteReturn {
     supportingDocumentAnswers: CompleteSupportingEvidenceAnswers,
     representeeAnswers: Option[CompleteRepresenteeAnswers],
     gainOrLossAfterReliefs: Option[AmountInPence],
-    hasAttachments: Boolean,
-    isFirstReturn: Boolean
+    hasAttachments: Boolean
   ) extends CompleteReturn
 
   implicit class CompleteReturnOps(private val c: CompleteReturn) extends AnyVal {

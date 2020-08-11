@@ -30,12 +30,12 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ListReturnsResponse, ReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DisplayReturn, ListReturnsResponse, ReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.ReturnsService
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class GetReturnsControllerSpec extends ControllerSpec {
 
@@ -50,7 +50,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
       .returning(EitherT.fromEither[Future](response))
 
   def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
-    response: Either[Error, CompleteReturn]
+    response: Either[Error, DisplayReturn]
   ) =
     (mockReturnsService
       .displayReturn(_: CgtReference, _: String)(_: HeaderCarrier))
@@ -142,7 +142,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
       "return the json" when {
 
         "it is successfully retrieved" in {
-          val response = sample[CompleteReturn]
+          val response = sample[DisplayReturn]
           mockDisplayReturn(cgtReference, submissionId)(Right(response))
 
           val result = performAction(cgtReference, submissionId)
