@@ -40,7 +40,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DisplayReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesListReturnsResponse, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -108,7 +108,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(cgtReference, fromDate, toDate, *)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, CompleteReturn]) =
+  def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, DisplayReturn]) =
     (mockReturnTransformerService
       .toCompleteReturn(_: DesReturnDetails))
       .expects(desReturn)
@@ -1197,16 +1197,16 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       "return a list of returns" when {
 
         "the response body can be parsed and converted" in {
-          val completeReturn = sample[CompleteReturn]
+          val displayReturn = sample[DisplayReturn]
 
           inSequence {
             mockDisplayReturn(cgtReference, submissionId)(
               Right(HttpResponse(200, desResponseBodyString, Map.empty[String, Seq[String]]))
             )
-            mockTransformReturn(desReturnDetails)(Right(completeReturn))
+            mockTransformReturn(desReturnDetails)(Right(displayReturn))
           }
 
-          await(returnsService.displayReturn(cgtReference, submissionId).value) shouldBe Right(completeReturn)
+          await(returnsService.displayReturn(cgtReference, submissionId).value) shouldBe Right(displayReturn)
         }
 
       }
