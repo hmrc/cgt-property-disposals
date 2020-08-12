@@ -68,7 +68,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
   override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, DisplayReturn] =
     fromDesReturn(desReturn).toEither
-      .map(completeReturn => DisplayReturn(completeReturn, isFurtherReturn(desReturn)))
+      .map(completeReturn => DisplayReturn(completeReturn, !isFurtherReturn(desReturn)))
       .leftMap(e => Error(s"Could not convert des response to complete return: [${e.toList.mkString("; ")}]"))
 
   private def fromDesReturn(
