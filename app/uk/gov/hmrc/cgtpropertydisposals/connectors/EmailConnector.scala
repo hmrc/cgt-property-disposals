@@ -17,10 +17,12 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import cats.data.EitherT
+import cats.implicits._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnectorImpl.SendEmailRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.http.AcceptLanguage
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
@@ -62,27 +64,33 @@ class EmailConnectorImpl @Inject() (
   override def sendSubscriptionConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
-    EitherT[Future, Error, HttpResponse](
-      http
-        .POST[JsValue, HttpResponse](
-          sendEmailUrl,
-          Json.toJson(
-            SendEmailRequest(
-              List(subscriptionDetails.emailAddress.value),
-              accountCreatedTemplateId,
-              Map(
-                "name"         -> subscriptionDetails.contactName.value,
-                "cgtReference" -> cgtReference.value
-              ),
-              force = false
-            )
-          )
-        )
-        .map(Right(_))
-        .recover {
-          case e => Left(Error(e))
-        }
-    )
+    for {
+      acceptLanguage <- EitherT.fromOption[Future](
+                          AcceptLanguage.fromHeaderCarrier(hc),
+                          Error("Could not find Accept-Language HTTP header")
+                        )
+      httpResponse   <- EitherT[Future, Error, HttpResponse](
+                          http.POST[JsValue, HttpResponse](
+                              sendEmailUrl,
+                              Json.toJson(
+                                SendEmailRequest(
+                                  List(subscriptionDetails.emailAddress.value),
+                                  EmailConnectorImpl.getEmailTemplate(acceptLanguage, accountCreatedTemplateId),
+                                  Map(
+                                    "name"         -> subscriptionDetails.contactName.value,
+                                    "cgtReference" -> cgtReference.value
+                                  ),
+                                  force = false
+                                )
+                              )
+                            )
+                            .map(Right(_))
+                            .recover {
+                              case e => Left(Error(e))
+                            }
+                        )
+
+    } yield httpResponse
 
   override def sendReturnSubmitConfirmationEmail(
     submitReturnResponse: SubmitReturnResponse,
@@ -90,24 +98,32 @@ class EmailConnectorImpl @Inject() (
   )(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
-    EitherT[Future, Error, HttpResponse](
-      http
-        .POST(
-          sendEmailUrl,
-          Json.toJson(
-            SendEmailRequest(
-              List(subscribedDetails.emailAddress.value),
-              returnSubmittedTemplateId,
-              Map("name" -> subscribedDetails.contactName.value, "submissionId" -> submitReturnResponse.formBundleId),
-              force = false
-            )
-          )
-        )
-        .map(Right(_))
-        .recover {
-          case e => Left(Error(e))
-        }
-    )
+    for {
+      acceptLanguage <- EitherT.fromOption[Future](
+                          AcceptLanguage.fromHeaderCarrier(hc),
+                          Error("Could not find Accept-Language HTTP header")
+                        )
+      httpResponse   <- EitherT[Future, Error, HttpResponse](
+                          http.POST[JsValue, HttpResponse](
+                              sendEmailUrl,
+                              Json.toJson(
+                                SendEmailRequest(
+                                  List(subscribedDetails.emailAddress.value),
+                                  EmailConnectorImpl.getEmailTemplate(acceptLanguage, returnSubmittedTemplateId),
+                                  Map(
+                                    "name"         -> subscribedDetails.contactName.value,
+                                    "submissionId" -> submitReturnResponse.formBundleId
+                                  ),
+                                  force = false
+                                )
+                              )
+                            )
+                            .map(Right(_))
+                            .recover {
+                              case e => Left(Error(e))
+                            }
+                        )
+    } yield httpResponse
 
 }
 
@@ -121,5 +137,11 @@ object EmailConnectorImpl {
   )
 
   implicit val sendEmailRequestWrites: Writes[SendEmailRequest] = Json.writes[SendEmailRequest]
+
+  def getEmailTemplate(language: AcceptLanguage, baseTemplateName: String): String =
+    language match {
+      case AcceptLanguage.EN => baseTemplateName
+      case AcceptLanguage.CY => baseTemplateName + "_" + AcceptLanguage.CY.toString.toLowerCase
+    }
 
 }

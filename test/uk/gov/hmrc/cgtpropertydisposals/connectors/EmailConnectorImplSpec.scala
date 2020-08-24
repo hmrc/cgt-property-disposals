@@ -62,8 +62,6 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
     )
   )
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-
   private val emptyJsonBody = "{}"
 
   val connector =
@@ -71,7 +69,9 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
 
   "EmailConnectorImpl" when {
 
-    "it receives a request to send an account created confirmation email" must {
+    "it receives a request to send an account created confirmation email in English" must {
+
+      implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "en"))
 
       val cgtReference = sample[CgtReference]
 
@@ -126,7 +126,51 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
       }
     }
 
-    "it receives a request to send a return submitted confirmation email" must {
+    "it receives a request to send an account created confirmation email in Welsh" must {
+
+      implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "cy"))
+
+      val cgtReference = sample[CgtReference]
+
+      val subscriptionDetails = sample[SubscriptionDetails]
+      val expectedRequestBody = Json.parse(
+        s"""{
+           |  "to": ["${subscriptionDetails.emailAddress.value}"],
+           |  "templateId": "${accountCreatedTemplateId + "_cy"}",
+           |  "parameters": {
+           |    "name": "${subscriptionDetails.contactName.value}",
+           |    "cgtReference": "${cgtReference.value}"
+           |  },
+           |  "force": false
+           |}
+           |""".stripMargin
+      )
+
+      "make a http put call and return a result" in {
+        List(
+          HttpResponse(204, emptyJsonBody),
+          HttpResponse(401, emptyJsonBody),
+          HttpResponse(400, emptyJsonBody)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+
+            mockPost(
+              s"http://host:123/hmrc/email",
+              Seq.empty,
+              expectedRequestBody
+            )(Some(httpResponse))
+
+            await(connector.sendSubscriptionConfirmationEmail(subscriptionDetails, cgtReference).value) shouldBe Right(
+              httpResponse
+            )
+          }
+        }
+      }
+    }
+
+    "it receives a request to send a return submitted confirmation email in English" must {
+
+      implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "en"))
 
       val submissionId         = "submissionId"
       val submitReturnResponse = sample[SubmitReturnResponse].copy(formBundleId = submissionId)
@@ -183,5 +227,48 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
       }
     }
 
+    "it receives a request to send a return submitted confirmation email in Welsh" must {
+
+      implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "cy"))
+
+      val submissionId         = "submissionId"
+      val submitReturnResponse = sample[SubmitReturnResponse].copy(formBundleId = submissionId)
+      val subscribedDetails    = sample[SubscribedDetails]
+      val expectedRequestBody  = Json.parse(
+        s"""{
+           |  "to": ["${subscribedDetails.emailAddress.value}"],
+           |  "templateId": "${returnSubmittedTemplateId + "_cy"}",
+           |  "parameters": {
+           |    "name": "${subscribedDetails.contactName.value}",
+           |    "submissionId": "$submissionId"
+           |  },
+           |  "force": false
+           |}
+           |""".stripMargin
+      )
+
+      "make a http put call and return a result" in {
+        List(
+          HttpResponse(204, emptyJsonBody),
+          HttpResponse(401, emptyJsonBody),
+          HttpResponse(400, emptyJsonBody)
+        ).foreach { httpResponse =>
+          withClue(s"For http response [${httpResponse.toString}]") {
+
+            mockPost(
+              s"http://host:123/hmrc/email",
+              Seq.empty,
+              expectedRequestBody
+            )(Some(httpResponse))
+
+            await(
+              connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value
+            ) shouldBe Right(
+              httpResponse
+            )
+          }
+        }
+      }
+    }
   }
 }
