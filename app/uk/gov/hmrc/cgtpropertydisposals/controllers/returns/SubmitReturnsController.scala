@@ -53,10 +53,6 @@ class SubmitReturnsController @Inject() (
 
   def submitReturn: Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
-      println(
-        s"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n   HEADER CARRIER ${request.headerCarrier.toString}   \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-      )
-
       withJsonBody[SubmitReturnRequest] { returnRequest =>
         val result =
           for {
