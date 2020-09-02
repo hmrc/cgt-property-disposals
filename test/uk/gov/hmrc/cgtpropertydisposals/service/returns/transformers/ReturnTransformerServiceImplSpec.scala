@@ -255,7 +255,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleDisposalReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.Capacitor)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -273,7 +273,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleDisposalReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.PersonalRepresentative)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -1142,7 +1142,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeMultipleDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.Capacitor)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -1160,7 +1160,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeMultipleDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.PersonalRepresentative)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -1555,7 +1555,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleIndirectDisposalReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.Capacitor)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -1573,7 +1573,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleIndirectDisposalReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.PersonalRepresentative)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -2180,7 +2180,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeMultipleIndirectDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.Capacitor)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -2198,7 +2198,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeMultipleIndirectDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.PersonalRepresentative)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -2612,7 +2612,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.Capacitor)
+            Some(IndividualUserType.Self)
           )
         }
 
@@ -2630,7 +2630,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           )
 
           completeSingleMixedUseDisposalsReturnValue(result)(_.triageAnswers.individualUserType) shouldBe Right(
-            Some(IndividualUserType.PersonalRepresentative)
+            Some(IndividualUserType.Self)
           )
         }
 

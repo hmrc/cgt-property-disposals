@@ -385,26 +385,17 @@ class ReturnTransformerServiceImpl @Inject() (
 
   private def getIndividualUserType(desReturn: DesReturnDetails): Option[IndividualUserType] =
     desReturn.returnDetails.customerType match {
-      case CustomerType.Trust      =>
-        None
-      case CustomerType.Individual =>
-        Some(
-          desReturn.representedPersonDetails.fold[IndividualUserType](
-            IndividualUserType.Self
-          )(
-            _.dateOfDeath.fold[IndividualUserType](IndividualUserType.Capacitor)(_ =>
-              IndividualUserType.PersonalRepresentative
-            )
-          )
-        )
+      case CustomerType.Trust      => None
+      case CustomerType.Individual => Some(IndividualUserType.Self)
     }
+
   private def constructTriageAnswers(
     desReturn: DesReturnDetails,
     country: Country,
     disposalDate: DisposalDate,
     disposalMethod: DisposalMethod,
     assetType: AssetType
-  ): CompleteSingleDisposalTriageAnswers                                                     =
+  ): CompleteSingleDisposalTriageAnswers =
     CompleteSingleDisposalTriageAnswers(
       getIndividualUserType(desReturn),
       disposalMethod,
