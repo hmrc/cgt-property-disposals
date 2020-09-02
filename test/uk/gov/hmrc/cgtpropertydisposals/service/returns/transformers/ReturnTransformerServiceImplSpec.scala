@@ -645,7 +645,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validSingleDisposalDesReturnDetails.copy(
               reliefDetails = Some(
                 validReliefDetails.copy(
-                  lettingsReflief = Some(BigDecimal("123.45"))
+                  lettingsRelief = Some(BigDecimal("123.45"))
                 )
               )
             )
@@ -663,7 +663,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             validSingleDisposalDesReturnDetails.copy(
               reliefDetails = Some(
                 validReliefDetails.copy(
-                  lettingsReflief = None
+                  lettingsRelief = None
                 )
               )
             )

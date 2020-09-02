@@ -442,7 +442,7 @@ class ReturnTransformerServiceImpl @Inject() (
   ): CompleteReliefDetailsAnswers =
     CompleteReliefDetailsAnswers(
       zeroOrAmountInPenceFromPounds(reliefDetails.privateResRelief),
-      zeroOrAmountInPenceFromPounds(reliefDetails.lettingsReflief),
+      zeroOrAmountInPenceFromPounds(reliefDetails.lettingsRelief),
       otherReliefsOption
     )
 
