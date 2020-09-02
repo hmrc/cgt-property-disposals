@@ -178,10 +178,13 @@ class ReturnTransformerServiceImpl @Inject() (
         val initialGainOrLoss         = constructInitialGainAnswers(singleDisposalDetails)
 
         val yearToDateLiabilityAnswers = otherReliefsOption match {
-          case Some(_: OtherReliefsOption.OtherReliefs) =>
+          case _ if desReturn.representedPersonDetails.nonEmpty =>
             Left(constructNonCalculatedYearToDateAnswers(desReturn))
 
-          case _                                        =>
+          case Some(_: OtherReliefsOption.OtherReliefs)         =>
+            Left(constructNonCalculatedYearToDateAnswers(desReturn))
+
+          case _                                                =>
             val estimatedIncome =
               zeroOrAmountInPenceFromPounds(desReturn.incomeAllowanceDetails.estimatedIncome)
 
