@@ -17,14 +17,14 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import cats.syntax.order._
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OFormat, OWrites}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteSingleDisposalReturn
 
 final case class ReliefDetails(
   reliefs: Boolean,
   privateResRelief: Option[BigDecimal],
-  lettingsReflief: Option[BigDecimal], // this misspelling is intentional - DES are using the incorrect spelling
+  lettingsRelief: Option[BigDecimal],
   giftHoldOverRelief: Option[BigDecimal],
   otherRelief: Option[String],
   otherReliefAmount: Option[BigDecimal]
@@ -32,11 +32,11 @@ final case class ReliefDetails(
 
 object ReliefDetails {
 
-  def apply(cr: CompleteSingleDisposalReturn): ReliefDetails =
+  def fromCompleteReturn(cr: CompleteSingleDisposalReturn): ReliefDetails =
     ReliefDetails(
       reliefs = reliefs(cr),
       privateResRelief = privateResRelief(cr),
-      lettingsReflief = lettingsRelief(cr),
+      lettingsRelief = lettingsRelief(cr),
       giftHoldOverRelief = None,
       otherRelief = cr.reliefDetails.otherReliefs.map(_.fold(r => r.name, () => "none")),
       otherReliefAmount = cr.reliefDetails.otherReliefs.map(_.fold(r => r.amount.inPounds(), () => 0))
@@ -57,6 +57,33 @@ object ReliefDetails {
       Some(cr.reliefDetails.lettingsRelief.inPounds())
     else None
 
-  implicit val reliefDetailsFormat: OFormat[ReliefDetails] = Json.format[ReliefDetails]
+  private final case class ReliefDetailsOutFormat(
+    reliefs: Boolean,
+    privateResRelief: Option[BigDecimal],
+    lettingsReflief: Option[BigDecimal], // this misspelling is intentional - DES are using the incorrect spelling
+    giftHoldOverRelief: Option[BigDecimal],
+    otherRelief: Option[String],
+    otherReliefAmount: Option[BigDecimal]
+  )
+
+  implicit val reliefDetailsFormat: OFormat[ReliefDetails] = {
+    val outFormatWrites: OWrites[ReliefDetailsOutFormat] = Json.writes[ReliefDetailsOutFormat]
+
+    OFormat(
+      Json.reads[ReliefDetails],
+      OWrites[ReliefDetails](reliefDetails =>
+        outFormatWrites.writes(
+          ReliefDetailsOutFormat(
+            reliefDetails.reliefs,
+            reliefDetails.privateResRelief,
+            reliefDetails.lettingsRelief,
+            reliefDetails.giftHoldOverRelief,
+            reliefDetails.otherRelief,
+            reliefDetails.otherReliefAmount
+          )
+        )
+      )
+    )
+  }
 
 }
