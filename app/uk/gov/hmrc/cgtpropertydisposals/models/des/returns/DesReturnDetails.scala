@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import java.time.Instant
-
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
 
@@ -53,7 +51,7 @@ object DesReturnDetails {
     val disposalDetails        = DisposalDetails(completeReturn)
 
     DesReturnDetails(
-      returnType = CreateReturnType(getSource(submitReturnRequest)),
+      returnType = ReturnType(submitReturnRequest),
       returnDetails = returnDetails,
       representedPersonDetails = representeeDetails.map(RepresentedPersonDetails(_)),
       disposalDetails = List(disposalDetails),
@@ -61,12 +59,6 @@ object DesReturnDetails {
       incomeAllowanceDetails = incomeAllowanceDetails,
       reliefDetails = reliefDetails
     )
-  }
-
-  private def getSource(submitReturnRequest: SubmitReturnRequest): String = {
-    val timestamp = if (submitReturnRequest.isFurtherReturn) Instant.now.getEpochSecond.toString else ""
-    submitReturnRequest.agentReferenceNumber
-      .fold(s"${"self digital " + timestamp}")(_ => s"${"agent digital " + timestamp}")
   }
 
   implicit val ppdReturnDetailsFormat: OFormat[DesReturnDetails] = Json.format[DesReturnDetails]

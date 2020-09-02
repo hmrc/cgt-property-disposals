@@ -16,8 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import java.time.{Clock, Instant, ZoneId}
+
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsError, JsObject, JsString, JsSuccess, JsValue, Json}
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 
 class ReturnTypeSpec extends WordSpec with Matchers {
 
@@ -75,6 +80,55 @@ class ReturnTypeSpec extends WordSpec with Matchers {
               |""".stripMargin
           )
           .validate[ReturnType] shouldBe JsSuccess(AmendReturnType("source", "id"))
+      }
+
+    }
+
+    "an apply method" which {
+
+      val instant   = Instant.now()
+      val clock     = Clock.fixed(instant, ZoneId.of("Z"))
+      val timestamp = instant.getEpochSecond
+
+      "handles individual new returns" in {
+        val submitReturnRequest = sample[SubmitReturnRequest].copy(
+          isFurtherReturn = false,
+          originalReturnFormBundleId = None,
+          agentReferenceNumber = None
+        )
+        ReturnType(submitReturnRequest, clock) shouldBe CreateReturnType("self digital")
+      }
+
+      "handles agent new returns" in {
+        val submitReturnRequest = sample[SubmitReturnRequest].copy(
+          isFurtherReturn = false,
+          originalReturnFormBundleId = None,
+          agentReferenceNumber = Some(sample[AgentReferenceNumber])
+        )
+        ReturnType(submitReturnRequest, clock) shouldBe CreateReturnType("agent digital")
+      }
+
+      "handles further returns" in {
+        val submitReturnRequest = sample[SubmitReturnRequest].copy(
+          isFurtherReturn = true,
+          originalReturnFormBundleId = None,
+          agentReferenceNumber = None
+        )
+        ReturnType(submitReturnRequest, clock) shouldBe CreateReturnType(s"self digital $timestamp")
+      }
+
+      "handles amend returns" in {
+        val originalReturnFormBundleId = "formBundleId"
+        val submitReturnRequest        = sample[SubmitReturnRequest].copy(
+          isFurtherReturn = true,
+          originalReturnFormBundleId = Some(originalReturnFormBundleId),
+          agentReferenceNumber = Some(sample[AgentReferenceNumber])
+        )
+
+        ReturnType(submitReturnRequest, clock) shouldBe AmendReturnType(
+          s"agent digital $timestamp",
+          originalReturnFormBundleId
+        )
       }
 
     }
