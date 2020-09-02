@@ -16,7 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import java.time.{Clock, Instant}
+
 import play.api.libs.json._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 
 sealed trait ReturnType extends Product with Serializable {
   val source: String
@@ -37,6 +40,19 @@ final case class AmendReturnType(
 }
 
 object ReturnType {
+
+  def apply(submitReturnRequest: SubmitReturnRequest, clock: Clock = Clock.systemUTC()): ReturnType = {
+    val timestamp    =
+      if (submitReturnRequest.isFurtherReturn) s" ${Instant.now(clock).getEpochSecond.toString}"
+      else ""
+    val returnSource =
+      submitReturnRequest.agentReferenceNumber
+        .fold(s"${"self digital" + timestamp}")(_ => s"${"agent digital" + timestamp}")
+
+    submitReturnRequest.originalReturnFormBundleId
+      .fold[ReturnType](CreateReturnType(returnSource))(AmendReturnType(returnSource, _))
+  }
+
   implicit val returnTypeFormat: OFormat[ReturnType] =
     OFormat[ReturnType](
       json =>

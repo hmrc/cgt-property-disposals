@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import com.eclipsesource.schema.drafts.Version4
 import com.eclipsesource.schema.{SchemaType, SchemaValidator}
+import org.scalacheck.Gen
 import org.scalatest.WordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
@@ -58,8 +59,8 @@ class DesSubmitReturnRequestSpec extends WordSpec {
 
       for (_ <- 1 to 1000) {
         val submitReturnRequest: SubmitReturnRequest =
-          sample[SubmitReturnRequest].copy(completeReturn =
-            sample[CompleteReturn]
+          sample[SubmitReturnRequest].copy(
+            completeReturn = sample[CompleteReturn]
               .fold[CompleteReturn](
                 _.copy(
                   examplePropertyDetailsAnswers =
@@ -83,7 +84,8 @@ class DesSubmitReturnRequestSpec extends WordSpec {
                     sample[CompleteMixedUsePropertyDetailsAnswers].copy(address = sample[UkAddress]),
                   triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(assetType = MixedUse)
                 )
-              )
+              ),
+            originalReturnFormBundleId = Gen.option(Gen.const[String]("123456789012")).sample.flatten
           )
 
         val representeeDetails = sampleOptional[RepresenteeDetails].map(
