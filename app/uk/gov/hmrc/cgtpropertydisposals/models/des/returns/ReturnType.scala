@@ -34,7 +34,7 @@ final case class CreateReturnType(
 
 final case class AmendReturnType(
   source: String,
-  submissionID: String
+  submissionID: Option[String]
 ) extends ReturnType {
   val submissionType: SubmissionType = SubmissionType.Amend
 }
@@ -50,7 +50,9 @@ object ReturnType {
         .fold(s"${"self digital" + timestamp}")(_ => s"${"agent digital" + timestamp}")
 
     submitReturnRequest.originalReturnFormBundleId
-      .fold[ReturnType](CreateReturnType(returnSource))(AmendReturnType(returnSource, _))
+      .fold[ReturnType](CreateReturnType(returnSource))(submissionId =>
+        AmendReturnType(returnSource, Some(submissionId))
+      )
   }
 
   implicit val returnTypeFormat: OFormat[ReturnType] =
@@ -59,13 +61,9 @@ object ReturnType {
         for {
           source         <- (json \ "source").validate[String]
           submissionType <- (json \ "submissionType").validate[SubmissionType]
-          submissionId   <- (json \ "submissionID").validateOpt[String]
           result         <- submissionType match {
                               case SubmissionType.New   => JsSuccess(CreateReturnType(source))
-                              case SubmissionType.Amend =>
-                                submissionId.fold[JsResult[AmendReturnType]](
-                                  JsError("Could not find submission id for amend return type")
-                                )(id => JsSuccess(AmendReturnType(source, id)))
+                              case SubmissionType.Amend => JsSuccess(AmendReturnType(source, None))
                             }
         } yield result,
       { r: ReturnType =>
@@ -77,7 +75,7 @@ object ReturnType {
               Map(
                 "source"         -> JsString(a.source),
                 "submissionType" -> Json.toJson(a.submissionType),
-                "submissionID"   -> JsString(a.submissionID)
+                "submissionID"   -> a.submissionID.fold[JsValue](JsNull)(JsString)
               )
             )
         }

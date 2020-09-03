@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import java.time.{Clock, Instant, ZoneId}
 
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsError, JsObject, JsString, JsSuccess, JsValue, Json}
+import play.api.libs.json.{JsObject, JsString, JsSuccess, JsValue, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
@@ -39,7 +39,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
         )
 
         test(
-          AmendReturnType("source", "id"),
+          AmendReturnType("source", Some("id")),
           JsObject(
             Map("source" -> JsString("source"), "submissionType" -> JsString("Amend"), "submissionID" -> JsString("id"))
           )
@@ -67,19 +67,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
               |}
               |""".stripMargin
           )
-          .validate[ReturnType] shouldBe a[JsError]
-
-        Json
-          .parse(
-            """
-              |{
-              | "source": "source",
-              | "submissionType" : "Amend",
-              | "submissionID" : "id"
-              |}
-              |""".stripMargin
-          )
-          .validate[ReturnType] shouldBe JsSuccess(AmendReturnType("source", "id"))
+          .validate[ReturnType] shouldBe JsSuccess(AmendReturnType("source", None))
       }
 
     }
@@ -127,7 +115,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
 
         ReturnType(submitReturnRequest, clock) shouldBe AmendReturnType(
           s"agent digital $timestamp",
-          originalReturnFormBundleId
+          Some(originalReturnFormBundleId)
         )
       }
 
