@@ -163,18 +163,23 @@ object GFormConnector {
   def createFormData(
     dmsSubmissionPayload: DmsSubmissionPayload,
     temporaryFiles: List[FilePart[TemporaryFile]]
-  ): MultipartFormData[TemporaryFile] =
+  ): MultipartFormData[TemporaryFile] = {
+    val dataParts = Map(
+      "html"               -> Seq(dmsSubmissionPayload.b64Html.value),
+      "dmsFormId"          -> Seq(dmsSubmissionPayload.dmsMetadata.dmsFormId),
+      "customerId"         -> Seq(dmsSubmissionPayload.dmsMetadata.customerId),
+      "classificationType" -> Seq(dmsSubmissionPayload.dmsMetadata.classificationType),
+      "businessArea"       -> Seq(dmsSubmissionPayload.dmsMetadata.businessArea)
+    )
+
     MultipartFormData[TemporaryFile](
-      dataParts = Map(
-        "html"               -> Seq(dmsSubmissionPayload.b64Html.value),
-        "dmsFormId"          -> Seq(dmsSubmissionPayload.dmsMetadata.dmsFormId),
-        "customerId"         -> Seq(dmsSubmissionPayload.dmsMetadata.customerId),
-        "classificationType" -> Seq(dmsSubmissionPayload.dmsMetadata.classificationType),
-        "businessArea"       -> Seq(dmsSubmissionPayload.dmsMetadata.businessArea)
+      dataParts = dmsSubmissionPayload.dmsMetadata.backscan.fold(dataParts)(backscan =>
+        dataParts.updated("backscan", Seq(backscan.toString))
       ),
       files = temporaryFiles,
       badParts = Nil
     )
+  }
 
   def convertToPayload(
     formData: MultipartFormData[TemporaryFile]

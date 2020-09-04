@@ -80,9 +80,10 @@ class DefaultDmsSubmissionService @Inject() (
       .get[A](s"dms.$key")
       .value
 
-  val queue: String           = getDmsMetaConfig[String]("queue-name")
-  val b64businessArea: String = getDmsMetaConfig[String]("b64-business-area")
-  val businessArea            = new String(Base64.getDecoder.decode(b64businessArea))
+  val queue: String            = getDmsMetaConfig[String]("queue-name")
+  val b64businessArea: String  = getDmsMetaConfig[String]("b64-business-area")
+  val businessArea             = new String(Base64.getDecoder.decode(b64businessArea))
+  val backScanEnabled: Boolean = getDmsMetaConfig[Boolean]("backscan.enabled")
 
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def submitToDms(
@@ -100,7 +101,13 @@ class DefaultDmsSubmissionService @Inject() (
                            DmsSubmissionPayload(
                              html,
                              fileAttachments,
-                             DmsMetadata(formBundleId, cgtReference.value, queue, businessArea)
+                             DmsMetadata(
+                               formBundleId,
+                               cgtReference.value,
+                               queue,
+                               businessArea,
+                               if (backScanEnabled) Some(true) else None
+                             )
                            )
                          )
     } yield envId

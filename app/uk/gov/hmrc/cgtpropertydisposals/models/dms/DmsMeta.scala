@@ -22,7 +22,8 @@ final case class DmsMetadata(
   dmsFormId: String,
   customerId: String,
   classificationType: String,
-  businessArea: String
+  businessArea: String,
+  backscan: Option[Boolean]
 )
 
 object DmsMetadata {
