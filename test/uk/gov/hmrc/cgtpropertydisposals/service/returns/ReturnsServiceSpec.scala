@@ -38,9 +38,12 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DisplayReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DisplayReturn, DraftMultipleDisposalsReturn, DraftReturn, DraftSingleDisposalReturn, DraftSingleIndirectDisposalReturn, DraftSingleMixedUseDisposalReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesListReturnsResponse, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -63,12 +66,15 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   val mockEmailConnector = mock[EmailConnector]
 
+  val mockDraftReturnService = mock[DraftReturnsService]
+
   val returnsService =
     new DefaultReturnsService(
       returnsConnector,
       mockFinancialDataConnector,
       mockReturnTransformerService,
       mockReturnListSummaryTransformerService,
+      mockDraftReturnService,
       mockEmailConnector,
       mockAuditService,
       MockMetrics.metrics
@@ -206,6 +212,18 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       )
       .returning(())
 
+  def mockSaveDraftReturn(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
+    (mockDraftReturnService
+      .saveDraftReturn(_: DraftReturn, _: CgtReference))
+      .expects(df, cgtReference)
+      .returning(EitherT.fromEither[Future](response))
+
+  def mockGetDraftReturns(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
+    (mockDraftReturnService
+      .getDraftReturn(_: CgtReference))
+      .expects(cgtReference)
+      .returning(EitherT.fromEither[Future](response))
+
   private val emptyJsonBody = "{}"
   private val noJsonInBody  = ""
 
@@ -243,7 +261,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               )
             )
           )
-          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
@@ -298,7 +316,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
             None
           )
-          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
           inSequence {
             mockAuditSubmitReturnEvent(
@@ -345,7 +363,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |""".stripMargin)
 
           val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None)
-          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
           inSequence {
             mockAuditSubmitReturnEvent(
@@ -393,7 +411,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |""".stripMargin)
 
           val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None)
-          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
@@ -454,7 +472,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               )
             )
           )
-          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
@@ -484,12 +502,174 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
       }
 
+      "handling submitted amend returns" must {
+
+        def testGetAndModifyDraftReturns[D <: DraftReturn](draftReturn: D)(modifyDraftReturn: Option[D => D]): Unit = {
+          val formBundleId           = "formBundleId"
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = Some(formBundleId))
+          val cgtReference           = submitReturnRequest.subscribedDetails.cgtReference
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
+          val responseJsonBody       =
+            Json.parse(s"""
+                          |{
+                          |"processingDate":"2020-02-20T09:30:47Z",
+                          |"ppdReturnResponseDetails": {
+                          |     "formBundleNumber":"$formBundleId",
+                          |     "cgtReferenceNumber":"${cgtReference.value}"
+                          |  }
+                          |}
+                          |""".stripMargin)
+          val submitReturnResponse   = SubmitReturnResponse(
+            formBundleId,
+            LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
+            None
+          )
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
+            )
+            mockAuditReturnConfirmationEmailEvent(
+              submitReturnRequest.subscribedDetails.emailAddress.value,
+              cgtReference.value,
+              formBundleId
+            )
+            mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
+            modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
+          }
+
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
+        }
+
+        "delete section 3 of any draft returns when any of those questions have been answered in them" when {
+
+          "there is a single disposal draft return" in {
+            testGetAndModifyDraftReturns(
+              sample[DraftSingleDisposalReturn].copy(
+                exemptionAndLossesAnswers = Some(sample[CompleteExemptionAndLossesAnswers]),
+                yearToDateLiabilityAnswers = Some(sample[CompleteNonCalculatedYTDAnswers]),
+                supportingEvidenceAnswers = Some(sample[CompleteSupportingEvidenceAnswers])
+              )
+            )(
+              Some(
+                _.copy(
+                  exemptionAndLossesAnswers = None,
+                  yearToDateLiabilityAnswers = None,
+                  supportingEvidenceAnswers = None
+                )
+              )
+            )
+          }
+
+          "there is a multiple disposals draft return" in {
+            testGetAndModifyDraftReturns(
+              sample[DraftMultipleDisposalsReturn].copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = Some(sample[CompleteNonCalculatedYTDAnswers]),
+                supportingEvidenceAnswers = Some(sample[CompleteSupportingEvidenceAnswers])
+              )
+            )(
+              Some(
+                _.copy(
+                  yearToDateLiabilityAnswers = None,
+                  supportingEvidenceAnswers = None
+                )
+              )
+            )
+          }
+
+          "there is a single indirect disposal draft return" in {
+            testGetAndModifyDraftReturns(
+              sample[DraftSingleIndirectDisposalReturn].copy(
+                exemptionAndLossesAnswers = Some(sample[CompleteExemptionAndLossesAnswers]),
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = Some(sample[CompleteSupportingEvidenceAnswers])
+              )
+            )(
+              Some(
+                _.copy(
+                  exemptionAndLossesAnswers = None,
+                  supportingEvidenceAnswers = None
+                )
+              )
+            )
+          }
+
+          "there is a multiple indirect disposals  draft return" in {
+            testGetAndModifyDraftReturns(
+              sample[DraftSingleDisposalReturn].copy(
+                exemptionAndLossesAnswers = Some(sample[CompleteExemptionAndLossesAnswers]),
+                yearToDateLiabilityAnswers = Some(sample[CompleteNonCalculatedYTDAnswers]),
+                supportingEvidenceAnswers = None
+              )
+            )(
+              Some(
+                _.copy(
+                  exemptionAndLossesAnswers = None,
+                  yearToDateLiabilityAnswers = None
+                )
+              )
+            )
+          }
+
+          "there is a single mixed use disposal draft return" in {
+            testGetAndModifyDraftReturns(
+              sample[DraftSingleMixedUseDisposalReturn].copy(
+                exemptionAndLossesAnswers = Some(sample[CompleteExemptionAndLossesAnswers]),
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              )
+            )(
+              Some(
+                _.copy(
+                  exemptionAndLossesAnswers = None
+                )
+              )
+            )
+          }
+
+        }
+
+        "not modify any draft returns" when {
+
+          "they do not have any of section 3 filled in" in {
+            testGetAndModifyDraftReturns(
+              sample[DraftSingleDisposalReturn].copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              )
+            )(
+              None
+            )
+          }
+
+        }
+
+      }
+
       "return an error" when {
 
         "there are charge details for a non zero charge amount and " when {
 
           def test(jsonResponseBody: JsValue): Unit = {
-            val submitReturnRequest    = sample[SubmitReturnRequest]
+            val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
             val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
             inSequence {
@@ -615,6 +795,91 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           }
           await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
         }
+
+        "there is an error updating a draft return for an amended return" in {
+          val formBundleId           = "formBundleId"
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = Some(formBundleId))
+          val cgtReference           = submitReturnRequest.subscribedDetails.cgtReference
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
+          val responseJsonBody       =
+            Json.parse(s"""
+                          |{
+                          |"processingDate":"2020-02-20T09:30:47Z",
+                          |"ppdReturnResponseDetails": {
+                          |     "formBundleNumber":"$formBundleId",
+                          |     "cgtReferenceNumber":"${cgtReference.value}"
+                          |  }
+                          |}
+                          |""".stripMargin)
+          val submitReturnResponse   = SubmitReturnResponse(
+            formBundleId,
+            LocalDateTime.of(LocalDate.of(2020, 2, 20), LocalTime.of(9, 30, 47)),
+            None
+          )
+
+          val draftReturn1 = sample[DraftSingleDisposalReturn]
+            .copy(exemptionAndLossesAnswers = Some(sample[CompleteExemptionAndLossesAnswers]))
+          val draftReturn2 = sample[DraftSingleDisposalReturn]
+            .copy(exemptionAndLossesAnswers = Some(sample[CompleteExemptionAndLossesAnswers]))
+          val draftReturn3 = sample[DraftSingleDisposalReturn]
+            .copy(exemptionAndLossesAnswers = Some(sample[CompleteExemptionAndLossesAnswers]))
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
+            )
+            mockAuditReturnConfirmationEmailEvent(
+              submitReturnRequest.subscribedDetails.emailAddress.value,
+              cgtReference.value,
+              formBundleId
+            )
+            mockGetDraftReturns(cgtReference)(Right(List(draftReturn1, draftReturn2, draftReturn3)))
+            mockSaveDraftReturn(
+              draftReturn3.copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              ),
+              cgtReference
+            )(Right(()))
+            mockSaveDraftReturn(
+              draftReturn2.copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              ),
+              cgtReference
+            )(Left(Error("")))
+            mockSaveDraftReturn(
+              draftReturn1.copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              ),
+              cgtReference
+            )(Right(()))
+          }
+
+          await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
+
+        }
+
       }
 
     }
