@@ -27,6 +27,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 sealed trait DraftReturn extends Product with Serializable {
   val id: UUID
+  val exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers]
+  val yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers]
+  val supportingEvidenceAnswers: Option[SupportingEvidenceAnswers]
 }
 
 final case class DraftSingleDisposalReturn(

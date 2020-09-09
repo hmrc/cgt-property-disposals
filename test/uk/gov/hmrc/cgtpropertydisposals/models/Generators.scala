@@ -51,7 +51,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.SupportingEvidence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.{CompleteSupportingEvidenceAnswers, SupportingEvidence}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
@@ -202,11 +202,27 @@ trait TaxEnrolmentGen { this: GenUtils =>
 
 }
 
-trait DraftReturnGen { this: GenUtils =>
+trait DraftReturnGen extends LowerPriorityDraftReturnGen { this: GenUtils =>
 
   implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 
-  implicit val singleDisposalDraftReturnGen: Gen[DraftSingleDisposalReturn] = gen[DraftSingleDisposalReturn]
+  implicit val singleDisposalDraftReturnGen: Gen[DraftSingleDisposalReturn] =
+    gen[DraftSingleDisposalReturn]
+
+}
+
+trait LowerPriorityDraftReturnGen { this: GenUtils =>
+
+  implicit val multipleDisposalDraftReturnGen: Gen[DraftMultipleDisposalsReturn] = gen[DraftMultipleDisposalsReturn]
+
+  implicit val multipleIndirectDisposalDraftReturnGen: Gen[DraftMultipleIndirectDisposalsReturn] =
+    gen[DraftMultipleIndirectDisposalsReturn]
+
+  implicit val singleIndirectDisposalDraftReturnGen: Gen[DraftSingleIndirectDisposalReturn] =
+    gen[DraftSingleIndirectDisposalReturn]
+
+  implicit val singleMixedUseDraftReturnGen: Gen[DraftSingleMixedUseDisposalReturn] =
+    gen[DraftSingleMixedUseDisposalReturn]
 
 }
 
@@ -297,6 +313,10 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
   implicit val completeExampleCompanyDetailsAnswersGen: Gen[CompleteExampleCompanyDetailsAnswers] =
     gen[CompleteExampleCompanyDetailsAnswers]
+
+  implicit val completeSupportingEvidenceAnswersGen: Gen[CompleteSupportingEvidenceAnswers] =
+    gen[CompleteSupportingEvidenceAnswers]
+
 }
 
 trait LowerPriorityReturnsGen { this: GenUtils =>

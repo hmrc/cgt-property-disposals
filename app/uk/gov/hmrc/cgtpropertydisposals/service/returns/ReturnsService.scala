@@ -23,6 +23,7 @@ import cats.instances.future._
 import cats.instances.int._
 import cats.syntax.either._
 import cats.syntax.eq._
+import cats.syntax.traverse._
 import com.codahale.metrics.Timer.Context
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.{ACCEPTED, NOT_FOUND, OK}
@@ -78,6 +79,7 @@ class DefaultReturnsService @Inject() (
   financialDataConnector: FinancialDataConnector,
   returnTransformerService: ReturnTransformerService,
   returnSummaryListTransformerService: ReturnSummaryListTransformerService,
+  draftReturnsService: DraftReturnsService,
   emailConnector: EmailConnector,
   auditService: AuditService,
   metrics: Metrics
@@ -102,7 +104,75 @@ class DefaultReturnsService @Inject() (
                               logger.warn("Could not send return submission confirmation email or audit event", e)
                               EitherT.pure[Future, Error](())
                             }
+      _                  <- handleAmendedReturn(returnRequest)
     } yield returnResponse
+  }
+
+  private def handleAmendedReturn(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit] = {
+    def modifyDraftReturn(draftReturn: DraftReturn): Option[DraftReturn] =
+      if (
+        draftReturn.exemptionAndLossesAnswers.isEmpty && draftReturn.yearToDateLiabilityAnswers.isEmpty && draftReturn.supportingEvidenceAnswers.isEmpty
+      )
+        None
+      else
+        draftReturn match {
+          case single: DraftSingleDisposalReturn                      =>
+            Some(
+              single.copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              )
+            )
+          case multiple: DraftMultipleDisposalsReturn                 =>
+            Some(
+              multiple.copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              )
+            )
+          case singleIndirect: DraftSingleIndirectDisposalReturn      =>
+            Some(
+              singleIndirect.copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              )
+            )
+          case multipleIndirect: DraftMultipleIndirectDisposalsReturn =>
+            Some(
+              multipleIndirect.copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              )
+            )
+          case singleMixedUse: DraftSingleMixedUseDisposalReturn      =>
+            Some(
+              singleMixedUse.copy(
+                exemptionAndLossesAnswers = None,
+                yearToDateLiabilityAnswers = None,
+                supportingEvidenceAnswers = None
+              )
+            )
+        }
+
+    val cgtReference = submitReturnRequest.subscribedDetails.cgtReference
+    if (submitReturnRequest.originalReturnFormBundleId.isEmpty)
+      EitherT.pure(())
+    else {
+      import cats.instances.list._
+
+      for {
+        draftReturns        <- draftReturnsService.getDraftReturn(cgtReference)
+        modifiedDraftReturns = draftReturns.foldLeft(List.empty[DraftReturn]) { (acc, curr) =>
+                                 modifyDraftReturn(curr).fold(acc)(_ :: acc)
+                               }
+        _                   <- modifiedDraftReturns.map(d => draftReturnsService.saveDraftReturn(d, cgtReference))
+                                 .sequence[EitherT[Future, Error, *], Unit]
+      } yield ()
+    }
   }
 
   private def auditReturnBeforeSubmit(
