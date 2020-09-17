@@ -58,9 +58,8 @@ class AuthenticateActionBuilder @Inject() (
           block(new AuthenticatedRequest[A](user, LocalDateTime.now(), carrier, request))
         case _                 => Future.successful(forbidden)
       }(carrier, executionContext)
-      .recover {
-        case _: NoActiveSession =>
-          forbidden
+      .recover { case _: NoActiveSession =>
+        forbidden
       }(executionContext)
   }
 }

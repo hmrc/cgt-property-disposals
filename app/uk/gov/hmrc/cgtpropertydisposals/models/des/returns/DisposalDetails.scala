@@ -90,7 +90,7 @@ object DisposalDetails {
       }
 
     c match {
-      case s: CompleteSingleDisposalReturn           =>
+      case s: CompleteSingleDisposalReturn =>
         val initialGainOrLoss: (Option[BigDecimal], Option[BigDecimal]) =
           extractGainOrLoss(s.initialGainOrLoss.orElse(s.gainOrLossAfterReliefs))
 
@@ -115,7 +115,7 @@ object DisposalDetails {
           initialLoss = initialGainOrLoss._2
         )
 
-      case m: CompleteMultipleDisposalsReturn        =>
+      case m: CompleteMultipleDisposalsReturn =>
         val gainOrLossAfterReliefs: (Option[BigDecimal], Option[BigDecimal]) = extractGainOrLoss(
           m.gainOrLossAfterReliefs
         )
@@ -134,7 +134,7 @@ object DisposalDetails {
           initialLoss = gainOrLossAfterReliefs._2
         )
 
-      case s: CompleteSingleIndirectDisposalReturn   =>
+      case s: CompleteSingleIndirectDisposalReturn =>
         val gainOrLossAfterReliefs: (Option[BigDecimal], Option[BigDecimal]) = extractGainOrLoss(
           s.gainOrLossAfterReliefs
         )
@@ -179,7 +179,7 @@ object DisposalDetails {
           initialLoss = gainOrLossAfterReliefs._2
         )
 
-      case s: CompleteSingleMixedUseDisposalReturn   =>
+      case s: CompleteSingleMixedUseDisposalReturn =>
         val gainOrLossAfterReliefs: (Option[BigDecimal], Option[BigDecimal]) = extractGainOrLoss(
           s.gainOrLossAfterReliefs
         )

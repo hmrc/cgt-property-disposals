@@ -33,7 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, Des
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference, NINO, SAUTR, SapNumber}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids._
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}

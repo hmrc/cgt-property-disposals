@@ -73,7 +73,7 @@ class TaxEnrolmentServiceImpl @Inject() (
         timer.close()
 
         result match {
-          case Left(error)         =>
+          case Left(error) =>
             metrics.eacdCreateEnrolmentErrorCounter.inc()
             HttpResponse(999, JsString(error.toString), Map.empty[String, Seq[String]])
 
@@ -94,7 +94,7 @@ class TaxEnrolmentServiceImpl @Inject() (
         timer.close()
 
         result match {
-          case Left(error)         =>
+          case Left(error) =>
             metrics.eacdUpdateEnrolmentErrorCounter.inc()
             HttpResponse(999, JsString(error.toString), Map.empty[String, Seq[String]])
 
@@ -108,15 +108,15 @@ class TaxEnrolmentServiceImpl @Inject() (
   ): EitherT[Future, Error, Unit] =
     for {
       httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
-      result       <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
-                        error: Error =>
-                          logger.warn(
-                            s"Failed to allocate enrolments due to error: $error; will store enrolment details"
-                          )
-                          taxEnrolmentRepository
-                            .save(taxEnrolmentRequest)
-                            .leftMap(error => Error(s"Could not store enrolment details: $error"))
-                      }
+      result       <-
+        EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
+          logger.warn(
+            s"Failed to allocate enrolments due to error: $error; will store enrolment details"
+          )
+          taxEnrolmentRepository
+            .save(taxEnrolmentRequest)
+            .leftMap(error => Error(s"Could not store enrolment details: $error"))
+        }
     } yield result
 
   def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
@@ -130,7 +130,7 @@ class TaxEnrolmentServiceImpl @Inject() (
   )(implicit hc: HeaderCarrier): Future[Unit] =
     enrolmentState match {
 
-      case (Some(createEnrolmentRequest), None)                   =>
+      case (Some(createEnrolmentRequest), None) =>
         val result = for {
           httpResponse <- EitherT.liftF(makeES8call(createEnrolmentRequest)) // attempt to create enrolment
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
@@ -145,7 +145,7 @@ class TaxEnrolmentServiceImpl @Inject() (
           )
           .merge
 
-      case (None, Some(updateVerifiersRequest))                   =>
+      case (None, Some(updateVerifiersRequest)) =>
         val result = for {
           httpResponse <- EitherT.liftF(makeES6call(updateVerifiersRequest))
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse))
@@ -176,7 +176,7 @@ class TaxEnrolmentServiceImpl @Inject() (
           )
           .merge
 
-      case (None, None)                                           => Future.successful(())
+      case (None, None) => Future.successful(())
     }
 
   override def hasCgtSubscription(

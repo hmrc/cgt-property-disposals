@@ -96,8 +96,8 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
                 )
               )
           }
-          .recover {
-            case exception => Left(Error(exception.getMessage))
+          .recover { case exception =>
+            Left(Error(exception.getMessage))
           }
       }
     )
@@ -110,18 +110,17 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
             draftReturnIds.map(id => JsObject(Map("return.draftId" -> JsString(id.toString))))
           )
         ).map { result: WriteResult =>
-            if (result.ok)
-              Right(())
-            else
-              Left(
-                Error(
-                  s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
-                )
+          if (result.ok)
+            Right(())
+          else
+            Left(
+              Error(
+                s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
               )
-          }
-          .recover {
-            case exception => Left(Error(exception.getMessage))
-          }
+            )
+        }.recover { case exception =>
+          Left(Error(exception.getMessage))
+        }
       }
     )
 
@@ -141,8 +140,8 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
 
         Right(draftReturns)
       }
-      .recover {
-        case NonFatal(e) => Left(Error(e))
+      .recover { case NonFatal(e) =>
+        Left(Error(e))
       }
   }
 

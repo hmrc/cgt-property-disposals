@@ -91,7 +91,7 @@ class UpscanController @Inject() (
   def getUpscanUploads(): Action[JsValue] =
     Action.async(parse.json) { implicit request: Request[JsValue] =>
       request.body.validate[GetUpscanUploadsRequest] match {
-        case e: JsError                                              =>
+        case e: JsError =>
           logger.warn(s"Could not parse get all upscan uploads request: ${e.prettyPrint()}")
           Future.successful(BadRequest)
 
@@ -150,8 +150,8 @@ class UpscanController @Inject() (
                                )
                              )
 
-      newUpscanUpload    = upscanUpload.copy(upscanCallBack = Some(callBackResult))
-      _                 <- upscanService.updateUpscanUpload(uploadReference, newUpscanUpload)
+      newUpscanUpload = upscanUpload.copy(upscanCallBack = Some(callBackResult))
+      _              <- upscanService.updateUpscanUpload(uploadReference, newUpscanUpload)
     } yield ()
 
     result.fold(

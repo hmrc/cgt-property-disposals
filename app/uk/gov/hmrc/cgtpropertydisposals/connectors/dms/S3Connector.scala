@@ -95,8 +95,8 @@ class S3ConnectorImpl @Inject() (
                   }
             }
           }
-          .recover {
-            case NonFatal(e) => Left(Error(e))
+          .recover { case NonFatal(e) =>
+            Left(Error(e))
           }
       case _                                =>
         logger.warn(s"could not find file name nor mime type : $upscanSuccess")

@@ -29,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReturnSummary
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -39,7 +39,8 @@ trait ReturnSummaryListTransformerService {
 
   def toReturnSummaryList(
     returns: List[DesReturnSummary],
-    financialData: List[DesFinancialTransaction]
+    financialData: List[DesFinancialTransaction],
+    recentlyAmendedReturns: List[SubmitReturnRequest]
   ): Either[Error, List[ReturnSummary]]
 
 }
@@ -49,13 +50,22 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
 
   def toReturnSummaryList(
     returns: List[DesReturnSummary],
-    financialData: List[DesFinancialTransaction]
+    financialData: List[DesFinancialTransaction],
+    recentlyAmendedReturns: List[SubmitReturnRequest]
   ): Either[Error, List[ReturnSummary]] = {
     val chargeReferenceToFinancialData                   =
       financialData.map(t => t.chargeReference -> t).toMap
 
     val returnSummaries: List[Validation[ReturnSummary]] =
-      returns.map(returnSummary => validateReturnSummary(returnSummary, chargeReferenceToFinancialData))
+      returns.map { returnSummary =>
+        validateReturnSummary(
+          returnSummary,
+          chargeReferenceToFinancialData,
+          recentlyAmendedReturns.exists(recentlyAmendedReturn =>
+            recentlyAmendedReturn.originalReturnFormBundleId.contains(returnSummary.submissionId)
+          )
+        )
+      }
 
     returnSummaries
       .sequence[Validated[NonEmptyList[String], *], ReturnSummary]
@@ -65,8 +75,10 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
 
   private def validateReturnSummary(
     returnSummary: DesReturnSummary,
-    chargeReferenceToFinancialData: Map[String, DesFinancialTransaction]
+    chargeReferenceToFinancialData: Map[String, DesFinancialTransaction],
+    isRecentlyAmendedReturn: Boolean
   ): Validation[ReturnSummary] = {
+
     val chargesValidation: Validation[List[Charge]] = validateCharges(returnSummary, chargeReferenceToFinancialData)
     val addressValidation: Validation[Address]      =
       AddressDetails.fromDesAddressDetails(returnSummary.propertyAddress, allowNonIsoCountryCodes = false)
@@ -97,7 +109,8 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
           returnSummary.taxYear,
           mainReturnChargeAmount,
           address,
-          charges
+          charges,
+          isRecentlyAmendedReturn
         )
     }
   }
@@ -129,15 +142,14 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               .toValidatedNel
               .andThen(t => validatePayments(t).map(t -> _))
 
-          (chargeTypeValidation, financialDataValidation).mapN {
-            case (chargeType, (financialData, payments)) =>
-              Charge(
-                chargeType,
-                returnSummaryCharge.chargeReference,
-                AmountInPence.fromPounds(financialData.originalAmount),
-                returnSummaryCharge.dueDate,
-                payments
-              )
+          (chargeTypeValidation, financialDataValidation).mapN { case (chargeType, (financialData, payments)) =>
+            Charge(
+              chargeType,
+              returnSummaryCharge.chargeReference,
+              AmountInPence.fromPounds(financialData.originalAmount),
+              returnSummaryCharge.dueDate,
+              payments
+            )
           }
         }
     charges.sequence[Validated[NonEmptyList[String], *], Charge]
@@ -228,7 +240,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
           logger.info(s"Could not any payment fields.")
           Right(None)
 
-        case other                                               =>
+        case other =>
           Left(
             s"Could not find some of the required fields for a payment: (paymentAmount = ${other.paymentAmount}, " +
               s"paymentMethod = ${other.paymentMethod}, clearingDate = ${other.clearingDate} " +

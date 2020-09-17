@@ -99,8 +99,8 @@ class DefaultDmsSubmissionRepo @Inject() (
       super
         .pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
         .map(workItem => Right(workItem))
-        .recover {
-          case exception: Exception => Left(Error(exception))
+        .recover { case exception: Exception =>
+          Left(Error(exception))
         }
     )
 
@@ -111,8 +111,8 @@ class DefaultDmsSubmissionRepo @Inject() (
     EitherT[Future, Error, Boolean](
       markAs(id, status, Some(now.plusMillis(retryPeriod)))
         .map(result => Right(result))
-        .recover {
-          case exception: Exception => Left(Error(exception))
+        .recover { case exception: Exception =>
+          Left(Error(exception))
         }
     )
 

@@ -46,17 +46,16 @@ class GetReturnsController @Inject() (
 
   def listReturns(cgtReference: String, fromDate: String, toDate: String): Action[AnyContent] =
     authenticate.async { implicit request =>
-      withFromAndToDate(fromDate, toDate) {
-        case (from, to) =>
-          returnsService
-            .listReturns(CgtReference(cgtReference), from, to)
-            .fold(
-              { e =>
-                logger.warn(s"Could not get returns for cgt reference $cgtReference between $fromDate and $toDate", e)
-                InternalServerError
-              },
-              returns => Ok(Json.toJson(ListReturnsResponse(returns)))
-            )
+      withFromAndToDate(fromDate, toDate) { case (from, to) =>
+        returnsService
+          .listReturns(CgtReference(cgtReference), from, to)
+          .fold(
+            { e =>
+              logger.warn(s"Could not get returns for cgt reference $cgtReference between $fromDate and $toDate", e)
+              InternalServerError
+            },
+            returns => Ok(Json.toJson(ListReturnsResponse(returns)))
+          )
       }
     }
 
@@ -80,15 +79,15 @@ class GetReturnsController @Inject() (
       Try(LocalDate.parse(string, DateTimeFormatter.ISO_DATE)).toOption
 
     parseDate(fromDate) -> parseDate(toDate) match {
-      case (None, None)           =>
+      case (None, None) =>
         logger.warn(s"Could not parse fromDate ('$fromDate') or toDate ('$toDate') ")
         Future.successful(BadRequest)
 
-      case (None, Some(_))        =>
+      case (None, Some(_)) =>
         logger.warn(s"Could not parse fromDate ('$fromDate')")
         Future.successful(BadRequest)
 
-      case (Some(_), None)        =>
+      case (Some(_), None) =>
         logger.warn(s"Could not parse toDate ('$toDate')")
         Future.successful(BadRequest)
 

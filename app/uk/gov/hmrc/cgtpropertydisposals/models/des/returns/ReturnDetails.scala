@@ -48,7 +48,7 @@ object ReturnDetails {
 
   def apply(submitReturnRequest: SubmitReturnRequest): ReturnDetails =
     submitReturnRequest.completeReturn match {
-      case s: CompleteSingleDisposalReturn           =>
+      case s: CompleteSingleDisposalReturn =>
         val calculatedTaxDue       = s.yearToDateLiabilityAnswers.map(_.calculatedTaxDue).toOption
         val taxDue                 = s.yearToDateLiabilityAnswers.fold(_.taxDue, _.taxDue).inPounds()
         val ytdLiability           =
@@ -75,7 +75,7 @@ object ReturnDetails {
           entrepreneursRelief = None
         )
 
-      case m: CompleteMultipleDisposalsReturn        =>
+      case m: CompleteMultipleDisposalsReturn =>
         val taxDue                 = m.yearToDateLiabilityAnswers.taxDue.inPounds()
         val (taxableGain, netLoss) = getTaxableGainOrNetLoss(m)
 
@@ -99,7 +99,7 @@ object ReturnDetails {
           entrepreneursRelief = None
         )
 
-      case s: CompleteSingleIndirectDisposalReturn   =>
+      case s: CompleteSingleIndirectDisposalReturn =>
         val taxDue                 = s.yearToDateLiabilityAnswers.taxDue.inPounds()
         val (taxableGain, netLoss) = getTaxableGainOrNetLoss(s)
 
@@ -147,7 +147,7 @@ object ReturnDetails {
           entrepreneursRelief = None
         )
 
-      case s: CompleteSingleMixedUseDisposalReturn   =>
+      case s: CompleteSingleMixedUseDisposalReturn =>
         val taxDue                 = s.yearToDateLiabilityAnswers.taxDue.inPounds()
         val (taxableGain, netLoss) = getTaxableGainOrNetLoss(s)
 
@@ -175,22 +175,22 @@ object ReturnDetails {
 
   private def getTaxableGainOrNetLoss(c: CompleteReturn): (BigDecimal, Option[BigDecimal]) = {
     val value = c match {
-      case s: CompleteSingleDisposalReturn           =>
+      case s: CompleteSingleDisposalReturn =>
         s.yearToDateLiabilityAnswers.fold(
           _.taxableGainOrLoss,
           _.calculatedTaxDue.taxableGainOrNetLoss
         )
 
-      case m: CompleteMultipleDisposalsReturn        =>
+      case m: CompleteMultipleDisposalsReturn =>
         m.yearToDateLiabilityAnswers.taxableGainOrLoss
 
-      case s: CompleteSingleIndirectDisposalReturn   =>
+      case s: CompleteSingleIndirectDisposalReturn =>
         s.yearToDateLiabilityAnswers.taxableGainOrLoss
 
       case m: CompleteMultipleIndirectDisposalReturn =>
         m.yearToDateLiabilityAnswers.taxableGainOrLoss
 
-      case s: CompleteSingleMixedUseDisposalReturn   =>
+      case s: CompleteSingleMixedUseDisposalReturn =>
         s.yearToDateLiabilityAnswers.taxableGainOrLoss
 
     }

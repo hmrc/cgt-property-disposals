@@ -245,29 +245,27 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
           val trustName    = TrustName("trust")
           val httpResponse = HttpResponse(200, emptyJsonBody)
 
-          idsWithExpectedUrlsList.foreach {
-            case (id, expectedUrl) =>
-              withClue(s"For id $id: ") {
-                mockPost(expectedUrl, expectedHeaders, expectedBody(Some(trustName)))(
-                  Some(httpResponse)
-                )
+          idsWithExpectedUrlsList.foreach { case (id, expectedUrl) =>
+            withClue(s"For id $id: ") {
+              mockPost(expectedUrl, expectedHeaders, expectedBody(Some(trustName)))(
+                Some(httpResponse)
+              )
 
-                await(connector.getBusinessPartnerRecord(bprRequest(id, Some(trustName))).value) shouldBe Right(
-                  httpResponse
-                )
-              }
+              await(connector.getBusinessPartnerRecord(bprRequest(id, Some(trustName))).value) shouldBe Right(
+                httpResponse
+              )
+            }
           }
 
         }
 
         "return an error when the future fails" in {
-          idsWithExpectedUrlsList.foreach {
-            case (id, expectedUrl) =>
-              withClue(s"For id $id: ") {
-                mockPost(expectedUrl, expectedHeaders, expectedBody(None))(None)
+          idsWithExpectedUrlsList.foreach { case (id, expectedUrl) =>
+            withClue(s"For id $id: ") {
+              mockPost(expectedUrl, expectedHeaders, expectedBody(None))(None)
 
-                await(connector.getBusinessPartnerRecord(bprRequest(id, None)).value).isLeft shouldBe true
-              }
+              await(connector.getBusinessPartnerRecord(bprRequest(id, None)).value).isLeft shouldBe true
+            }
           }
         }
       }

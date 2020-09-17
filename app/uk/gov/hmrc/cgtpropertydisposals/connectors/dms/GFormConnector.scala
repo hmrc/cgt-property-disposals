@@ -81,10 +81,9 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
                 Left(Error("Invalid HTTP response status from gform service"))
             }
           }
-          .recover {
-            case NonFatal(e) =>
-              logger.warn(s"failed to send dms payload to gform service due to http exception: $e")
-              Left(Error("http exception"))
+          .recover { case NonFatal(e) =>
+            logger.warn(s"failed to send dms payload to gform service due to http exception: $e")
+            Left(Error("http exception"))
           }
       )
     }
@@ -184,9 +183,8 @@ object GFormConnector {
   def convertToPayload(
     formData: MultipartFormData[TemporaryFile]
   ): Source[MultipartFormData.Part[Source[ByteString, _]], _] =
-    Source.apply(formData.dataParts.flatMap {
-      case (key, values) =>
-        values.map(value => MultipartFormData.DataPart(key, value): MultipartFormData.Part[Source[ByteString, _]])
+    Source.apply(formData.dataParts.flatMap { case (key, values) =>
+      values.map(value => MultipartFormData.DataPart(key, value): MultipartFormData.Part[Source[ByteString, _]])
     } ++ filePartToByteString(formData.files))
 
 }

@@ -75,13 +75,13 @@ class ReturnTransformerServiceImpl @Inject() (
     desReturn: DesReturnDetails
   ): ValidatedNel[String, CompleteReturn] =
     desReturn.disposalDetails match {
-      case (singleDisposalDetails: SingleDisposalDetails) :: Nil                 =>
+      case (singleDisposalDetails: SingleDisposalDetails) :: Nil =>
         if (singleDisposalDetails.assetType.isIndirectDisposal())
           validateSingleIndirectDisposal(desReturn, singleDisposalDetails)
         else
           validateSingleDisposal(desReturn, singleDisposalDetails)
 
-      case (multipleDisposalsDetails: MultipleDisposalDetails) :: Nil            =>
+      case (multipleDisposalsDetails: MultipleDisposalDetails) :: Nil =>
         if (multipleDisposalsDetails.assetType.isIndirectDisposal())
           validateMultipleIndirectDisposal(desReturn, multipleDisposalsDetails)
         else
@@ -90,7 +90,7 @@ class ReturnTransformerServiceImpl @Inject() (
       case (singleMixedUseDisposalDetails: SingleMixedUseDisposalDetails) :: Nil =>
         validateSingleMixedUseMultipleDisposal(desReturn, singleMixedUseDisposalDetails)
 
-      case other                                                                 =>
+      case other =>
         Invalid(
           NonEmptyList.one(
             s"Expected either one single disposal detail or one multiple disposal details but got ${other.length} disposals"
@@ -181,10 +181,10 @@ class ReturnTransformerServiceImpl @Inject() (
           case _ if desReturn.representedPersonDetails.nonEmpty =>
             Left(constructNonCalculatedYearToDateAnswers(desReturn))
 
-          case Some(_: OtherReliefsOption.OtherReliefs)         =>
+          case Some(_: OtherReliefsOption.OtherReliefs) =>
             Left(constructNonCalculatedYearToDateAnswers(desReturn))
 
-          case _                                                =>
+          case _ =>
             val estimatedIncome =
               zeroOrAmountInPenceFromPounds(desReturn.incomeAllowanceDetails.estimatedIncome)
 

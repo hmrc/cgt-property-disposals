@@ -20,12 +20,11 @@ object ListUtils {
 
   implicit class ListOps[A](private val l: List[A]) extends AnyVal {
     def partitionWith[B, C](f: A => Either[B, C]): (List[B], List[C]) =
-      l.foldLeft(List.empty[B] -> List.empty[C]) {
-        case (acc, curr) =>
-          f(curr).fold(
-            b => (b :: acc._1) -> acc._2,
-            c => acc._1 -> (c :: acc._2)
-          )
+      l.foldLeft(List.empty[B] -> List.empty[C]) { case (acc, curr) =>
+        f(curr).fold(
+          b => (b :: acc._1) -> acc._2,
+          c => acc._1 -> (c :: acc._2)
+        )
       }
   }
 

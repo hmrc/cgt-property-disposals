@@ -450,87 +450,87 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
         "the gain or loss after reliefs is positive and is greater than the " +
           "total losses" in {
-          val disposalDetails = zeroDisposalDetails.copy(
-            disposalPrice = AmountInPence(100L)
-          )
-
-          val result = calculate(
-            disposalDetails = disposalDetails,
-            acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails = zeroReliefDetails,
-            exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses = AmountInPence(1L),
-              previousYearsLosses = AmountInPence(2L)
+            val disposalDetails = zeroDisposalDetails.copy(
+              disposalPrice = AmountInPence(100L)
             )
-          )
 
-          result.gainOrLossAfterReliefs.value shouldBe 100L
-          result.totalLosses.value            shouldBe 3L
-          result.gainOrLossAfterLosses.value  shouldBe 97L
-        }
+            val result = calculate(
+              disposalDetails = disposalDetails,
+              acquisitionDetails = zeroAcquisitionDetails,
+              reliefDetails = zeroReliefDetails,
+              exemptionAndLosses = zeroExemptionsAndLosses.copy(
+                inYearLosses = AmountInPence(1L),
+                previousYearsLosses = AmountInPence(2L)
+              )
+            )
+
+            result.gainOrLossAfterReliefs.value shouldBe 100L
+            result.totalLosses.value            shouldBe 3L
+            result.gainOrLossAfterLosses.value  shouldBe 97L
+          }
 
         "the gain or loss after reliefs is positive and is less than the " +
           "total losses" in {
-          val disposalDetails = zeroDisposalDetails.copy(
-            disposalPrice = AmountInPence(100L)
-          )
-
-          val result = calculate(
-            disposalDetails = disposalDetails,
-            acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails = zeroReliefDetails,
-            exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses = AmountInPence(1L),
-              previousYearsLosses = AmountInPence(200L)
+            val disposalDetails = zeroDisposalDetails.copy(
+              disposalPrice = AmountInPence(100L)
             )
-          )
 
-          result.gainOrLossAfterReliefs.value shouldBe 100L
-          result.totalLosses.value            shouldBe 201L
-          result.gainOrLossAfterLosses.value  shouldBe 0L
-        }
+            val result = calculate(
+              disposalDetails = disposalDetails,
+              acquisitionDetails = zeroAcquisitionDetails,
+              reliefDetails = zeroReliefDetails,
+              exemptionAndLosses = zeroExemptionsAndLosses.copy(
+                inYearLosses = AmountInPence(1L),
+                previousYearsLosses = AmountInPence(200L)
+              )
+            )
+
+            result.gainOrLossAfterReliefs.value shouldBe 100L
+            result.totalLosses.value            shouldBe 201L
+            result.gainOrLossAfterLosses.value  shouldBe 0L
+          }
 
         "the gain or loss after reliefs is negative and its absolute value " +
           "is greater than the in year losses" in {
-          val acquisitionDetails = zeroAcquisitionDetails.copy(
-            acquisitionPrice = AmountInPence(100L)
-          )
-
-          val result = calculate(
-            disposalDetails = zeroDisposalDetails,
-            acquisitionDetails = acquisitionDetails,
-            reliefDetails = zeroReliefDetails,
-            exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses = AmountInPence(1L),
-              previousYearsLosses = AmountInPence(2L)
+            val acquisitionDetails = zeroAcquisitionDetails.copy(
+              acquisitionPrice = AmountInPence(100L)
             )
-          )
 
-          result.gainOrLossAfterReliefs.value shouldBe -100L
-          result.totalLosses.value            shouldBe 1L
-          result.gainOrLossAfterLosses.value  shouldBe -99L
-        }
+            val result = calculate(
+              disposalDetails = zeroDisposalDetails,
+              acquisitionDetails = acquisitionDetails,
+              reliefDetails = zeroReliefDetails,
+              exemptionAndLosses = zeroExemptionsAndLosses.copy(
+                inYearLosses = AmountInPence(1L),
+                previousYearsLosses = AmountInPence(2L)
+              )
+            )
+
+            result.gainOrLossAfterReliefs.value shouldBe -100L
+            result.totalLosses.value            shouldBe 1L
+            result.gainOrLossAfterLosses.value  shouldBe -99L
+          }
 
         "the gain or loss after reliefs is negative and its absolute value " +
           "is less than the in year losses" in {
-          val acquisitionDetails = zeroAcquisitionDetails.copy(
-            acquisitionPrice = AmountInPence(100L)
-          )
-
-          val result = calculate(
-            disposalDetails = zeroDisposalDetails,
-            acquisitionDetails = acquisitionDetails,
-            reliefDetails = zeroReliefDetails,
-            exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses = AmountInPence(200L),
-              previousYearsLosses = AmountInPence(2L)
+            val acquisitionDetails = zeroAcquisitionDetails.copy(
+              acquisitionPrice = AmountInPence(100L)
             )
-          )
 
-          result.gainOrLossAfterReliefs.value shouldBe -100L
-          result.totalLosses.value            shouldBe 200L
-          result.gainOrLossAfterLosses.value  shouldBe 0L
-        }
+            val result = calculate(
+              disposalDetails = zeroDisposalDetails,
+              acquisitionDetails = acquisitionDetails,
+              reliefDetails = zeroReliefDetails,
+              exemptionAndLosses = zeroExemptionsAndLosses.copy(
+                inYearLosses = AmountInPence(200L),
+                previousYearsLosses = AmountInPence(2L)
+              )
+            )
+
+            result.gainOrLossAfterReliefs.value shouldBe -100L
+            result.totalLosses.value            shouldBe 200L
+            result.gainOrLossAfterLosses.value  shouldBe 0L
+          }
 
         "the gain or loss after reliefs is zero" in {
           val result = calculate(
@@ -590,43 +590,43 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
         "the gain or loss after losses is positive and is greater than " +
           "the annual exempt amount used" in {
-          val disposalDetails = zeroDisposalDetails.copy(
-            disposalPrice = AmountInPence(100L)
-          )
-
-          val result = calculate(
-            disposalDetails = disposalDetails,
-            acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails = zeroReliefDetails,
-            exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              annualExemptAmount = AmountInPence(1L)
+            val disposalDetails = zeroDisposalDetails.copy(
+              disposalPrice = AmountInPence(100L)
             )
-          )
 
-          result                             shouldBe a[GainCalculatedTaxDue]
-          result.gainOrLossAfterLosses.value shouldBe 100L
-          result.taxableGainOrNetLoss.value  shouldBe 99L
-        }
+            val result = calculate(
+              disposalDetails = disposalDetails,
+              acquisitionDetails = zeroAcquisitionDetails,
+              reliefDetails = zeroReliefDetails,
+              exemptionAndLosses = zeroExemptionsAndLosses.copy(
+                annualExemptAmount = AmountInPence(1L)
+              )
+            )
+
+            result                             shouldBe a[GainCalculatedTaxDue]
+            result.gainOrLossAfterLosses.value shouldBe 100L
+            result.taxableGainOrNetLoss.value  shouldBe 99L
+          }
 
         "the gain or loss after losses is positive and is less than " +
           "the annual exempt amount used" in {
-          val disposalDetails = zeroDisposalDetails.copy(
-            disposalPrice = AmountInPence(100L)
-          )
-
-          val result = calculate(
-            disposalDetails = disposalDetails,
-            acquisitionDetails = zeroAcquisitionDetails,
-            reliefDetails = zeroReliefDetails,
-            exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              annualExemptAmount = AmountInPence(200L)
+            val disposalDetails = zeroDisposalDetails.copy(
+              disposalPrice = AmountInPence(100L)
             )
-          )
 
-          result                             shouldBe a[NonGainCalculatedTaxDue]
-          result.gainOrLossAfterLosses.value shouldBe 100L
-          result.taxableGainOrNetLoss.value  shouldBe 0L
-        }
+            val result = calculate(
+              disposalDetails = disposalDetails,
+              acquisitionDetails = zeroAcquisitionDetails,
+              reliefDetails = zeroReliefDetails,
+              exemptionAndLosses = zeroExemptionsAndLosses.copy(
+                annualExemptAmount = AmountInPence(200L)
+              )
+            )
+
+            result                             shouldBe a[NonGainCalculatedTaxDue]
+            result.gainOrLossAfterLosses.value shouldBe 100L
+            result.taxableGainOrNetLoss.value  shouldBe 0L
+          }
 
       }
 
@@ -681,72 +681,72 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
           "the taxable gain is less than the income tax higher rate threshold minus " +
             "the taxable income" in {
-            val disposalDetails =
-              zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
+              val disposalDetails =
+                zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
-            val result = calculate(
-              triageAnswers = triageAnswers,
-              disposalDetails = disposalDetails,
-              estimatedIncome = AmountInPence(100L),
-              personalAllowance = AmountInPence.zero
-            )
-
-            testOnGainCalculatedTaxDue(result) { calculated =>
-              calculated.taxableGainOrNetLoss.value shouldBe 500L
-              calculated.taxableIncome.value        shouldBe 100L
-              calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
-                expectedLowerBandRate(taxYear),
-                AmountInPence(500L)
+              val result = calculate(
+                triageAnswers = triageAnswers,
+                disposalDetails = disposalDetails,
+                estimatedIncome = AmountInPence(100L),
+                personalAllowance = AmountInPence.zero
               )
 
-            }
+              testOnGainCalculatedTaxDue(result) { calculated =>
+                calculated.taxableGainOrNetLoss.value shouldBe 500L
+                calculated.taxableIncome.value        shouldBe 100L
+                calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
+                  expectedLowerBandRate(taxYear),
+                  AmountInPence(500L)
+                )
 
-          }
+              }
+
+            }
 
           "the taxable gain is greater than the income tax higher rate threshold minus " +
             "the taxable income" in {
-            val disposalDetails =
-              zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
+              val disposalDetails =
+                zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
-            val result = calculate(
-              triageAnswers = triageAnswers,
-              disposalDetails = disposalDetails,
-              estimatedIncome = AmountInPence(600L),
-              personalAllowance = AmountInPence.zero
-            )
-
-            testOnGainCalculatedTaxDue(result) { calculated =>
-              calculated.taxableGainOrNetLoss.value shouldBe 500L
-              calculated.taxableIncome.value        shouldBe 600L
-              calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
-                expectedLowerBandRate(taxYear),
-                AmountInPence(400L)
+              val result = calculate(
+                triageAnswers = triageAnswers,
+                disposalDetails = disposalDetails,
+                estimatedIncome = AmountInPence(600L),
+                personalAllowance = AmountInPence.zero
               )
 
+              testOnGainCalculatedTaxDue(result) { calculated =>
+                calculated.taxableGainOrNetLoss.value shouldBe 500L
+                calculated.taxableIncome.value        shouldBe 600L
+                calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
+                  expectedLowerBandRate(taxYear),
+                  AmountInPence(400L)
+                )
+
+              }
             }
-          }
 
           "the taxable gain is equal to the income tax higher rate threshold minus " +
             "the taxable income" in {
-            val disposalDetails =
-              zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
+              val disposalDetails =
+                zeroDisposalDetails.copy(disposalPrice = AmountInPence(500L))
 
-            val result = calculate(
-              triageAnswers = triageAnswers,
-              disposalDetails = disposalDetails,
-              estimatedIncome = AmountInPence(500L),
-              personalAllowance = AmountInPence.zero
-            )
-
-            testOnGainCalculatedTaxDue(result) { calculated =>
-              calculated.taxableGainOrNetLoss.value shouldBe 500L
-              calculated.taxableIncome.value        shouldBe 500L
-              calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
-                expectedLowerBandRate(taxYear),
-                AmountInPence(500L)
+              val result = calculate(
+                triageAnswers = triageAnswers,
+                disposalDetails = disposalDetails,
+                estimatedIncome = AmountInPence(500L),
+                personalAllowance = AmountInPence.zero
               )
+
+              testOnGainCalculatedTaxDue(result) { calculated =>
+                calculated.taxableGainOrNetLoss.value shouldBe 500L
+                calculated.taxableIncome.value        shouldBe 500L
+                calculated.taxDueAtLowerRate          shouldBe TaxableAmountOfMoney(
+                  expectedLowerBandRate(taxYear),
+                  AmountInPence(500L)
+                )
+              }
             }
-          }
 
           "the income tax higher rate threshold minus the taxable income is negative" in {
             val disposalDetails =

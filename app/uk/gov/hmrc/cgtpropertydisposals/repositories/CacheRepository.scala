@@ -82,8 +82,8 @@ trait CacheRepository[A] {
             else
               Left(Error(s"Could not store draft return: ${writeResult.errmsg.getOrElse("-")}"))
           }
-          .recover {
-            case NonFatal(e) => Left(Error(e))
+          .recover { case NonFatal(e) =>
+            Left(Error(e))
           }
       }
     }
@@ -110,8 +110,8 @@ trait CacheRepository[A] {
           else
             Right(values)
         }
-        .recover {
-          case exception => Left(Error(exception))
+        .recover { case exception =>
+          Left(Error(exception))
         }
     }
 
@@ -127,8 +127,8 @@ trait CacheRepository[A] {
           case None       => Left(Error(s"Could not find json for id $id"))
           case Some(json) => readJson(json).leftMap(Error(_))
         }
-        .recover {
-          case exception => Left(Error(exception))
+        .recover { case exception =>
+          Left(Error(exception))
         }
     }
 

@@ -70,7 +70,8 @@ class EmailConnectorImpl @Inject() (
                           Error("Could not find Accept-Language HTTP header")
                         )
       httpResponse   <- EitherT[Future, Error, HttpResponse](
-                          http.POST[JsValue, HttpResponse](
+                          http
+                            .POST[JsValue, HttpResponse](
                               sendEmailUrl,
                               Json.toJson(
                                 SendEmailRequest(
@@ -85,8 +86,8 @@ class EmailConnectorImpl @Inject() (
                               )
                             )
                             .map(Right(_))
-                            .recover {
-                              case e => Left(Error(e))
+                            .recover { case e =>
+                              Left(Error(e))
                             }
                         )
 
@@ -104,7 +105,8 @@ class EmailConnectorImpl @Inject() (
                           Error("Could not find Accept-Language HTTP header")
                         )
       httpResponse   <- EitherT[Future, Error, HttpResponse](
-                          http.POST[JsValue, HttpResponse](
+                          http
+                            .POST[JsValue, HttpResponse](
                               sendEmailUrl,
                               Json.toJson(
                                 SendEmailRequest(
@@ -119,8 +121,8 @@ class EmailConnectorImpl @Inject() (
                               )
                             )
                             .map(Right(_))
-                            .recover {
-                              case e => Left(Error(e))
+                            .recover { case e =>
+                              Left(Error(e))
                             }
                         )
     } yield httpResponse

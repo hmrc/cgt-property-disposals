@@ -199,16 +199,16 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
         "the response body to get subscription status does not contain a CGT reference id when " +
           "the status is subscribed" in {
-          List(
-            Json.parse("""{ "subscriptionStatus": "SUCCESSFUL" }"""),
-            Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "TYPE", "idValue": "value"}"""),
-            Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "ZCGT"}""")
-          ).foreach { json =>
-            withClue(s"For JSON $json ") {
-              testGetSubscriptionStatusError(Right(HttpResponse(200, json, Map.empty[String, Seq[String]])))
+            List(
+              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL" }"""),
+              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "TYPE", "idValue": "value"}"""),
+              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "ZCGT"}""")
+            ).foreach { json =>
+              withClue(s"For JSON $json ") {
+                testGetSubscriptionStatusError(Right(HttpResponse(200, json, Map.empty[String, Seq[String]])))
+              }
             }
           }
-        }
 
         "the response body to get subscription status contains an unknown status" in {
           testGetSubscriptionStatusError(

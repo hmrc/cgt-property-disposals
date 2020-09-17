@@ -32,7 +32,7 @@ object IncomeAllowanceDetails {
   def apply(c: CompleteReturn): IncomeAllowanceDetails =
     c match {
 
-      case s: CompleteSingleDisposalReturn           =>
+      case s: CompleteSingleDisposalReturn =>
         IncomeAllowanceDetails(
           annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
           estimatedIncome = s.yearToDateLiabilityAnswers.map(_.estimatedIncome.inPounds()).toOption,
@@ -40,7 +40,7 @@ object IncomeAllowanceDetails {
           threshold = Some(s.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
 
-      case m: CompleteMultipleDisposalsReturn        =>
+      case m: CompleteMultipleDisposalsReturn =>
         IncomeAllowanceDetails(
           annualExemption = m.exemptionAndLossesAnswers.annualExemptAmount.inPounds(),
           estimatedIncome = None,
@@ -48,7 +48,7 @@ object IncomeAllowanceDetails {
           threshold = Some(m.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
 
-      case s: CompleteSingleIndirectDisposalReturn   =>
+      case s: CompleteSingleIndirectDisposalReturn =>
         IncomeAllowanceDetails(
           annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
           estimatedIncome = None,
@@ -64,7 +64,7 @@ object IncomeAllowanceDetails {
           threshold = Some(m.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
 
-      case s: CompleteSingleMixedUseDisposalReturn   =>
+      case s: CompleteSingleMixedUseDisposalReturn =>
         IncomeAllowanceDetails(
           annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
           estimatedIncome = None,

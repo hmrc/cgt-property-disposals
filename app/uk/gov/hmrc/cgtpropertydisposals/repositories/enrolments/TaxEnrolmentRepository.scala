@@ -75,8 +75,8 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(im
                 )
               )
           }
-          .recover {
-            case exception => Left(Error(exception))
+          .recover { case exception =>
+            Left(Error(exception))
           }
       }
     )
@@ -86,8 +86,8 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(im
       preservingMdc {
         find("ggCredId" -> ggCredId)
           .map(maybeEnrolmentRequest => Right(maybeEnrolmentRequest.headOption))
-          .recover {
-            case exception => Left(Error(exception.getMessage))
+          .recover { case exception =>
+            Left(Error(exception.getMessage))
           }
       }
     )
@@ -97,8 +97,8 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(im
       preservingMdc {
         remove("ggCredId" -> ggCredId)
           .map { result: WriteResult => Right(result.n) }
-          .recover {
-            case exception => Left(Error(exception.getMessage))
+          .recover { case exception =>
+            Left(Error(exception.getMessage))
           }
       }
     )
@@ -114,8 +114,8 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(im
           Json.obj("$set"     -> Json.toJson(cgtEnrolmentRequest)),
           fetchNewObject = true
         ).map(dbResult => Right(dbResult.result[TaxEnrolmentRequest]))
-          .recover {
-            case exception => Left(Error(exception.getMessage))
+          .recover { case exception =>
+            Left(Error(exception.getMessage))
           }
       }
     )

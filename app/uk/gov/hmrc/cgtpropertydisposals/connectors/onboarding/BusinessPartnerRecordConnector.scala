@@ -86,8 +86,8 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
           ec
         )
         .map(Right(_))
-        .recover {
-          case e => Left(Error(e, "id" -> bprRequest.foldOnId(_.value, _.value, _.value)))
+        .recover { case e =>
+          Left(Error(e, "id" -> bprRequest.foldOnId(_.value, _.value, _.value)))
         }
     )
   }

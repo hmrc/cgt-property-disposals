@@ -189,17 +189,17 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
       "return the subscription update response if the call comes back with a " +
         "200 status and the JSON body can be parsed" in {
-        val updateResponse =
-          SubscriptionUpdateResponse(
-            "CGT",
-            LocalDateTime.now(),
-            "form",
-            "cgtRef",
-            "GB",
-            Some("postcode")
-          )
-        val jsonBody       =
-          s"""
+          val updateResponse =
+            SubscriptionUpdateResponse(
+              "CGT",
+              LocalDateTime.now(),
+              "form",
+              "cgtRef",
+              "GB",
+              Some("postcode")
+            )
+          val jsonBody       =
+            s"""
             |{
             | "regime": "CGT",
             | "processingDate": "${updateResponse.processingDate.toString}",
@@ -210,11 +210,11 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        mockUpdateSubscriptionDetails(expectedUpdateRequest, cgtReference)(
-          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
-        )
-        await(service.updateSubscription(updatedDetails).value) shouldBe Right(updateResponse)
-      }
+          mockUpdateSubscriptionDetails(expectedUpdateRequest, cgtReference)(
+            Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+          )
+          await(service.updateSubscription(updatedDetails).value) shouldBe Right(updateResponse)
+        }
     }
 
     "handling requests to get subscription display details " must {
@@ -452,8 +452,8 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       }
       "return the subscription display response if the call comes back with a " +
         "200 status and the JSON body can be parsed and the address is a Non-UK address and no post code" in {
-        val jsonBody =
-          """
+          val jsonBody =
+            """
             |{
             |    "regime": "CGT",
             |    "subscriptionDetails": {
@@ -478,25 +478,25 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = SubscribedDetails(
-          Left(TrustName("ABC Trust")),
-          Email("stephen@abc.co.uk"),
-          NonUkAddress("101 Kiwi Street", None, None, Some("Christchurch"), None, Country("NZ")),
-          ContactName("Stephen Wood"),
-          cgtReference,
-          Some(TelephoneNumber("(+013)32752856")),
-          true
-        )
-        mockGetSubscription(cgtReference)(
-          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
-        )
-        await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
-      }
+          val subscriptionDisplayResponse = SubscribedDetails(
+            Left(TrustName("ABC Trust")),
+            Email("stephen@abc.co.uk"),
+            NonUkAddress("101 Kiwi Street", None, None, Some("Christchurch"), None, Country("NZ")),
+            ContactName("Stephen Wood"),
+            cgtReference,
+            Some(TelephoneNumber("(+013)32752856")),
+            true
+          )
+          mockGetSubscription(cgtReference)(
+            Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+          )
+          await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
+        }
 
       "return the subscription display response if the call comes back with a " +
         "200 status and the JSON body can be parsed and the address is a Non-UK address with a post code" in {
-        val jsonBody =
-          """
+          val jsonBody =
+            """
             |{
             |    "regime": "CGT",
             |    "subscriptionDetails": {
@@ -522,32 +522,32 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = accounts.SubscribedDetails(
-          Left(TrustName("ABC Trust")),
-          Email("stephen@abc.co.uk"),
-          NonUkAddress(
-            "101 Kiwi Street",
-            None,
-            None,
-            Some("Christchurch"),
-            Some(Postcode("C11")),
-            Country("NZ")
-          ),
-          ContactName("Stephen Wood"),
-          cgtReference,
-          Some(TelephoneNumber("(+013)32752856")),
-          true
-        )
-        mockGetSubscription(cgtReference)(
-          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
-        )
-        await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
-      }
+          val subscriptionDisplayResponse = accounts.SubscribedDetails(
+            Left(TrustName("ABC Trust")),
+            Email("stephen@abc.co.uk"),
+            NonUkAddress(
+              "101 Kiwi Street",
+              None,
+              None,
+              Some("Christchurch"),
+              Some(Postcode("C11")),
+              Country("NZ")
+            ),
+            ContactName("Stephen Wood"),
+            cgtReference,
+            Some(TelephoneNumber("(+013)32752856")),
+            true
+          )
+          mockGetSubscription(cgtReference)(
+            Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+          )
+          await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
+        }
 
       "return the subscription display response if the call comes back with a " +
         "200 status and the JSON body can be parsed and the address is a UK address" in {
-        val jsonBody =
-          """
+          val jsonBody =
+            """
             |{
             |    "regime": "CGT",
             |    "subscriptionDetails": {
@@ -576,20 +576,20 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = accounts.SubscribedDetails(
-          Right(IndividualName("Luke", "Bishop")),
-          Email("stephen@abc.co.uk"),
-          UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), Postcode("DH14EJ")),
-          ContactName("Stephen Wood"),
-          cgtReference,
-          Some(TelephoneNumber("(+013)32752856")),
-          true
-        )
-        mockGetSubscription(cgtReference)(
-          Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
-        )
-        await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
-      }
+          val subscriptionDisplayResponse = accounts.SubscribedDetails(
+            Right(IndividualName("Luke", "Bishop")),
+            Email("stephen@abc.co.uk"),
+            UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), Postcode("DH14EJ")),
+            ContactName("Stephen Wood"),
+            cgtReference,
+            Some(TelephoneNumber("(+013)32752856")),
+            true
+          )
+          mockGetSubscription(cgtReference)(
+            Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
+          )
+          await(service.getSubscription(cgtReference).value) shouldBe Right(Some(subscriptionDisplayResponse))
+        }
 
       "return the subscription display response the country code does not have a country name" in {
         val jsonBody =

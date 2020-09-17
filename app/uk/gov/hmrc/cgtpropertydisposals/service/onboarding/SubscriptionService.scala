@@ -233,18 +233,17 @@ class SubscriptionServiceImpl @Inject() (
       Email.emailValidation(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.emailAddress)
 
     (addressValidation, nameValidation, emailValidation)
-      .mapN {
-        case (address, name, email) =>
-          SubscribedDetails(
-            name,
-            email,
-            address,
-            ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
-            cgtReference,
-            desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber
-              .map(t => TelephoneNumber(t)),
-            desSubscriptionDisplayDetails.subscriptionDetails.isRegisteredWithId
-          )
+      .mapN { case (address, name, email) =>
+        SubscribedDetails(
+          name,
+          email,
+          address,
+          ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
+          cgtReference,
+          desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.phoneNumber
+            .map(t => TelephoneNumber(t)),
+          desSubscriptionDisplayDetails.subscriptionDetails.isRegisteredWithId
+        )
       }
       .toEither
       .leftMap(errors => s"Could not read DES response: ${errors.toList.mkString("; ")}")

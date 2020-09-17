@@ -99,7 +99,7 @@ class DmsSubmissionPoller @Inject() (
             )
         }
 
-      case None           =>
+      case None =>
         logger.info("DMS Submission poller: no work items")
         Future.successful(())
     }
