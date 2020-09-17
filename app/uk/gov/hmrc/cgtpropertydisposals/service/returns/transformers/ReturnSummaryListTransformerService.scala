@@ -162,7 +162,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
       .getOrElse(List.empty)
       .map {
         case DesFinancialTransactionItem(
-              Some(paymentAmount),
+              Some(amount),
               Some(paymentMethod),
               Some(clearingDate),
               Some(clearingReason)
@@ -173,7 +173,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               Right(
                 Some(
                   Payment(
-                    AmountInPence.fromPounds(paymentAmount),
+                    AmountInPence.fromPounds(amount),
                     None,
                     clearingDate,
                     Some(ClearingReason.fromString(clearingReason))
@@ -184,7 +184,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               Right(
                 Some(
                   Payment(
-                    AmountInPence.fromPounds(paymentAmount),
+                    AmountInPence.fromPounds(amount),
                     Some(paymentMethod),
                     clearingDate,
                     Some(ClearingReason.fromString(clearingReason))
@@ -193,7 +193,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               )
           }
         case DesFinancialTransactionItem(
-              Some(paymentAmount),
+              Some(amount),
               None,
               Some(clearingDate),
               Some(clearingReason)
@@ -201,7 +201,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
           Right(
             Some(
               Payment(
-                AmountInPence.fromPounds(paymentAmount),
+                AmountInPence.fromPounds(amount),
                 None,
                 clearingDate,
                 Some(ClearingReason.fromString(clearingReason))
@@ -210,7 +210,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
           )
 
         case DesFinancialTransactionItem(
-              Some(paymentAmount),
+              Some(amount),
               Some(paymentMethod),
               Some(clearingDate),
               None
@@ -220,7 +220,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
             .map(paymentMethod =>
               Some(
                 Payment(
-                  AmountInPence.fromPounds(paymentAmount),
+                  AmountInPence.fromPounds(amount),
                   Some(paymentMethod),
                   clearingDate,
                   None
@@ -242,7 +242,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
 
         case other =>
           Left(
-            s"Could not find some of the required fields for a payment: (paymentAmount = ${other.paymentAmount}, " +
+            s"Could not find some of the required fields for a payment: (amount = ${other.amount}, " +
               s"paymentMethod = ${other.paymentMethod}, clearingDate = ${other.clearingDate} " +
               s"clearingReason = ${other.clearingReason} "
           )
