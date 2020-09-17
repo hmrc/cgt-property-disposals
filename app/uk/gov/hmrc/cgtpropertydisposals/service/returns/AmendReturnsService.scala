@@ -51,7 +51,7 @@ class DefaultAmendReturnsService @Inject() (
     ReturnType(submitReturnRequest) match {
       case CreateReturnType(_)   => EitherT[Future, Error, Unit](Future.successful(Right(())))
       case AmendReturnType(_, _) =>
-        amendReturnsRepository.save(submitReturnRequest, submitReturnRequest.subscribedDetails.cgtReference)
+        amendReturnsRepository.save(submitReturnRequest)
     }
 
 }

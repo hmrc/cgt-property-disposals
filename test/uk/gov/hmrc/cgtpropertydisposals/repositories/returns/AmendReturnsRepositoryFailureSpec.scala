@@ -47,7 +47,7 @@ class AmendReturnsRepositoryFailureSpec extends WordSpec with Matchers with Mong
 
     "inserting" should {
       "insert an amend return request successfully" in {
-        await(repository.save(submitReturnRequest, cgtReference).value).isLeft shouldBe true
+        await(repository.save(submitReturnRequest).value).isLeft shouldBe true
       }
     }
 

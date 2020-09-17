@@ -37,25 +37,28 @@ class AmendReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
     )
   )
 
-  val repository   = new DefaultAmendReturnsRepository(reactiveMongoComponent, config)
-  val cgtReference = sample[CgtReference]
+  val repository = new DefaultAmendReturnsRepository(reactiveMongoComponent, config)
 
   "DraftAmendReturnsRepository" when {
     "inserting" should {
       "create a new draft return successfully" in {
         val submitReturnRequest = sample[SubmitReturnRequest]
-        await(repository.save(submitReturnRequest, cgtReference).value) shouldBe Right(())
+        await(repository.save(submitReturnRequest).value) shouldBe Right(())
       }
     }
     "getting"   should {
       "retrieve an existing record" in {
-        val submitReturnRequest = sample[SubmitReturnRequest]
+        val cgtReference         = sample[CgtReference]
+        val subscribedDetails    =
+          sample[uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails]
+            .copy(cgtReference = cgtReference)
+        val submitReturnRequest1 = sample[SubmitReturnRequest].copy(subscribedDetails = subscribedDetails)
+        val submitReturnRequest2 = sample[SubmitReturnRequest].copy(subscribedDetails = subscribedDetails)
 
-        await(
-          repository.save(submitReturnRequest, submitReturnRequest.subscribedDetails.cgtReference).value
-        )                                                                                              shouldBe Right(())
-        await(repository.fetch(submitReturnRequest.subscribedDetails.cgtReference).value).map(_.toSet) shouldBe Right(
-          Set(submitReturnRequest)
+        await(repository.save(submitReturnRequest1).value)       shouldBe Right(())
+        await(repository.save(submitReturnRequest2).value)       shouldBe Right(())
+        await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
+          Set(submitReturnRequest1, submitReturnRequest2)
         )
       }
     }

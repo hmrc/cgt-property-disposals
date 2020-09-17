@@ -52,12 +52,11 @@ class AmendReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .returning(EitherT.fromEither[Future](result))
 
   def mockSaveAmendReturnList(
-    submitReturnRequest: SubmitReturnRequest,
-    cgtReference: CgtReference
+    submitReturnRequest: SubmitReturnRequest
   )(result: Either[Error, Unit]) =
     (mockAmendReturnsRepo
-      .save(_: SubmitReturnRequest, _: CgtReference))
-      .expects(submitReturnRequest, cgtReference)
+      .save(_: SubmitReturnRequest))
+      .expects(submitReturnRequest)
       .returning(EitherT.fromEither[Future](result))
 
   "AmendReturnService" when {
@@ -68,7 +67,7 @@ class AmendReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         val cgtReference        = sample[CgtReference]
         val subscribedDetails   = sample[SubscribedDetails].copy(cgtReference = cgtReference)
         val submitReturnRequest = sample[SubmitReturnRequest].copy(subscribedDetails = subscribedDetails)
-        mockSaveAmendReturnList(submitReturnRequest, cgtReference)(Right(()))
+        mockSaveAmendReturnList(submitReturnRequest)(Right(()))
 
         await(returnsService.saveAmendedReturn(submitReturnRequest).value) shouldBe Right(())
       }

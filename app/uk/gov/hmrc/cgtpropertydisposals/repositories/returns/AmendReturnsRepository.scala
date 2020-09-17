@@ -43,7 +43,7 @@ import scala.util.control.NonFatal
 trait AmendReturnsRepository {
 
   def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnRequest]]
-  def save(submitReturnRequest: SubmitReturnRequest, cgtReference: CgtReference): EitherT[Future, Error, Unit]
+  def save(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit]
 
 }
 
@@ -72,8 +72,7 @@ class DefaultAmendReturnsRepository @Inject() (component: ReactiveMongoComponent
     )
 
   override def save(
-    submitReturnRequest: SubmitReturnRequest,
-    cgtReference: CgtReference
+    submitReturnRequest: SubmitReturnRequest
   ): EitherT[Future, Error, Unit] =
     EitherT(set(submitReturnRequest.id.toString, submitReturnRequest))
 
