@@ -58,10 +58,9 @@ class DefaultAmendReturnsRepository @Inject() (component: ReactiveMongoComponent
     with AmendReturnsRepository
     with CacheRepository[SubmitReturnRequest] {
 
-  //TODO: review parameters
-  val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
-  val maxDraftReturns: Int      = config.underlying.get[Int]("mongodb.draft-returns.max-draft-returns").value
-  val cacheTtlIndexName: String = "draft-return-cache-ttl"
+  val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.amend-returns.expiry-time").value
+  val maxAmendReturns: Int      = Integer.MAX_VALUE
+  val cacheTtlIndexName: String = "amend-return-cache-ttl"
   val objName: String           = "return"
   val key: String               = "return.subscribedDetails.cgtReference.value"
 
@@ -83,7 +82,7 @@ class DefaultAmendReturnsRepository @Inject() (component: ReactiveMongoComponent
     collection
       .find(selector, None)
       .cursor[JsValue]()
-      .collect[List](maxDraftReturns, Cursor.FailOnError[List[JsValue]]())
+      .collect[List](maxAmendReturns, Cursor.FailOnError[List[JsValue]]())
       .map { l =>
         val p: List[Either[Error, SubmitReturnRequest]] = l.map { json =>
           (json \ objName).validate[SubmitReturnRequest].asEither.leftMap(toError)

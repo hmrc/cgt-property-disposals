@@ -32,8 +32,7 @@ class AmendReturnsRepositorySpec extends WordSpec with Matchers with MongoSuppor
   val config = Configuration(
     ConfigFactory.parseString(
       """
-        | mongodb.draft-returns.expiry-time = 30days
-        | mongodb.draft-returns.max-draft-returns = 10
+        | mongodb.amend-returns.expiry-time = 24hours
         |""".stripMargin
     )
   )
