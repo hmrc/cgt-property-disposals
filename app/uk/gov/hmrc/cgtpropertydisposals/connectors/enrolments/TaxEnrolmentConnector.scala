@@ -72,8 +72,8 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
           )
         )
         .map(Right(_))
-        .recover {
-          case e => Left(Error(e))
+        .recover { case e =>
+          Left(Error(e))
         }
     )
   }

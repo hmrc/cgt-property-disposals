@@ -132,7 +132,8 @@ class SubscriptionController @Inject() (
           subscriptionResponse    <- subscriptionService
                                        .updateSubscription(subscribedUpdateDetails)
                                        .leftMap[SubscriptionError](BackendError)
-          _                       <- taxEnrolmentService.updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
+          _                       <- taxEnrolmentService
+                                       .updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
                                        .leftMap[SubscriptionError](BackendError)
         } yield subscriptionResponse
 
@@ -177,7 +178,7 @@ class SubscriptionController @Inject() (
                                     )
                                   )
 
-                                case AlreadySubscribed                          => EitherT.pure[Future, Error](())
+                                case AlreadySubscribed => EitherT.pure[Future, Error](())
                               }
     } yield subscriptionResponse
 }

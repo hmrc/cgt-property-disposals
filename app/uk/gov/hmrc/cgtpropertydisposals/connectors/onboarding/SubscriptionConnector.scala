@@ -90,8 +90,8 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
           ec
         )
         .map(Right(_))
-        .recover {
-          case e => Left(Error(e))
+        .recover { case e =>
+          Left(Error(e))
         }
     )
 
@@ -111,8 +111,8 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: Service
           ec
         )
         .map(Right(_))
-        .recover {
-          case e => Left(Error(e))
+        .recover { case e =>
+          Left(Error(e))
         }
     )
 

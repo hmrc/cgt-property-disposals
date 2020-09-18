@@ -120,7 +120,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
             case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, Some("ZCGT"), Some(cgtRef)) =>
               Right(Some(CgtReference(cgtRef)))
 
-            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, otherIdType, id)            =>
+            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, otherIdType, id) =>
               Left(
                 Error(
                   s"Could not find cgt reference id in subscription status response. Got id type " +
@@ -128,7 +128,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
                 )
               )
 
-            case DesSubscriptionStatusResponse(_, _, _)                                                   =>
+            case DesSubscriptionStatusResponse(_, _, _) =>
               Right(None)
           }
       else {

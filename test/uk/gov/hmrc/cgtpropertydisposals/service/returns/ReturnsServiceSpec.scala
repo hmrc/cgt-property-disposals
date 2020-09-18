@@ -42,8 +42,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DisplayReturn, DraftMultipleDisposalsReturn, DraftReturn, DraftSingleDisposalReturn, DraftSingleIndirectDisposalReturn, DraftSingleMixedUseDisposalReturn, ReturnSummary, SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesListReturnsResponse, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -68,6 +68,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   val mockDraftReturnService = mock[DraftReturnsService]
 
+  val mockAmendReturnService = mock[AmendReturnsService]
+
   val returnsService =
     new DefaultReturnsService(
       returnsConnector,
@@ -75,6 +77,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       mockReturnTransformerService,
       mockReturnListSummaryTransformerService,
       mockDraftReturnService,
+      mockAmendReturnService,
       mockEmailConnector,
       mockAuditService,
       MockMetrics.metrics
@@ -120,13 +123,33 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .expects(desReturn)
       .returning(result)
 
-  def mockTransformReturnsList(returns: List[DesReturnSummary], financialData: List[DesFinancialTransaction])(
+  def mockTransformReturnsList(
+    returns: List[DesReturnSummary],
+    financialData: List[DesFinancialTransaction],
+    submitReturnRequest: List[SubmitReturnRequest]
+  )(
     result: Either[Error, List[ReturnSummary]]
   ) =
     (mockReturnListSummaryTransformerService
-      .toReturnSummaryList(_: List[DesReturnSummary], _: List[DesFinancialTransaction]))
-      .expects(returns, financialData)
+      .toReturnSummaryList(_: List[DesReturnSummary], _: List[DesFinancialTransaction], _: List[SubmitReturnRequest]))
+      .expects(returns, financialData, submitReturnRequest)
       .returning(result)
+
+  def mockGetAmendReturnList(
+    cgtReference: CgtReference
+  )(result: Either[Error, List[SubmitReturnRequest]]) =
+    (mockAmendReturnService
+      .getAmendedReturn(_: CgtReference))
+      .expects(cgtReference)
+      .returning(EitherT.fromEither[Future](result))
+
+  def mockSaveAmendReturnList(
+    submitReturnRequest: SubmitReturnRequest
+  )(result: Either[Error, Unit]) =
+    (mockAmendReturnService
+      .saveAmendedReturn(_: SubmitReturnRequest))
+      .expects(submitReturnRequest)
+      .returning(EitherT.fromEither[Future](result))
 
   def mockSendReturnSubmitConfirmationEmail(
     submitReturnResponse: SubmitReturnResponse,
@@ -281,6 +304,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.name,
               submitReturnRequest.agentReferenceNumber
             )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
@@ -335,6 +359,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.name,
               submitReturnRequest.agentReferenceNumber
             )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
@@ -382,6 +407,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.name,
               submitReturnRequest.agentReferenceNumber
             )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
@@ -431,6 +457,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.name,
               submitReturnRequest.agentReferenceNumber
             )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
@@ -492,6 +519,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.name,
               submitReturnRequest.agentReferenceNumber
             )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(500, emptyJsonBody))
             )
@@ -542,6 +570,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.name,
               submitReturnRequest.agentReferenceNumber
             )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
@@ -689,6 +718,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 submitReturnRequest.subscribedDetails.name,
                 submitReturnRequest.agentReferenceNumber
               )
+              mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             }
 
             await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
@@ -841,6 +871,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.subscribedDetails.name,
               submitReturnRequest.agentReferenceNumber
             )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
             )
@@ -1170,7 +1201,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockGetFinancialData(cgtReference, fromDate, toDate)(
               Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
             )
-            mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions)(
+            mockGetAmendReturnList(cgtReference)(Right(List.empty))
+            mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
               Left(Error(""))
             )
           }
@@ -1192,7 +1224,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             mockGetFinancialData(cgtReference, fromDate, toDate)(
               Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
             )
-            mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions)(
+            mockGetAmendReturnList(cgtReference)(Right(List.empty))
+            mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
               Right(summaries)
             )
           }
@@ -1205,45 +1238,50 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       "return an empty list of returns" when {
 
         "the response to list returns comes back with status 404 and a single error in the body" in {
-          mockListReturn(cgtReference, fromDate, toDate)(
-            Right(
-              HttpResponse(
-                404,
-                Json.parse("""
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
                       |}
                       |""".stripMargin),
-                Map.empty[String, Seq[String]]
+                  Map.empty[String, Seq[String]]
+                )
               )
             )
-          )
+            mockGetAmendReturnList(cgtReference)(Right(List.empty))
+          }
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
 
         }
 
         "the response to list returns comes back with status 404 and multiple errors in the body" in {
-          mockListReturn(cgtReference, fromDate, toDate)(
-            Right(
-              HttpResponse(
-                404,
-                Json.parse("""
-                                  |{
-                                  |  "failures" : [ 
-                                  |    {
-                                  |      "code" : "NOT_FOUND",
-                                  |      "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
-                                  |    }
-                                  |  ]
-                                  |}  
-                                  |""".stripMargin),
-                Map.empty[String, Seq[String]]
+          inSequence {
+            mockListReturn(cgtReference, fromDate, toDate)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                      |{
+                      |  "failures" : [ 
+                      |    {
+                      |      "code" : "NOT_FOUND",
+                      |      "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+                      |    }
+                      |  ]
+                      |}  
+                      |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
               )
             )
-          )
-
+            mockGetAmendReturnList(cgtReference)(Right(List.empty))
+          }
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
         }
 
@@ -1266,7 +1304,9 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 )
               )
             )
-            mockTransformReturnsList(desReturnSummaries.returnList, List.empty)(
+            mockGetAmendReturnList(cgtReference)(Right(List.empty))
+
+            mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
               Right(List.empty)
             )
           }
@@ -1298,9 +1338,13 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 )
               )
             )
-            mockTransformReturnsList(desReturnSummaries.returnList, List.empty)(
+
+            mockGetAmendReturnList(cgtReference)(Right(List.empty))
+
+            mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
               Right(List.empty)
             )
+
           }
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
@@ -1469,6 +1513,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Right(HttpResponse(200, desResponseBodyString, Map.empty[String, Seq[String]]))
             )
             mockTransformReturn(desReturnDetails)(Right(displayReturn))
+            // mockGetAmendReturnList(cgtReference)(Right(List.empty))
           }
 
           await(returnsService.displayReturn(cgtReference, submissionId).value) shouldBe Right(displayReturn)

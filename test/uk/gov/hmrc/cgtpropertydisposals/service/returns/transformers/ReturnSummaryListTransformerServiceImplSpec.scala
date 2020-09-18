@@ -20,10 +20,11 @@ import java.time.LocalDate
 
 import org.scalatest.{Matchers, WordSpec}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesFinancialTransactionItem}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, ChargeType, ClearingReason, Payment, PaymentMethod}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
 
 class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers {
@@ -65,7 +66,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 )
               )
             ),
-            List(validDesFinancialTransaction)
+            List(validDesFinancialTransaction),
+            List.empty
           )
 
           result.isLeft shouldBe true
@@ -76,6 +78,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
             List(
               validDesReturnSummary
             ),
+            List.empty,
             List.empty
           )
 
@@ -95,26 +98,26 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
             (None, None, Some(date), None),
             (Some(amount), None, None, Some(clearingReason)),
             (None, Some(paymentMethod), None, None)
-          ).foreach {
-            case (amount, paymentMethod, date, clearingReason) =>
-              withClue(
-                s"For (amount, paymentMethod, date, clearingReason) = ($amount, $paymentMethod, $date, $clearingReason): "
-              ) {
-                val result = transformer.toReturnSummaryList(
-                  List(
-                    validDesReturnSummary
-                  ),
-                  List(
-                    validDesFinancialTransaction.copy(
-                      items = Some(
-                        List(DesFinancialTransactionItem(amount, paymentMethod, date, clearingReason))
-                      )
+          ).foreach { case (amount, paymentMethod, date, clearingReason) =>
+            withClue(
+              s"For (amount, paymentMethod, date, clearingReason) = ($amount, $paymentMethod, $date, $clearingReason): "
+            ) {
+              val result = transformer.toReturnSummaryList(
+                List(
+                  validDesReturnSummary
+                ),
+                List(
+                  validDesFinancialTransaction.copy(
+                    items = Some(
+                      List(DesFinancialTransactionItem(amount, paymentMethod, date, clearingReason))
                     )
                   )
-                )
+                ),
+                List.empty
+              )
 
-                result.isLeft shouldBe true
-              }
+              result.isLeft shouldBe true
+            }
 
           }
 
@@ -127,7 +130,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 propertyAddress = Address.toAddressDetails(sample[NonUkAddress])
               )
             ),
-            List(validDesFinancialTransaction)
+            List(validDesFinancialTransaction),
+            List.empty
           )
 
           result.isLeft shouldBe true
@@ -146,7 +150,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 )
               )
             ),
-            List(validDesFinancialTransaction)
+            List(validDesFinancialTransaction),
+            List.empty
           )
 
           result.isLeft shouldBe true
@@ -166,7 +171,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
             List(
               validDesFinancialTransaction,
               validDesFinancialTransaction.copy(chargeReference = otherChargeReference)
-            )
+            ),
+            List.empty
           )
 
           result.isLeft shouldBe true
@@ -237,8 +243,35 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val result = transformer.toReturnSummaryList(
           List(validDesReturnSummary1, validDesReturnSummary2),
-          List(mainCharge1FinancialTransaction, mainCharge2FinancialTransaction, penaltyChargeFinancialTransaction)
+          List(mainCharge1FinancialTransaction, mainCharge2FinancialTransaction, penaltyChargeFinancialTransaction),
+          List.empty
         )
+
+        "there is a recently amended return and matches one of the returns" in {
+          val submitReturnRequest =
+            sample[SubmitReturnRequest].copy(originalReturnFormBundleId = Some(validDesReturnSummary1.submissionId))
+
+          val r1 = transformer.toReturnSummaryList(
+            List(validDesReturnSummary1),
+            List(mainCharge1FinancialTransaction, mainCharge2FinancialTransaction, penaltyChargeFinancialTransaction),
+            List(submitReturnRequest)
+          )
+
+          r1.map(_.map(_.isRecentlyAmended).headOption) shouldBe Right(Some(true))
+        }
+
+        "there is a recently amended return and it does not match one of the returns" in {
+          val submitReturnRequest =
+            sample[SubmitReturnRequest].copy(originalReturnFormBundleId = Some("invalid-form-bundle-id"))
+
+          val r1 = transformer.toReturnSummaryList(
+            List(validDesReturnSummary1),
+            List(mainCharge1FinancialTransaction, mainCharge2FinancialTransaction, penaltyChargeFinancialTransaction),
+            List(submitReturnRequest)
+          )
+
+          r1.map(_.map(_.isRecentlyAmended).headOption) shouldBe Right(Some(false))
+        }
 
         "finding the submission id" in {
           result.map(_.map(_.submissionId)) shouldBe Right(
@@ -334,7 +367,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 charges = None
               )
             ),
-            List(sample[DesFinancialTransaction].copy(items = None))
+            List(sample[DesFinancialTransaction].copy(items = None)),
+            List.empty
           )
 
           result match {
@@ -368,7 +402,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val result = transformer.toReturnSummaryList(
           List(validDesReturnSummary),
-          List(mainChargeFinancialTransaction)
+          List(mainChargeFinancialTransaction),
+          List.empty
         )
 
         result.map(_.map(_.propertyAddress)) shouldBe Right(

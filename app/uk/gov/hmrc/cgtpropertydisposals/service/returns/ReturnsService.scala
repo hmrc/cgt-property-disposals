@@ -41,8 +41,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -80,6 +80,7 @@ class DefaultReturnsService @Inject() (
   returnTransformerService: ReturnTransformerService,
   returnSummaryListTransformerService: ReturnSummaryListTransformerService,
   draftReturnsService: DraftReturnsService,
+  amendReturnsService: AmendReturnsService,
   emailConnector: EmailConnector,
   auditService: AuditService,
   metrics: Metrics
@@ -91,11 +92,15 @@ class DefaultReturnsService @Inject() (
     returnRequest: SubmitReturnRequest,
     representeeDetails: Option[RepresenteeDetails]
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
-    val desSubmitReturnRequest = DesSubmitReturnRequest(returnRequest, representeeDetails)
+    val desSubmitReturnRequest: DesSubmitReturnRequest = DesSubmitReturnRequest(returnRequest, representeeDetails)
 
     for {
       _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)
       returnHttpResponse <- submitReturnAndAudit(returnRequest, desSubmitReturnRequest)
+      _                  <- amendReturnsService.saveAmendedReturn(returnRequest).leftFlatMap { e =>
+                              logger.warn(s"could not save recently amended return: $e")
+                              EitherT.pure[Future, Error](())
+                            }
       desResponse        <- EitherT.fromEither[Future](
                               returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
                             )
@@ -169,7 +174,8 @@ class DefaultReturnsService @Inject() (
         modifiedDraftReturns = draftReturns.foldLeft(List.empty[DraftReturn]) { (acc, curr) =>
                                  modifyDraftReturn(curr).fold(acc)(_ :: acc)
                                }
-        _                   <- modifiedDraftReturns.map(d => draftReturnsService.saveDraftReturn(d, cgtReference))
+        _                   <- modifiedDraftReturns
+                                 .map(d => draftReturnsService.saveDraftReturn(d, cgtReference))
                                  .sequence[EitherT[Future, Error, *], Unit]
       } yield ()
     }
@@ -288,7 +294,7 @@ class DefaultReturnsService @Inject() (
       }
     }
 
-    lazy val desReturnList = {
+    lazy val desReturnList: EitherT[Future, Error, DesListReturnsResponse] = {
       val timer = metrics.listReturnsTimer.time()
       returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
@@ -303,17 +309,25 @@ class DefaultReturnsService @Inject() (
       }
     }
 
+    lazy val recentlyAmendedReturnList: EitherT[Future, Error, List[SubmitReturnRequest]] =
+      amendReturnsService.getAmendedReturn(cgtReference)
+
     for {
-      desReturnList    <- desReturnList
-      desFinancialData <- if (desReturnList.returnList.nonEmpty) desFinancialData
-                          else EitherT.pure(DesFinancialDataResponse(List.empty))
-      returnSummaries  <- EitherT.fromEither(
-                            if (desReturnList.returnList.nonEmpty)
-                              returnSummaryListTransformerService
-                                .toReturnSummaryList(desReturnList.returnList, desFinancialData.financialTransactions)
-                            else
-                              Right(List.empty)
-                          )
+      desReturnList          <- desReturnList
+      desFinancialData       <- if (desReturnList.returnList.nonEmpty) desFinancialData
+                                else EitherT.pure(DesFinancialDataResponse(List.empty))
+      recentlyAmendedReturns <- recentlyAmendedReturnList
+      returnSummaries        <- EitherT.fromEither(
+                                  if (desReturnList.returnList.nonEmpty)
+                                    returnSummaryListTransformerService
+                                      .toReturnSummaryList(
+                                        desReturnList.returnList,
+                                        desFinancialData.financialTransactions,
+                                        recentlyAmendedReturns
+                                      )
+                                  else
+                                    Right(List.empty)
+                                )
     } yield returnSummaries
   }
 
