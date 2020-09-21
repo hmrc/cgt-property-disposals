@@ -228,16 +228,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               )
             )
 
-        case DesFinancialTransactionItem(
-              Some(_),
-              None,
-              Some(_),
-              None
-            ) =>
-          Left(s"Both payment method and clearing reason are missing.")
-
-        case DesFinancialTransactionItem(None, None, None, None) =>
-          logger.info(s"Could not any payment fields.")
+        case DesFinancialTransactionItem(_, None, _, None) =>
           Right(None)
 
         case other =>
