@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import java.time.{LocalDate, LocalDateTime}
 
 import cats.data.EitherT
+import cats.implicits.catsKernelStdOrderForString
 import cats.instances.future._
 import cats.instances.int._
 import cats.syntax.either._
@@ -36,7 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse, DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
@@ -92,15 +93,15 @@ class DefaultReturnsService @Inject() (
     returnRequest: SubmitReturnRequest,
     representeeDetails: Option[RepresenteeDetails]
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
-    val cgtReference = returnRequest.subscribedDetails.cgtReference
-    val taxYear = returnRequest.completeReturn.fold(
+    val cgtReference                                   = returnRequest.subscribedDetails.cgtReference
+    val taxYear                                        = returnRequest.completeReturn.fold(
       _.triageAnswers.taxYear,
       _.triageAnswers.disposalDate.taxYear,
       _.triageAnswers.disposalDate.taxYear,
       _.triageAnswers.taxYear,
       _.triageAnswers.disposalDate.taxYear
     )
-    val (fromDate, toDate) = (taxYear.startDateInclusive, taxYear.endDateExclusive)
+    val (fromDate, toDate)                             = (taxYear.startDateInclusive, taxYear.endDateExclusive)
     val desSubmitReturnRequest: DesSubmitReturnRequest = DesSubmitReturnRequest(returnRequest, representeeDetails)
     for {
       _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)
@@ -123,10 +124,10 @@ class DefaultReturnsService @Inject() (
   }
 
   private def getDesFinalcialData(
-     cgtReference: CgtReference,
-     fromDate: LocalDate,
-     toDate: LocalDate
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, DesFinancialDataResponse] = {
+    cgtReference: CgtReference,
+    fromDate: LocalDate,
+    toDate: LocalDate
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, DesFinancialDataResponse] = {
     val desFinancialData = {
       lazy val timer = metrics.financialDataTimer.time()
       financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
@@ -150,17 +151,54 @@ class DefaultReturnsService @Inject() (
     cgtReference: CgtReference,
     fromDate: LocalDate,
     toDate: LocalDate
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Option[DeltaCharge]] = {
-    if(response.ppdReturnResponseDetails.chargeReference.isDefined) {
-      for(
-        desFinancialData <- getDesFinalcialData(cgtReference, fromDate, toDate)
-          charge         <- desFinancialData.
-      ) yield ()
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[DeltaCharge]] =
+    response.ppdReturnResponseDetails.chargeReference match {
+      case Some(chargeReference) =>
+        lazy val charge = for {
+          desFinancialData <- getDesFinalcialData(cgtReference, fromDate, toDate)
+          charge           <- findDeltaCharge(desFinancialData.financialTransactions, chargeReference)
+        } yield charge
 
-      ???
+        charge
+      case _                     => EitherT.pure(None)
     }
-    else EitherT.pure(None)
-  }
+
+  private def findDeltaCharge(
+    financialTransactions: List[DesFinancialTransaction],
+    chargeReference: String
+  ): EitherT[Future, Error, Option[DeltaCharge]] =
+    financialTransactions.filter(_.chargeReference === chargeReference).flatMap(_.items) match {
+      case _ :: Nil => EitherT.leftT(Error(s"No delta charge found."))
+      case List(
+            DesFinancialTransactionItem(Some(amount1), None, None, None, Some(dueDate1)) :: DesFinancialTransactionItem(
+              Some(amount2),
+              None,
+              None,
+              None,
+              Some(dueDate2)
+            ) :: Nil
+          ) =>
+        if (dueDate1.isBefore(dueDate2))
+          EitherT.rightT(
+            Some(
+              DeltaCharge(
+                ReturnCharge(chargeReference, AmountInPence.fromPounds(amount2), dueDate2),
+                ReturnCharge(chargeReference, AmountInPence.fromPounds(amount1), dueDate1)
+              )
+            )
+          )
+        else
+          EitherT.rightT(
+            Some(
+              DeltaCharge(
+                ReturnCharge(chargeReference, AmountInPence.fromPounds(amount1), dueDate1),
+                ReturnCharge(chargeReference, AmountInPence.fromPounds(amount2), dueDate2)
+              )
+            )
+          )
+
+      case _ => EitherT.leftT(Error(s"No delta charge found."))
+    }
 
   private def handleAmendedReturn(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit] = {
     def modifyDraftReturn(draftReturn: DraftReturn): Option[DraftReturn] =

@@ -42,7 +42,8 @@ final case class DesFinancialTransactionItem(
   amount: Option[BigDecimal],
   paymentMethod: Option[String],
   clearingDate: Option[LocalDate],
-  clearingReason: Option[String]
+  clearingReason: Option[String],
+  dueDate: Option[LocalDate]
 )
 
 object DesFinancialTransactionItem {
