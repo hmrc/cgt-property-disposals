@@ -236,7 +236,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 None,
                 None,
                 None,
-                NOne
+                None
               )
             )
           )

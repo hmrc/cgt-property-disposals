@@ -166,7 +166,7 @@ class DefaultReturnsService @Inject() (
   private def findDeltaCharge(
     financialTransactions: List[DesFinancialTransaction],
     chargeReference: String
-  ): Either[Error, Option[DeltaCharge]] = 
+  ): Either[Error, Option[DeltaCharge]] =
     financialTransactions.filter(_.chargeReference === chargeReference) match {
       case _ :: Nil                            => Right(None)
       case transaction1 :: transaction2 :: Nil =>
@@ -175,9 +175,19 @@ class DefaultReturnsService @Inject() (
             if (r1.dueDate.isBefore(r2.dueDate)) Right(Some(DeltaCharge(r1, r2)))
             else Right(Some(DeltaCharge(r2, r1)))
 
-          case _ => Left(Error(s"Could not find return charges for both transactions in delta charge with charge reference $chargeReference: [transaction1 = $transaction1, transaction2 = $transaction2]"))
+          case _ =>
+            Left(
+              Error(
+                s"Could not find return charges for both transactions in delta charge with charge reference $chargeReference: [transaction1 = $transaction1, transaction2 = $transaction2]"
+              )
+            )
         }
-      case _                                   => Left(Error(s"Could not find one or two transactions to look for delta charge  with charge reference $chargeReference: $financialTransactions"))
+      case _                                   =>
+        Left(
+          Error(
+            s"Could not find one or two transactions to look for delta charge  with charge reference $chargeReference: $financialTransactions"
+          )
+        )
     }
 
   private def getReturnCharge(transaction: DesFinancialTransaction): Option[ReturnCharge] =
