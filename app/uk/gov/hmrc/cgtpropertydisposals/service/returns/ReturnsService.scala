@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import java.time.{LocalDate, LocalDateTime}
 
 import cats.data.EitherT
+import cats.implicits.catsKernelStdOrderForString
 import cats.instances.future._
 import cats.instances.int._
 import cats.syntax.either._
@@ -36,11 +37,11 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesErrorResponse, DesFinancialDataResponse, DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.{DeltaCharge, ReturnCharge}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
@@ -92,8 +93,17 @@ class DefaultReturnsService @Inject() (
     returnRequest: SubmitReturnRequest,
     representeeDetails: Option[RepresenteeDetails]
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
+    val isAmendReturn                                  = returnRequest.originalReturnFormBundleId.isDefined
+    val cgtReference                                   = returnRequest.subscribedDetails.cgtReference
+    val taxYear                                        = returnRequest.completeReturn.fold(
+      _.triageAnswers.taxYear,
+      _.triageAnswers.disposalDate.taxYear,
+      _.triageAnswers.disposalDate.taxYear,
+      _.triageAnswers.taxYear,
+      _.triageAnswers.disposalDate.taxYear
+    )
+    val (fromDate, toDate)                             = (taxYear.startDateInclusive, taxYear.endDateExclusive)
     val desSubmitReturnRequest: DesSubmitReturnRequest = DesSubmitReturnRequest(returnRequest, representeeDetails)
-
     for {
       _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)
       returnHttpResponse <- submitReturnAndAudit(returnRequest, desSubmitReturnRequest)
@@ -104,7 +114,9 @@ class DefaultReturnsService @Inject() (
       desResponse        <- EitherT.fromEither[Future](
                               returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
                             )
-      returnResponse     <- prepareSubmitReturnResponse(desResponse)
+      deltaCharge        <- if (isAmendReturn) deltaCharge(desResponse, cgtReference, fromDate, toDate)
+                            else EitherT.pure(None)
+      returnResponse     <- prepareSubmitReturnResponse(desResponse, deltaCharge)
       _                  <- sendEmailAndAudit(returnRequest, returnResponse).leftFlatMap { e =>
                               logger.warn("Could not send return submission confirmation email or audit event", e)
                               EitherT.pure[Future, Error](())
@@ -112,6 +124,78 @@ class DefaultReturnsService @Inject() (
       _                  <- handleAmendedReturn(returnRequest)
     } yield returnResponse
   }
+
+  private def deltaCharge(
+    response: DesSubmitReturnResponse,
+    cgtReference: CgtReference,
+    fromDate: LocalDate,
+    toDate: LocalDate
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[DeltaCharge]] =
+    response.ppdReturnResponseDetails.chargeReference match {
+      case Some(chargeReference) =>
+        for {
+          desFinancialData <- getDesFinalcialData(cgtReference, fromDate, toDate)
+          charge           <- EitherT.fromEither[Future](findDeltaCharge(desFinancialData.financialTransactions, chargeReference))
+        } yield charge
+
+      case _ => EitherT.pure(None)
+    }
+
+  private def getDesFinalcialData(
+    cgtReference: CgtReference,
+    fromDate: LocalDate,
+    toDate: LocalDate
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, DesFinancialDataResponse] = {
+    val desFinancialData = {
+      lazy val timer = metrics.financialDataTimer.time()
+      financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
+        timer.close()
+
+        if (response.status === OK)
+          response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
+        else if (isNoFinancialDataResponse(response))
+          Right(DesFinancialDataResponse(List.empty))
+        else {
+          metrics.financialDataErrorCounter.inc()
+          Left(Error(s"call to get financial data came back with unexpected status ${response.status}"))
+        }
+      }
+    }
+    desFinancialData
+  }
+
+  private def findDeltaCharge(
+    financialTransactions: List[DesFinancialTransaction],
+    chargeReference: String
+  ): Either[Error, Option[DeltaCharge]] =
+    financialTransactions.filter(_.chargeReference === chargeReference) match {
+      case _ :: Nil                            => Right(None)
+      case transaction1 :: transaction2 :: Nil =>
+        getReturnCharge(transaction1) -> getReturnCharge(transaction2) match {
+          case (Some(r1), Some(r2)) =>
+            if (r1.dueDate.isBefore(r2.dueDate)) Right(Some(DeltaCharge(r1, r2)))
+            else Right(Some(DeltaCharge(r2, r1)))
+
+          case _ =>
+            Left(
+              Error(
+                s"Could not find return charges for both transactions in delta charge with charge reference $chargeReference: [transaction1 = $transaction1, transaction2 = $transaction2]"
+              )
+            )
+        }
+      case _                                   =>
+        Left(
+          Error(
+            s"Could not find one or two transactions to look for delta charge  with charge reference $chargeReference: $financialTransactions"
+          )
+        )
+    }
+
+  private def getReturnCharge(transaction: DesFinancialTransaction): Option[ReturnCharge] =
+    transaction.items.flatMap(_.collect {
+      case DesFinancialTransactionItem(Some(amount), None, None, None, Some(dueDate)) =>
+        ReturnCharge(transaction.chargeReference, AmountInPence.fromPounds(amount), dueDate)
+    }.headOption)
 
   private def handleAmendedReturn(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit] = {
     def modifyDraftReturn(draftReturn: DraftReturn): Option[DraftReturn] =
@@ -278,21 +362,7 @@ class DefaultReturnsService @Inject() (
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]] = {
-    lazy val desFinancialData = {
-      val timer = metrics.financialDataTimer.time()
-      financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
-        timer.close()
-
-        if (response.status === OK)
-          response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
-        else if (isNoFinancialDataResponse(response))
-          Right(DesFinancialDataResponse(List.empty))
-        else {
-          metrics.financialDataErrorCounter.inc()
-          Left(Error(s"call to get financial data came back with unexpected status ${response.status}"))
-        }
-      }
-    }
+    lazy val desFinancialData = getDesFinalcialData(cgtReference, fromDate, toDate)
 
     lazy val desReturnList: EitherT[Future, Error, DesListReturnsResponse] = {
       val timer = metrics.listReturnsTimer.time()
@@ -381,7 +451,8 @@ class DefaultReturnsService @Inject() (
   }
 
   private def prepareSubmitReturnResponse(
-    response: DesSubmitReturnResponse
+    response: DesSubmitReturnResponse,
+    deltaCharge: Option[DeltaCharge]
   ): EitherT[Future, Error, SubmitReturnResponse] =
     EitherT.fromEither[Future] {
       val charge = (
@@ -409,7 +480,14 @@ class DefaultReturnsService @Inject() (
             )
           )
       }
-      charge.map(SubmitReturnResponse(response.ppdReturnResponseDetails.formBundleNumber, response.processingDate, _))
+      charge.map(originalCharge =>
+        SubmitReturnResponse(
+          response.ppdReturnResponseDetails.formBundleNumber,
+          response.processingDate,
+          originalCharge,
+          deltaCharge
+        )
+      )
     }
 
   private def auditSubmitReturnResponse(
