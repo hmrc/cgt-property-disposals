@@ -114,8 +114,8 @@ class DefaultReturnsService @Inject() (
       desResponse        <- EitherT.fromEither[Future](
                               returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
                             )
-      deltaCharge        <- if (isAmendReturn) EitherT.pure(None)
-                            else deltaCharge(desResponse, cgtReference, fromDate, toDate)
+      deltaCharge        <- if (isAmendReturn) deltaCharge(desResponse, cgtReference, fromDate, toDate)
+                            else EitherT.pure(None)
       returnResponse     <- prepareSubmitReturnResponse(desResponse, deltaCharge)
       _                  <- sendEmailAndAudit(returnRequest, returnResponse).leftFlatMap { e =>
                               logger.warn("Could not send return submission confirmation email or audit event", e)
