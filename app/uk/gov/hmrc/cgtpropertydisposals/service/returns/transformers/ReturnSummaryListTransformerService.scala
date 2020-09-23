@@ -165,7 +165,8 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               Some(amount),
               Some(paymentMethod),
               Some(clearingDate),
-              Some(clearingReason)
+              Some(clearingReason),
+              _
             ) =>
           PaymentMethod
             .fromString(paymentMethod) match {
@@ -196,7 +197,8 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               Some(amount),
               None,
               Some(clearingDate),
-              Some(clearingReason)
+              Some(clearingReason),
+              _
             ) =>
           Right(
             Some(
@@ -213,7 +215,8 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               Some(amount),
               Some(paymentMethod),
               Some(clearingDate),
-              None
+              None,
+              _
             ) =>
           PaymentMethod
             .fromString(paymentMethod)
@@ -232,11 +235,12 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               Some(_),
               None,
               Some(_),
-              None
+              None,
+              _
             ) =>
           Left(s"Both payment method and clearing reason are missing.")
 
-        case DesFinancialTransactionItem(None, None, None, None) =>
+        case DesFinancialTransactionItem(None, None, None, None, None) =>
           logger.info(s"Could not any payment fields.")
           Right(None)
 

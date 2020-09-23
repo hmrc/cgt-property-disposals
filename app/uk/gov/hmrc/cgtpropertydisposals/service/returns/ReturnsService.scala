@@ -123,6 +123,23 @@ class DefaultReturnsService @Inject() (
     } yield returnResponse
   }
 
+  private def deltaCharge(
+    response: DesSubmitReturnResponse,
+    cgtReference: CgtReference,
+    fromDate: LocalDate,
+    toDate: LocalDate
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[DeltaCharge]] =
+    response.ppdReturnResponseDetails.chargeReference match {
+      case Some(chargeReference) =>
+        lazy val charge = for {
+          desFinancialData <- getDesFinalcialData(cgtReference, fromDate, toDate)
+          charge           <- EitherT.fromEither[Future](findDeltaCharge(desFinancialData.financialTransactions, chargeReference))
+        } yield charge
+
+        charge
+      case _                     => EitherT.pure(None)
+    }
+
   private def getDesFinalcialData(
     cgtReference: CgtReference,
     fromDate: LocalDate,
@@ -146,58 +163,30 @@ class DefaultReturnsService @Inject() (
     desFinancialData
   }
 
-  private def deltaCharge(
-    response: DesSubmitReturnResponse,
-    cgtReference: CgtReference,
-    fromDate: LocalDate,
-    toDate: LocalDate
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[DeltaCharge]] =
-    response.ppdReturnResponseDetails.chargeReference match {
-      case Some(chargeReference) =>
-        lazy val charge = for {
-          desFinancialData <- getDesFinalcialData(cgtReference, fromDate, toDate)
-          charge           <- findDeltaCharge(desFinancialData.financialTransactions, chargeReference)
-        } yield charge
-
-        charge
-      case _                     => EitherT.pure(None)
-    }
-
   private def findDeltaCharge(
     financialTransactions: List[DesFinancialTransaction],
     chargeReference: String
-  ): EitherT[Future, Error, Option[DeltaCharge]] =
-    financialTransactions.filter(_.chargeReference === chargeReference).flatMap(_.items) match {
-      case _ :: Nil => EitherT.leftT(Error(s"No delta charge found."))
-      case List(
-            DesFinancialTransactionItem(Some(amount1), None, None, None, Some(dueDate1)) :: DesFinancialTransactionItem(
-              Some(amount2),
-              None,
-              None,
-              None,
-              Some(dueDate2)
-            ) :: Nil
-          ) =>
-        if (dueDate1.isBefore(dueDate2))
-          EitherT.rightT(
-            Some(
-              DeltaCharge(
-                ReturnCharge(chargeReference, AmountInPence.fromPounds(amount2), dueDate2),
-                ReturnCharge(chargeReference, AmountInPence.fromPounds(amount1), dueDate1)
-              )
-            )
-          )
-        else
-          EitherT.rightT(
-            Some(
-              DeltaCharge(
-                ReturnCharge(chargeReference, AmountInPence.fromPounds(amount1), dueDate1),
-                ReturnCharge(chargeReference, AmountInPence.fromPounds(amount2), dueDate2)
-              )
-            )
-          )
+  ): Either[Error, Option[DeltaCharge]] = {
+    println("\n\n\n\n\n")
+    println(s"chargeReference = $chargeReference")
+    println("\n\n\n\n\n")
+    financialTransactions.filter(_.chargeReference === chargeReference) match {
+      case _ :: Nil        => Right(None)
+      case c1 :: c2 :: Nil =>
+        getReturnCharge(c1) -> getReturnCharge(c2) match {
+          case (Some(r1), Some(r2)) =>
+            if (r1.dueDate.isBefore(r2.dueDate)) Right(Some(DeltaCharge(r1, r2)))
+            else Right(Some(DeltaCharge(r2, r1)))
 
-      case _ => EitherT.leftT(Error(s"No delta charge found."))
+          case _ => Left(Error("No delta charge found.."))
+        }
+      case _               => Left(Error("No delta charge found..."))
+    }
+  }
+
+  private def getReturnCharge(transaction: DesFinancialTransaction): Option[ReturnCharge] =
+    transaction.items.collect { case DesFinancialTransactionItem(Some(amount), None, None, None, Some(dueDate)) :: _ =>
+      ReturnCharge(transaction.chargeReference, AmountInPence.fromPounds(amount), dueDate)
     }
 
   private def handleAmendedReturn(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit] = {

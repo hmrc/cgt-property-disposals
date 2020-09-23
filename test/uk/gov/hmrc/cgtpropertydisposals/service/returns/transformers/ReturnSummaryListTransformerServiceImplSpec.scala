@@ -52,7 +52,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val validDesFinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = validDesCharge.chargeReference,
-          items = Some(List(DesFinancialTransactionItem(None, None, None, None)))
+          items = Some(List(DesFinancialTransactionItem(None, None, None, None, None)))
         )
 
         "there is a charge in a return summary with a charge type which is not recognised" in {
@@ -109,7 +109,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 List(
                   validDesFinancialTransaction.copy(
                     items = Some(
-                      List(DesFinancialTransactionItem(amount, paymentMethod, date, clearingReason))
+                      List(DesFinancialTransactionItem(amount, paymentMethod, date, clearingReason, None))
                     )
                   )
                 ),
@@ -230,7 +230,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 Some(mainCharge2PaymentAmount),
                 Some(mainCharge2PaymentMethod),
                 Some(mainCharge2PaymentDate),
-                Some(mainCharge2ClearingReason)
+                Some(mainCharge2ClearingReason),
+                None
               )
             )
           )
@@ -238,7 +239,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val penaltyChargeFinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = penaltyCharge.chargeReference,
-          items = Some(List(DesFinancialTransactionItem(None, None, None, None)))
+          items = Some(List(DesFinancialTransactionItem(None, None, None, None, None)))
         )
 
         val result = transformer.toReturnSummaryList(
