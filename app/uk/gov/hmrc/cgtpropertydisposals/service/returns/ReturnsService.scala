@@ -93,6 +93,7 @@ class DefaultReturnsService @Inject() (
     returnRequest: SubmitReturnRequest,
     representeeDetails: Option[RepresenteeDetails]
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
+    val isAmendReturn                                  = returnRequest.originalReturnFormBundleId.isDefined
     val cgtReference                                   = returnRequest.subscribedDetails.cgtReference
     val taxYear                                        = returnRequest.completeReturn.fold(
       _.triageAnswers.taxYear,
@@ -113,7 +114,8 @@ class DefaultReturnsService @Inject() (
       desResponse        <- EitherT.fromEither[Future](
                               returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
                             )
-      deltaCharge        <- deltaCharge(desResponse, cgtReference, fromDate, toDate)
+      deltaCharge        <- if (isAmendReturn) EitherT.pure(None)
+                            else deltaCharge(desResponse, cgtReference, fromDate, toDate)
       returnResponse     <- prepareSubmitReturnResponse(desResponse, deltaCharge)
       _                  <- sendEmailAndAudit(returnRequest, returnResponse).leftFlatMap { e =>
                               logger.warn("Could not send return submission confirmation email or audit event", e)
@@ -131,13 +133,12 @@ class DefaultReturnsService @Inject() (
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[DeltaCharge]] =
     response.ppdReturnResponseDetails.chargeReference match {
       case Some(chargeReference) =>
-        lazy val charge = for {
+        for {
           desFinancialData <- getDesFinalcialData(cgtReference, fromDate, toDate)
           charge           <- EitherT.fromEither[Future](findDeltaCharge(desFinancialData.financialTransactions, chargeReference))
         } yield charge
 
-        charge
-      case _                     => EitherT.pure(None)
+      case _ => EitherT.pure(None)
     }
 
   private def getDesFinalcialData(
@@ -361,21 +362,7 @@ class DefaultReturnsService @Inject() (
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]] = {
-    lazy val desFinancialData = {
-      val timer = metrics.financialDataTimer.time()
-      financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
-        timer.close()
-
-        if (response.status === OK)
-          response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
-        else if (isNoFinancialDataResponse(response))
-          Right(DesFinancialDataResponse(List.empty))
-        else {
-          metrics.financialDataErrorCounter.inc()
-          Left(Error(s"call to get financial data came back with unexpected status ${response.status}"))
-        }
-      }
-    }
+    lazy val desFinancialData = getDesFinalcialData(cgtReference, fromDate, toDate)
 
     lazy val desReturnList: EitherT[Future, Error, DesListReturnsResponse] = {
       val timer = metrics.listReturnsTimer.time()
