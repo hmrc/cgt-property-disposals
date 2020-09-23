@@ -166,28 +166,25 @@ class DefaultReturnsService @Inject() (
   private def findDeltaCharge(
     financialTransactions: List[DesFinancialTransaction],
     chargeReference: String
-  ): Either[Error, Option[DeltaCharge]] = {
-    println("\n\n\n\n\n")
-    println(s"chargeReference = $chargeReference")
-    println("\n\n\n\n\n")
+  ): Either[Error, Option[DeltaCharge]] = 
     financialTransactions.filter(_.chargeReference === chargeReference) match {
-      case _ :: Nil        => Right(None)
-      case c1 :: c2 :: Nil =>
-        getReturnCharge(c1) -> getReturnCharge(c2) match {
+      case _ :: Nil                            => Right(None)
+      case transaction1 :: transaction2 :: Nil =>
+        getReturnCharge(transaction1) -> getReturnCharge(transaction2) match {
           case (Some(r1), Some(r2)) =>
             if (r1.dueDate.isBefore(r2.dueDate)) Right(Some(DeltaCharge(r1, r2)))
             else Right(Some(DeltaCharge(r2, r1)))
 
-          case _ => Left(Error("No delta charge found.."))
+          case _ => Left(Error(s"Could not find return charges for both transactions in delta charge with charge reference $chargeReference: [transaction1 = $transaction1, transaction2 = $transaction2]"))
         }
-      case _               => Left(Error("No delta charge found..."))
+      case _                                   => Left(Error(s"Could not find one or two transactions to look for delta charge  with charge reference $chargeReference: $financialTransactions"))
     }
-  }
 
   private def getReturnCharge(transaction: DesFinancialTransaction): Option[ReturnCharge] =
-    transaction.items.collect { case DesFinancialTransactionItem(Some(amount), None, None, None, Some(dueDate)) :: _ =>
-      ReturnCharge(transaction.chargeReference, AmountInPence.fromPounds(amount), dueDate)
-    }
+    transaction.items.flatMap(_.collect {
+      case DesFinancialTransactionItem(Some(amount), None, None, None, Some(dueDate)) =>
+        ReturnCharge(transaction.chargeReference, AmountInPence.fromPounds(amount), dueDate)
+    }.headOption)
 
   private def handleAmendedReturn(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit] = {
     def modifyDraftReturn(draftReturn: DraftReturn): Option[DraftReturn] =
