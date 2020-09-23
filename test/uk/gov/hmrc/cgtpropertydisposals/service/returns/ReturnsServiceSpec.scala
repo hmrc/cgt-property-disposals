@@ -39,7 +39,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtRef
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.{DeltaCharge, ReturnCharge}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
@@ -1456,6 +1456,281 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               s"Could not find one or two transactions to look for delta charge  with charge reference $chargeReference: $financialTransactions"
             )
           )
+        }
+
+      }
+
+      "return expected delta charge" when {
+
+        "there are only one DesFinancialTransaction which matches return's charge reference" in {
+
+          val formBundleId    = "804123737752"
+          val chargeReference = "XCRG9448959757"
+
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(
+            originalReturnFormBundleId = None
+          )
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
+
+          val desFinancialDataResponse = Json.parse(
+            s"""
+               |{
+               |  "idType": "ZCGT",
+               |  "processingDate": "2020-03-02T16:09:29Z",
+               |  "idNumber": "XZCGTP001000257",
+               |  "regimeType": "CGT",
+               |  "financialTransactions": [
+               |    {
+               |      "sapDocumentNumberItem": "0001",
+               |      "contractObjectType": "CGTP",
+               |      "originalAmount": -12812,
+               |      "contractObject": "00000250000000000259",
+               |      "businessPartner": "0100276998",
+               |      "mainTransaction": "5470",
+               |      "taxPeriodTo": "2020-04-05",
+               |      "periodKey": "19CY",
+               |      "items": [
+               |        {
+               |          "subItem": "000",
+               |          "dueDate": "2020-03-03",
+               |          "amount": 12812
+               |        }
+               |      ],
+               |      "subTransaction": "1060",
+               |      "mainType": "CGT PPD Return UK Resident",
+               |      "chargeReference": "$chargeReference",
+               |      "contractAccount": "000016001259",
+               |      "chargeType": "CGT PPD Return UK Resident",
+               |      "taxPeriodFrom": "2019-04-06",
+               |      "sapDocumentNumber": "003070004278",
+               |      "contractAccountCategory": "16",
+               |      "outstandingAmount": 12812,
+               |      "periodKeyDescription": "CGT Annual 2019/2020"
+               |    }
+               |  ]
+               |}
+               |""".stripMargin
+          )
+
+          val taxYear              = submitReturnRequest.completeReturn.fold(
+            _.triageAnswers.taxYear,
+            _.triageAnswers.disposalDate.taxYear,
+            _.triageAnswers.disposalDate.taxYear,
+            _.triageAnswers.taxYear,
+            _.triageAnswers.disposalDate.taxYear
+          )
+          val submitReturnResponse = SubmitReturnResponse(
+            "804123737752",
+            LocalDateTime.of(
+              LocalDate.of(2020, 2, 20),
+              LocalTime.of(9, 30, 47)
+            ),
+            Some(
+              ReturnCharge(
+                chargeReference,
+                AmountInPence(1100L),
+                LocalDate.of(2020, 3, 11)
+              )
+            ),
+            None
+          )
+          val (fromDate, toDate)   = (taxYear.startDateInclusive, taxYear.endDateExclusive)
+          val responseJsonBody     =
+            Json.parse(s"""
+                          |{
+                          |"processingDate":"2020-02-20T09:30:47Z",
+                          |"ppdReturnResponseDetails": {
+                          |     "chargeType": "Late Penalty",
+                          |     "chargeReference":"$chargeReference",
+                          |     "amount":11.0,
+                          |     "dueDate":"2020-03-11",
+                          |     "formBundleNumber":"$formBundleId",
+                          |     "cgtReferenceNumber":"${submitReturnRequest.subscribedDetails.cgtReference}"
+                          |  }
+                          |}
+                          |""".stripMargin)
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+            mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
+            )
+            mockAuditReturnConfirmationEmailEvent(
+              submitReturnRequest.subscribedDetails.emailAddress.value,
+              submitReturnRequest.subscribedDetails.cgtReference.value,
+              formBundleId
+            )
+          }
+
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
+
+        }
+
+        "there are two DesFinancialTransactions which matches return's charge reference" in {
+
+          val formBundleId    = "804123737752"
+          val chargeReference = "XCRG9448959757"
+
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(
+            originalReturnFormBundleId = None
+          )
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
+
+          val desFinancialDataResponse = Json.parse(
+            s"""
+               |{
+               |  "idType": "ZCGT",
+               |  "processingDate": "2020-03-02T16:09:29Z",
+               |  "idNumber": "XZCGTP001000257",
+               |  "regimeType": "CGT",
+               |  "financialTransactions": [
+               |    {
+               |      "sapDocumentNumberItem": "0001",
+               |      "contractObjectType": "CGTP",
+               |      "originalAmount": -12812,
+               |      "contractObject": "00000250000000000259",
+               |      "businessPartner": "0100276998",
+               |      "mainTransaction": "5470",
+               |      "taxPeriodTo": "2020-04-05",
+               |      "periodKey": "19CY",
+               |      "items": [
+               |        {
+               |          "subItem": "000",
+               |          "dueDate": "2020-03-03",
+               |          "amount": 12812
+               |        }
+               |      ],
+               |      "subTransaction": "1060",
+               |      "mainType": "CGT PPD Return UK Resident",
+               |      "chargeReference": "$chargeReference",
+               |      "contractAccount": "000016001259",
+               |      "chargeType": "CGT PPD Return UK Resident",
+               |      "taxPeriodFrom": "2019-04-06",
+               |      "sapDocumentNumber": "003070004278",
+               |      "contractAccountCategory": "16",
+               |      "outstandingAmount": 12812,
+               |      "periodKeyDescription": "CGT Annual 2019/2020"
+               |    },
+               |    {
+               |      "sapDocumentNumberItem": "0001",
+               |      "contractObjectType": "CGTP",
+               |      "originalAmount": 103039,
+               |      "contractObject": "00000250000000000259",
+               |      "businessPartner": "0100276998",
+               |      "mainTransaction": "5470",
+               |      "taxPeriodTo": "2020-04-05",
+               |      "periodKey": "19CY",
+               |      "items": [
+               |        {
+               |          "subItem": "000",
+               |          "dueDate": "2020-03-02",
+               |          "amount": 103039
+               |        }
+               |      ],
+               |      "subTransaction": "1060",
+               |      "mainType": "CGT PPD Return UK Resident",
+               |      "chargeReference": "$chargeReference",
+               |      "contractAccount": "000016001259",
+               |      "chargeType": "CGT PPD Return UK Resident",
+               |      "taxPeriodFrom": "2019-04-06",
+               |      "sapDocumentNumber": "003100004253",
+               |      "contractAccountCategory": "16",
+               |      "outstandingAmount": 103039,
+               |      "periodKeyDescription": "CGT Annual 2019/2020"
+               |    }
+               |  ]
+               |}
+               |""".stripMargin
+          )
+
+          val taxYear            = submitReturnRequest.completeReturn.fold(
+            _.triageAnswers.taxYear,
+            _.triageAnswers.disposalDate.taxYear,
+            _.triageAnswers.disposalDate.taxYear,
+            _.triageAnswers.taxYear,
+            _.triageAnswers.disposalDate.taxYear
+          )
+          val (fromDate, toDate) = (taxYear.startDateInclusive, taxYear.endDateExclusive)
+
+          val returnCharge1 = ReturnCharge("XCRG9448959757", AmountInPence(10303900), LocalDate.of(2020, 3, 2))
+          val returnCharge2 = ReturnCharge("XCRG9448959757", AmountInPence(1281200), LocalDate.of(2020, 3, 3))
+
+          val deltaCharge          = DeltaCharge(returnCharge1, returnCharge2)
+          val submitReturnResponse = SubmitReturnResponse(
+            "804123737752",
+            LocalDateTime.of(
+              LocalDate.of(2020, 2, 20),
+              LocalTime.of(9, 30, 47)
+            ),
+            Some(returnCharge1),
+            Some(deltaCharge)
+          )
+          val responseJsonBody     =
+            Json.parse(s"""
+                          |{
+                          |"processingDate":"2020-02-20T09:30:47Z",
+                          |"ppdReturnResponseDetails": {
+                          |     "chargeType": "Late Penalty",
+                          |     "chargeReference":"$chargeReference",
+                          |     "amount":103039.0,
+                          |     "dueDate":"2020-03-02",
+                          |     "formBundleNumber":"$formBundleId",
+                          |     "cgtReferenceNumber":"${submitReturnRequest.subscribedDetails.cgtReference}"
+                          |  }
+                          |}
+                          |""".stripMargin)
+
+          inSequence {
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+            mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
+            )
+            mockAuditReturnConfirmationEmailEvent(
+              submitReturnRequest.subscribedDetails.emailAddress.value,
+              submitReturnRequest.subscribedDetails.cgtReference.value,
+              formBundleId
+            )
+          }
+
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
 
       }
