@@ -93,9 +93,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
           List(
             (None, Some(paymentMethod), Some(date), Some(clearingReason)),
-            (Some(amount), None, Some(date), None),
             (Some(amount), Some(paymentMethod), None, Some(clearingReason)),
-            (None, None, Some(date), None),
             (Some(amount), None, None, Some(clearingReason)),
             (None, Some(paymentMethod), None, None)
           ).foreach { case (amount, paymentMethod, date, clearingReason) =>
@@ -232,6 +230,13 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 Some(mainCharge2PaymentDate),
                 Some(mainCharge2ClearingReason),
                 None
+              ),
+              DesFinancialTransactionItem(
+                Some(BigDecimal(1)),
+                None,
+                None,
+                None,
+                NOne
               )
             )
           )
