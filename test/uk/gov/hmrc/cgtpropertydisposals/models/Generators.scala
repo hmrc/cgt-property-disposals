@@ -358,6 +358,8 @@ trait DesReturnsGen { this: GenUtils =>
 
   implicit val representedPersonDetailsGen: Gen[RepresentedPersonDetails] = gen[RepresentedPersonDetails]
 
+  implicit val incomeAllowanceDetailsGen: Gen[IncomeAllowanceDetails] = gen[IncomeAllowanceDetails]
+
   implicit val desReturnSummaryGen: Gen[DesReturnSummary] = gen[DesReturnSummary]
 
   implicit val desFinancialTransactionGen: Gen[DesFinancialTransaction] = gen[DesFinancialTransaction]
