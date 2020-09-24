@@ -114,6 +114,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         disposalDetails = List(validSingleDisposalDetails),
         returnDetails = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual),
         reliefDetails = Some(validReliefDetails),
+        incomeAllowanceDetails = sample[IncomeAllowanceDetails].copy(estimatedIncome = Some(BigDecimal(1))),
         representedPersonDetails = None
       )
 
@@ -243,7 +244,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         }
 
         "there are represented personal details but no date of death" in {
-          mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
+          mockGetTaxYearAndCalculatedTaxDue()
 
           val result = transformer.toCompleteReturn(
             validSingleDisposalDesReturnDetails.copy(
@@ -261,7 +262,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         }
 
         "there are represented personal details with a date of death" in {
-          mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
+          mockGetTaxYearAndCalculatedTaxDue()
 
           val result = transformer.toCompleteReturn(
             validSingleDisposalDesReturnDetails.copy(
@@ -710,7 +711,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
         }
 
         "the other reliefs answers indicate the user selected other reliefs" in {
-          mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
+          mockGetTaxYearAndCalculatedTaxDue()
 
           val result = transformer.toCompleteReturn(
             validSingleDisposalDesReturnDetails.copy(
@@ -816,15 +817,15 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
       "transform year to date liability answers correctly" when {
 
-        "the user has not selected other reliefs and" when {
+        "an estimated income is found and" when {
 
-          "the estimated income is defined" in {
+          "finding the estimated income" in {
             mockGetTaxYearAndCalculatedTaxDue()
 
             val result = transformer.toCompleteReturn(
               validSingleDisposalDesReturnDetails.copy(
                 incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
-                  estimatedIncome = Some(BigDecimal("123.45"))
+                  estimatedIncome = Some(BigDecimal("1.1"))
                 )
               )
             )
@@ -832,25 +833,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             completeSingleDisposalReturnValue(result)(
               _.yearToDateLiabilityAnswers.map(_.estimatedIncome)
             ) shouldBe Right(
-              Right(AmountInPence(12345L))
-            )
-          }
-
-          "the estimated income is not defined" in {
-            mockGetTaxYearAndCalculatedTaxDue()
-
-            val result = transformer.toCompleteReturn(
-              validSingleDisposalDesReturnDetails.copy(
-                incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
-                  estimatedIncome = None
-                )
-              )
-            )
-
-            completeSingleDisposalReturnValue(result)(
-              _.yearToDateLiabilityAnswers.map(_.estimatedIncome)
-            ) shouldBe Right(
-              Right(AmountInPence.zero)
+              Right(AmountInPence(110L))
             )
           }
 
@@ -860,6 +843,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             val result = transformer.toCompleteReturn(
               validSingleDisposalDesReturnDetails.copy(
                 incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  estimatedIncome = Some(BigDecimal("1.1")),
                   personalAllowance = Some(BigDecimal("123.45"))
                 )
               )
@@ -878,6 +862,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             val result = transformer.toCompleteReturn(
               validSingleDisposalDesReturnDetails.copy(
                 incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  estimatedIncome = Some(BigDecimal("1.1")),
                   personalAllowance = None
                 )
               )
@@ -897,6 +882,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               validSingleDisposalDesReturnDetails.copy(
                 returnDetails = validSingleDisposalDesReturnDetails.returnDetails.copy(
                   estimate = true
+                ),
+                incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  estimatedIncome = Some(BigDecimal("1.1"))
                 )
               )
             )
@@ -911,7 +899,13 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           "getting the calculated tax due" in {
             mockGetTaxYearAndCalculatedTaxDue()
 
-            val result = transformer.toCompleteReturn(validSingleDisposalDesReturnDetails)
+            val result = transformer.toCompleteReturn(
+              validSingleDisposalDesReturnDetails.copy(
+                incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  estimatedIncome = Some(BigDecimal("1.1"))
+                )
+              )
+            )
 
             completeSingleDisposalReturnValue(result)(
               _.yearToDateLiabilityAnswers.map(_.calculatedTaxDue)
@@ -927,6 +921,9 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
               validSingleDisposalDesReturnDetails.copy(
                 returnDetails = validSingleDisposalDesReturnDetails.returnDetails.copy(
                   totalLiability = BigDecimal("12345.67")
+                ),
+                incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+                  estimatedIncome = Some(BigDecimal("1.1"))
                 )
               )
             )
@@ -938,19 +935,20 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
         }
 
-        "the user has selected other reliefs and" when {
+        "there is no estimated income found and" when {
 
-          val returnDetailsWithOtherReliefs = validSingleDisposalDesReturnDetails.copy(
-            reliefDetails =
-              Some(sample[ReliefDetails].copy(otherRelief = Some("other"), otherReliefAmount = Some(BigDecimal("100"))))
+          val returnDetailsWithNoEstimatedIncome = validSingleDisposalDesReturnDetails.copy(
+            incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
+              estimatedIncome = None
+            )
           )
 
           "finding the taxableGainOrLoss when a loss has been made" in {
             mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 
             val result = transformer.toCompleteReturn(
-              returnDetailsWithOtherReliefs.copy(
-                returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
+              returnDetailsWithNoEstimatedIncome.copy(
+                returnDetails = returnDetailsWithNoEstimatedIncome.returnDetails.copy(
                   totalNetLoss = Some(BigDecimal("1")),
                   totalTaxableGain = BigDecimal("0")
                 )
@@ -968,8 +966,8 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 
             val result = transformer.toCompleteReturn(
-              returnDetailsWithOtherReliefs.copy(
-                returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
+              returnDetailsWithNoEstimatedIncome.copy(
+                returnDetails = returnDetailsWithNoEstimatedIncome.returnDetails.copy(
                   totalNetLoss = None,
                   totalTaxableGain = BigDecimal("2")
                 )
@@ -987,8 +985,8 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 
             val result = transformer.toCompleteReturn(
-              returnDetailsWithOtherReliefs.copy(
-                returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
+              returnDetailsWithNoEstimatedIncome.copy(
+                returnDetails = returnDetailsWithNoEstimatedIncome.returnDetails.copy(
                   estimate = true
                 )
               )
@@ -1005,8 +1003,8 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 
             val result = transformer.toCompleteReturn(
-              returnDetailsWithOtherReliefs.copy(
-                returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
+              returnDetailsWithNoEstimatedIncome.copy(
+                returnDetails = returnDetailsWithNoEstimatedIncome.returnDetails.copy(
                   totalLiability = BigDecimal("3")
                 )
               )
@@ -1018,27 +1016,6 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
           }
 
-        }
-
-        "the user has selected no other reliefs and the original return was done on their behalf" in {
-          val returnDetailsWithOtherReliefs = validSingleDisposalDesReturnDetails.copy(
-            representedPersonDetails = Some(sample[RepresentedPersonDetails]),
-            reliefDetails = Some(sample[ReliefDetails].copy(otherRelief = None, otherReliefAmount = None))
-          )
-
-          mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
-
-          val result = transformer.toCompleteReturn(
-            returnDetailsWithOtherReliefs.copy(
-              returnDetails = returnDetailsWithOtherReliefs.returnDetails.copy(
-                totalLiability = BigDecimal("3")
-              )
-            )
-          )
-
-          completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.taxDue)) shouldBe Right(
-            Left(AmountInPence(300L))
-          )
         }
 
       }
