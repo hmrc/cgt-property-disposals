@@ -23,6 +23,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesFinancialTransactionItem}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, UkResidentReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
@@ -52,7 +53,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val validDesFinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = validDesCharge.chargeReference,
-          items = Some(List(DesFinancialTransactionItem(None, None, None, None, None)))
+          items =
+            Some(List(DesFinancialTransactionItem(Some(BigDecimal(1)), None, None, None, Some(validDesCharge.dueDate))))
         )
 
         "there is a charge in a return summary with a charge type which is not recognised" in {
@@ -156,19 +158,83 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         }
 
-        "a return summary is found with more than one UkResidentReturn or NonUkResidentReturn charge type" in {
-          val otherChargeReference = s"${validDesCharge.chargeReference}-copy"
-          val result               = transformer.toReturnSummaryList(
+        "an financial transaction item cannot be found with a due date which is the same as the due date in the return summary" in {
+          val result = transformer.toReturnSummaryList(
+            List(
+              validDesReturnSummary
+            ),
+            List(
+              sample[DesFinancialTransaction].copy(
+                chargeReference = validDesCharge.chargeReference,
+                items = Some(
+                  List(
+                    DesFinancialTransactionItem(
+                      Some(BigDecimal(1)),
+                      None,
+                      None,
+                      None,
+                      Some(validDesCharge.dueDate.plusDays(1L))
+                    )
+                  )
+                )
+              )
+            ),
+            List.empty
+          )
+
+          result.isLeft shouldBe true
+        }
+
+        "there exist more than two charges with a main return charge type in one return" in {
+          val result = transformer.toReturnSummaryList(
             List(
               validDesReturnSummary.copy(
                 charges = Some(
-                  List(validDesCharge, validDesCharge.copy(chargeReference = otherChargeReference))
+                  List(
+                    validDesCharge,
+                    validDesCharge.copy(dueDate = LocalDate.now().plusDays(1L)),
+                    validDesCharge.copy(dueDate = LocalDate.now().plusDays(2L))
+                  )
                 )
               )
             ),
             List(
-              validDesFinancialTransaction,
-              validDesFinancialTransaction.copy(chargeReference = otherChargeReference)
+              sample[DesFinancialTransaction].copy(
+                chargeReference = validDesCharge.chargeReference,
+                items = Some(
+                  List(
+                    DesFinancialTransactionItem(Some(BigDecimal(1)), None, None, None, Some(validDesCharge.dueDate))
+                  )
+                )
+              ),
+              sample[DesFinancialTransaction].copy(
+                chargeReference = validDesCharge.chargeReference,
+                items = Some(
+                  List(
+                    DesFinancialTransactionItem(
+                      Some(BigDecimal(1)),
+                      None,
+                      None,
+                      None,
+                      Some(LocalDate.now().plusDays(1L))
+                    )
+                  )
+                )
+              ),
+              sample[DesFinancialTransaction].copy(
+                chargeReference = validDesCharge.chargeReference,
+                items = Some(
+                  List(
+                    DesFinancialTransactionItem(
+                      Some(BigDecimal(1)),
+                      None,
+                      None,
+                      None,
+                      Some(LocalDate.now().plusDays(2L))
+                    )
+                  )
+                )
+              )
             ),
             List.empty
           )
@@ -181,21 +247,24 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
       "transform the data correctly" when {
         val (ukAddress1, ukAddress2) = sample[UkAddress] -> sample[UkAddress]
 
+        val (mainDueDate1, mainDueDate2, penaltyChargeDueDate) =
+          (LocalDate.ofEpochDay(1), LocalDate.ofEpochDay(2), LocalDate.ofEpochDay(3))
+
         val (mainCharge1, mainCharge2, penaltyCharge) =
           (
             DesCharge(
               "CGT PPD Return UK Resident",
-              LocalDate.ofEpochDay(1),
+              mainDueDate1,
               "reference1"
             ),
             DesCharge(
               "CGT PPD Return UK Resident",
-              LocalDate.ofEpochDay(2),
+              mainDueDate2,
               "reference2"
             ),
             DesCharge(
               "CGT PPD Late Filing Penalty",
-              LocalDate.ofEpochDay(3),
+              penaltyChargeDueDate,
               "reference3"
             )
           )
@@ -214,7 +283,17 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val mainCharge1FinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = mainCharge1.chargeReference,
-          items = None
+          items = Some(
+            List(
+              DesFinancialTransactionItem(
+                Some(BigDecimal(1)),
+                None,
+                None,
+                None,
+                Some(mainDueDate1)
+              )
+            )
+          )
         )
 
         val (mainCharge2PaymentAmount, mainCharge2PaymentMethod, mainCharge2PaymentDate, mainCharge2ClearingReason) =
@@ -236,7 +315,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
                 None,
                 None,
                 None,
-                None
+                Some(mainDueDate2)
               )
             )
           )
@@ -244,7 +323,8 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val penaltyChargeFinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = penaltyCharge.chargeReference,
-          items = Some(List(DesFinancialTransactionItem(None, None, None, None, None)))
+          items =
+            Some(List(DesFinancialTransactionItem(Some(BigDecimal(1)), None, None, None, Some(penaltyChargeDueDate))))
         )
 
         val result = transformer.toReturnSummaryList(
@@ -386,13 +466,73 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         }
 
+        "finding a delta charge if one exists" in {
+          val deltaChargeDueDate                    = mainCharge1.dueDate.plusYears(1L)
+          val (mainChargeAmount, deltaChargeAmount) = BigDecimal(1) -> BigDecimal(2)
+          val result                                = transformer.toReturnSummaryList(
+            List(
+              validDesReturnSummary1.copy(
+                charges = Some(
+                  List(
+                    mainCharge1
+                  )
+                )
+              )
+            ),
+            List(
+              sample[DesFinancialTransaction].copy(
+                chargeReference = mainCharge1.chargeReference,
+                items = Some(
+                  List(
+                    DesFinancialTransactionItem(Some(mainChargeAmount), None, None, None, Some(mainDueDate1))
+                  )
+                ),
+                originalAmount = mainChargeAmount
+              ),
+              sample[DesFinancialTransaction].copy(
+                chargeReference = mainCharge1.chargeReference,
+                items = Some(
+                  List(
+                    DesFinancialTransactionItem(Some(deltaChargeAmount), None, None, None, Some(deltaChargeDueDate))
+                  )
+                ),
+                originalAmount = deltaChargeAmount
+              )
+            ),
+            List.empty
+          )
+
+          result match {
+            case Right(r :: Nil) =>
+              r.mainReturnChargeAmount shouldBe AmountInPence.fromPounds(mainChargeAmount + deltaChargeAmount)
+              r.charges.toSet          shouldBe Set(
+                Charge(
+                  UkResidentReturn,
+                  mainCharge1.chargeReference,
+                  AmountInPence.fromPounds(mainChargeAmount),
+                  mainDueDate1,
+                  List.empty
+                ),
+                Charge(
+                  DeltaCharge,
+                  mainCharge1.chargeReference,
+                  AmountInPence.fromPounds(deltaChargeAmount),
+                  deltaChargeDueDate,
+                  List.empty
+                )
+              )
+            case other           => fail(s"Expected one return summary but got $other")
+          }
+        }
+
       }
 
       "accept non uk addresses" in {
         val nonUkAddress          = NonUkAddress("1 the Street", None, None, None, None, sample[Country])
+        val dueDate               = LocalDate.ofEpochDay(1)
         val mainCharge            = DesCharge(
           "CGT PPD Return UK Resident",
-          LocalDate.ofEpochDay(1),
+          dueDate,
           "reference1"
         )
         val validDesReturnSummary =
@@ -403,7 +543,17 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         val mainChargeFinancialTransaction = sample[DesFinancialTransaction].copy(
           chargeReference = mainCharge.chargeReference,
-          items = None
+          items = Some(
+            List(
+              DesFinancialTransactionItem(
+                Some(BigDecimal(1)),
+                None,
+                None,
+                None,
+                Some(dueDate)
+              )
+            )
+          )
         )
 
         val result = transformer.toReturnSummaryList(

@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
 import java.time.LocalDate
 
+import cats.Eq
 import play.api.libs.json.{Json, OFormat}
 
 final case class Charge(
@@ -31,5 +32,7 @@ final case class Charge(
 object Charge {
 
   implicit val format: OFormat[Charge] = Json.format
+
+  implicit val eq: Eq[Charge] = Eq.fromUniversalEquals
 
 }
