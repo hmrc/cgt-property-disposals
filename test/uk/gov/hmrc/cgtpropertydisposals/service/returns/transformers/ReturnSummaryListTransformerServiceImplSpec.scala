@@ -504,7 +504,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
           result match {
             case Right(r :: Nil) =>
-              r.mainReturnChargeAmount shouldBe AmountInPence.fromPounds(mainChargeAmount)
+              r.mainReturnChargeAmount shouldBe AmountInPence.fromPounds(mainChargeAmount + deltaChargeAmount)
               r.charges.toSet          shouldBe Set(
                 Charge(
                   UkResidentReturn,

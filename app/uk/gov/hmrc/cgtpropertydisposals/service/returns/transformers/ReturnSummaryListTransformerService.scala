@@ -93,7 +93,9 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
         charges.filter(c =>
           c.chargeType === ChargeType.UkResidentReturn || c.chargeType === ChargeType.NonUkResidentReturn
         ) match {
-          case mainReturnCharge :: Nil => Valid(mainReturnCharge.amount)
+          case mainReturnCharge :: Nil =>
+            val extraAmount = charges.find(_.chargeType === DeltaCharge).map(_.amount).getOrElse(AmountInPence.zero)
+            Valid(mainReturnCharge.amount ++ extraAmount)
           case Nil                     =>
             invalid(
               s"Could not find charge with main return type. Found charge types ${charges.map(_.chargeType).toString}"
