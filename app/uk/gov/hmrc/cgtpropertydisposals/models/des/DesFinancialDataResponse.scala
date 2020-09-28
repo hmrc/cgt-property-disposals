@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des
 
 import java.time.LocalDate
 
+import cats.Eq
 import play.api.libs.json.{Format, Json, OFormat}
 
 final case class DesFinancialDataResponse(
@@ -36,6 +37,9 @@ final case class DesFinancialTransaction(
 
 object DesFinancialTransaction {
   implicit val financialTransactionFormat: Format[DesFinancialTransaction] = Json.format[DesFinancialTransaction]
+
+  implicit val eq: Eq[DesFinancialTransaction] = Eq.fromUniversalEquals
+
 }
 
 final case class DesFinancialTransactionItem(

@@ -244,7 +244,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
       }
 
-      "transform the data correctly" ignore {
+      "transform the data correctly" when {
         val (ukAddress1, ukAddress2) = sample[UkAddress] -> sample[UkAddress]
 
         val (mainDueDate1, mainDueDate2, penaltyChargeDueDate) =
@@ -474,8 +474,7 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
               validDesReturnSummary1.copy(
                 charges = Some(
                   List(
-                    mainCharge1,
-                    mainCharge1.copy(dueDate = deltaChargeDueDate)
+                    mainCharge1
                   )
                 )
               )

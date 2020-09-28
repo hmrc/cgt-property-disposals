@@ -30,6 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, NonUkResidentReturn, UkResidentReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
@@ -130,7 +131,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     returnSummary: DesReturnSummary,
     chargeReferenceToFinancialData: Map[String, List[DesFinancialTransaction]]
   ): Validation[List[Charge]] = {
-    val charges: List[Validation[Charge]] =
+    val charges: List[Validation[List[Charge]]] =
       uniqueCharges(returnSummary)
         .map { returnSummaryCharge =>
           val chargeTypeValidation: Validation[ChargeType]                                  =
@@ -148,39 +149,86 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
               .toValidatedNel
               .andThen(t => validatePayments(t).map(t -> _))
 
-          (chargeTypeValidation, financialDataValidation).mapN { case (chargeType, (financialData, payments)) =>
-            Charge(
-              chargeType,
-              returnSummaryCharge.chargeReference,
-              AmountInPence.fromPounds(financialData.originalAmount),
-              returnSummaryCharge.dueDate,
-              payments
-            )
+          val secondaryChargeValidation                                                     = validateSecondaryCharge(
+            returnSummaryCharge,
+            chargeTypeValidation,
+            financialDataValidation,
+            chargeReferenceToFinancialData
+          )
+
+          (chargeTypeValidation, financialDataValidation, secondaryChargeValidation).mapN {
+            case (chargeType, (financialData, payments), maybeSecondaryCharge) =>
+              val charge          = Charge(
+                chargeType,
+                returnSummaryCharge.chargeReference,
+                AmountInPence.fromPounds(financialData.originalAmount),
+                returnSummaryCharge.dueDate,
+                payments
+              )
+              val secondaryCharge = maybeSecondaryCharge.map { d =>
+                Charge(
+                  chargeType,
+                  returnSummaryCharge.chargeReference,
+                  AmountInPence.fromPounds(d._1.originalAmount),
+                  d._3.dueDate,
+                  payments
+                )
+              }
+
+              secondaryCharge.fold(List(charge)) { secondaryCharge =>
+                if (charge.dueDate.isBefore(secondaryCharge.dueDate))
+                  List(charge, secondaryCharge.copy(chargeType = DeltaCharge))
+                else
+                  List(secondaryCharge, charge.copy(chargeType = DeltaCharge))
+              }
+
           }
         }
 
-    val chargesValidation: Validation[List[Charge]] = charges.sequence[Validated[NonEmptyList[String], *], Charge]
+    charges.sequence[Validated[NonEmptyList[String], *], List[Charge]].map(_.flatten)
+  }
 
-    chargesValidation.andThen { charges =>
-      val mainReturnCharges = charges.filter {
-        _.chargeType match {
-          case UkResidentReturn | NonUkResidentReturn => true
-          case _                                      => false
+  // if a delta charge has been raised, the main charge and the delta charge won't appear in the
+  // return summary together. Look for the delta/main charge if there is one if a delta/main charge
+  // has already been found
+  private def validateSecondaryCharge(
+    returnSummaryCharge: DesCharge,
+    chargeTypeValidation: Validation[ChargeType],
+    financialDataValidation: Validation[(DesFinancialTransaction, List[Payment])],
+    chargeReferenceToFinancialData: Map[String, List[DesFinancialTransaction]]
+  ): Validation[Option[(DesFinancialTransaction, List[Payment], ReturnCharge)]] = {
+    def getReturnCharge(transaction: DesFinancialTransaction): Option[ReturnCharge] =
+      transaction.items.flatMap(_.collect {
+        case DesFinancialTransactionItem(Some(amount), None, None, None, Some(dueDate)) =>
+          ReturnCharge(transaction.chargeReference, AmountInPence.fromPounds(amount), dueDate)
+      }.headOption)
+
+    chargeTypeValidation.andThen {
+      case UkResidentReturn | NonUkResidentReturn =>
+        chargeReferenceToFinancialData.get(returnSummaryCharge.chargeReference) match {
+          case None                                      => invalid("Could not find transaction for main return charge type")
+          case Some(Nil) | Some(_ :: Nil)                => Valid(None)
+          case Some(transaction1 :: transaction2 :: Nil) =>
+            financialDataValidation.andThen { case (foundTransaction, _) =>
+              val secondaryChargeTransaction = if (foundTransaction === transaction1) transaction2 else transaction1
+
+              Either
+                .fromOption(
+                  getReturnCharge(secondaryChargeTransaction),
+                  s"Could not find return charge type for transaction $secondaryChargeTransaction"
+                )
+                .toValidatedNel
+                .andThen { returnCharge =>
+                  validatePayments(secondaryChargeTransaction).map(payments =>
+                    Some((secondaryChargeTransaction, payments, returnCharge))
+                  )
+                }
+            }
+
+          case _ => invalid("Found more than two charges with main return charge type")
         }
-      }
 
-      mainReturnCharges match {
-        case Nil                       => Valid(charges)
-        case _ :: Nil                  => Valid(charges)
-        case charge1 :: charge2 :: Nil =>
-          if (charge1.dueDate.isBefore(charge2.dueDate))
-            Valid(charge2.copy(chargeType = DeltaCharge) :: charges.filterNot(_ === charge2))
-          else
-            Valid(charge1.copy(chargeType = DeltaCharge) :: charges.filterNot(_ === charge1))
-
-        case _ => invalid("Found more than two charges with main return charge type")
-
-      }
+      case _ => Valid(None)
     }
   }
 
