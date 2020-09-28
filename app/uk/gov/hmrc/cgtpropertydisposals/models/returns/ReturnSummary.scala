@@ -22,7 +22,6 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.{AmountInPence, Charge}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.DeltaCharge
 
 final case class ReturnSummary(
   submissionId: String,
@@ -33,8 +32,7 @@ final case class ReturnSummary(
   mainReturnChargeAmount: AmountInPence,
   propertyAddress: Address,
   charges: List[Charge],
-  isRecentlyAmended: Boolean,
-  deltaCharge: Option[DeltaCharge]
+  isRecentlyAmended: Boolean
 )
 
 object ReturnSummary {
