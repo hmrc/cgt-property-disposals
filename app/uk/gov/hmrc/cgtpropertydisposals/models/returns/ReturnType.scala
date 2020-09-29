@@ -16,13 +16,20 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json.{Json, OFormat}
+import julienrf.json.derived
+import play.api.libs.json.OFormat
 
-final case class DisplayReturn(
-  completeReturn: CompleteReturn,
-  returnType: ReturnType
-)
+sealed trait ReturnType extends Product with Serializable
 
-object DisplayReturn {
-  implicit val format: OFormat[DisplayReturn] = Json.format[DisplayReturn]
+object ReturnType {
+
+  case object FirstReturn extends ReturnType
+
+  case object FurtherReturn extends ReturnType
+
+  case object AmendedReturn extends ReturnType
+
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  implicit val format: OFormat[ReturnType] = derived.oformat()
+
 }

@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.Trust
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{CustomerType, DesReturnDetails, ReliefDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{AmendReturnType, CreateReturnType, CustomerType, DesReturnDetails, ReliefDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.{IndirectDisposal, MixedUse}
@@ -66,10 +66,17 @@ class ReturnTransformerServiceImpl @Inject() (
   taxYearService: TaxYearService
 ) extends ReturnTransformerService {
 
-  override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, DisplayReturn] =
+  override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, DisplayReturn] = {
+    lazy val returnType = desReturn.returnType match {
+      case _: CreateReturnType =>
+        if (isFurtherOrAmendReturn(desReturn)) ReturnType.FurtherReturn else ReturnType.FirstReturn
+      case _: AmendReturnType  => ReturnType.AmendedReturn
+    }
+
     fromDesReturn(desReturn).toEither
-      .map(completeReturn => DisplayReturn(completeReturn, !isFurtherReturn(desReturn)))
+      .map(completeReturn => DisplayReturn(completeReturn, returnType))
       .leftMap(e => Error(s"Could not convert des response to complete return: [${e.toList.mkString("; ")}]"))
+  }
 
   private def fromDesReturn(
     desReturn: DesReturnDetails
@@ -221,10 +228,10 @@ class ReturnTransformerServiceImpl @Inject() (
           reliefAnswers,
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
-          if (isFurtherReturn(desReturn)) None else initialGainOrLoss,
+          if (isFurtherOrAmendReturn(desReturn)) None else initialGainOrLoss,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
-          if (isFurtherReturn(desReturn)) initialGainOrLoss else None,
+          if (isFurtherOrAmendReturn(desReturn)) initialGainOrLoss else None,
           hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
@@ -369,9 +376,9 @@ class ReturnTransformerServiceImpl @Inject() (
       desReturn.returnDetails.estimate,
       AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
       dummyMandatoryEvidence, // we cannot read the details of the mandatory evidence back
-      if (isFurtherReturn(desReturn)) Some(AmountInPence.fromPounds(desReturn.returnDetails.totalYTDLiability))
+      if (isFurtherOrAmendReturn(desReturn)) Some(AmountInPence.fromPounds(desReturn.returnDetails.totalYTDLiability))
       else None,
-      if (isFurtherReturn(desReturn)) Some(desReturn.returnDetails.repayment) else None
+      if (isFurtherOrAmendReturn(desReturn)) Some(desReturn.returnDetails.repayment) else None
     )
 
   private val dummyMandatoryEvidence = MandatoryEvidence(
@@ -528,7 +535,7 @@ class ReturnTransformerServiceImpl @Inject() (
     confidence can be inferred that it is a further return. Otherwise it
     is supposed to indicate that the return is a first return.
    */
-  private def isFurtherReturn(desReturn: DesReturnDetails): Boolean =
+  private def isFurtherOrAmendReturn(desReturn: DesReturnDetails): Boolean =
     if (desReturn.returnType.source.split(' ').length === 3) true else false
 
 }

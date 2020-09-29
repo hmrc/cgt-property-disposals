@@ -21,27 +21,27 @@ import java.time.{Clock, Instant}
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 
-sealed trait ReturnType extends Product with Serializable {
+sealed trait DesReturnType extends Product with Serializable {
   val source: String
   val submissionType: SubmissionType
 }
 
 final case class CreateReturnType(
   source: String
-) extends ReturnType {
+) extends DesReturnType {
   val submissionType: SubmissionType = SubmissionType.New
 }
 
 final case class AmendReturnType(
   source: String,
   submissionID: Option[String]
-) extends ReturnType {
+) extends DesReturnType {
   val submissionType: SubmissionType = SubmissionType.Amend
 }
 
-object ReturnType {
+object DesReturnType {
 
-  def apply(submitReturnRequest: SubmitReturnRequest, clock: Clock = Clock.systemUTC()): ReturnType = {
+  def apply(submitReturnRequest: SubmitReturnRequest, clock: Clock = Clock.systemUTC()): DesReturnType = {
     val timestamp    =
       if (submitReturnRequest.isFurtherReturn) s" ${Instant.now(clock).getEpochSecond.toString}"
       else ""
@@ -50,13 +50,13 @@ object ReturnType {
         .fold(s"${"self digital" + timestamp}")(_ => s"${"agent digital" + timestamp}")
 
     submitReturnRequest.originalReturnFormBundleId
-      .fold[ReturnType](CreateReturnType(returnSource))(submissionId =>
+      .fold[DesReturnType](CreateReturnType(returnSource))(submissionId =>
         AmendReturnType(returnSource, Some(submissionId))
       )
   }
 
-  implicit val returnTypeFormat: OFormat[ReturnType] =
-    OFormat[ReturnType](
+  implicit val returnTypeFormat: OFormat[DesReturnType] =
+    OFormat[DesReturnType](
       json =>
         for {
           source         <- (json \ "source").validate[String]
@@ -66,7 +66,7 @@ object ReturnType {
                               case SubmissionType.Amend => JsSuccess(AmendReturnType(source, None))
                             }
         } yield result,
-      { r: ReturnType =>
+      { r: DesReturnType =>
         r match {
           case c: CreateReturnType =>
             JsObject(Map("source" -> JsString(c.source), "submissionType" -> Json.toJson(c.submissionType)))

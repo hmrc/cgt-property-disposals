@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{AmendReturnType, CreateReturnType, ReturnType}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{AmendReturnType, CreateReturnType, DesReturnType}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.AmendReturnsRepository
@@ -48,7 +48,7 @@ class DefaultAmendReturnsService @Inject() (
   override def saveAmendedReturn(
     submitReturnRequest: SubmitReturnRequest
   ): EitherT[Future, Error, Unit] =
-    ReturnType(submitReturnRequest) match {
+    DesReturnType(submitReturnRequest) match {
       case CreateReturnType(_)   => EitherT[Future, Error, Unit](Future.successful(Right(())))
       case AmendReturnType(_, _) =>
         amendReturnsRepository.save(submitReturnRequest)
