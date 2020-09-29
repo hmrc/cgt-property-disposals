@@ -126,7 +126,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     val chargeReferenceToCharges: Map[String, List[DesCharge]] =
       returnSummary.charges.getOrElse(List.empty[DesCharge]).groupBy(_.chargeReference)
 
-    chargeReferenceToCharges.values.flatMap(_.distinct).toList
+    chargeReferenceToCharges.values.map(_.headOption).collect { case Some(charge) => charge }.toList
   }
 
   private def validateCharges(

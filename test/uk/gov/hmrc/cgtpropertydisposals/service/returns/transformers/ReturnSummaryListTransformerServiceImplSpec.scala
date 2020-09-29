@@ -468,13 +468,15 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         "finding a delta charge if one exists" in {
           val deltaChargeDueDate                    = mainCharge1.dueDate.plusYears(1L)
+          val deltaCharge                           = mainCharge1.copy(dueDate = deltaChargeDueDate)
           val (mainChargeAmount, deltaChargeAmount) = BigDecimal(1) -> BigDecimal(2)
           val result                                = transformer.toReturnSummaryList(
             List(
               validDesReturnSummary1.copy(
                 charges = Some(
                   List(
-                    mainCharge1
+                    mainCharge1,
+                    deltaCharge
                   )
                 )
               )
