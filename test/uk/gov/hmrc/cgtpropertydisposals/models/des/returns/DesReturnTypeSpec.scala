@@ -24,14 +24,14 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 
-class ReturnTypeSpec extends WordSpec with Matchers {
+class DesReturnTypeSpec extends WordSpec with Matchers {
 
-  "ReturnType" must {
+  "DesReturnType" must {
 
     "a format instance" which {
 
       "writes JSON properly" in {
-        def test(r: ReturnType, j: JsValue) = Json.toJson(r) shouldBe j
+        def test(r: DesReturnType, j: JsValue) = Json.toJson(r) shouldBe j
 
         test(
           CreateReturnType("source"),
@@ -56,7 +56,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
             |}
             |""".stripMargin
           )
-          .validate[ReturnType] shouldBe JsSuccess(CreateReturnType("source"))
+          .validate[DesReturnType] shouldBe JsSuccess(CreateReturnType("source"))
 
         Json
           .parse(
@@ -67,7 +67,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
               |}
               |""".stripMargin
           )
-          .validate[ReturnType] shouldBe JsSuccess(AmendReturnType("source", None))
+          .validate[DesReturnType] shouldBe JsSuccess(AmendReturnType("source", None))
       }
 
     }
@@ -84,7 +84,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
           originalReturnFormBundleId = None,
           agentReferenceNumber = None
         )
-        ReturnType(submitReturnRequest, clock) shouldBe CreateReturnType("self digital")
+        DesReturnType(submitReturnRequest, clock) shouldBe CreateReturnType("self digital")
       }
 
       "handles agent new returns" in {
@@ -93,7 +93,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
           originalReturnFormBundleId = None,
           agentReferenceNumber = Some(sample[AgentReferenceNumber])
         )
-        ReturnType(submitReturnRequest, clock) shouldBe CreateReturnType("agent digital")
+        DesReturnType(submitReturnRequest, clock) shouldBe CreateReturnType("agent digital")
       }
 
       "handles further returns" in {
@@ -102,7 +102,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
           originalReturnFormBundleId = None,
           agentReferenceNumber = None
         )
-        ReturnType(submitReturnRequest, clock) shouldBe CreateReturnType(s"self digital $timestamp")
+        DesReturnType(submitReturnRequest, clock) shouldBe CreateReturnType(s"self digital $timestamp")
       }
 
       "handles amend returns" in {
@@ -113,7 +113,7 @@ class ReturnTypeSpec extends WordSpec with Matchers {
           agentReferenceNumber = Some(sample[AgentReferenceNumber])
         )
 
-        ReturnType(submitReturnRequest, clock) shouldBe AmendReturnType(
+        DesReturnType(submitReturnRequest, clock) shouldBe AmendReturnType(
           s"agent digital $timestamp",
           Some(originalReturnFormBundleId)
         )

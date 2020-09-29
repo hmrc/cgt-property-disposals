@@ -20,7 +20,7 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
 
 final case class DesReturnDetails(
-  returnType: ReturnType,
+  returnType: DesReturnType,
   returnDetails: ReturnDetails,
   representedPersonDetails: Option[RepresentedPersonDetails],
   disposalDetails: List[DisposalDetails],
@@ -52,7 +52,7 @@ object DesReturnDetails {
     val disposalDetails        = DisposalDetails(completeReturn)
 
     DesReturnDetails(
-      returnType = ReturnType(submitReturnRequest),
+      returnType = DesReturnType(submitReturnRequest),
       returnDetails = returnDetails,
       representedPersonDetails = representeeDetails.map(RepresentedPersonDetails(_)),
       disposalDetails = List(disposalDetails),

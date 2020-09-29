@@ -225,6 +225,49 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
       }
 
+      "find the return type correctly" when {
+
+        "given a first return" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              representedPersonDetails = None,
+              returnType = CreateReturnType("self digital")
+            )
+          )
+
+          result.map(_.returnType) shouldBe Right(ReturnType.FirstReturn)
+        }
+
+        "given a further return" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              representedPersonDetails = None,
+              returnType = CreateReturnType("self digital 12345")
+            )
+          )
+
+          result.map(_.returnType) shouldBe Right(ReturnType.FurtherReturn)
+        }
+
+        "given an amended return" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              representedPersonDetails = None,
+              returnType = AmendReturnType("self digital 12345", Some("abc"))
+            )
+          )
+
+          result.map(_.returnType) shouldBe Right(ReturnType.AmendedReturn)
+        }
+
+      }
+
       "transform triage answers correctly" when {
 
         "there are no represented personal details" in {
