@@ -16,25 +16,16 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.util.UUID
-
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 
-final case class SubmitReturnRequest(
+final case class CompleteReturnWithSummary(
   completeReturn: CompleteReturn,
-  id: UUID,
-  subscribedDetails: SubscribedDetails,
-  agentReferenceNumber: Option[AgentReferenceNumber],
-  isFurtherReturn: Boolean,
-  checkYourAnswerPageHtml: B64Html,
-  amendReturnData: Option[AmendReturnData]
+  summary: ReturnSummary,
+  returnType: ReturnType
 )
 
-object SubmitReturnRequest {
+object CompleteReturnWithSummary {
 
-  implicit val format: OFormat[SubmitReturnRequest] = Json.format[SubmitReturnRequest]
+  implicit val format: OFormat[CompleteReturnWithSummary] = Json.format
 
 }

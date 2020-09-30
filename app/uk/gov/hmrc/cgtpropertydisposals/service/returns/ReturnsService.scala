@@ -93,7 +93,7 @@ class DefaultReturnsService @Inject() (
     returnRequest: SubmitReturnRequest,
     representeeDetails: Option[RepresenteeDetails]
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
-    val isAmendReturn                                  = returnRequest.originalReturnFormBundleId.isDefined
+    val isAmendReturn                                  = returnRequest.amendReturnData.isDefined
     val cgtReference                                   = returnRequest.subscribedDetails.cgtReference
     val taxYear                                        = returnRequest.completeReturn.fold(
       _.triageAnswers.taxYear,
@@ -248,7 +248,7 @@ class DefaultReturnsService @Inject() (
         }
 
     val cgtReference = submitReturnRequest.subscribedDetails.cgtReference
-    if (submitReturnRequest.originalReturnFormBundleId.isEmpty)
+    if (submitReturnRequest.amendReturnData.isEmpty)
       EitherT.pure(())
     else {
       import cats.instances.list._
@@ -298,7 +298,8 @@ class DefaultReturnsService @Inject() (
           httpResponse.body,
           desSubmitReturnRequest,
           returnRequest.subscribedDetails,
-          returnRequest.agentReferenceNumber
+          returnRequest.agentReferenceNumber,
+          returnRequest.amendReturnData
         )
 
         if (httpResponse.status === OK)
@@ -495,7 +496,8 @@ class DefaultReturnsService @Inject() (
     responseBody: String,
     desSubmitReturnRequest: DesSubmitReturnRequest,
     subscribedDetails: SubscribedDetails,
-    agentReferenceNumber: Option[AgentReferenceNumber]
+    agentReferenceNumber: Option[AgentReferenceNumber],
+    amendReturnData: Option[AmendReturnData]
   )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
     val responseJson =
       Try(Json.parse(responseBody))
@@ -509,7 +511,8 @@ class DefaultReturnsService @Inject() (
         responseJson,
         requestJson,
         subscribedDetails.name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
-        agentReferenceNumber.map(_.value)
+        agentReferenceNumber.map(_.value),
+        amendReturnData.map(a => Json.toJson(a.originalReturn.completeReturn))
       ),
       "submit-return-response"
     )

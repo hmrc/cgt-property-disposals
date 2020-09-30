@@ -188,7 +188,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
     responseBody: Option[JsValue],
     desSubmitReturnRequest: DesSubmitReturnRequest,
     name: Either[TrustName, IndividualName],
-    agentReferenceNumber: Option[AgentReferenceNumber]
+    agentReferenceNumber: Option[AgentReferenceNumber],
+    amendReturnData: Option[AmendReturnData]
   ) =
     (mockAuditService
       .sendEvent(_: String, _: SubmitReturnResponseEvent, _: String)(
@@ -203,7 +204,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
           Json.toJson(desSubmitReturnRequest),
           name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
-          agentReferenceNumber.map(_.value)
+          agentReferenceNumber.map(_.value),
+          amendReturnData.map(a => Json.toJson(a.originalReturn.completeReturn))
         ),
         "submit-return-response",
         *,
@@ -278,7 +280,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           )
 
           val submitReturnRequest    = sample[SubmitReturnRequest].copy(
-            originalReturnFormBundleId = None
+            amendReturnData = None
           )
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
@@ -312,7 +314,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
@@ -346,7 +349,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |}
               |""".stripMargin)
 
-          val submitReturnRequest = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
+          val submitReturnRequest = sample[SubmitReturnRequest].copy(amendReturnData = None)
 
           val submitReturnResponse = SubmitReturnResponse(
             formBundleId,
@@ -371,7 +374,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
@@ -405,7 +409,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |""".stripMargin)
 
           val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None, None)
-          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
           inSequence {
             mockAuditSubmitReturnEvent(
@@ -422,7 +426,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
@@ -457,7 +462,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               |""".stripMargin)
 
           val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None, None)
-          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
@@ -475,7 +480,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
@@ -520,7 +526,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             ),
             None
           )
-          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
@@ -538,7 +544,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
@@ -555,7 +562,15 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         def testGetAndModifyDraftReturns[D <: DraftReturn](draftReturn: D)(modifyDraftReturn: Option[D => D]): Unit = {
           val formBundleId           = "formBundleId"
-          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = Some(formBundleId))
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData =
+            Some(
+              sample[AmendReturnData].copy(
+                originalReturn = sample[CompleteReturnWithSummary].copy(
+                  summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                )
+              )
+            )
+          )
           val cgtReference           = submitReturnRequest.subscribedDetails.cgtReference
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
           val responseJsonBody       =
@@ -590,7 +605,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
@@ -720,7 +736,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         "there are charge details for a non zero charge amount and " when {
 
           def test(jsonResponseBody: JsValue): Unit = {
-            val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
+            val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
             val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
             inSequence {
@@ -738,7 +754,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 Some(jsonResponseBody),
                 desSubmitReturnRequest,
                 submitReturnRequest.subscribedDetails.name,
-                submitReturnRequest.agentReferenceNumber
+                submitReturnRequest.agentReferenceNumber,
+                submitReturnRequest.amendReturnData
               )
               mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             }
@@ -747,7 +764,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           }
 
           def test2(jsonResponseBody: JsValue): Unit = {
-            val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = None)
+            val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
             val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
             inSequence {
@@ -765,7 +782,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 Some(jsonResponseBody),
                 desSubmitReturnRequest,
                 submitReturnRequest.subscribedDetails.name,
-                submitReturnRequest.agentReferenceNumber
+                submitReturnRequest.agentReferenceNumber,
+                submitReturnRequest.amendReturnData
               )
               mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             }
@@ -869,7 +887,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               None,
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
           }
           await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
@@ -877,7 +896,15 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "there is an error updating a draft return for an amended return" in {
           val formBundleId           = "formBundleId"
-          val submitReturnRequest    = sample[SubmitReturnRequest].copy(originalReturnFormBundleId = Some(formBundleId))
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData =
+            Some(
+              sample[AmendReturnData].copy(
+                originalReturn = sample[CompleteReturnWithSummary].copy(
+                  summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                )
+              )
+            )
+          )
           val cgtReference           = submitReturnRequest.subscribedDetails.cgtReference
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
           val responseJsonBody       =
@@ -919,7 +946,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
@@ -971,7 +999,13 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           val chargeReference = "XCRG9448959757"
 
           val submitReturnRequest    = sample[SubmitReturnRequest].copy(
-            originalReturnFormBundleId = Some(formBundleId)
+            amendReturnData = Some(
+              sample[AmendReturnData].copy(
+                originalReturn = sample[CompleteReturnWithSummary].copy(
+                  summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                )
+              )
+            )
           )
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
@@ -1054,7 +1088,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
@@ -1075,7 +1110,13 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           val chargeReference = "XCRG9448959757"
 
           val submitReturnRequest    = sample[SubmitReturnRequest].copy(
-            originalReturnFormBundleId = Some(formBundleId)
+            amendReturnData = Some(
+              sample[AmendReturnData].copy(
+                originalReturn = sample[CompleteReturnWithSummary].copy(
+                  summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                )
+              )
+            )
           )
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
@@ -1239,7 +1280,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               Some(responseJsonBody),
               desSubmitReturnRequest,
               submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
             mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
@@ -1265,7 +1307,13 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             val chargeReference = "XCRG9448959757"
 
             val submitReturnRequest    = sample[SubmitReturnRequest].copy(
-              originalReturnFormBundleId = Some(formBundleId)
+              amendReturnData = Some(
+                sample[AmendReturnData].copy(
+                  originalReturn = sample[CompleteReturnWithSummary].copy(
+                    summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                  )
+                )
+              )
             )
             val cgtReference           = submitReturnRequest.subscribedDetails.cgtReference
             val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
@@ -1363,7 +1411,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 Some(responseJsonBody),
                 desSubmitReturnRequest,
                 submitReturnRequest.subscribedDetails.name,
-                submitReturnRequest.agentReferenceNumber
+                submitReturnRequest.agentReferenceNumber,
+                submitReturnRequest.amendReturnData
               )
               mockSaveAmendReturnList(submitReturnRequest)(Right(()))
               mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
@@ -1375,7 +1424,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               mockAuditReturnConfirmationEmailEvent(
                 submitReturnRequest.subscribedDetails.emailAddress.value,
                 submitReturnRequest.subscribedDetails.cgtReference.value,
-                submitReturnRequest.originalReturnFormBundleId.getOrElse(formBundleId)
+                submitReturnRequest.amendReturnData.map(_.originalReturn.summary.submissionId).getOrElse(formBundleId)
               )
               mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
               modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
@@ -1407,7 +1456,13 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             val chargeReference = "XCRG9448959757"
 
             val submitReturnRequest    = sample[SubmitReturnRequest].copy(
-              originalReturnFormBundleId = Some(formBundleId)
+              amendReturnData = Some(
+                sample[AmendReturnData].copy(
+                  originalReturn = sample[CompleteReturnWithSummary].copy(
+                    summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                  )
+                )
+              )
             )
             val cgtReference           = submitReturnRequest.subscribedDetails.cgtReference
             val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
@@ -1531,7 +1586,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 Some(responseJsonBody),
                 desSubmitReturnRequest,
                 submitReturnRequest.subscribedDetails.name,
-                submitReturnRequest.agentReferenceNumber
+                submitReturnRequest.agentReferenceNumber,
+                submitReturnRequest.amendReturnData
               )
               mockSaveAmendReturnList(submitReturnRequest)(Right(()))
               mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(

@@ -22,7 +22,7 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsObject, JsString, JsSuccess, JsValue, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
 
 class DesReturnTypeSpec extends WordSpec with Matchers {
 
@@ -81,7 +81,7 @@ class DesReturnTypeSpec extends WordSpec with Matchers {
       "handles individual new returns" in {
         val submitReturnRequest = sample[SubmitReturnRequest].copy(
           isFurtherReturn = false,
-          originalReturnFormBundleId = None,
+          amendReturnData = None,
           agentReferenceNumber = None
         )
         DesReturnType(submitReturnRequest, clock) shouldBe CreateReturnType("self digital")
@@ -90,7 +90,7 @@ class DesReturnTypeSpec extends WordSpec with Matchers {
       "handles agent new returns" in {
         val submitReturnRequest = sample[SubmitReturnRequest].copy(
           isFurtherReturn = false,
-          originalReturnFormBundleId = None,
+          amendReturnData = None,
           agentReferenceNumber = Some(sample[AgentReferenceNumber])
         )
         DesReturnType(submitReturnRequest, clock) shouldBe CreateReturnType("agent digital")
@@ -99,23 +99,29 @@ class DesReturnTypeSpec extends WordSpec with Matchers {
       "handles further returns" in {
         val submitReturnRequest = sample[SubmitReturnRequest].copy(
           isFurtherReturn = true,
-          originalReturnFormBundleId = None,
+          amendReturnData = None,
           agentReferenceNumber = None
         )
         DesReturnType(submitReturnRequest, clock) shouldBe CreateReturnType(s"self digital $timestamp")
       }
 
       "handles amend returns" in {
-        val originalReturnFormBundleId = "formBundleId"
-        val submitReturnRequest        = sample[SubmitReturnRequest].copy(
+        val formBundleId        = "formBundleId"
+        val submitReturnRequest = sample[SubmitReturnRequest].copy(
           isFurtherReturn = true,
-          originalReturnFormBundleId = Some(originalReturnFormBundleId),
+          amendReturnData = Some(
+            sample[AmendReturnData].copy(
+              originalReturn = sample[CompleteReturnWithSummary].copy(
+                summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+              )
+            )
+          ),
           agentReferenceNumber = Some(sample[AgentReferenceNumber])
         )
 
         DesReturnType(submitReturnRequest, clock) shouldBe AmendReturnType(
           s"agent digital $timestamp",
-          Some(originalReturnFormBundleId)
+          Some(formBundleId)
         )
       }
 
