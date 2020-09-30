@@ -26,7 +26,9 @@ object AcceptLanguage {
   case object CY extends AcceptLanguage
 
   def fromHeaderCarrier(headerCarrier: HeaderCarrier): Option[AcceptLanguage] =
-    headerCarrier.otherHeaders.toMap.get("Accept-Language") match {
+    headerCarrier.otherHeaders.toMap
+      .map { case (k, v) => k.toLowerCase -> v.toLowerCase }
+      .get("accept-language") match {
       case Some(acceptLange) => if (acceptLange === "cy") Some(CY) else if (acceptLange === "en") Some(EN) else None
       case None              => None
     }

@@ -128,7 +128,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
 
     "it receives a request to send an account created confirmation email in Welsh" must {
 
-      implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "cy"))
+      implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("accept-language" -> "CY"))
 
       val cgtReference = sample[CgtReference]
 
