@@ -370,6 +370,10 @@ trait DesReturnsGen { this: GenUtils =>
 
   implicit val desSubmitReturnRequestGen: Gen[DesSubmitReturnRequest] = gen[DesSubmitReturnRequest]
 
+  implicit val createReturnTypeGen: Gen[CreateReturnType] = gen[CreateReturnType]
+
+  implicit val amendReturnTypeGen: Gen[AmendReturnType] = gen[AmendReturnType]
+
 }
 
 trait AddressGen extends AddressLowerPriorityGen { this: GenUtils =>
