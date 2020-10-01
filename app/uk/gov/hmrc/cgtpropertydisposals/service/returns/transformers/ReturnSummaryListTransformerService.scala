@@ -64,7 +64,9 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
           returnSummary,
           chargeReferenceToFinancialData,
           recentlyAmendedReturns.exists(recentlyAmendedReturn =>
-            recentlyAmendedReturn.originalReturnFormBundleId.contains(returnSummary.submissionId)
+            recentlyAmendedReturn.amendReturnData
+              .map(_.originalReturn.summary.submissionId)
+              .contains(returnSummary.submissionId)
           )
         )
       }

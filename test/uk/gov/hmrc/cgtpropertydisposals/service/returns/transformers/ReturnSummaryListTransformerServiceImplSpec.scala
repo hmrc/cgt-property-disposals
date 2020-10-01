@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postco
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, UkResidentReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
 
 class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers {
@@ -335,7 +335,15 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         "there is a recently amended return and matches one of the returns" in {
           val submitReturnRequest =
-            sample[SubmitReturnRequest].copy(originalReturnFormBundleId = Some(validDesReturnSummary1.submissionId))
+            sample[SubmitReturnRequest].copy(amendReturnData =
+              Some(
+                sample[AmendReturnData].copy(
+                  originalReturn = sample[CompleteReturnWithSummary].copy(
+                    summary = sample[ReturnSummary].copy(submissionId = validDesReturnSummary1.submissionId)
+                  )
+                )
+              )
+            )
 
           val r1 = transformer.toReturnSummaryList(
             List(validDesReturnSummary1),
@@ -348,7 +356,15 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
         "there is a recently amended return and it does not match one of the returns" in {
           val submitReturnRequest =
-            sample[SubmitReturnRequest].copy(originalReturnFormBundleId = Some("invalid-form-bundle-id"))
+            sample[SubmitReturnRequest].copy(amendReturnData =
+              Some(
+                sample[AmendReturnData].copy(
+                  originalReturn = sample[CompleteReturnWithSummary].copy(
+                    summary = sample[ReturnSummary].copy(submissionId = "invalid-form-bundle-id")
+                  )
+                )
+              )
+            )
 
           val r1 = transformer.toReturnSummaryList(
             List(validDesReturnSummary1),

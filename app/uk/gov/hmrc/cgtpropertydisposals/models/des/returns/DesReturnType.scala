@@ -49,9 +49,9 @@ object DesReturnType {
       submitReturnRequest.agentReferenceNumber
         .fold(s"${"self digital" + timestamp}")(_ => s"${"agent digital" + timestamp}")
 
-    submitReturnRequest.originalReturnFormBundleId
-      .fold[DesReturnType](CreateReturnType(returnSource))(submissionId =>
-        AmendReturnType(returnSource, Some(submissionId))
+    submitReturnRequest.amendReturnData
+      .fold[DesReturnType](CreateReturnType(returnSource))(amendReturnData =>
+        AmendReturnType(returnSource, Some(amendReturnData.originalReturn.summary.submissionId))
       )
   }
 

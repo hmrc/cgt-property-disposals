@@ -317,6 +317,10 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
   implicit val completeSupportingEvidenceAnswersGen: Gen[CompleteSupportingEvidenceAnswers] =
     gen[CompleteSupportingEvidenceAnswers]
 
+  implicit val amendReturnDataGen: Gen[AmendReturnData] = gen[AmendReturnData]
+
+  implicit val completeReturnWithSummaryGen: Gen[CompleteReturnWithSummary] = gen[CompleteReturnWithSummary]
+
 }
 
 trait LowerPriorityReturnsGen { this: GenUtils =>

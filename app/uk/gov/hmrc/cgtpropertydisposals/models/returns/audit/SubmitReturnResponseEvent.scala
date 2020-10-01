@@ -23,7 +23,8 @@ final case class SubmitReturnResponseEvent(
   responseBody: JsValue,
   requestBody: JsValue,
   name: String,
-  agentReferenceNumber: Option[String]
+  agentReferenceNumber: Option[String],
+  originalReturn: Option[JsValue]
 )
 
 object SubmitReturnResponseEvent {

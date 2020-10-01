@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.MixedUsePropertyDetailsAn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, RepresenteeContactDetails, RepresenteeDetails, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturn, CompleteReturnWithSummary, RepresenteeContactDetails, RepresenteeDetails, ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 
 import scala.io.Source
@@ -85,7 +85,17 @@ class DesSubmitReturnRequestSpec extends WordSpec {
                   triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(assetType = MixedUse)
                 )
               ),
-            originalReturnFormBundleId = Gen.option(Gen.const[String]("123456789012")).sample.flatten
+            amendReturnData = Gen
+              .option(Gen.const[String]("123456789012"))
+              .sample
+              .flatten
+              .map(formBundleId =>
+                sample[AmendReturnData].copy(
+                  originalReturn = sample[CompleteReturnWithSummary].copy(
+                    summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                  )
+                )
+              )
           )
 
         val representeeDetails = sampleOptional[RepresenteeDetails].map(
