@@ -31,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.Trust
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{AmendReturnType, CreateReturnType, CustomerType, DesReturnDetails, ReliefDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{AmendReturnType, CreateReturnType, CustomerType, DesReturnDetails, DisposalDetails, ReliefDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType.{IndirectDisposal, MixedUse}
@@ -139,6 +139,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
         val exemptionAndLossesAnswers  = constructExemptionAndLossesAnswers(desReturn)
         val yearToDateLiabilityAnswers = constructNonCalculatedYearToDateAnswers(desReturn)
+        val gainOrLossAfterReliefs     = constructInitialGainAnswers(multipleDisposalDetails)
 
         CompleteMultipleDisposalsReturn(
           triageAnswers,
@@ -147,7 +148,7 @@ class ReturnTransformerServiceImpl @Inject() (
           yearToDateLiabilityAnswers,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
-          None,
+          gainOrLossAfterReliefs,
           desReturn.returnDetails.attachmentUpload
         )
     }
@@ -264,6 +265,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
         val yearToDateLiabilityAnswers =
           constructNonCalculatedYearToDateAnswers(desReturn)
+        val gainOrLossAfterReliefs     = constructInitialGainAnswers(singleDisposalDetails)
 
         CompleteSingleIndirectDisposalReturn(
           triageAnswers,
@@ -274,7 +276,7 @@ class ReturnTransformerServiceImpl @Inject() (
           yearToDateLiabilityAnswers,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
-          None,
+          gainOrLossAfterReliefs,
           hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
@@ -312,6 +314,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
         val exemptionAndLossesAnswers  = constructExemptionAndLossesAnswers(desReturn)
         val yearToDateLiabilityAnswers = constructNonCalculatedYearToDateAnswers(desReturn)
+        val gainOrLossAfterReliefs     = constructInitialGainAnswers(multipleDisposalDetails)
 
         CompleteMultipleIndirectDisposalReturn(
           triageAnswers,
@@ -320,7 +323,7 @@ class ReturnTransformerServiceImpl @Inject() (
           yearToDateLiabilityAnswers,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
-          None,
+          gainOrLossAfterReliefs,
           hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
@@ -355,6 +358,7 @@ class ReturnTransformerServiceImpl @Inject() (
 
         val exemptionAndLossesAnswers  = constructExemptionAndLossesAnswers(desReturn)
         val yearToDateLiabilityAnswers = constructNonCalculatedYearToDateAnswers(desReturn)
+        val gainOrLossAfterReliefs     = constructInitialGainAnswers(disposalDetails)
 
         CompleteSingleMixedUseDisposalReturn(
           triageAnswers,
@@ -363,7 +367,7 @@ class ReturnTransformerServiceImpl @Inject() (
           yearToDateLiabilityAnswers,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
-          None,
+          gainOrLossAfterReliefs,
           hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
@@ -434,13 +438,20 @@ class ReturnTransformerServiceImpl @Inject() (
     )
 
   private def constructInitialGainAnswers(
-    singleDisposalDetails: SingleDisposalDetails
-  ): Option[AmountInPence] =
-    (singleDisposalDetails.initialLoss, singleDisposalDetails.initialGain) match {
+    disposalDetails: DisposalDetails
+  ): Option[AmountInPence] = {
+    val (initialLoss, initialGain) = disposalDetails match {
+      case s: SingleDisposalDetails         => s.initialLoss -> s.initialGain
+      case m: MultipleDisposalDetails       => m.initialLoss -> m.initialGain
+      case s: SingleMixedUseDisposalDetails => s.initialLoss -> s.initialGain
+    }
+
+    (initialLoss, initialGain) match {
       case (Some(loss), _) => Some(AmountInPence.fromPounds(-loss))
       case (_, Some(gain)) => Some(AmountInPence.fromPounds(gain))
       case (None, None)    => None
     }
+  }
 
   private def constructReliefAnswers(
     reliefDetails: ReliefDetails,

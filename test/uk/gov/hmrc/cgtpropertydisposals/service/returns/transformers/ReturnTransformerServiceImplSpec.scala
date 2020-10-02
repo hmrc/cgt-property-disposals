@@ -1063,6 +1063,138 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
       }
 
+      "transform initial gain or loss correctly" when {
+
+        "given an initial loss" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital"),
+              disposalDetails = List(
+                validSingleDisposalDetails.copy(
+                  initialLoss = Some(BigDecimal(1)),
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeSingleDisposalReturnValue(result)(_.initialGainOrLoss)      shouldBe Right(
+            Some(AmountInPence(-100L))
+          )
+          completeSingleDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
+        }
+
+        "given an initial gain" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital"),
+              disposalDetails = List(
+                validSingleDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = Some(BigDecimal(1))
+                )
+              )
+            )
+          )
+
+          completeSingleDisposalReturnValue(result)(_.initialGainOrLoss)      shouldBe Right(
+            Some(AmountInPence(100L))
+          )
+          completeSingleDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
+        }
+
+        "given no initial gain or loss" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital"),
+              disposalDetails = List(
+                validSingleDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeSingleDisposalReturnValue(result)(_.initialGainOrLoss)      shouldBe Right(
+            None
+          )
+          completeSingleDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
+        }
+
+      }
+
+      "transform gain or loss after reliefs correctly" when {
+
+        "given an loss after reliefs" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              returnType = sample[AmendReturnType].copy(source = "self digital 12347286"),
+              disposalDetails = List(
+                validSingleDisposalDetails.copy(
+                  initialLoss = Some(BigDecimal(1)),
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeSingleDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(-100L))
+          )
+          completeSingleDisposalReturnValue(result)(_.initialGainOrLoss)      shouldBe Right(None)
+        }
+
+        "given a gain after reliefs" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital 123456"),
+              disposalDetails = List(
+                validSingleDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = Some(BigDecimal(1))
+                )
+              )
+            )
+          )
+
+          completeSingleDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(100L))
+          )
+          completeSingleDisposalReturnValue(result)(_.initialGainOrLoss)      shouldBe Right(None)
+        }
+
+        "given no gain or loss after reliefs" in {
+          mockGetTaxYearAndCalculatedTaxDue()
+
+          val result = transformer.toCompleteReturn(
+            validSingleDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital 1234554"),
+              disposalDetails = List(
+                validSingleDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeSingleDisposalReturnValue(result)(_.initialGainOrLoss)      shouldBe Right(None)
+          completeSingleDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
+        }
+
+      }
+
     }
 
     "passed details of a multiple disposal" must {
@@ -1501,6 +1633,68 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             AmountInPence(300L)
           )
 
+        }
+
+      }
+
+      "transform gain or loss after reliefs correctly" when {
+
+        "given an loss after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validMultipleDisposalsDesReturnDetails.copy(
+              returnType = sample[AmendReturnType],
+              disposalDetails = List(
+                validMultipleDisposalDetails.copy(
+                  initialLoss = Some(BigDecimal(1)),
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeMultipleDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(-100L))
+          )
+        }
+
+        "given a gain after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validMultipleDisposalsDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital"),
+              disposalDetails = List(
+                validMultipleDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = Some(BigDecimal(1))
+                )
+              )
+            )
+          )
+
+          completeMultipleDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(100L))
+          )
+        }
+
+        "given no gain or loss after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validMultipleDisposalsDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital 1234554"),
+              disposalDetails = List(
+                validMultipleDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeMultipleDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
 
       }
@@ -2127,6 +2321,68 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
 
       }
 
+      "transform gain or loss after reliefs correctly" when {
+
+        "given an loss after reliefs" in {
+          mockGetValidTaxYear()
+
+          val result = transformer.toCompleteReturn(
+            validSingleIndirectDisposalDesReturnDetails.copy(
+              returnType = sample[AmendReturnType],
+              disposalDetails = List(
+                validSingleIndirectDisposalDetails.copy(
+                  initialLoss = Some(BigDecimal(1)),
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeSingleIndirectDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(-100L))
+          )
+        }
+
+        "given a gain after reliefs" in {
+          mockGetValidTaxYear()
+
+          val result = transformer.toCompleteReturn(
+            validSingleIndirectDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital"),
+              disposalDetails = List(
+                validSingleIndirectDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = Some(BigDecimal(1))
+                )
+              )
+            )
+          )
+
+          completeSingleIndirectDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(100L))
+          )
+        }
+
+        "given no gain or loss after reliefs" in {
+          mockGetValidTaxYear()
+
+          val result = transformer.toCompleteReturn(
+            validSingleIndirectDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital 1234554"),
+              disposalDetails = List(
+                validSingleIndirectDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeSingleIndirectDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
+        }
+
+      }
+
     }
 
     "passed details of a multiple indirect disposal" must {
@@ -2543,6 +2799,68 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             AmountInPence(300L)
           )
 
+        }
+
+      }
+
+      "transform gain or loss after reliefs correctly" when {
+
+        "given an loss after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validMultipleIndirectDisposalsDesReturnDetails.copy(
+              returnType = sample[AmendReturnType],
+              disposalDetails = List(
+                validMultipleIndirectDisposalDetails.copy(
+                  initialLoss = Some(BigDecimal(1)),
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeMultipleIndirectDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(-100L))
+          )
+        }
+
+        "given a gain after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validMultipleIndirectDisposalsDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital"),
+              disposalDetails = List(
+                validMultipleIndirectDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = Some(BigDecimal(1))
+                )
+              )
+            )
+          )
+
+          completeMultipleIndirectDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(100L))
+          )
+        }
+
+        "given no gain or loss after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validMultipleIndirectDisposalsDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital 1234554"),
+              disposalDetails = List(
+                validMultipleIndirectDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeMultipleIndirectDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
 
       }
@@ -2995,6 +3313,68 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
             AmountInPence(300L)
           )
 
+        }
+
+      }
+
+      "transform gain or loss after reliefs correctly" when {
+
+        "given an loss after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnType = sample[AmendReturnType],
+              disposalDetails = List(
+                validSingleMixedUseDisposalDetails.copy(
+                  initialLoss = Some(BigDecimal(1)),
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(-100L))
+          )
+        }
+
+        "given a gain after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital"),
+              disposalDetails = List(
+                validSingleMixedUseDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = Some(BigDecimal(1))
+                )
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(
+            Some(AmountInPence(100L))
+          )
+        }
+
+        "given no gain or loss after reliefs" in {
+          mockGetTaxYearSuccess()
+
+          val result = transformer.toCompleteReturn(
+            validSingleMixedUseDisposalDesReturnDetails.copy(
+              returnType = sample[CreateReturnType].copy(source = "self digital 1234554"),
+              disposalDetails = List(
+                validSingleMixedUseDisposalDetails.copy(
+                  initialLoss = None,
+                  initialGain = None
+                )
+              )
+            )
+          )
+
+          completeSingleMixedUseDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
 
       }
