@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
+import java.time.LocalDate
+
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated}
 import cats.instances.bigDecimal._
@@ -30,7 +32,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialTransaction, DesFinancialTransactionItem}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, NonUkResidentReturn, UkResidentReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.ReturnCharge
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
@@ -174,7 +175,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
                   chargeType,
                   returnSummaryCharge.chargeReference,
                   AmountInPence.fromPounds(d._1.originalAmount),
-                  d._3.dueDate,
+                  d._3,
                   payments
                 )
               }
@@ -200,12 +201,11 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     chargeTypeValidation: Validation[ChargeType],
     financialDataValidation: Validation[(DesFinancialTransaction, List[Payment])],
     chargeReferenceToFinancialData: Map[String, List[DesFinancialTransaction]]
-  ): Validation[Option[(DesFinancialTransaction, List[Payment], ReturnCharge)]] = {
-    def getReturnCharge(transaction: DesFinancialTransaction): Option[ReturnCharge] =
-      transaction.items.flatMap(_.collect {
-        case DesFinancialTransactionItem(Some(amount), None, None, None, Some(dueDate)) =>
-          ReturnCharge(transaction.chargeReference, AmountInPence.fromPounds(amount), dueDate)
-      }.headOption)
+  ): Validation[Option[(DesFinancialTransaction, List[Payment], LocalDate)]] = {
+    def getDueDate(transaction: DesFinancialTransaction): Option[LocalDate] =
+      transaction.items.flatMap(_.collectFirst { case DesFinancialTransactionItem(_, _, _, _, Some(dueDate)) =>
+        dueDate
+      })
 
     chargeTypeValidation.andThen {
       case UkResidentReturn | NonUkResidentReturn =>
@@ -218,13 +218,13 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
 
               Either
                 .fromOption(
-                  getReturnCharge(secondaryChargeTransaction),
-                  s"Could not find return charge type for transaction $secondaryChargeTransaction"
+                  getDueDate(secondaryChargeTransaction),
+                  s"Could not find due date for transaction $secondaryChargeTransaction"
                 )
                 .toValidatedNel
-                .andThen { returnCharge =>
+                .andThen { dueDate =>
                   validatePayments(secondaryChargeTransaction).map(payments =>
-                    Some((secondaryChargeTransaction, payments, returnCharge))
+                    Some((secondaryChargeTransaction, payments, dueDate))
                   )
                 }
             }
