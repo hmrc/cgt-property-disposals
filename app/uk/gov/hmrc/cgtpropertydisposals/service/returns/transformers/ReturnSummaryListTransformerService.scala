@@ -176,7 +176,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
                   returnSummaryCharge.chargeReference,
                   AmountInPence.fromPounds(d._1.originalAmount),
                   d._3,
-                  payments
+                  d._2
                 )
               }
 
