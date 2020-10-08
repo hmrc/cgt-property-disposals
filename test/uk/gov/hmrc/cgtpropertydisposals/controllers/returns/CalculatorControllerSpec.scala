@@ -88,10 +88,10 @@ class CalculatorControllerSpec extends ControllerSpec {
 
   "CalculatorController" when {
 
-    "handling requests to calculate tax due" must {
+    "handling requests to calculateTaxDue tax due" must {
 
       def performAction(body: JsValue): Future[Result] =
-        controller.calculate()(request(body))
+        controller.calculateTaxDue()(request(body))
 
       "return a bad request" when {
 

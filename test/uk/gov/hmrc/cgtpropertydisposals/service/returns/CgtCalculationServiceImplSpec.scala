@@ -85,7 +85,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           isATrust
         )
 
-      "calculate disposal amount less costs correctly" in {
+      "calculateTaxDue disposal amount less costs correctly" in {
         forAll { (disposalPrice: AmountInPence, disposalFees: AmountInPence) =>
           val result =
             calculate(
@@ -97,7 +97,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         }
       }
 
-      "calculate acquisition amount plus costs correctly" when {
+      "calculateTaxDue acquisition amount plus costs correctly" when {
 
         "the user has not rebased" in {
           forAll { (acquisitionPrice: AmountInPence, improvementCosts: AmountInPence, acquisitionFees: AmountInPence) =>
@@ -164,7 +164,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate initial gain or loss correctly" in {
+      "calculateTaxDue initial gain or loss correctly" in {
         forAll {
           (disposalDetails: CompleteDisposalDetailsAnswers, acquisitionDetails: CompleteAcquisitionDetailsAnswers) =>
             val result = calculate(disposalDetails = disposalDetails, acquisitionDetails = acquisitionDetails)
@@ -173,7 +173,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         }
       }
 
-      "not calculate initial gain or loss when user supplied" in {
+      "not calculateTaxDue initial gain or loss when user supplied" in {
         forAll {
           (disposalDetails: CompleteDisposalDetailsAnswers, acquisitionDetails: CompleteAcquisitionDetailsAnswers) =>
             val expectedInitialGainOrLoss = AmountInPence(10L)
@@ -188,7 +188,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
         }
       }
 
-      "calculate total reliefs correctly" when {
+      "calculateTaxDue total reliefs correctly" when {
 
         "the user has not had the option to enter other reliefs" in {
           forAll { (privateResidentsRelief: AmountInPence, lettingRelief: AmountInPence) =>
@@ -228,7 +228,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate gain or loss after reliefs correctly" when {
+      "calculateTaxDue gain or loss after reliefs correctly" when {
 
         "there is an initial gain and" when {
 
@@ -330,7 +330,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate total losses correctly" when {
+      "calculateTaxDue total losses correctly" when {
 
         "the gain or loss after reliefs is negative" in {
           val acquisitionDetails = zeroAcquisitionDetails.copy(
@@ -446,7 +446,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate gain or loss after losses correctly" when {
+      "calculateTaxDue gain or loss after losses correctly" when {
 
         "the gain or loss after reliefs is positive and is greater than the " +
           "total losses" in {
@@ -550,7 +550,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate taxable gain or net loss correctly" when {
+      "calculateTaxDue taxable gain or net loss correctly" when {
 
         "the gain or loss after losses is negative" in {
           val acquisitionDetails = zeroAcquisitionDetails.copy(
@@ -630,7 +630,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate taxable income correctly" when {
+      "calculateTaxDue taxable income correctly" when {
 
         "the estimated income is greater than or equal to the persona allowance used" in {
           forAll { (estimatedIncome: AmountInPence, personalAllowance: AmountInPence) =>
@@ -668,7 +668,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate the amount to be taxed at the lower band rate" when {
+      "calculateTaxDue the amount to be taxed at the lower band rate" when {
 
         def test(assetType: AssetType, expectedLowerBandRate: TaxYear => BigDecimal): Unit = {
           val incomeTaxHigherBandThreshold = AmountInPence(1000L)
@@ -843,7 +843,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate the amount to be taxed at the higher band rate" when {
+      "calculateTaxDue the amount to be taxed at the higher band rate" when {
 
         def test(assetType: AssetType, expectedHigherRate: TaxYear => BigDecimal): Unit = {
           val incomeTaxHigherRateThreshold = AmountInPence(1000L)
@@ -942,7 +942,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate the amount of tax due correctly" when {
+      "calculateTaxDue the amount of tax due correctly" when {
 
         "a loss has been made" in {
           val acquisitionDetails = zeroAcquisitionDetails.copy(
