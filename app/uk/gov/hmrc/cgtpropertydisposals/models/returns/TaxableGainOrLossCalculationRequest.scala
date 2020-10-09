@@ -17,18 +17,22 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
 final case class TaxableGainOrLossCalculationRequest(
-  previousReturnCalculationData: List[FurtherReturnCalculationData],
+  calculationData: List[FurtherReturnCalculationData],
   gainOrLossAfterReliefs: AmountInPence,
-  exemptionAndLossesAnswers: CompleteExemptionAndLossesAnswers
+  exemptionAndLossesAnswers: CompleteExemptionAndLossesAnswers,
+  address: UkAddress
 )
 
 object TaxableGainOrLossCalculationRequest {
 
   implicit val completeExemptionAndLossesAnswersFormat: OFormat[CompleteExemptionAndLossesAnswers] = Json.format
+
+  implicit val ukAddressFormat: OFormat[UkAddress] = Json.format
 
   implicit val format: OFormat[TaxableGainOrLossCalculationRequest] = Json.format
 
