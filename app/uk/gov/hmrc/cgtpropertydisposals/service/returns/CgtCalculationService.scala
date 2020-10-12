@@ -207,18 +207,22 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       else
         gainOrLossAfterInYearLosses
 
+    val previousYearLossesUsed =
+      if (yearPosition > AmountInPence.zero) previousYearsLosses
+      else AmountInPence.zero
+
     val taxableGainOrLoss =
       if (yearPosition > AmountInPence.zero)
-        (yearPosition -- previousYearsLosses).withFloorZero
+        (yearPosition -- previousYearLossesUsed).withFloorZero
       else
         yearPosition
 
     TaxableGainOrLossCalculation(
       taxableGainOrLoss,
-      previousYearsLosses,
+      previousYearLossesUsed,
       gainOrLossAfterInYearLosses,
       yearPosition,
-      calculationDataWithCurrentData,
+      gainsAfterReliefs,
       totalGainsAfterReliefs
     )
   }
