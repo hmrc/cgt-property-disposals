@@ -196,6 +196,7 @@ class ReturnTransformerServiceImpl @Inject() (
               desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
             val calculatedTaxDue: CalculatedTaxDue = cgtCalculationService.calculateTaxDue(
               triageAnswers,
+              address,
               disposalDetailsAnswers,
               acquisitionDetailsAnswers,
               reliefAnswers,

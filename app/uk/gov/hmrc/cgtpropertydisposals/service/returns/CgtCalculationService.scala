@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
@@ -34,6 +35,7 @@ trait CgtCalculationService {
 
   def calculateTaxDue(
     triageAnswers: CompleteSingleDisposalTriageAnswers,
+    address: UkAddress,
     disposalDetails: CompleteDisposalDetailsAnswers,
     acquisitionDetails: CompleteAcquisitionDetailsAnswers,
     reliefDetails: CompleteReliefDetailsAnswers,
@@ -53,6 +55,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
 
   def calculateTaxDue(
     triageAnswers: CompleteSingleDisposalTriageAnswers,
+    address: UkAddress,
     disposalDetails: CompleteDisposalDetailsAnswers,
     acquisitionDetails: CompleteAcquisitionDetailsAnswers,
     reliefDetails: CompleteReliefDetailsAnswers,
@@ -105,7 +108,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         gainOrLossAfterReliefs,
         exemptionAndLosses,
         List.empty,
-        Address.UkAddress("stub", None, None, None, Postcode("ABC D12"))
+        address
       )
 
     if (taxableGain <= AmountInPence.zero)

@@ -50,6 +50,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
       mockCalculationService
         .calculateTaxDue(
           _: CompleteSingleDisposalTriageAnswers,
+          _: UkAddress,
           _: CompleteDisposalDetailsAnswers,
           _: CompleteAcquisitionDetailsAnswers,
           _: CompleteReliefDetailsAnswers,
@@ -60,7 +61,7 @@ class ReturnTransformerServiceImplSpec extends WordSpec with Matchers with MockF
           _: Boolean
         )
       )
-      .expects(*, *, *, *, *, *, *, *, *)
+      .expects(*, *, *, *, *, *, *, *, *, *)
       .returning(result)
 
   def mockGetTaxYear(date: LocalDate)(result: Option[TaxYear]) =

@@ -76,6 +76,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
       ) =
         service.calculateTaxDue(
           triageAnswers,
+          sample[UkAddress],
           disposalDetails,
           acquisitionDetails,
           reliefDetails,

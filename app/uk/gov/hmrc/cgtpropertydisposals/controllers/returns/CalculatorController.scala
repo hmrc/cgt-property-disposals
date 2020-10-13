@@ -40,6 +40,7 @@ class CalculatorController @Inject() (
       withJsonBody[CalculateCgtTaxDueRequest] { calculationRequest =>
         val result = calculatorService.calculateTaxDue(
           calculationRequest.triageAnswers,
+          calculationRequest.address,
           calculationRequest.disposalDetails,
           calculationRequest.acquisitionDetails,
           calculationRequest.reliefDetails,
