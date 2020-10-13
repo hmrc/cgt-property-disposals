@@ -18,6 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Singleton}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
@@ -26,13 +28,14 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, AssetType, CalculatedTaxDue, Source, TaxableAmountOfMoney}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, AssetType, CalculatedTaxDue, FurtherReturnCalculationData, Source, TaxableAmountOfMoney, TaxableGainOrLossCalculation, TaxableGainOrLossCalculationRequest}
 
 @ImplementedBy(classOf[CgtCalculationServiceImpl])
 trait CgtCalculationService {
 
   def calculateTaxDue(
     triageAnswers: CompleteSingleDisposalTriageAnswers,
+    address: UkAddress,
     disposalDetails: CompleteDisposalDetailsAnswers,
     acquisitionDetails: CompleteAcquisitionDetailsAnswers,
     reliefDetails: CompleteReliefDetailsAnswers,
@@ -43,6 +46,8 @@ trait CgtCalculationService {
     isATrust: Boolean
   ): CalculatedTaxDue
 
+  def calculateTaxableGainOrLoss(request: TaxableGainOrLossCalculationRequest): TaxableGainOrLossCalculation
+
 }
 
 @Singleton
@@ -50,6 +55,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
 
   def calculateTaxDue(
     triageAnswers: CompleteSingleDisposalTriageAnswers,
+    address: UkAddress,
     disposalDetails: CompleteDisposalDetailsAnswers,
     acquisitionDetails: CompleteAcquisitionDetailsAnswers,
     reliefDetails: CompleteReliefDetailsAnswers,
@@ -86,9 +92,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     }
 
     val totalReliefs: AmountInPence = {
-      val otherReliefs =
-        reliefDetails.otherReliefs.map(_.fold(_.amount, () => AmountInPence.zero)).getOrElse(AmountInPence.zero)
-      reliefDetails.privateResidentsRelief ++ reliefDetails.lettingsRelief ++ otherReliefs
+      reliefDetails.privateResidentsRelief ++ reliefDetails.lettingsRelief
     }
 
     val gainOrLossAfterReliefs: AmountInPence =
@@ -99,40 +103,23 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       else
         AmountInPence.zero
 
-    val totalLosses: AmountInPence = {
-      val previousYearsLosses =
-        if (
-          gainOrLossAfterReliefs < AmountInPence.zero ||
-          (gainOrLossAfterReliefs -- exemptionAndLosses.inYearLosses) < AmountInPence.zero
-        )
-          AmountInPence.zero
-        else
-          exemptionAndLosses.previousYearsLosses
-
-      exemptionAndLosses.inYearLosses ++ previousYearsLosses
-    }
-
-    val gainOrLossAfterLosses: AmountInPence =
-      if (gainOrLossAfterReliefs >= AmountInPence.zero)
-        (gainOrLossAfterReliefs -- totalLosses).withFloorZero
-      else
-        (gainOrLossAfterReliefs ++ totalLosses).withCeilingZero
-
-    val taxableGain: AmountInPence =
-      if (gainOrLossAfterLosses > AmountInPence.zero)
-        (gainOrLossAfterLosses -- exemptionAndLosses.annualExemptAmount).withFloorZero
-      else
-        gainOrLossAfterLosses
+    val TaxableGainOrLossCalculation(taxableGain, _, gainOrLossAfterInYearLosses, yearPosition, _, _) =
+      calculateTaxableGainOrLoss(
+        gainOrLossAfterReliefs,
+        exemptionAndLosses,
+        List.empty,
+        address
+      )
 
     if (taxableGain <= AmountInPence.zero)
       NonGainCalculatedTaxDue(
         disposalAmountLessCosts,
         acquisitionAmountPlusCosts,
         initialGainOrLossWithSource,
+        gainOrLossAfterInYearLosses,
         totalReliefs,
         gainOrLossAfterReliefs,
-        totalLosses,
-        gainOrLossAfterLosses,
+        yearPosition,
         taxableGain,
         AmountInPence.zero
       )
@@ -168,10 +155,10 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         disposalAmountLessCosts,
         acquisitionAmountPlusCosts,
         initialGainOrLossWithSource,
+        gainOrLossAfterInYearLosses,
         totalReliefs,
         gainOrLossAfterReliefs,
-        totalLosses,
-        gainOrLossAfterLosses,
+        yearPosition,
         taxableGain,
         taxableIncome,
         lowerBandTax,
@@ -179,6 +166,68 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         taxDue
       )
     }
+  }
+
+  def calculateTaxableGainOrLoss(request: TaxableGainOrLossCalculationRequest): TaxableGainOrLossCalculation =
+    calculateTaxableGainOrLoss(
+      request.gainOrLossAfterReliefs,
+      request.exemptionAndLossesAnswers,
+      request.calculationData,
+      request.address
+    )
+
+  private def calculateTaxableGainOrLoss(
+    gainOrLossAfterReliefs: AmountInPence,
+    exemptionAndLosses: CompleteExemptionAndLossesAnswers,
+    calculationData: List[FurtherReturnCalculationData],
+    address: Address.UkAddress
+  ): TaxableGainOrLossCalculation = {
+    val calculationDataWithCurrentData =
+      FurtherReturnCalculationData(address, gainOrLossAfterReliefs) :: calculationData
+    val gainsAfterReliefs              =
+      calculationDataWithCurrentData.map(r =>
+        r.copy(gainOrLossAfterReliefs =
+          if (r.gainOrLossAfterReliefs.isPositive) r.gainOrLossAfterReliefs else AmountInPence.zero
+        )
+      )
+
+    val totalGainsAfterReliefs = gainsAfterReliefs
+      .map(_.gainOrLossAfterReliefs)
+      .foldLeft(AmountInPence.zero)(_ ++ _)
+
+    val gainOrLossAfterInYearLosses =
+      totalGainsAfterReliefs -- exemptionAndLosses.inYearLosses
+
+    val previousYearsLosses =
+      if (gainOrLossAfterInYearLosses < AmountInPence.zero)
+        AmountInPence.zero
+      else
+        exemptionAndLosses.previousYearsLosses
+
+    val yearPosition: AmountInPence =
+      if (gainOrLossAfterInYearLosses > AmountInPence.zero)
+        (gainOrLossAfterInYearLosses -- exemptionAndLosses.annualExemptAmount).withFloorZero
+      else
+        gainOrLossAfterInYearLosses
+
+    val previousYearLossesUsed =
+      if (yearPosition > AmountInPence.zero) previousYearsLosses
+      else AmountInPence.zero
+
+    val taxableGainOrLoss =
+      if (yearPosition > AmountInPence.zero)
+        (yearPosition -- previousYearLossesUsed).withFloorZero
+      else
+        yearPosition
+
+    TaxableGainOrLossCalculation(
+      taxableGainOrLoss,
+      previousYearLossesUsed,
+      gainOrLossAfterInYearLosses,
+      yearPosition,
+      gainsAfterReliefs,
+      totalGainsAfterReliefs
+    )
   }
 
 }

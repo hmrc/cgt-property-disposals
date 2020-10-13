@@ -38,6 +38,8 @@ object AmountInPence {
 
     def withCeilingZero: AmountInPence = if (a.value > 0L) AmountInPence.zero else a
 
+    def isPositive: Boolean = a.value > 0L
+
   }
 
   implicit val order: Order[AmountInPence] = Order.by[AmountInPence, Long](_.value)

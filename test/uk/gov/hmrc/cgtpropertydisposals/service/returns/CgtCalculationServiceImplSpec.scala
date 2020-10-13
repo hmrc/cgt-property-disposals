@@ -24,7 +24,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CalculatedTaxDue, DisposalDate, OtherReliefsOption, Source, TaxableAmountOfMoney}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CalculatedTaxDue, DisposalDate, FurtherReturnCalculationData, OtherReliefsOption, Source, TaxableAmountOfMoney, TaxableGainOrLossCalculationRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -75,6 +76,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
       ) =
         service.calculateTaxDue(
           triageAnswers,
+          sample[UkAddress],
           disposalDetails,
           acquisitionDetails,
           reliefDetails,
@@ -216,13 +218,12 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           forAll {
             (
               privateResidentsRelief: AmountInPence,
-              lettingRelief: AmountInPence,
-              otherReliefs: OtherReliefsOption.OtherReliefs
+              lettingRelief: AmountInPence
             ) =>
               val result = calculate(
-                reliefDetails = CompleteReliefDetailsAnswers(privateResidentsRelief, lettingRelief, Some(otherReliefs))
+                reliefDetails = CompleteReliefDetailsAnswers(privateResidentsRelief, lettingRelief, None)
               )
-              result.totalReliefs.value shouldBe (privateResidentsRelief.value + lettingRelief.value + otherReliefs.amount.value)
+              result.totalReliefs.value shouldBe (privateResidentsRelief.value + lettingRelief.value)
           }
         }
 
@@ -330,7 +331,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
       }
 
-      "calculate total losses correctly" when {
+      "calculate year position correctly" when {
 
         "the gain or loss after reliefs is negative" in {
           val acquisitionDetails = zeroAcquisitionDetails.copy(
@@ -342,13 +343,12 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             acquisitionDetails = acquisitionDetails,
             reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses = AmountInPence(1L),
-              previousYearsLosses = AmountInPence(3L)
+              inYearLosses = AmountInPence(1L)
             )
           )
 
           result.gainOrLossAfterReliefs.value shouldBe -100L
-          result.totalLosses.value            shouldBe 1L
+          result.yearPosition.value           shouldBe -1L
         }
 
         "the gain or loss after reliefs is positive" in {
@@ -361,13 +361,13 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             acquisitionDetails = zeroAcquisitionDetails,
             reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
-              inYearLosses = AmountInPence(1L),
-              previousYearsLosses = AmountInPence(3L)
+              inYearLosses = AmountInPence(99L),
+              annualExemptAmount = AmountInPence(1L)
             )
           )
 
           result.gainOrLossAfterReliefs.value shouldBe 100L
-          result.totalLosses.value            shouldBe 4L
+          result.yearPosition.value           shouldBe 0L
         }
 
         "the gain or loss after reliefs is zero" in {
@@ -377,14 +377,14 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               inYearLosses = AmountInPence(1L),
-              previousYearsLosses = AmountInPence(3L)
+              annualExemptAmount = AmountInPence(1000L)
             )
           )
 
           result.gainOrLossAfterReliefs.value shouldBe 0L
-          // previous years losses can't be applied since gain or loss after relieds
+          // annual exempt amount can't be applied since gain or loss after reliefs
           // is less than in year losses
-          result.totalLosses.value            shouldBe 1L
+          result.yearPosition.value           shouldBe -1L
         }
 
         "the gain or loss after reliefs is strictly less than the in year losses" in {
@@ -398,12 +398,12 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               inYearLosses = AmountInPence(200L),
-              previousYearsLosses = AmountInPence(3L)
+              annualExemptAmount = AmountInPence(100L)
             )
           )
 
           result.gainOrLossAfterReliefs.value shouldBe 100L
-          result.totalLosses.value            shouldBe 200L
+          result.yearPosition.value           shouldBe -100L
         }
 
         "the gain or loss after reliefs is strictly greater than the in year losses" in {
@@ -417,12 +417,12 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               inYearLosses = AmountInPence(1L),
-              previousYearsLosses = AmountInPence(3L)
+              annualExemptAmount = AmountInPence(3L)
             )
           )
 
           result.gainOrLossAfterReliefs.value shouldBe 100L
-          result.totalLosses.value            shouldBe 4L
+          result.yearPosition.value           shouldBe 96L
         }
 
         "the gain or loss after reliefs is equal to the in year losses" in {
@@ -436,59 +436,17 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               inYearLosses = AmountInPence(100L),
-              previousYearsLosses = AmountInPence(3L)
+              annualExemptAmount = AmountInPence(3L)
             )
           )
 
           result.gainOrLossAfterReliefs.value shouldBe 100L
-          result.totalLosses.value            shouldBe 103L
+          result.yearPosition.value           shouldBe 0L
         }
 
       }
 
       "calculate gain or loss after losses correctly" when {
-
-        "the gain or loss after reliefs is positive and is greater than the " +
-          "total losses" in {
-            val disposalDetails = zeroDisposalDetails.copy(
-              disposalPrice = AmountInPence(100L)
-            )
-
-            val result = calculate(
-              disposalDetails = disposalDetails,
-              acquisitionDetails = zeroAcquisitionDetails,
-              reliefDetails = zeroReliefDetails,
-              exemptionAndLosses = zeroExemptionsAndLosses.copy(
-                inYearLosses = AmountInPence(1L),
-                previousYearsLosses = AmountInPence(2L)
-              )
-            )
-
-            result.gainOrLossAfterReliefs.value shouldBe 100L
-            result.totalLosses.value            shouldBe 3L
-            result.gainOrLossAfterLosses.value  shouldBe 97L
-          }
-
-        "the gain or loss after reliefs is positive and is less than the " +
-          "total losses" in {
-            val disposalDetails = zeroDisposalDetails.copy(
-              disposalPrice = AmountInPence(100L)
-            )
-
-            val result = calculate(
-              disposalDetails = disposalDetails,
-              acquisitionDetails = zeroAcquisitionDetails,
-              reliefDetails = zeroReliefDetails,
-              exemptionAndLosses = zeroExemptionsAndLosses.copy(
-                inYearLosses = AmountInPence(1L),
-                previousYearsLosses = AmountInPence(200L)
-              )
-            )
-
-            result.gainOrLossAfterReliefs.value shouldBe 100L
-            result.totalLosses.value            shouldBe 201L
-            result.gainOrLossAfterLosses.value  shouldBe 0L
-          }
 
         "the gain or loss after reliefs is negative and its absolute value " +
           "is greater than the in year losses" in {
@@ -501,14 +459,12 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               acquisitionDetails = acquisitionDetails,
               reliefDetails = zeroReliefDetails,
               exemptionAndLosses = zeroExemptionsAndLosses.copy(
-                inYearLosses = AmountInPence(1L),
-                previousYearsLosses = AmountInPence(2L)
+                inYearLosses = AmountInPence(1L)
               )
             )
 
             result.gainOrLossAfterReliefs.value shouldBe -100L
-            result.totalLosses.value            shouldBe 1L
-            result.gainOrLossAfterLosses.value  shouldBe -99L
+            result.yearPosition.value           shouldBe -1L
           }
 
         "the gain or loss after reliefs is negative and its absolute value " +
@@ -523,13 +479,12 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               reliefDetails = zeroReliefDetails,
               exemptionAndLosses = zeroExemptionsAndLosses.copy(
                 inYearLosses = AmountInPence(200L),
-                previousYearsLosses = AmountInPence(2L)
+                annualExemptAmount = AmountInPence(2L)
               )
             )
 
             result.gainOrLossAfterReliefs.value shouldBe -100L
-            result.totalLosses.value            shouldBe 200L
-            result.gainOrLossAfterLosses.value  shouldBe 0L
+            result.yearPosition.value           shouldBe -200L
           }
 
         "the gain or loss after reliefs is zero" in {
@@ -539,13 +494,12 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             reliefDetails = zeroReliefDetails,
             exemptionAndLosses = zeroExemptionsAndLosses.copy(
               inYearLosses = AmountInPence(1L),
-              previousYearsLosses = AmountInPence(2L)
+              annualExemptAmount = AmountInPence(2L)
             )
           )
 
           result.gainOrLossAfterReliefs.value shouldBe 0L
-          result.totalLosses.value            shouldBe 1L
-          result.gainOrLossAfterLosses.value  shouldBe 0L
+          result.yearPosition.value           shouldBe -1L
         }
 
       }
@@ -569,8 +523,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           result                                shouldBe a[NonGainCalculatedTaxDue]
           result.initialGainOrLoss.amount.value shouldBe -100L
           result.gainOrLossAfterReliefs.value   shouldBe -98L
-          result.gainOrLossAfterLosses.value    shouldBe -97L
-          result.taxableGainOrNetLoss.value     shouldBe -97L
+          result.taxableGainOrNetLoss.value     shouldBe -1L
         }
 
         "the gain or loss after losses is zero" in {
@@ -583,9 +536,8 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             )
           )
 
-          result                             shouldBe a[NonGainCalculatedTaxDue]
-          result.gainOrLossAfterLosses.value shouldBe 0L
-          result.taxableGainOrNetLoss.value  shouldBe 0L
+          result                            shouldBe a[NonGainCalculatedTaxDue]
+          result.taxableGainOrNetLoss.value shouldBe 0L
         }
 
         "the gain or loss after losses is positive and is greater than " +
@@ -603,9 +555,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               )
             )
 
-            result                             shouldBe a[GainCalculatedTaxDue]
-            result.gainOrLossAfterLosses.value shouldBe 100L
-            result.taxableGainOrNetLoss.value  shouldBe 99L
+            result                            shouldBe a[GainCalculatedTaxDue]
+            result.yearPosition.value         shouldBe 99L
+            result.taxableGainOrNetLoss.value shouldBe 99L
           }
 
         "the gain or loss after losses is positive and is less than " +
@@ -623,9 +575,9 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
               )
             )
 
-            result                             shouldBe a[NonGainCalculatedTaxDue]
-            result.gainOrLossAfterLosses.value shouldBe 100L
-            result.taxableGainOrNetLoss.value  shouldBe 0L
+            result                            shouldBe a[NonGainCalculatedTaxDue]
+            result.yearPosition.value         shouldBe 0L
+            result.taxableGainOrNetLoss.value shouldBe 0L
           }
 
       }
@@ -954,7 +906,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           result                            shouldBe a[NonGainCalculatedTaxDue]
-          result.taxableGainOrNetLoss.value shouldBe -10L
+          result.taxableGainOrNetLoss.value shouldBe -0L
           result.amountOfTaxDue.value       shouldBe 0L
         }
 
@@ -1013,7 +965,248 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
       }
 
     }
+
+    "calculating taxable gain or loss" must {
+
+      "calculate total gains after reliefs correctly" in {
+        val currentGlar                    = AmountInPence(1L)
+        val currentAddress                 = sample[UkAddress]
+        val (address1, address2, address3) = (sample[UkAddress], sample[UkAddress], sample[UkAddress])
+        val previousReturnCalculationData  = List(
+          FurtherReturnCalculationData(address1, AmountInPence(1L)),
+          FurtherReturnCalculationData(address2, AmountInPence.zero),
+          FurtherReturnCalculationData(address3, AmountInPence(-1L))
+        )
+
+        val result = service
+          .calculateTaxableGainOrLoss(
+            TaxableGainOrLossCalculationRequest(
+              previousReturnCalculationData,
+              currentGlar,
+              sample[CompleteExemptionAndLossesAnswers],
+              currentAddress
+            )
+          )
+
+        result.totalGainsAfterReliefs shouldBe AmountInPence(2L)
+
+        result.calculationData.toSet shouldBe Set(
+          FurtherReturnCalculationData(currentAddress, currentGlar),
+          FurtherReturnCalculationData(address1, AmountInPence(1L)),
+          FurtherReturnCalculationData(address2, AmountInPence.zero),
+          FurtherReturnCalculationData(address3, AmountInPence.zero)
+        )
+      }
+
+      "calculate gain or loss after in year losses correctly" in {
+        forAll { exemptionsAndLosses: CompleteExemptionAndLossesAnswers =>
+          val currentGlar = AmountInPence(1L)
+          service
+            .calculateTaxableGainOrLoss(
+              TaxableGainOrLossCalculationRequest(
+                List.empty,
+                currentGlar,
+                exemptionsAndLosses,
+                sample[UkAddress]
+              )
+            )
+            .gainOrLossAfterInYearLosses shouldBe (currentGlar -- exemptionsAndLosses.inYearLosses)
+        }
+      }
+
+      "calculate year position correctly" when {
+
+        "gain or loss after in year losses is positive and the annual exempt amount is " +
+          "less than the gain or loess after in year losses " in {
+            val currentGlar         = AmountInPence(10L)
+            val exemptionsAndLosses = sample[CompleteExemptionAndLossesAnswers].copy(
+              inYearLosses = AmountInPence.zero,
+              annualExemptAmount = AmountInPence(1L)
+            )
+
+            val result = service
+              .calculateTaxableGainOrLoss(
+                TaxableGainOrLossCalculationRequest(
+                  List.empty,
+                  currentGlar,
+                  exemptionsAndLosses,
+                  sample[UkAddress]
+                )
+              )
+
+            result.gainOrLossAfterInYearLosses shouldBe AmountInPence(10L)
+            result.yearPosition                shouldBe AmountInPence(9L)
+          }
+
+        "gain or loss after in year losses is positive and the annual exempt amount is " +
+          "greater than the gain or loess after in year losses " in {
+            val currentGlar         = AmountInPence(10L)
+            val exemptionsAndLosses = sample[CompleteExemptionAndLossesAnswers].copy(
+              inYearLosses = AmountInPence.zero,
+              annualExemptAmount = AmountInPence(11L)
+            )
+
+            val result = service
+              .calculateTaxableGainOrLoss(
+                TaxableGainOrLossCalculationRequest(
+                  List.empty,
+                  currentGlar,
+                  exemptionsAndLosses,
+                  sample[UkAddress]
+                )
+              )
+
+            result.gainOrLossAfterInYearLosses shouldBe AmountInPence(10L)
+            result.yearPosition                shouldBe AmountInPence.zero
+          }
+
+        "gain or loss after in year losses is zero" in {
+          val currentGlar         = AmountInPence(10L)
+          val exemptionsAndLosses = sample[CompleteExemptionAndLossesAnswers].copy(
+            inYearLosses = currentGlar,
+            annualExemptAmount = AmountInPence(1L)
+          )
+
+          val result = service
+            .calculateTaxableGainOrLoss(
+              TaxableGainOrLossCalculationRequest(
+                List.empty,
+                currentGlar,
+                exemptionsAndLosses,
+                sample[UkAddress]
+              )
+            )
+
+          result.gainOrLossAfterInYearLosses shouldBe AmountInPence.zero
+          result.yearPosition                shouldBe AmountInPence.zero
+        }
+
+        "gain or loss after in year losses is negative" in {
+          val currentGlar         = AmountInPence(10L)
+          val exemptionsAndLosses = sample[CompleteExemptionAndLossesAnswers].copy(
+            inYearLosses = AmountInPence(11L),
+            annualExemptAmount = AmountInPence(1L)
+          )
+
+          val result = service
+            .calculateTaxableGainOrLoss(
+              TaxableGainOrLossCalculationRequest(
+                List.empty,
+                currentGlar,
+                exemptionsAndLosses,
+                sample[UkAddress]
+              )
+            )
+
+          result.gainOrLossAfterInYearLosses shouldBe AmountInPence(-1L)
+          result.yearPosition                shouldBe AmountInPence(-1L)
+        }
+
+      }
+
+      "calculate the taxable gain or loss correctly" when {
+
+        "the year position is positive and the previous years losses is less " +
+          "than the year position" in {
+            val currentGlar         = AmountInPence(10L)
+            val exemptionsAndLosses = sample[CompleteExemptionAndLossesAnswers].copy(
+              inYearLosses = AmountInPence.zero,
+              annualExemptAmount = AmountInPence(1L),
+              previousYearsLosses = AmountInPence(2L)
+            )
+
+            val result = service
+              .calculateTaxableGainOrLoss(
+                TaxableGainOrLossCalculationRequest(
+                  List.empty,
+                  currentGlar,
+                  exemptionsAndLosses,
+                  sample[UkAddress]
+                )
+              )
+
+            result.yearPosition       shouldBe AmountInPence(9L)
+            result.taxableGainOrLoss  shouldBe AmountInPence(7L)
+            result.previousYearLosses shouldBe AmountInPence(2L)
+
+          }
+
+        "the year position is positive and the previous years losses is greater " +
+          "than the year position" in {
+            val currentGlar         = AmountInPence(10L)
+            val exemptionsAndLosses = sample[CompleteExemptionAndLossesAnswers].copy(
+              inYearLosses = AmountInPence.zero,
+              annualExemptAmount = AmountInPence(1L),
+              previousYearsLosses = AmountInPence(10L)
+            )
+
+            val result = service
+              .calculateTaxableGainOrLoss(
+                TaxableGainOrLossCalculationRequest(
+                  List.empty,
+                  currentGlar,
+                  exemptionsAndLosses,
+                  sample[UkAddress]
+                )
+              )
+
+            result.yearPosition       shouldBe AmountInPence(9L)
+            result.taxableGainOrLoss  shouldBe AmountInPence.zero
+            result.previousYearLosses shouldBe AmountInPence(10L)
+          }
+
+        "the year position is zero" in {
+          val currentGlar         = AmountInPence(10L)
+          val exemptionsAndLosses = sample[CompleteExemptionAndLossesAnswers].copy(
+            inYearLosses = currentGlar,
+            annualExemptAmount = AmountInPence(1L),
+            previousYearsLosses = AmountInPence(10L)
+          )
+
+          val result = service
+            .calculateTaxableGainOrLoss(
+              TaxableGainOrLossCalculationRequest(
+                List.empty,
+                currentGlar,
+                exemptionsAndLosses,
+                sample[UkAddress]
+              )
+            )
+
+          result.gainOrLossAfterInYearLosses shouldBe AmountInPence.zero
+          result.yearPosition                shouldBe AmountInPence.zero
+          result.previousYearLosses          shouldBe AmountInPence.zero
+        }
+
+        "the year position is negative" in {
+          val currentGlar         = AmountInPence(10L)
+          val exemptionsAndLosses = sample[CompleteExemptionAndLossesAnswers].copy(
+            inYearLosses = AmountInPence(11L),
+            annualExemptAmount = AmountInPence(1L),
+            previousYearsLosses = AmountInPence(10L)
+          )
+
+          val result = service
+            .calculateTaxableGainOrLoss(
+              TaxableGainOrLossCalculationRequest(
+                List.empty,
+                currentGlar,
+                exemptionsAndLosses,
+                sample[UkAddress]
+              )
+            )
+
+          result.yearPosition       shouldBe AmountInPence(-1L)
+          result.yearPosition       shouldBe AmountInPence(-1L)
+          result.previousYearLosses shouldBe AmountInPence.zero
+        }
+
+      }
+
+    }
+
   }
+
   def testOnGainCalculatedTaxDue(result: CalculatedTaxDue)(f: GainCalculatedTaxDue => Unit): Unit =
     result match {
       case n: NonGainCalculatedTaxDue => fail(s"Expected a gain but got $n")

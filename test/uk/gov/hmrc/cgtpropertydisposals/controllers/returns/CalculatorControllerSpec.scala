@@ -26,6 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
@@ -49,6 +50,7 @@ class CalculatorControllerSpec extends ControllerSpec {
       mockCalculatorService
         .calculateTaxDue(
           _: CompleteSingleDisposalTriageAnswers,
+          _: UkAddress,
           _: CompleteDisposalDetailsAnswers,
           _: CompleteAcquisitionDetailsAnswers,
           _: CompleteReliefDetailsAnswers,
@@ -61,6 +63,7 @@ class CalculatorControllerSpec extends ControllerSpec {
       )
       .expects(
         request.triageAnswers,
+        request.address,
         request.disposalDetails,
         request.acquisitionDetails,
         request.reliefDetails,
@@ -88,10 +91,10 @@ class CalculatorControllerSpec extends ControllerSpec {
 
   "CalculatorController" when {
 
-    "handling requests to calculate tax due" must {
+    "handling requests to calculateTaxDue tax due" must {
 
       def performAction(body: JsValue): Future[Result] =
-        controller.calculate()(request(body))
+        controller.calculateTaxDue()(request(body))
 
       "return a bad request" when {
 

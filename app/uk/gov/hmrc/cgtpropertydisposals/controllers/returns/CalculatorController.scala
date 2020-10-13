@@ -20,7 +20,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculateCgtTaxDueRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculateCgtTaxDueRequest, TaxableGainOrLossCalculationRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.CgtCalculationService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -35,11 +35,12 @@ class CalculatorController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def calculate: Action[JsValue] =
+  def calculateTaxDue: Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
       withJsonBody[CalculateCgtTaxDueRequest] { calculationRequest =>
         val result = calculatorService.calculateTaxDue(
           calculationRequest.triageAnswers,
+          calculationRequest.address,
           calculationRequest.disposalDetails,
           calculationRequest.acquisitionDetails,
           calculationRequest.reliefDetails,
@@ -50,6 +51,14 @@ class CalculatorController @Inject() (
           calculationRequest.isATrust
         )
 
+        Future.successful(Ok(Json.toJson(result)))
+      }
+    }
+
+  def calculateTaxableGainOrLoss: Action[JsValue] =
+    authenticate(parse.json).async { implicit request =>
+      withJsonBody[TaxableGainOrLossCalculationRequest] { calculationRequest =>
+        val result = calculatorService.calculateTaxableGainOrLoss(calculationRequest)
         Future.successful(Ok(Json.toJson(result)))
       }
     }

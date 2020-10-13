@@ -47,8 +47,7 @@ sealed trait CalculatedTaxDue extends Product with Serializable {
   val initialGainOrLoss: AmountInPenceWithSource
   val totalReliefs: AmountInPence
   val gainOrLossAfterReliefs: AmountInPence
-  val totalLosses: AmountInPence
-  val gainOrLossAfterLosses: AmountInPence
+  val yearPosition: AmountInPence
   val taxableGainOrNetLoss: AmountInPence
   val amountOfTaxDue: AmountInPence
 }
@@ -59,10 +58,10 @@ object CalculatedTaxDue {
     disposalAmountLessCosts: AmountInPence,
     acquisitionAmountPlusCosts: AmountInPence,
     initialGainOrLoss: AmountInPenceWithSource,
+    gainOrLossAfterInYearLosses: AmountInPence,
     totalReliefs: AmountInPence,
     gainOrLossAfterReliefs: AmountInPence,
-    totalLosses: AmountInPence,
-    gainOrLossAfterLosses: AmountInPence,
+    yearPosition: AmountInPence,
     taxableGainOrNetLoss: AmountInPence,
     amountOfTaxDue: AmountInPence
   ) extends CalculatedTaxDue
@@ -71,10 +70,10 @@ object CalculatedTaxDue {
     disposalAmountLessCosts: AmountInPence,
     acquisitionAmountPlusCosts: AmountInPence,
     initialGainOrLoss: AmountInPenceWithSource,
+    gainOrLossAfterInYearLosses: AmountInPence,
     totalReliefs: AmountInPence,
     gainOrLossAfterReliefs: AmountInPence,
-    totalLosses: AmountInPence,
-    gainOrLossAfterLosses: AmountInPence,
+    yearPosition: AmountInPence,
     taxableGainOrNetLoss: AmountInPence,
     taxableIncome: AmountInPence,
     taxDueAtLowerRate: TaxableAmountOfMoney,
