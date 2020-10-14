@@ -47,6 +47,7 @@ trait CgtCalculationService {
   ): CalculatedTaxDue
 
   def calculateTaxableGainOrLoss(request: TaxableGainOrLossCalculationRequest): TaxableGainOrLossCalculation
+  def calculateYearToDateLiability(request: YearToDateLiabilityCalculationRequest): YearToDateLiabilityCalculation
 
 }
 

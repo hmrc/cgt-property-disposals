@@ -20,7 +20,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculateCgtTaxDueRequest, TaxableGainOrLossCalculationRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculateCgtTaxDueRequest, TaxableGainOrLossCalculationRequest, YearToDateLiabilityCalculationRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.CgtCalculationService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -59,6 +59,14 @@ class CalculatorController @Inject() (
     authenticate(parse.json).async { implicit request =>
       withJsonBody[TaxableGainOrLossCalculationRequest] { calculationRequest =>
         val result = calculatorService.calculateTaxableGainOrLoss(calculationRequest)
+        Future.successful(Ok(Json.toJson(result)))
+      }
+    }
+
+  def calculateYearToDateLiability: Action[JsValue] =
+    authenticate(parse.json).async { implicit request =>
+      withJsonBody[YearToDateLiabilityCalculationRequest] { calculationRequest =>
+        val result = calculatorService.calculateYearToDateLiability(calculationRequest)
         Future.successful(Ok(Json.toJson(result)))
       }
     }

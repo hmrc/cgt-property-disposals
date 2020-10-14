@@ -5,6 +5,7 @@ POST /draft-return/:cgtReference               uk.gov.hmrc.cgtpropertydisposals.
 GET  /tax-year/:date                           uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.taxYear(date: String)
 POST /calculate-tax-due                        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateTaxDue()
 POST /calculate-taxable-gain-or-loss           uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateTaxableGainOrLoss()
+POST /calculate-year-to-date-liability         uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateYearToDateLiability()
 
 POST /return                                   uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.submitReturn()
 
