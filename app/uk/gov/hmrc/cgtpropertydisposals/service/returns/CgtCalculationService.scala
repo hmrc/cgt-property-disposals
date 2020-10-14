@@ -28,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, AssetType, CalculatedTaxDue, FurtherReturnCalculationData, Source, TaxableAmountOfMoney, TaxableGainOrLossCalculation, TaxableGainOrLossCalculationRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, AssetType, CalculatedTaxDue, FurtherReturnCalculationData, Source, TaxableAmountOfMoney, TaxableGainOrLossCalculation, TaxableGainOrLossCalculationRequest, YearToDateLiabilityCalculation, YearToDateLiabilityCalculationRequest}
 
 @ImplementedBy(classOf[CgtCalculationServiceImpl])
 trait CgtCalculationService {
@@ -111,6 +111,15 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         address
       )
 
+    val YearToDateLiabilityCalculation(taxableIncome, lowerBandTax, higherBandTax, taxDue) =
+      calculateYearToDateLiability(
+        triageAnswers,
+        taxableGain,
+        estimatedIncome,
+        personalAllowance,
+        isATrust
+      )
+
     if (taxableGain <= AmountInPence.zero)
       NonGainCalculatedTaxDue(
         disposalAmountLessCosts,
@@ -124,33 +133,6 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         AmountInPence.zero
       )
     else {
-      val taxYear                        = triageAnswers.disposalDate.taxYear
-      val (lowerBandRate, higherTaxRate) =
-        triageAnswers.assetType match {
-          case AssetType.Residential => taxYear.cgtRateLowerBandResidential    -> taxYear.cgtRateHigherBandResidential
-          case _                     => taxYear.cgtRateLowerBandNonResidential -> taxYear.cgtRateHigherBandNonResidential
-        }
-      val taxableIncome                  = (estimatedIncome -- personalAllowance).withFloorZero
-      val lowerBandTax                   =
-        if (isATrust)
-          TaxableAmountOfMoney(lowerBandRate, AmountInPence(0L))
-        else
-          TaxableAmountOfMoney(
-            lowerBandRate,
-            AmountInPence.zero.max(
-              taxableGain.min(
-                (taxYear.incomeTaxHigherRateThreshold -- taxableIncome).withFloorZero
-              )
-            )
-          )
-
-      val higherBandTax = TaxableAmountOfMoney(
-        higherTaxRate,
-        (taxableGain -- lowerBandTax.taxableAmount).withFloorZero
-      )
-
-      val taxDue = lowerBandTax.taxDue() ++ higherBandTax.taxDue()
-
       GainCalculatedTaxDue(
         disposalAmountLessCosts,
         acquisitionAmountPlusCosts,
@@ -227,6 +209,57 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       yearPosition,
       gainsAfterReliefs,
       totalGainsAfterReliefs
+    )
+  }
+
+  def calculateYearToDateLiability(request: YearToDateLiabilityCalculationRequest): YearToDateLiabilityCalculation =
+    calculateYearToDateLiability(
+      request.triageAnswers,
+      request.taxableGain,
+      request.estimatedIncome,
+      request.personalAllowance,
+      request.isATrust
+    )
+
+  private def calculateYearToDateLiability(
+    triageAnswers: CompleteSingleDisposalTriageAnswers,
+    taxableGain: AmountInPence,
+    estimatedIncome: AmountInPence,
+    personalAllowance: AmountInPence,
+    isATrust: Boolean
+  ): YearToDateLiabilityCalculation = {
+    val taxYear                        = triageAnswers.disposalDate.taxYear
+    val (lowerBandRate, higherTaxRate) =
+      triageAnswers.assetType match {
+        case AssetType.Residential => taxYear.cgtRateLowerBandResidential    -> taxYear.cgtRateHigherBandResidential
+        case _                     => taxYear.cgtRateLowerBandNonResidential -> taxYear.cgtRateHigherBandNonResidential
+      }
+    val taxableIncome                  = (estimatedIncome -- personalAllowance).withFloorZero
+    val lowerBandTax                   =
+      if (isATrust)
+        TaxableAmountOfMoney(lowerBandRate, AmountInPence(0L))
+      else
+        TaxableAmountOfMoney(
+          lowerBandRate,
+          AmountInPence.zero.max(
+            taxableGain.min(
+              (taxYear.incomeTaxHigherRateThreshold -- taxableIncome).withFloorZero
+            )
+          )
+        )
+
+    val higherBandTax = TaxableAmountOfMoney(
+      higherTaxRate,
+      (taxableGain -- lowerBandTax.taxableAmount).withFloorZero
+    )
+
+    val taxDue = lowerBandTax.taxDue() ++ higherBandTax.taxDue()
+
+    YearToDateLiabilityCalculation(
+      taxableIncome,
+      lowerBandTax,
+      higherBandTax,
+      taxDue
     )
   }
 
