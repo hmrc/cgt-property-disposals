@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
+import java.util.UUID
+
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestKit, TestProbe}
 import cats.data.EitherT
@@ -27,7 +29,7 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import play.api.Configuration
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, EnvelopeId}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -66,6 +68,7 @@ class DmsSubmissionPollerSpec
   val mockGFormConnector    = mock[GFormConnector]
   val mockUpscanService     = mock[UpscanService]
   val mockDmsSubmissionRepo = mock[DmsSubmissionRepo]
+  val mockUUIDGenerator     = mock[UUIDGenerator]
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -100,10 +103,16 @@ class DmsSubmissionPollerSpec
       .expects()
       .returning(EitherT.fromEither[Future](response))
 
-  def mockSubmitToDms()(response: Either[Error, EnvelopeId]) =
+  def mockSubmitToDms(
+    html: B64Html,
+    formBundleId: String,
+    cgtReference: CgtReference,
+    completeReturn: CompleteReturn,
+    id: UUID
+  )(response: Either[Error, EnvelopeId]) =
     (mockDmsSubmissionService
-      .submitToDms(_: B64Html, _: String, _: CgtReference, _: CompleteReturn)(_: HeaderCarrier))
-      .expects(*, *, *, *, *)
+      .submitToDms(_: B64Html, _: String, _: CgtReference, _: CompleteReturn, _: UUID))
+      .expects(html, formBundleId, cgtReference, completeReturn, id)
       .returning(EitherT.fromEither(response))
 
   def mockSetProcessingStatus(id: BSONObjectID, status: ProcessingStatus)(response: Either[Error, Boolean]) =
@@ -118,14 +127,26 @@ class DmsSubmissionPollerSpec
       .expects(id, status)
       .returning(EitherT.fromEither[Future](response))
 
+  def mockNextUUID(uuid: UUID) =
+    (mockUUIDGenerator.nextId _).expects().returning(uuid)
+
   "DMS Submission Poller" when {
     "it picks up a work item" must {
       "process the work item and set it to succeed if the dms submission is successful" in {
         val onCompleteListener = TestProbe()
         val workItem           = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 0, status = ToDo)
+        val id                 = UUID.randomUUID()
+
         inSequence {
           mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
-          mockSubmitToDms()(Right(EnvelopeId("id")))
+          mockNextUUID(id)
+          mockSubmitToDms(
+            workItem.item.html,
+            workItem.item.formBundleId,
+            workItem.item.cgtReference,
+            workItem.item.completeReturn,
+            id
+          )(Right(EnvelopeId("id")))
           mockSetResultStatus(workItem.id, Succeeded)(Right(true))
         }
 
@@ -135,7 +156,8 @@ class DmsSubmissionPollerSpec
             mockDmsSubmissionService,
             dmsSubmissionPollerExecutionContext,
             servicesConfig,
-            new TestOnCompleteHandler(onCompleteListener.ref)
+            new TestOnCompleteHandler(onCompleteListener.ref),
+            mockUUIDGenerator
           )
 
         onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
@@ -146,9 +168,18 @@ class DmsSubmissionPollerSpec
       val onCompleteListener = TestProbe()
 
       val workItem = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 0, status = ToDo)
+      val id       = UUID.randomUUID()
+
       inSequence {
         mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
-        mockSubmitToDms()(Left(Error("some-error")))
+        mockNextUUID(id)
+        mockSubmitToDms(
+          workItem.item.html,
+          workItem.item.formBundleId,
+          workItem.item.cgtReference,
+          workItem.item.completeReturn,
+          id
+        )(Left(Error("some-error")))
         mockSetProcessingStatus(workItem.id, Failed)(Right(true))
       }
 
@@ -158,7 +189,8 @@ class DmsSubmissionPollerSpec
           mockDmsSubmissionService,
           dmsSubmissionPollerExecutionContext,
           servicesConfig,
-          new TestOnCompleteHandler(onCompleteListener.ref)
+          new TestOnCompleteHandler(onCompleteListener.ref),
+          mockUUIDGenerator
         )
 
       onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
@@ -179,7 +211,8 @@ class DmsSubmissionPollerSpec
           mockDmsSubmissionService,
           dmsSubmissionPollerExecutionContext,
           servicesConfig,
-          new TestOnCompleteHandler(onCompleteListener.ref)
+          new TestOnCompleteHandler(onCompleteListener.ref),
+          mockUUIDGenerator
         )
 
       onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)
@@ -196,7 +229,8 @@ class DmsSubmissionPollerSpec
             mockDmsSubmissionService,
             dmsSubmissionPollerExecutionContext,
             servicesConfig,
-            new TestOnCompleteHandler(onCompleteListener.ref)
+            new TestOnCompleteHandler(onCompleteListener.ref),
+            mockUUIDGenerator
           )
 
         onCompleteListener.expectMsg(TestOnCompleteHandler.Completed)

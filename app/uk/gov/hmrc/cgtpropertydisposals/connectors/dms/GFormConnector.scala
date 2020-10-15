@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import java.io.File
 import java.nio.file.{Files, _}
+import java.util.UUID
 
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.util.ByteString
@@ -33,7 +34,6 @@ import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsSubmissionPayload, EnvelopeId, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -42,9 +42,7 @@ import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[GFormConnectorImpl])
 trait GFormConnector {
-  def submitToDms(dmsSubmission: DmsSubmissionPayload)(implicit
-    hc: HeaderCarrier
-  ): EitherT[Future, Error, EnvelopeId]
+  def submitToDms(dmsSubmission: DmsSubmissionPayload, id: UUID): EitherT[Future, Error, EnvelopeId]
 }
 
 @Singleton
@@ -60,8 +58,9 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
     Array("org.wartremover.warts.Var", "org.wartremover.warts.Any", "org.wartremover.warts.PublicInference")
   )
   override def submitToDms(
-    dmsSubmissionPayload: DmsSubmissionPayload
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, EnvelopeId] = {
+    dmsSubmissionPayload: DmsSubmissionPayload,
+    id: UUID
+  ): EitherT[Future, Error, EnvelopeId] = {
 
     def sendFormdata(
       multipartFormData: Source[MultipartFormData.Part[Source[ByteString, _]], _]
@@ -69,7 +68,7 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
       logger.info("Sending dms payload to GFORM service...")
       EitherT[Future, Error, EnvelopeId](
         playHttpClient
-          .post(gformUrl, hc.headers, multipartFormData)
+          .post(gformUrl, Seq.empty, multipartFormData)
           .map { response =>
             response.status match {
               case 200                                      => Right(EnvelopeId(response.body))
@@ -90,7 +89,7 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
 
     for {
       fileparts  <- EitherT.fromOption[Future](
-                      makeTemporaryFiles(dmsSubmissionPayload),
+                      makeTemporaryFiles(dmsSubmissionPayload, id),
                       Error("Could not construct temporary files")
                     )
       formdata   <- EitherT.pure[Future, Error](createFormData(dmsSubmissionPayload, fileparts))
@@ -131,23 +130,23 @@ object GFormConnector {
       Files.write(tmpFile.toPath, data)
     }.toOption
 
-  def createFilePart(attachment: FileAttachment, path: Path)(implicit hc: HeaderCarrier): FilePart[TemporaryFile] =
+  def createFilePart(attachment: FileAttachment, path: Path, id: UUID): FilePart[TemporaryFile] =
     FilePart(
-      key = hc.sessionId.map(_.value).getOrElse("").take(10),
+      key = id.toString,
       filename = attachment.filename,
       contentType = attachment.contentType,
       ref = SingletonTemporaryFileCreator.create(path)
     )
 
   @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-  def processAttachment(attachment: FileAttachment)(implicit hc: HeaderCarrier): Option[FilePart[TemporaryFile]] = {
+  def processAttachment(attachment: FileAttachment, id: UUID): Option[FilePart[TemporaryFile]] = {
     val file         = File.createTempFile("s3-file-tmp-file-prefix", ".tmp", new File("/tmp"))
     file.deleteOnExit()
     val outputStream = java.nio.file.Files.newOutputStream(file.toPath)
     attachment.data.map(n => outputStream.write(n.toArray))
 
     createTempFile(attachment.filename, suffix(attachment.contentType), Files.readAllBytes(file.toPath)).map { path =>
-      createFilePart(attachment, path)
+      createFilePart(attachment, path, id)
     }
   }
 
@@ -155,9 +154,10 @@ object GFormConnector {
     fileparts.map(file => file.copy(ref = FileIO.fromPath(file.ref.path): Source[ByteString, Any]))
 
   def makeTemporaryFiles(
-    dmsSubmissionPayload: DmsSubmissionPayload
-  )(implicit hc: HeaderCarrier): Option[List[FilePart[TemporaryFile]]] =
-    dmsSubmissionPayload.attachments.traverse(f => processAttachment(f))
+    dmsSubmissionPayload: DmsSubmissionPayload,
+    id: UUID
+  ): Option[List[FilePart[TemporaryFile]]] =
+    dmsSubmissionPayload.attachments.traverse(f => processAttachment(f, id))
 
   def createFormData(
     dmsSubmissionPayload: DmsSubmissionPayload,

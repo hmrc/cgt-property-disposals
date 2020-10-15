@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
+import java.util.UUID
+
 import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
@@ -34,7 +36,6 @@ import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -83,8 +84,6 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
       .expects(url, headers, *, *)
       .returning(response)
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-
   val connector = new GFormConnectorImpl(mockWsClient, new ServicesConfig(config))
 
   "GForm Connector" when {
@@ -96,6 +95,7 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
         List(FileAttachment("key", "filename", Some("application/pdf"), Seq(ByteString("data")))),
         sample[DmsMetadata]
       )
+      val id  = UUID.randomUUID()
 
       List(
         buildWsResponse(400, "error body"),
@@ -104,15 +104,9 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
         withClue(s"For http response [${httpResponse.toString}]") {
           mockPost(
             "http://localhost:9196/gform/dms/submit-with-attachments",
-            hc.headers
+            Seq.empty
           )(Future.successful(httpResponse))
-          await(
-            connector
-              .submitToDms(
-                dms
-              )
-              .value
-          ) shouldBe Left(Error("error body"))
+          await(connector.submitToDms(dms, id).value) shouldBe Left(Error("error body"))
         }
       }
     }
@@ -131,12 +125,13 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
         withClue(s"For http response [${httpResponse.toString}]") {
           mockPost(
             "http://localhost:9196/gform/dms/submit-with-attachments",
-            hc.headers
+            Seq.empty
           )(Future.successful(httpResponse))
           await(
             connector
               .submitToDms(
-                dms
+                dms,
+                UUID.randomUUID()
               )
               .value
           ) shouldBe Right(EnvelopeId("id"))

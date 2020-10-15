@@ -61,7 +61,6 @@ class SubmitReturnsController @Inject() (
             submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
             _                  <- dmsSubmissionService.enqueue(
                                     DmsSubmissionRequest(
-                                      request.headerCarrier,
                                       sanitisedHtml,
                                       submissionResult.formBundleId,
                                       returnRequest.subscribedDetails.cgtReference,
