@@ -54,7 +54,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.{CompleteSupportingEvidenceAnswers, SupportingEvidence}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, TaxableGainOrLossCalculationRequest, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
@@ -78,7 +78,8 @@ object Generators
     with AddressGen
     with MoneyGen
     with DesReturnsGen
-    with B64HtmlGen {
+    with B64HtmlGen
+    with FurtherReturnCalculationGen {
 
   def sample[A : ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
@@ -404,5 +405,19 @@ trait MoneyGen { this: GenUtils =>
   implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
 
   implicit val amountInPenceWithSourceGen: Gen[AmountInPenceWithSource] = gen[AmountInPenceWithSource]
+
+}
+
+trait FurtherReturnCalculationGen { this: GenUtils =>
+
+  implicit val taxableGainOrLossCalculationRequestGen: Gen[TaxableGainOrLossCalculationRequest] =
+    gen[TaxableGainOrLossCalculationRequest]
+
+  implicit val taxableGainOrLossCalculationGen: Gen[TaxableGainOrLossCalculation] = gen[TaxableGainOrLossCalculation]
+
+  implicit val ytdLiabilityCalculationRequestGen: Gen[YearToDateLiabilityCalculationRequest] =
+    gen[YearToDateLiabilityCalculationRequest]
+
+  implicit val ytdLiabilityCalculationGen: Gen[YearToDateLiabilityCalculation] = gen[YearToDateLiabilityCalculation]
 
 }

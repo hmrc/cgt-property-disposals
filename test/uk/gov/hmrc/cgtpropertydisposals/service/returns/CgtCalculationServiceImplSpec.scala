@@ -1205,6 +1205,27 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
 
     }
 
+    "calculating year to date liability" must {
+
+      "calculate taxable income correct" when {
+
+        "the estimated income is greater than the personal allowance" in {}
+
+        "the estimated income is less than the personal allowance" in {}
+
+      }
+
+      "calculate the lower band tax correctly" when {
+
+        "a taxable loss has been made" in {}
+
+        "a taxable gain has been made and is more than the taxable income minus the higher rate threshold" in {}
+
+        "a taxable gain has been made and is less than the taxable income minus the higher rate threshold" in {}
+      }
+
+    }
+
   }
 
   def testOnGainCalculatedTaxDue(result: CalculatedTaxDue)(f: GainCalculatedTaxDue => Unit): Unit =

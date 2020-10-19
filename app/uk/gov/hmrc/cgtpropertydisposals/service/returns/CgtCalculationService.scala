@@ -112,7 +112,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         address
       )
 
-    val YearToDateLiabilityCalculation(taxableIncome, lowerBandTax, higherBandTax, taxDue) =
+    val YearToDateLiabilityCalculation(_, _, _, taxableIncome, lowerBandTax, higherBandTax, taxDue) =
       calculateYearToDateLiability(
         triageAnswers,
         taxableGain,
@@ -257,6 +257,9 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     val taxDue = lowerBandTax.taxDue() ++ higherBandTax.taxDue()
 
     YearToDateLiabilityCalculation(
+      taxableGain,
+      estimatedIncome,
+      personalAllowance,
       taxableIncome,
       lowerBandTax,
       higherBandTax,
