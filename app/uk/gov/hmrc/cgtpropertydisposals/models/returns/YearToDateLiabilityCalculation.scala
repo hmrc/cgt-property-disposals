@@ -23,7 +23,7 @@ final case class YearToDateLiabilityCalculation(
   taxableIncome: AmountInPence,
   lowerBandTax: TaxableAmountOfMoney,
   higherBandTax: TaxableAmountOfMoney,
-  taxDue: AmountInPence
+  yearToDateLiability: AmountInPence
 )
 
 object YearToDateLiabilityCalculation {
