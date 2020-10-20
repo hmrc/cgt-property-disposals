@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
@@ -29,7 +30,7 @@ import play.api.Configuration
 import play.api.test.Helpers.await
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -57,6 +58,7 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
   val mockGFormConnector    = mock[GFormConnector]
   val mockUpscanService     = mock[UpscanService]
   val mockDmsSubmissionRepo = mock[DmsSubmissionRepo]
+  val mockUUIDGenerator     = mock[UUIDGenerator]
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -102,7 +104,7 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
     response: Either[Error, EnvelopeId]
   ) =
     (mockGFormConnector
-      .submitToDms(_: DmsSubmissionPayload)(_: HeaderCarrier))
+      .submitToDms(_: DmsSubmissionPayload, _: UUID))
       .expects(dmsSubmissionPayload, *)
       .returning(EitherT[Future, Error, EnvelopeId](Future.successful(response)))
 
@@ -184,13 +186,15 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
             mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
             mockGFormSubmission(dmsSubmissionPayload)(Left(Error("gForm service error")))
           }
+
           await(
             dmsSubmissionService
               .submitToDms(
                 dmsSubmissionPayload.b64Html,
                 "form-bundle-id",
                 cgtReference,
-                completeReturn
+                completeReturn,
+                UUID.randomUUID()
               )
               .value
           ).isLeft shouldBe true
@@ -200,9 +204,11 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
-          mockDownloadS3Urls(List(upscanSuccess))(
-            List(Left(Error("error downloading file")))
-          )
+          inSequence {
+            mockDownloadS3Urls(List(upscanSuccess))(
+              List(Left(Error("error downloading file")))
+            )
+          }
 
           await(
             dmsSubmissionService
@@ -210,7 +216,8 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
                 dmsSubmissionPayload.b64Html,
                 "form-bundle-id",
                 cgtReference,
-                completeReturn
+                completeReturn,
+                UUID.randomUUID()
               )
               .value
           ).isLeft shouldBe true
@@ -232,7 +239,8 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
               dmsSubmissionPayload.b64Html,
               "form-bundle-id",
               cgtReference,
-              completeReturn
+              completeReturn,
+              UUID.randomUUID()
             )
             .value
         ) shouldBe Right(
@@ -272,7 +280,8 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
               dmsSubmissionPayload.b64Html,
               "form-bundle-id",
               cgtReference,
-              completeReturn
+              completeReturn,
+              UUID.randomUUID()
             )
             .value
         ) shouldBe Right(

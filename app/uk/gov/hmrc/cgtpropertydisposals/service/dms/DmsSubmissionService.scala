@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service
 
-import java.util.Base64
+import java.util.{Base64, UUID}
 
 import cats.data.EitherT
 import cats.instances.either._
@@ -38,7 +38,6 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionPollerExecutionContext, DmsSubmissionRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import scala.concurrent.Future
@@ -58,9 +57,8 @@ trait DmsSubmissionService {
     html: B64Html,
     formBundleId: String,
     cgtReference: CgtReference,
-    completeReturn: CompleteReturn
-  )(implicit
-    hc: HeaderCarrier
+    completeReturn: CompleteReturn,
+    id: UUID
   ): EitherT[Future, Error, EnvelopeId]
 
 }
@@ -90,9 +88,8 @@ class DefaultDmsSubmissionService @Inject() (
     html: B64Html,
     formBundleId: String,
     cgtReference: CgtReference,
-    completeReturn: CompleteReturn
-  )(implicit
-    hc: HeaderCarrier
+    completeReturn: CompleteReturn,
+    id: UUID
   ): EitherT[Future, Error, EnvelopeId] =
     for {
       attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
@@ -108,7 +105,8 @@ class DefaultDmsSubmissionService @Inject() (
                                businessArea,
                                if (backScanEnabled) Some(true) else None
                              )
-                           )
+                           ),
+                           id
                          )
     } yield envId
 

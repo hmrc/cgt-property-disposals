@@ -24,11 +24,10 @@ import cats.instances.future._
 import cats.instances.int._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller.OnCompleteHandler
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, Succeeded, WorkItem}
 
@@ -42,7 +41,8 @@ class DmsSubmissionPoller @Inject() (
   dmsSubmissionService: DmsSubmissionService,
   dmsSubmissionPollerContext: DmsSubmissionPollerExecutionContext,
   servicesConfig: ServicesConfig,
-  onCompleteHandler: OnCompleteHandler
+  onCompleteHandler: OnCompleteHandler,
+  uuidGenerator: UUIDGenerator
 )(implicit
   executionContext: DmsSubmissionPollerExecutionContext
 ) extends Logging {
@@ -76,16 +76,16 @@ class DmsSubmissionPoller @Inject() (
           val _ = dmsSubmissionService.setResultStatus(workItem.id, PermanentlyFailed)
           Future.successful(())
         } else {
-          logger.info(getLogMessage(workItem, s"processing work-item"))
-
-          implicit val hc: HeaderCarrier = workItem.item.headerCarrier
+          val id = uuidGenerator.nextId()
+          logger.info(getLogMessage(workItem, s"processing work-item with id $id"))
 
           dmsSubmissionService
             .submitToDms(
               workItem.item.html,
               workItem.item.formBundleId,
               workItem.item.cgtReference,
-              workItem.item.completeReturn
+              workItem.item.completeReturn,
+              id
             )
             .fold(
               { error =>
