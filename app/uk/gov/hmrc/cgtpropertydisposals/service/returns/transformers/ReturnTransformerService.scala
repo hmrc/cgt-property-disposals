@@ -383,7 +383,9 @@ class ReturnTransformerServiceImpl @Inject() (
       dummyMandatoryEvidence, // we cannot read the details of the mandatory evidence back
       if (isFurtherOrAmendReturn(desReturn)) Some(AmountInPence.fromPounds(desReturn.returnDetails.totalYTDLiability))
       else None,
-      if (isFurtherOrAmendReturn(desReturn)) Some(desReturn.returnDetails.repayment) else None
+      if (isFurtherOrAmendReturn(desReturn)) Some(desReturn.returnDetails.repayment) else None,
+      desReturn.incomeAllowanceDetails.estimatedIncome.map(AmountInPence.fromPounds),
+      desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
     )
 
   private val dummyMandatoryEvidence = MandatoryEvidence(
