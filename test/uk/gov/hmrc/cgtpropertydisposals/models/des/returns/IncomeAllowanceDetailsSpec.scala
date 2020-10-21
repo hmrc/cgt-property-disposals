@@ -59,8 +59,8 @@ class IncomeAllowanceDetailsSpec extends WordSpec with Matchers with ScalaCheckD
             )
             IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              None,
-              None,
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
               Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
@@ -75,8 +75,8 @@ class IncomeAllowanceDetailsSpec extends WordSpec with Matchers with ScalaCheckD
             )
             IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              None,
-              None,
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
               Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
@@ -91,8 +91,8 @@ class IncomeAllowanceDetailsSpec extends WordSpec with Matchers with ScalaCheckD
             )
             IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              None,
-              None,
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
               Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
@@ -107,8 +107,8 @@ class IncomeAllowanceDetailsSpec extends WordSpec with Matchers with ScalaCheckD
             )
             IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              None,
-              None,
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
               Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
@@ -123,8 +123,8 @@ class IncomeAllowanceDetailsSpec extends WordSpec with Matchers with ScalaCheckD
             )
             IncomeAllowanceDetails(completeReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              None,
-              None,
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
               Some(completeReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }

@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCal
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CalculatedTaxDue, DisposalDate, FurtherReturnCalculationData, OtherReliefsOption, Source, TaxableAmountOfMoney, TaxableGainOrLossCalculationRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CalculatedTaxDue, DisposalDate, FurtherReturnCalculationData, OtherReliefsOption, Source, TaxableAmountOfMoney, TaxableGainOrLossCalculationRequest, YearToDateLiabilityCalculationRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
@@ -1201,6 +1201,333 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           result.previousYearLosses shouldBe AmountInPence.zero
         }
 
+      }
+
+    }
+
+    "calculating year to date liability" must {
+
+      def triageAnswers(
+        assetType: AssetType = AssetType.Residential,
+        cgtRateLowerBandResidential: BigDecimal = BigDecimal(1),
+        cgtRateLowerBandNonResidential: BigDecimal = BigDecimal(2),
+        cgtRateHigherBandResidential: BigDecimal = BigDecimal(3),
+        cgtRateHigherBandNonResidential: BigDecimal = BigDecimal(4),
+        incomeTaxHigherRateThreshold: AmountInPence = AmountInPence(100L)
+      ): CompleteSingleDisposalTriageAnswers = {
+        val taxYear = sample[TaxYear].copy(
+          cgtRateLowerBandResidential = cgtRateLowerBandResidential,
+          cgtRateLowerBandNonResidential = cgtRateLowerBandNonResidential,
+          cgtRateHigherBandResidential = cgtRateHigherBandResidential,
+          cgtRateHigherBandNonResidential = cgtRateHigherBandNonResidential,
+          incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+        )
+
+        sample[CompleteSingleDisposalTriageAnswers].copy(
+          disposalDate = sample[DisposalDate].copy(taxYear = taxYear),
+          assetType = assetType
+        )
+      }
+
+      "calculate taxable income correct" when {
+
+        "the estimated income is greater than the personal allowance" in {
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(),
+            sample[AmountInPence],
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = false
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.estimatedIncome   shouldBe AmountInPence(10L)
+          result.personalAllowance shouldBe AmountInPence(4L)
+          result.taxableIncome     shouldBe AmountInPence(6L)
+
+        }
+
+        "the estimated income is less than the personal allowance" in {
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(),
+            sample[AmountInPence],
+            AmountInPence(10L),
+            AmountInPence(20L),
+            isATrust = false
+          )
+
+          service.calculateYearToDateLiability(request).taxableIncome shouldBe AmountInPence.zero
+        }
+
+      }
+
+      "calculate the lower band tax correctly" when {
+
+        "a taxable loss has been made" in {
+          val cgtRateLowerBandResidential = BigDecimal(6)
+          val request                     = YearToDateLiabilityCalculationRequest(
+            triageAnswers(cgtRateLowerBandResidential = cgtRateLowerBandResidential),
+            AmountInPence(-5L),
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = false
+          )
+
+          service.calculateYearToDateLiability(request).lowerBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandResidential,
+            AmountInPence.zero
+          )
+        }
+
+        "a taxable gain has been made and is more than the taxable income minus the higher rate threshold" in {
+          val cgtRateLowerBandResidential  = BigDecimal(6)
+          val incomeTaxHigherRateThreshold = AmountInPence(30L)
+
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(
+              cgtRateLowerBandResidential = cgtRateLowerBandResidential,
+              incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+            ),
+            AmountInPence(50L),
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = false
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.taxableIncome shouldBe AmountInPence(6L)
+
+          result.lowerBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandResidential,
+            AmountInPence(24L)
+          )
+        }
+
+        "a taxable gain has been made and is less than the taxable income minus the higher rate threshold" in {
+          val cgtRateLowerBandResidential  = BigDecimal(6)
+          val incomeTaxHigherRateThreshold = AmountInPence(30L)
+
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(
+              cgtRateLowerBandResidential = cgtRateLowerBandResidential,
+              incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+            ),
+            AmountInPence(23L),
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = false
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.taxableIncome shouldBe AmountInPence(6L)
+
+          result.lowerBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandResidential,
+            AmountInPence(23L)
+          )
+        }
+
+        "a taxable gain has been made and the taxable income is higher than the income tax higher rate threshold" in {
+          val cgtRateLowerBandResidential  = BigDecimal(6)
+          val incomeTaxHigherRateThreshold = AmountInPence(1L)
+
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(
+              cgtRateLowerBandResidential = cgtRateLowerBandResidential,
+              incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+            ),
+            AmountInPence(50L),
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = false
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.taxableIncome shouldBe AmountInPence(6L)
+
+          result.lowerBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandResidential,
+            AmountInPence.zero
+          )
+        }
+
+        "the calculation is being done for a trust" in {
+          val cgtRateLowerBandResidential  = BigDecimal(6)
+          val incomeTaxHigherRateThreshold = AmountInPence(30L)
+
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(
+              cgtRateLowerBandResidential = cgtRateLowerBandResidential,
+              incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+            ),
+            AmountInPence(50L),
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = true
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.taxableIncome shouldBe AmountInPence(6L)
+
+          result.lowerBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandResidential,
+            AmountInPence.zero
+          )
+        }
+
+        "the asset type is non-residential" in {
+          val cgtRateLowerBandNonResidential = BigDecimal(7)
+          val incomeTaxHigherRateThreshold   = AmountInPence(30L)
+
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(
+              assetType = AssetType.NonResidential,
+              cgtRateLowerBandNonResidential = cgtRateLowerBandNonResidential,
+              incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+            ),
+            AmountInPence(50L),
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = false
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.taxableIncome shouldBe AmountInPence(6L)
+
+          result.lowerBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandNonResidential,
+            AmountInPence(24L)
+          )
+        }
+
+      }
+
+      "calculate higher band tax correctly" when {
+
+        "the taxable gain is higher than the lower band taxable amount" in {
+          val cgtRateLowerBandResidential  = BigDecimal(6)
+          val cgtRateHigherBandResidential = BigDecimal(7)
+          val incomeTaxHigherRateThreshold = AmountInPence(30L)
+
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(
+              cgtRateLowerBandResidential = cgtRateLowerBandResidential,
+              cgtRateHigherBandResidential = cgtRateHigherBandResidential,
+              incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+            ),
+            AmountInPence(50L),
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = false
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.taxableIncome shouldBe AmountInPence(6L)
+
+          result.lowerBandTax  shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandResidential,
+            AmountInPence(24L)
+          )
+          result.higherBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateHigherBandResidential,
+            AmountInPence(26L)
+          )
+        }
+
+        "the taxable loss has been made" in {
+          val cgtRateLowerBandResidential  = BigDecimal(6)
+          val cgtRateHigherBandResidential = BigDecimal(7)
+          val incomeTaxHigherRateThreshold = AmountInPence(35L)
+
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(
+              cgtRateLowerBandResidential = cgtRateLowerBandResidential,
+              cgtRateHigherBandResidential = cgtRateHigherBandResidential,
+              incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+            ),
+            AmountInPence(-1L),
+            AmountInPence(30L),
+            AmountInPence(20L),
+            isATrust = false
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.taxableIncome shouldBe AmountInPence(10L)
+
+          result.lowerBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandResidential,
+            AmountInPence.zero
+          )
+
+          result.higherBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateHigherBandResidential,
+            AmountInPence.zero
+          )
+        }
+
+        "the asset type is non residential" in {
+          val cgtRateLowerBandNonResidential  = BigDecimal(6)
+          val cgtRateHigherBandNonResidential = BigDecimal(7)
+          val incomeTaxHigherRateThreshold    = AmountInPence(30L)
+
+          val request = YearToDateLiabilityCalculationRequest(
+            triageAnswers(
+              assetType = AssetType.NonResidential,
+              cgtRateLowerBandNonResidential = cgtRateLowerBandNonResidential,
+              cgtRateHigherBandNonResidential = cgtRateHigherBandNonResidential,
+              incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+            ),
+            AmountInPence(50L),
+            AmountInPence(10L),
+            AmountInPence(4L),
+            isATrust = false
+          )
+
+          val result = service.calculateYearToDateLiability(request)
+          result.taxableIncome shouldBe AmountInPence(6L)
+
+          result.lowerBandTax  shouldBe TaxableAmountOfMoney(
+            cgtRateLowerBandNonResidential,
+            AmountInPence(24L)
+          )
+          result.higherBandTax shouldBe TaxableAmountOfMoney(
+            cgtRateHigherBandNonResidential,
+            AmountInPence(26L)
+          )
+        }
+
+      }
+
+      "calculate yearToDateLiability correctly" in {
+        val cgtRateLowerBandNonResidential  = BigDecimal(6)
+        val cgtRateHigherBandNonResidential = BigDecimal(7)
+        val incomeTaxHigherRateThreshold    = AmountInPence(30L)
+
+        val request = YearToDateLiabilityCalculationRequest(
+          triageAnswers(
+            assetType = AssetType.NonResidential,
+            cgtRateLowerBandNonResidential = cgtRateLowerBandNonResidential,
+            cgtRateHigherBandNonResidential = cgtRateHigherBandNonResidential,
+            incomeTaxHigherRateThreshold = incomeTaxHigherRateThreshold
+          ),
+          AmountInPence(50L),
+          AmountInPence(10L),
+          AmountInPence(4L),
+          isATrust = false
+        )
+
+        val result = service.calculateYearToDateLiability(request)
+        result.taxableIncome shouldBe AmountInPence(6L)
+
+        result.lowerBandTax        shouldBe TaxableAmountOfMoney(
+          cgtRateLowerBandNonResidential,
+          AmountInPence(24L)
+        )
+        result.higherBandTax       shouldBe TaxableAmountOfMoney(
+          cgtRateHigherBandNonResidential,
+          AmountInPence(26L)
+        )
+        result.yearToDateLiability shouldBe (result.lowerBandTax.taxDue() ++ result.higherBandTax.taxDue())
       }
 
     }

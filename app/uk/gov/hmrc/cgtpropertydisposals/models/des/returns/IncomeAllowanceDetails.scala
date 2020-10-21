@@ -35,42 +35,45 @@ object IncomeAllowanceDetails {
       case s: CompleteSingleDisposalReturn =>
         IncomeAllowanceDetails(
           annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
-          estimatedIncome = s.yearToDateLiabilityAnswers.map(_.estimatedIncome.inPounds()).toOption,
-          personalAllowance = s.yearToDateLiabilityAnswers.toOption.flatMap(_.personalAllowance.map(_.inPounds())),
+          estimatedIncome =
+            s.yearToDateLiabilityAnswers.fold(_.estimatedIncome, c => Some(c.estimatedIncome)).map(_.inPounds()),
+          personalAllowance =
+            s.yearToDateLiabilityAnswers.fold(_.personalAllowance, _.personalAllowance).map(_.inPounds()),
           threshold = Some(s.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
 
       case m: CompleteMultipleDisposalsReturn =>
         IncomeAllowanceDetails(
           annualExemption = m.exemptionAndLossesAnswers.annualExemptAmount.inPounds(),
-          estimatedIncome = None,
-          personalAllowance = None,
+          estimatedIncome = m.yearToDateLiabilityAnswers.estimatedIncome.map(_.inPounds()),
+          personalAllowance = m.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds()),
           threshold = Some(m.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
 
       case s: CompleteSingleIndirectDisposalReturn =>
         IncomeAllowanceDetails(
           annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
-          estimatedIncome = None,
-          personalAllowance = None,
+          estimatedIncome = s.yearToDateLiabilityAnswers.estimatedIncome.map(_.inPounds()),
+          personalAllowance = s.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds()),
           threshold = Some(s.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
 
       case m: CompleteMultipleIndirectDisposalReturn =>
         IncomeAllowanceDetails(
           annualExemption = m.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
-          estimatedIncome = None,
-          personalAllowance = None,
+          estimatedIncome = m.yearToDateLiabilityAnswers.estimatedIncome.map(_.inPounds()),
+          personalAllowance = m.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds()),
           threshold = Some(m.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
 
       case s: CompleteSingleMixedUseDisposalReturn =>
         IncomeAllowanceDetails(
           annualExemption = s.exemptionsAndLossesDetails.annualExemptAmount.inPounds(),
-          estimatedIncome = None,
-          personalAllowance = None,
+          estimatedIncome = s.yearToDateLiabilityAnswers.estimatedIncome.map(_.inPounds()),
+          personalAllowance = s.yearToDateLiabilityAnswers.personalAllowance.map(_.inPounds()),
           threshold = Some(s.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
         )
+
     }
 
   implicit val incomeAllowanceDetailsFormat: OFormat[IncomeAllowanceDetails] = Json.format[IncomeAllowanceDetails]
