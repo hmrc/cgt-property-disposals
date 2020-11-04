@@ -53,7 +53,7 @@ object YearToDateLiabilityAnswers {
       taxableGainOrLoss: AmountInPence,
       hasEstimatedDetails: Boolean,
       taxDue: AmountInPence,
-      mandatoryEvidence: MandatoryEvidence,
+      mandatoryEvidence: Option[MandatoryEvidence],
       yearToDateLiability: Option[AmountInPence],
       checkForRepayment: Option[Boolean],
       estimatedIncome: Option[AmountInPence],

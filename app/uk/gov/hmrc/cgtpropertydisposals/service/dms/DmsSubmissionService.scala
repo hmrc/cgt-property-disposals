@@ -112,11 +112,11 @@ class DefaultDmsSubmissionService @Inject() (
 
   private def getUpscanSuccesses(completeReturn: CompleteReturn): List[UpscanSuccess] = {
     val mandatoryEvidence = completeReturn.fold(
-      m => Some(m.yearToDateLiabilityAnswers.mandatoryEvidence),
-      s => s.yearToDateLiabilityAnswers.fold(n => Some(n.mandatoryEvidence), _.mandatoryEvidence),
-      s => Some(s.yearToDateLiabilityAnswers.mandatoryEvidence),
-      m => Some(m.yearToDateLiabilityAnswers.mandatoryEvidence),
-      s => Some(s.yearToDateLiabilityAnswers.mandatoryEvidence)
+      _.yearToDateLiabilityAnswers.mandatoryEvidence,
+      s => s.yearToDateLiabilityAnswers.fold(n => n.mandatoryEvidence, _.mandatoryEvidence),
+      _.yearToDateLiabilityAnswers.mandatoryEvidence,
+      _.yearToDateLiabilityAnswers.mandatoryEvidence,
+      _.yearToDateLiabilityAnswers.mandatoryEvidence
     )
 
     val supportingEvidences = completeReturn
