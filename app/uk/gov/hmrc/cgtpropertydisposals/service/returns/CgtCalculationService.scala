@@ -170,7 +170,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     val gainsAfterReliefs              =
       calculationDataWithCurrentData.map(r =>
         r.copy(gainOrLossAfterReliefs =
-          if (r.gainOrLossAfterReliefs.isPositive) r.gainOrLossAfterReliefs else AmountInPence.zero
+          if (r.gainOrLossAfterReliefs.isPositive | calculationData.isEmpty) r.gainOrLossAfterReliefs else AmountInPence.zero
         )
       )
 
