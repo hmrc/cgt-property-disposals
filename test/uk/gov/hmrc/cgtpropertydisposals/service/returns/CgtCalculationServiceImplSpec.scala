@@ -348,7 +348,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           result.gainOrLossAfterReliefs.value shouldBe -100L
-          result.yearPosition.value           shouldBe -1L
+          result.yearPosition.value           shouldBe -101L
         }
 
         "the gain or loss after reliefs is positive" in {
@@ -464,7 +464,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             )
 
             result.gainOrLossAfterReliefs.value shouldBe -100L
-            result.yearPosition.value           shouldBe -1L
+            result.yearPosition.value           shouldBe -101L
           }
 
         "the gain or loss after reliefs is negative and its absolute value " +
@@ -484,7 +484,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
             )
 
             result.gainOrLossAfterReliefs.value shouldBe -100L
-            result.yearPosition.value           shouldBe -200L
+            result.yearPosition.value           shouldBe -300L
           }
 
         "the gain or loss after reliefs is zero" in {
@@ -523,7 +523,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           result                                shouldBe a[NonGainCalculatedTaxDue]
           result.initialGainOrLoss.amount.value shouldBe -100L
           result.gainOrLossAfterReliefs.value   shouldBe -98L
-          result.taxableGainOrNetLoss.value     shouldBe -1L
+          result.taxableGainOrNetLoss.value     shouldBe -99L
         }
 
         "the gain or loss after losses is zero" in {
@@ -906,7 +906,7 @@ class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaChe
           )
 
           result                            shouldBe a[NonGainCalculatedTaxDue]
-          result.taxableGainOrNetLoss.value shouldBe -0L
+          result.taxableGainOrNetLoss.value shouldBe -10L
           result.amountOfTaxDue.value       shouldBe 0L
         }
 
