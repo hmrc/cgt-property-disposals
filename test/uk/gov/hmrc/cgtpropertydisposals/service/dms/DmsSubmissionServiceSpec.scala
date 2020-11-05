@@ -171,7 +171,7 @@ class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory
       )
       val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(
         yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers].copy(
-          mandatoryEvidence = sample[MandatoryEvidence].copy(upscanSuccess = upscanSuccess)
+          mandatoryEvidence = Some(sample[MandatoryEvidence].copy(upscanSuccess = upscanSuccess))
         ),
         supportingDocumentAnswers = CompleteSupportingEvidenceAnswers(false, List.empty)
       )
