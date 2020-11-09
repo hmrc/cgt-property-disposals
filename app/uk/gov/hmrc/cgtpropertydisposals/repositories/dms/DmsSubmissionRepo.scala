@@ -28,12 +28,14 @@ import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.TimeOps._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 
 @ImplementedBy(classOf[DefaultDmsSubmissionRepo])
 trait DmsSubmissionRepo {
@@ -78,14 +80,20 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   private val retryPeriod = inProgressRetryAfter.getMillis.toInt
 
-  override def indexes: Seq[Index] =
-    super.indexes ++ Seq(
-      Index(
-        key = Seq("receivedAt" -> IndexType.Ascending),
-        name = Some("receivedAtTime"),
-        options = BSONDocument("expireAfterSeconds" -> ttl)
-      )
+  private val ttlIndexName: String = "receivedAtTime"
+
+  private val ttlIndex: Index =
+    Index(
+      key = Seq("receivedAt" -> IndexType.Ascending),
+      name = Some(ttlIndexName),
+      options = BSONDocument("expireAfterSeconds" -> ttl)
     )
+
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
+    for {
+      result <- super.ensureIndexes
+      _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl.seconds, collection, logger)
+    } yield result
 
   override def set(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]] =
     EitherT[Future, Error, WorkItem[DmsSubmissionRequest]](

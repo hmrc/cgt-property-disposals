@@ -37,7 +37,9 @@ class TaxEnrolmentRepositoryFailureSpec extends WordSpec with Matchers with Mong
   val taxEnrolmentRequest = sample[TaxEnrolmentRequest]
 
   "The Tax Enrolment Retry repository" when {
-    reactiveMongoComponent.mongoConnector.helper.driver.close()
+
+    repository.count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
+
     "inserting into a broken repository" should {
       "fail the insert" in {
         await(repository.save(taxEnrolmentRequest).value).isLeft shouldBe true

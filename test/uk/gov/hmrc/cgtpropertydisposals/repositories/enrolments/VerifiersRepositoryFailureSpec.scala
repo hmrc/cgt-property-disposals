@@ -37,7 +37,9 @@ class VerifiersRepositoryFailureSpec extends WordSpec with Matchers with MongoSu
   val updateVerifierDetails = sample[UpdateVerifiersRequest]
 
   "The Update Verifiers repository" when {
-    reactiveMongoComponent.mongoConnector.helper.driver.close()
+
+    repository.count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
+
     "inserting into a broken repository" should {
       "fail the insert" in {
         await(repository.insert(updateVerifierDetails).value).isLeft shouldBe true
