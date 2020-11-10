@@ -43,7 +43,8 @@ class AmendReturnsRepositoryFailureSpec extends WordSpec with Matchers with Mong
   val cgtReference        = sample[CgtReference]
 
   "AmendReturnsRepository" when {
-    reactiveMongoComponent.mongoConnector.helper.driver.close()
+
+    repository.count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
 
     "inserting" should {
       "insert an amend return request successfully" in {

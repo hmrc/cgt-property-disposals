@@ -56,7 +56,7 @@ class DmsSubmissionRepoFailureSpec extends WordSpec with Matchers with MongoSupp
     new ServicesConfig(config)
   )
 
-  reactiveMongoComponent.mongoConnector.helper.driver.close()
+  repository.count(global).map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
 
   "A broken DmsSubmission Repo" when {
     "inserting" should {

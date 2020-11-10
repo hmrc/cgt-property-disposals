@@ -23,6 +23,7 @@ import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait MongoSupport extends MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll { this: Suite ⇒
+
   val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
     override def mongoConnector: MongoConnector = mongoConnectorForTest
   }

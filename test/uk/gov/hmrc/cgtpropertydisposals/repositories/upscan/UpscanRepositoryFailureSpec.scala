@@ -36,7 +36,8 @@ class UpscanRepositoryFailureSpec extends WordSpec with Matchers with MongoSuppo
   )
 
   val repository = new DefaultUpscanRepository(reactiveMongoComponent, config)
-  reactiveMongoComponent.mongoConnector.helper.driver.close()
+
+  repository.count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
 
   "Upscan Repository" when {
     "inserting" should {
