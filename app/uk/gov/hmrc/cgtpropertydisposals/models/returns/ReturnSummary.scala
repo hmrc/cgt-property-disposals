@@ -30,6 +30,7 @@ final case class ReturnSummary(
   lastUpdatedDate: Option[LocalDate],
   taxYear: String,
   mainReturnChargeAmount: AmountInPence,
+  mainReturnChargeReference: Option[String],
   propertyAddress: Address,
   charges: List[Charge],
   isRecentlyAmended: Boolean

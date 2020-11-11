@@ -89,26 +89,27 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
     val addressValidation: Validation[Address] =
       AddressDetails.fromDesAddressDetails(returnSummary.propertyAddress, allowNonIsoCountryCodes = false)
 
-    val mainReturnChargeAmountValidation: Validation[AmountInPence] = chargesValidation.andThen { charges =>
-      if (returnSummary.totalCGTLiability === BigDecimal("0") && charges.isEmpty)
-        Valid(AmountInPence.zero)
-      else
-        charges.filter(c =>
-          c.chargeType === ChargeType.UkResidentReturn || c.chargeType === ChargeType.NonUkResidentReturn
-        ) match {
-          case mainReturnCharge :: Nil =>
-            val extraAmount = charges.find(_.chargeType === DeltaCharge).map(_.amount).getOrElse(AmountInPence.zero)
-            Valid(mainReturnCharge.amount ++ extraAmount)
-          case Nil                     =>
-            invalid(
-              s"Could not find charge with main return type. Found charge types ${charges.map(_.chargeType).toString}"
-            )
-          case _                       => invalid(s"Found more than one charge with a main return type")
-        }
+    val mainReturnChargeAmountValidation: Validation[(AmountInPence, Option[String])] = chargesValidation.andThen {
+      charges =>
+        if (returnSummary.totalCGTLiability === BigDecimal("0") && charges.isEmpty)
+          Valid(AmountInPence.zero -> None)
+        else
+          charges.filter(c =>
+            c.chargeType === ChargeType.UkResidentReturn || c.chargeType === ChargeType.NonUkResidentReturn
+          ) match {
+            case mainReturnCharge :: Nil =>
+              val extraAmount = charges.find(_.chargeType === DeltaCharge).map(_.amount).getOrElse(AmountInPence.zero)
+              Valid((mainReturnCharge.amount ++ extraAmount) -> Some(mainReturnCharge.chargeReference))
+            case Nil                     =>
+              invalid(
+                s"Could not find charge with main return type. Found charge types ${charges.map(_.chargeType).toString}"
+              )
+            case _                       => invalid(s"Found more than one charge with a main return type")
+          }
     }
 
     (chargesValidation, addressValidation, mainReturnChargeAmountValidation).mapN {
-      case (charges, address, mainReturnChargeAmount) =>
+      case (charges, address, (mainReturnChargeAmount, mainReturnChargeReference)) =>
         ReturnSummary(
           returnSummary.submissionId,
           returnSummary.submissionDate,
@@ -116,6 +117,7 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
           returnSummary.lastUpdatedDate,
           returnSummary.taxYear,
           mainReturnChargeAmount,
+          mainReturnChargeReference,
           address,
           charges,
           isRecentlyAmendedReturn
