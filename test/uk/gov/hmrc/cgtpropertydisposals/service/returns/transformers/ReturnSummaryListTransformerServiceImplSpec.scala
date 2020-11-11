@@ -401,11 +401,15 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
         }
 
         "finding the main return charge amount" in {
-          result.map(_.map(_.mainReturnChargeAmount)) shouldBe Right(
+          result.map(_.map(s => s.mainReturnChargeAmount -> s.mainReturnChargeReference)) shouldBe Right(
             List(
-              mainCharge1FinancialTransaction.originalAmount,
-              mainCharge2FinancialTransaction.originalAmount
-            ).map(AmountInPence.fromPounds)
+              AmountInPence.fromPounds(mainCharge1FinancialTransaction.originalAmount) -> Some(
+                mainCharge1FinancialTransaction.chargeReference
+              ),
+              AmountInPence.fromPounds(mainCharge2FinancialTransaction.originalAmount) -> Some(
+                mainCharge2FinancialTransaction.chargeReference
+              )
+            )
           )
         }
 
@@ -475,8 +479,9 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
           result match {
             case Right(r :: Nil) =>
-              r.mainReturnChargeAmount shouldBe AmountInPence.zero
-              r.charges                shouldBe List.empty
+              r.mainReturnChargeAmount    shouldBe AmountInPence.zero
+              r.mainReturnChargeReference shouldBe None
+              r.charges                   shouldBe List.empty
             case other           => fail(s"Expected one return summary but got $other")
           }
 
@@ -522,8 +527,9 @@ class ReturnSummaryListTransformerServiceImplSpec extends WordSpec with Matchers
 
           result match {
             case Right(r :: Nil) =>
-              r.mainReturnChargeAmount shouldBe AmountInPence.fromPounds(mainChargeAmount + deltaChargeAmount)
-              r.charges.toSet          shouldBe Set(
+              r.mainReturnChargeAmount    shouldBe AmountInPence.fromPounds(mainChargeAmount + deltaChargeAmount)
+              r.mainReturnChargeReference shouldBe Some(mainCharge1.chargeReference)
+              r.charges.toSet             shouldBe Set(
                 Charge(
                   UkResidentReturn,
                   mainCharge1.chargeReference,
