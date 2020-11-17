@@ -26,7 +26,6 @@ import play.api.libs.json._
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
@@ -37,14 +36,14 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, De
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.{DeltaCharge, ReturnCharge}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
+import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesListReturnsResponse, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -64,7 +63,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
   val mockAuditService = mock[AuditService]
 
-  val mockEmailConnector = mock[EmailConnector]
+  val mockEmailService = mock[EmailService]
 
   val mockDraftReturnService = mock[DraftReturnsService]
 
@@ -78,7 +77,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       mockReturnListSummaryTransformerService,
       mockDraftReturnService,
       mockAmendReturnService,
-      mockEmailConnector,
+      mockEmailService,
       mockAuditService,
       MockMetrics.metrics
     )
@@ -152,14 +151,14 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       .returning(EitherT.fromEither[Future](result))
 
   def mockSendReturnSubmitConfirmationEmail(
-    submitReturnResponse: SubmitReturnResponse,
-    subscribedDetails: SubscribedDetails
+    submitReturnRequest: SubmitReturnRequest,
+    submitReturnResponse: SubmitReturnResponse
   )(
-    response: Either[Error, HttpResponse]
+    response: Either[Error, Unit]
   ) =
-    (mockEmailConnector
-      .sendReturnSubmitConfirmationEmail(_: SubmitReturnResponse, _: SubscribedDetails)(_: HeaderCarrier))
-      .expects(submitReturnResponse, subscribedDetails, hc)
+    (mockEmailService
+      .sendReturnConfirmationEmail(_: SubmitReturnRequest, _: SubmitReturnResponse)(_: HeaderCarrier, _: Request[_]))
+      .expects(submitReturnRequest, submitReturnResponse, *, *)
       .returning(EitherT(Future.successful(response)))
 
   def mockAuditSubmitReturnEvent(
@@ -182,6 +181,12 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         *
       )
       .returning(())
+
+  def mockSaveDraftReturn(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
+    (mockDraftReturnService
+      .saveDraftReturn(_: DraftReturn, _: CgtReference))
+      .expects(df, cgtReference)
+      .returning(EitherT.fromEither[Future](response))
 
   def mockAuditSubmitReturnResponseEvent(
     httpStatus: Int,
@@ -213,35 +218,6 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
         *
       )
       .returning(())
-
-  def mockAuditReturnConfirmationEmailEvent(email: String, cgtReference: String, submissionId: String) =
-    (
-      mockAuditService
-        .sendEvent(_: String, _: ReturnConfirmationEmailSentEvent, _: String)(
-          _: HeaderCarrier,
-          _: Writes[ReturnConfirmationEmailSentEvent],
-          _: Request[_]
-        )
-      )
-      .expects(
-        "returnConfirmationEmailSent",
-        ReturnConfirmationEmailSentEvent(
-          email,
-          cgtReference,
-          submissionId
-        ),
-        "return-confirmation-email-sent",
-        *,
-        *,
-        *
-      )
-      .returning(())
-
-  def mockSaveDraftReturn(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    (mockDraftReturnService
-      .saveDraftReturn(_: DraftReturn, _: CgtReference))
-      .expects(df, cgtReference)
-      .returning(EitherT.fromEither[Future](response))
 
   def mockGetDraftReturns(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
     (mockDraftReturnService
@@ -318,13 +294,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-            mockAuditReturnConfirmationEmailEvent(
-              submitReturnRequest.subscribedDetails.emailAddress.value,
-              submitReturnRequest.subscribedDetails.cgtReference.value,
-              formBundleId
             )
           }
 
@@ -378,13 +349,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-            mockAuditReturnConfirmationEmailEvent(
-              submitReturnRequest.subscribedDetails.emailAddress.value,
-              submitReturnRequest.subscribedDetails.cgtReference.value,
-              formBundleId
             )
           }
 
@@ -430,13 +396,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-            mockAuditReturnConfirmationEmailEvent(
-              submitReturnRequest.subscribedDetails.emailAddress.value,
-              submitReturnRequest.subscribedDetails.cgtReference.value,
-              formBundleId
             )
           }
 
@@ -484,13 +445,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-            mockAuditReturnConfirmationEmailEvent(
-              submitReturnRequest.subscribedDetails.emailAddress.value,
-              submitReturnRequest.subscribedDetails.cgtReference.value,
-              formBundleId
             )
           }
 
@@ -548,7 +504,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
               Right(HttpResponse(500, emptyJsonBody))
             )
           }
@@ -609,13 +565,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-            mockAuditReturnConfirmationEmailEvent(
-              submitReturnRequest.subscribedDetails.emailAddress.value,
-              cgtReference.value,
-              formBundleId
             )
             mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
             modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
@@ -950,13 +901,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               submitReturnRequest.amendReturnData
             )
             mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
               Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-            mockAuditReturnConfirmationEmailEvent(
-              submitReturnRequest.subscribedDetails.emailAddress.value,
-              cgtReference.value,
-              formBundleId
             )
             mockGetDraftReturns(cgtReference)(Right(List(draftReturn1, draftReturn2, draftReturn3)))
             mockSaveDraftReturn(
@@ -1418,13 +1364,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
                 Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
               )
-              mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+              mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
                 Right(HttpResponse(ACCEPTED, emptyJsonBody))
-              )
-              mockAuditReturnConfirmationEmailEvent(
-                submitReturnRequest.subscribedDetails.emailAddress.value,
-                submitReturnRequest.subscribedDetails.cgtReference.value,
-                submitReturnRequest.amendReturnData.map(_.originalReturn.summary.submissionId).getOrElse(formBundleId)
               )
               mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
               modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
@@ -1593,13 +1534,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
               mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
                 Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
               )
-              mockSendReturnSubmitConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+              mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
                 Right(HttpResponse(ACCEPTED, emptyJsonBody))
-              )
-              mockAuditReturnConfirmationEmailEvent(
-                submitReturnRequest.subscribedDetails.emailAddress.value,
-                submitReturnRequest.subscribedDetails.cgtReference.value,
-                formBundleId
               )
               mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
               modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))

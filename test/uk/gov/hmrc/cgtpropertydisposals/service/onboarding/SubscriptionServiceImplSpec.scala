@@ -25,22 +25,22 @@ import play.api.libs.json.{JsNumber, JsValue, Json, Writes}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.{SubscriptionConfirmationEmailSentEvent, SubscriptionResponseEvent}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.SubscriptionResponseEvent
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionUpdateResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, accounts}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
+import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -50,14 +50,14 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
 
   val mockSubscriptionConnector = mock[SubscriptionConnector]
 
-  val mockEmailConnector = mock[EmailConnector]
+  val mockEmailService = mock[EmailService]
 
   val mockAuditService: AuditService = mock[AuditService]
 
   val service = new SubscriptionServiceImpl(
     mockAuditService,
     mockSubscriptionConnector,
-    mockEmailConnector,
+    mockEmailService,
     MockMetrics.metrics
   )
 
@@ -86,28 +86,6 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       )
       .returning(())
 
-  def mockAuditSubscriptionEmailEvent(email: String, cgtReference: String) =
-    (
-      mockAuditService
-        .sendEvent(_: String, _: SubscriptionConfirmationEmailSentEvent, _: String)(
-          _: HeaderCarrier,
-          _: Writes[SubscriptionConfirmationEmailSentEvent],
-          _: Request[_]
-        )
-      )
-      .expects(
-        "subscriptionConfirmationEmailSent",
-        SubscriptionConfirmationEmailSentEvent(
-          email,
-          cgtReference
-        ),
-        "subscription-confirmation-email-sent",
-        *,
-        *,
-        *
-      )
-      .returning(())
-
   def mockSubscribe(expectedSubscriptionDetails: DesSubscriptionRequest)(response: Either[Error, HttpResponse]) =
     (mockSubscriptionConnector
       .subscribe(_: DesSubscriptionRequest)(_: HeaderCarrier))
@@ -128,12 +106,18 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       .expects(subscribedDetails, cgtReference, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockSendConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(
-    response: Either[Error, HttpResponse]
+  def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, HttpResponse]) =
+    (mockSubscriptionConnector
+      .getSubscriptionStatus(_: SapNumber)(_: HeaderCarrier))
+      .expects(sapNumber, *)
+      .returning(EitherT(Future.successful(response)))
+
+  def mockSendConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
+    response: Either[Error, Unit]
   ) =
-    (mockEmailConnector
-      .sendSubscriptionConfirmationEmail(_: SubscriptionDetails, _: CgtReference)(_: HeaderCarrier))
-      .expects(subscriptionDetails, cgtReference, *)
+    (mockEmailService
+      .sendSubscriptionConfirmationEmail(_: CgtReference, _: Email, _: ContactName)(_: HeaderCarrier, _: Request[_]))
+      .expects(cgtReference, email, contactName, *, *)
       .returning(EitherT(Future.successful(response)))
 
   private val emptyJsonBody = "{}"
@@ -522,7 +506,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-          val subscriptionDisplayResponse = accounts.SubscribedDetails(
+          val subscriptionDisplayResponse = SubscribedDetails(
             Left(TrustName("ABC Trust")),
             Email("stephen@abc.co.uk"),
             NonUkAddress(
@@ -576,7 +560,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-          val subscriptionDisplayResponse = accounts.SubscribedDetails(
+          val subscriptionDisplayResponse = SubscribedDetails(
             Right(IndividualName("Luke", "Bishop")),
             Email("stephen@abc.co.uk"),
             UkAddress("100 Sutton Street", Some("Wokingham"), Some("Surrey"), Some("London"), Postcode("DH14EJ")),
@@ -622,7 +606,7 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
             |}
             |""".stripMargin
 
-        val subscriptionDisplayResponse = accounts.SubscribedDetails(
+        val subscriptionDisplayResponse = SubscribedDetails(
           Right(IndividualName("Luke", "Bishop")),
           Email("stephen@abc.co.uk"),
           NonUkAddress(
@@ -703,8 +687,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
               Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
             )
             mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
-            mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(ACCEPTED, emptyJsonBody)))
-            mockAuditSubscriptionEmailEvent(subscriptionDetails.emailAddress.value, cgtReference.value)
+            mockSendConfirmationEmail(cgtReference, subscriptionDetails.emailAddress, subscriptionDetails.contactName)(
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
+            )
           }
 
           await(service.subscribe(subscriptionDetails).value) shouldBe Right(
@@ -718,7 +703,9 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
               Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
             )
             mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
-            mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Left(Error("")))
+            mockSendConfirmationEmail(cgtReference, subscriptionDetails.emailAddress, subscriptionDetails.contactName)(
+              Left(Error(""))
+            )
           }
 
           await(service.subscribe(subscriptionDetails).value) shouldBe Right(
@@ -733,7 +720,11 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
                 Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
               )
               mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
-              mockSendConfirmationEmail(subscriptionDetails, cgtReference)(Right(HttpResponse(status, emptyJsonBody)))
+              mockSendConfirmationEmail(
+                cgtReference,
+                subscriptionDetails.emailAddress,
+                subscriptionDetails.contactName
+              )(Right(HttpResponse(status, emptyJsonBody)))
             }
             await(service.subscribe(subscriptionDetails).value) shouldBe Right(
               SubscriptionSuccessful(cgtReference.value)
@@ -763,5 +754,128 @@ class SubscriptionServiceImplSpec extends WordSpec with Matchers with MockFactor
       }
 
     }
+
+    "handling requests to get subscription status" must {
+
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+
+      "return an error" when {
+
+        def testGetSubscriptionStatusError(
+          sapNumber: SapNumber,
+          response: => Either[Error, HttpResponse]
+        ) = {
+          mockGetSubscriptionStatus(sapNumber)(response)
+
+          await(service.getSubscriptionStatus(sapNumber).value).isLeft shouldBe true
+        }
+
+        "the call to get subscription status fails" in {
+          testGetSubscriptionStatusError(sample[SapNumber], Left(Error("")))
+        }
+
+        "the call to get subscription status returns with an error status code" in {
+          testGetSubscriptionStatusError(sample[SapNumber], Right(HttpResponse(500, emptyJsonBody)))
+        }
+
+        "the response body to get subscription status contains no JSON" in {
+          testGetSubscriptionStatusError(sample[SapNumber], Right(HttpResponse(200, emptyJsonBody)))
+        }
+
+        "the response body to get subscription status contains JSON which cannot be parsed" in {
+          testGetSubscriptionStatusError(
+            sample[SapNumber],
+            Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+          )
+
+        }
+
+        "the response body to get subscription status does not contain a CGT reference id when " +
+          "the status is subscribed" in {
+            List(
+              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL" }"""),
+              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "TYPE", "idValue": "value"}"""),
+              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "ZCGT"}""")
+            ).foreach { json =>
+              withClue(s"For JSON $json ") {
+                testGetSubscriptionStatusError(
+                  sample[SapNumber],
+                  Right(HttpResponse(200, json, Map.empty[String, Seq[String]]))
+                )
+              }
+            }
+          }
+
+        "the response body to get subscription status contains an unknown status" in {
+          testGetSubscriptionStatusError(
+            sample[SapNumber],
+            Right(
+              HttpResponse(
+                200,
+                Json.parse("""{ "subscriptionStatus" : "HELLO" }"""),
+                Map.empty[String, Seq[String]]
+              )
+            )
+          )
+
+        }
+
+      }
+
+      "return a cgt reference number" when {
+
+        "the response indicates that a subscription already exists" in {
+          val sapNumber    = sample[SapNumber]
+          val responseBody = Json.parse(s"""
+                                         |{
+                                         |  "subscriptionStatus" : "SUCCESSFUL",
+                                         |  "idType" : "ZCGT",
+                                         |  "idValue" : "${cgtReference.value}"
+                                         |}""".stripMargin)
+
+          mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, responseBody, Map.empty[String, Seq[String]])))
+
+          await(service.getSubscriptionStatus(sapNumber).value) shouldBe Right(Some(cgtReference))
+        }
+
+      }
+
+      "return no cgt reference number" when {
+
+        "the response hasa subscription status which is not 'SUCCESSFUL'" in {
+          List(
+            "NO_FORM_BUNDLE_FOUND",
+            "REG_FORM_RECEIVED",
+            "SENT_TO_DS",
+            "DS_OUTCOME_IN_PROGRESS",
+            "REJECTED",
+            "IN_PROCESSING",
+            "CREATE_FAILED",
+            "WITHDRAWAL",
+            "SENT_TO_RCM",
+            "APPROVED_WITH_CONDITIONS",
+            "REVOKED",
+            "DE-REGISTERED",
+            "CONTRACT_OBJECT_INACTIVE"
+          ).foreach { status =>
+            withClue(s"For status $status: ") {
+              val notSubscribedJsonBody = Json.parse(s"""{ "subscriptionStatus" : "$status" }""")
+              val sapNumber             = sample[SapNumber]
+
+              mockGetSubscriptionStatus(sapNumber)(
+                Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
+              )
+
+              await(service.getSubscriptionStatus(sapNumber).value) shouldBe Right(None)
+            }
+
+          }
+
+        }
+
+      }
+
+    }
+
   }
 }

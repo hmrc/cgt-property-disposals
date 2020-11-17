@@ -70,8 +70,10 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
 
       val name = IndividualName("forename", "surname")
 
+      val ggCredId = "ggCredId"
+
       def individualBprRequest(id: Either[SAUTR, NINO], requiresNameMatch: Boolean) =
-        IndividualBusinessPartnerRecordRequest(id, if (requiresNameMatch) Some(name) else None)
+        IndividualBusinessPartnerRecordRequest(id, if (requiresNameMatch) Some(name) else None, ggCredId, true)
 
       def expectedIndividualBody(requiresNameMatch: Boolean) = {
         val individualJsonString =
@@ -195,7 +197,7 @@ class BusinessPartnerRecordConnectorImplSpec extends WordSpec with Matchers with
         val trn                                                              = TRN("t r n ")
         val sautr                                                            = SAUTR(" sa utr ")
         def bprRequest(id: Either[TRN, SAUTR], nameMatch: Option[TrustName]) =
-          TrustBusinessPartnerRecordRequest(id, nameMatch)
+          TrustBusinessPartnerRecordRequest(id, nameMatch, ggCredId, false)
 
         def expectedBody(nameMatch: Option[TrustName]): JsValue = {
           val organisationJsonString =

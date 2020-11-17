@@ -22,9 +22,11 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.test.Helpers._
+import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -74,14 +76,15 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
       implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "en"))
 
       val cgtReference = sample[CgtReference]
+      val email        = Email("email@test.com")
+      val contactName  = ContactName("name")
 
-      val subscriptionDetails = sample[SubscriptionDetails]
       val expectedRequestBody = Json.parse(
         s"""{
-           |  "to": ["${subscriptionDetails.emailAddress.value}"],
+           |  "to": ["${email.value}"],
            |  "templateId": "$accountCreatedTemplateId",
            |  "parameters": {
-           |    "name": "${subscriptionDetails.contactName.value}",
+           |    "name": "${contactName.value}",
            |    "cgtReference": "${cgtReference.value}"
            |  },
            |  "force": false
@@ -103,7 +106,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
               expectedRequestBody
             )(Some(httpResponse))
 
-            await(connector.sendSubscriptionConfirmationEmail(subscriptionDetails, cgtReference).value) shouldBe Right(
+            await(connector.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value) shouldBe Right(
               httpResponse
             )
           }
@@ -120,7 +123,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
           )(None)
 
           await(
-            connector.sendSubscriptionConfirmationEmail(subscriptionDetails, cgtReference).value
+            connector.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value
           ).isLeft shouldBe true
         }
       }
@@ -131,14 +134,15 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
       implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("accept-language" -> "CY"))
 
       val cgtReference = sample[CgtReference]
+      val email        = Email("email@test.com")
+      val contactName  = ContactName("name")
 
-      val subscriptionDetails = sample[SubscriptionDetails]
       val expectedRequestBody = Json.parse(
         s"""{
-           |  "to": ["${subscriptionDetails.emailAddress.value}"],
+           |  "to": ["${email.value}"],
            |  "templateId": "${accountCreatedTemplateId + "_cy"}",
            |  "parameters": {
-           |    "name": "${subscriptionDetails.contactName.value}",
+           |    "name": "${contactName.value}",
            |    "cgtReference": "${cgtReference.value}"
            |  },
            |  "force": false
@@ -160,7 +164,7 @@ class EmailConnectorImplSpec extends WordSpec with Matchers with MockFactory wit
               expectedRequestBody
             )(Some(httpResponse))
 
-            await(connector.sendSubscriptionConfirmationEmail(subscriptionDetails, cgtReference).value) shouldBe Right(
+            await(connector.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value) shouldBe Right(
               httpResponse
             )
           }

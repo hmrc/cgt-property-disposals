@@ -21,10 +21,11 @@ import cats.implicits._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnectorImpl.SendEmailRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.http.AcceptLanguage
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
@@ -35,7 +36,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[EmailConnectorImpl])
 trait EmailConnector {
 
-  def sendSubscriptionConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(implicit
+  def sendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
 
@@ -61,7 +62,7 @@ class EmailConnectorImpl @Inject() (
 
   val returnSubmittedTemplateId: String = servicesConfig.getString("email.return-submitted.template-id")
 
-  override def sendSubscriptionConfirmationEmail(subscriptionDetails: SubscriptionDetails, cgtReference: CgtReference)(
+  override def sendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     implicit hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     for {
@@ -75,10 +76,10 @@ class EmailConnectorImpl @Inject() (
                               sendEmailUrl,
                               Json.toJson(
                                 SendEmailRequest(
-                                  List(subscriptionDetails.emailAddress.value),
+                                  List(email.value),
                                   EmailConnectorImpl.getEmailTemplate(acceptLanguage, accountCreatedTemplateId),
                                   Map(
-                                    "name"         -> subscriptionDetails.contactName.value,
+                                    "name"         -> contactName.value,
                                     "cgtReference" -> cgtReference.value
                                   ),
                                   force = false
