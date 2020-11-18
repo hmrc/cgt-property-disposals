@@ -35,7 +35,7 @@ trait HttpSupport { this: MockFactory with Matchers ⇒
     response: Option[A]
   ): CallHandler4[String, HttpReads[A], HeaderCarrier, ExecutionContext, Future[A]] =
     (mockHttp
-      .GET(_: String)( //TODO: make one for accepting only URL
+      .GET(_: String)(
         _: HttpReads[A],
         _: HeaderCarrier,
         _: ExecutionContext
