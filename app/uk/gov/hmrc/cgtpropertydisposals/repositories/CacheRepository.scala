@@ -54,10 +54,12 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
     options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
   )
 
-  abstract override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
     for {
-      result <- super.ensureIndexes
-      _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
+      result <- super.ensureIndexes(ExecutionContext.global)
+      _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)(
+                  ExecutionContext.global
+                )
     } yield result
 
   def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =
