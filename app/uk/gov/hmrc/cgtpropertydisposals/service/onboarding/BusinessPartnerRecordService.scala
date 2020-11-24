@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
+import java.time.{Clock, LocalDateTime}
+
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{EitherT, NonEmptyList}
 import cats.instances.future._
@@ -26,17 +28,24 @@ import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.{Json, Reads}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.{BusinessPartnerRecordConnector, SubscriptionConnector}
+import play.api.mvc.Request
+import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, SubscriptionStatus}
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation}
+import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
+import uk.gov.hmrc.cgtpropertydisposals.service.enrolments.{EnrolmentStoreProxyService, TaxEnrolmentService}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.{DesBusinessPartnerRecord, DesSubscriptionStatusResponse}
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -45,7 +54,8 @@ import scala.concurrent.{ExecutionContext, Future}
 trait BusinessPartnerRecordService {
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
-    hc: HeaderCarrier
+    hc: HeaderCarrier,
+    request: Request[_]
   ): EitherT[Future, Error, BusinessPartnerRecordResponse]
 
 }
@@ -53,23 +63,79 @@ trait BusinessPartnerRecordService {
 @Singleton
 class BusinessPartnerRecordServiceImpl @Inject() (
   bprConnector: BusinessPartnerRecordConnector,
-  subscriptionConnector: SubscriptionConnector,
+  enrolmentStoreProxyService: EnrolmentStoreProxyService,
+  emailService: EmailService,
+  subscriptionService: SubscriptionService,
+  taxEnrolmentService: TaxEnrolmentService,
   metrics: Metrics
 )(implicit
   ec: ExecutionContext
-) extends BusinessPartnerRecordService {
+) extends BusinessPartnerRecordService
+    with Logging {
+
+  val clock: Clock = Clock.systemUTC()
 
   val correlationIdHeaderKey = "CorrelationId"
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
-    hc: HeaderCarrier
+    hc: HeaderCarrier,
+    request: Request[_]
   ): EitherT[Future, Error, BusinessPartnerRecordResponse] =
     for {
-      maybeBpr    <- getBpr(bprRequest)
-      maybeCgtRef <- maybeBpr.fold[EitherT[Future, Error, Option[CgtReference]]](EitherT.pure(None))(bpr =>
-                       getSubscriptionStatus(bpr.sapNumber)
-                     )
-    } yield BusinessPartnerRecordResponse(maybeBpr, maybeCgtRef)
+      maybeBpr                             <- getBpr(bprRequest)
+      maybeCgtRef                          <- maybeBpr.fold[EitherT[Future, Error, Option[CgtReference]]](EitherT.pure(None))(bpr =>
+                                                subscriptionService.getSubscriptionStatus(bpr.sapNumber)
+                                              )
+      maybeNewEnrolmentSubscriptionDetails <-
+        maybeCgtRef.fold[EitherT[Future, Error, Option[SubscribedDetails]]](
+          EitherT.pure[Future, Error](None)
+        )(cgtRef => getNewEnrolmentSubscriptionDetails(cgtRef, bprRequest))
+    } yield BusinessPartnerRecordResponse(maybeBpr, maybeCgtRef, maybeNewEnrolmentSubscriptionDetails)
+
+  private def getNewEnrolmentSubscriptionDetails(cgtReference: CgtReference, bprRequest: BusinessPartnerRecordRequest)(
+    implicit
+    hc: HeaderCarrier,
+    request: Request[_]
+  ): EitherT[Future, Error, Option[SubscribedDetails]] =
+    if (!bprRequest.createNewEnrolmentIfMissing) EitherT.pure(None)
+    else
+      for {
+        enrolmentExists   <- enrolmentStoreProxyService.cgtEnrolmentExists(cgtReference)
+        subscribedDetails <- if (enrolmentExists) EitherT.pure[Future, Error](None)
+                             else getSubscribedDetailsAndEnrol(cgtReference, bprRequest.ggCredId).map(Some(_))
+      } yield subscribedDetails
+
+  private def getSubscribedDetailsAndEnrol(cgtReference: CgtReference, ggCredId: String)(implicit
+    hc: HeaderCarrier,
+    request: Request[_]
+  ): EitherT[Future, Error, SubscribedDetails] =
+    for {
+      subscriptionDetails <-
+        subscriptionService
+          .getSubscription(cgtReference)
+          .subflatMap(
+            _.fold[Either[Error, SubscribedDetails]](
+              Left(Error(s"Could not find subscription details for cgt reference ${cgtReference.value}"))
+            )(Right(_))
+          )
+      _                   <- taxEnrolmentService.allocateEnrolmentToGroup(
+                               TaxEnrolmentRequest(
+                                 ggCredId,
+                                 cgtReference.value,
+                                 subscriptionDetails.address,
+                                 LocalDateTime.now(clock)
+                               )
+                             )
+      _                   <- emailService
+                               .sendSubscriptionConfirmationEmail(
+                                 cgtReference,
+                                 subscriptionDetails.emailAddress,
+                                 subscriptionDetails.contactName
+                               )
+                               .leftFlatMap(e =>
+                                 EitherT.pure[Future, Error](logger.warn("Could not send subscription confirmation email", e))
+                               )
+    } yield subscriptionDetails
 
   private def getBpr(
     bprRequest: BusinessPartnerRecordRequest
@@ -98,42 +164,6 @@ class BusinessPartnerRecordServiceImpl @Inject() (
       else {
         metrics.registerWithIdErrorCounter.inc()
         Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
-      }
-    }
-  }
-
-  private def getSubscriptionStatus(
-    sapNumber: SapNumber
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[CgtReference]] = {
-    val timer = metrics.subscriptionStatusTimer.time()
-
-    subscriptionConnector.getSubscriptionStatus(sapNumber).subflatMap { response =>
-      timer.close()
-      if (response.status === OK)
-        response
-          .parseJSON[DesSubscriptionStatusResponse]()
-          .leftMap { e =>
-            metrics.subscriptionStatusErrorCounter.inc()
-            Error(e)
-          }
-          .flatMap {
-            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, Some("ZCGT"), Some(cgtRef)) =>
-              Right(Some(CgtReference(cgtRef)))
-
-            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, otherIdType, id) =>
-              Left(
-                Error(
-                  s"Could not find cgt reference id in subscription status response. Got id type " +
-                    s"${otherIdType.getOrElse("-")} with id ${id.getOrElse("-")}"
-                )
-              )
-
-            case DesSubscriptionStatusResponse(_, _, _) =>
-              Right(None)
-          }
-      else {
-        metrics.subscriptionStatusErrorCounter.inc()
-        Left(Error(s"Call to get subscription status came back with status ${response.status}"))
       }
     }
   }

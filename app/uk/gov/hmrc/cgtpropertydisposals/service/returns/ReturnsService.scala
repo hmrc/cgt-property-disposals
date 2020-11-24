@@ -27,10 +27,9 @@ import cats.syntax.eq._
 import cats.syntax.traverse._
 import com.codahale.metrics.Timer.Context
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.http.Status.{ACCEPTED, NOT_FOUND, OK}
+import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json._
 import play.api.mvc.Request
-import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
@@ -43,8 +42,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtRef
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.{DeltaCharge, ReturnCharge}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{ReturnConfirmationEmailSentEvent, SubmitReturnEvent, SubmitReturnResponseEvent}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
+import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
@@ -82,7 +82,7 @@ class DefaultReturnsService @Inject() (
   returnSummaryListTransformerService: ReturnSummaryListTransformerService,
   draftReturnsService: DraftReturnsService,
   amendReturnsService: AmendReturnsService,
-  emailConnector: EmailConnector,
+  emailService: EmailService,
   auditService: AuditService,
   metrics: Metrics
 )(implicit ec: ExecutionContext)
@@ -117,7 +117,7 @@ class DefaultReturnsService @Inject() (
       deltaCharge        <- if (isAmendReturn) deltaCharge(desResponse, cgtReference, fromDate, toDate)
                             else EitherT.pure(None)
       returnResponse     <- prepareSubmitReturnResponse(desResponse, deltaCharge)
-      _                  <- sendEmailAndAudit(returnRequest, returnResponse).leftFlatMap { e =>
+      _                  <- emailService.sendReturnConfirmationEmail(returnRequest, returnResponse).leftFlatMap { e =>
                               logger.warn("Could not send return submission confirmation email or audit event", e)
                               EitherT.pure[Future, Error](())
                             }
@@ -192,10 +192,10 @@ class DefaultReturnsService @Inject() (
     }
 
   private def getReturnCharge(transaction: DesFinancialTransaction): Option[ReturnCharge] =
-    transaction.items.flatMap(_.collect {
+    transaction.items.flatMap(_.collectFirst {
       case DesFinancialTransactionItem(Some(amount), None, None, None, Some(dueDate)) =>
         ReturnCharge(transaction.chargeReference, AmountInPence.fromPounds(amount), dueDate)
-    }.headOption)
+    })
 
   private def handleAmendedReturn(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit] = {
     def modifyDraftReturn(draftReturn: DraftReturn): Option[DraftReturn] =
@@ -310,55 +310,6 @@ class DefaultReturnsService @Inject() (
         }
       }
   }
-
-  private def sendEmailAndAudit(
-    returnRequest: SubmitReturnRequest,
-    returnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] =
-    for {
-      _ <- sendReturnConfirmationEmail(returnRequest, returnResponse)
-      _ <- auditSubscriptionConfirmationEmailSent(returnRequest, returnResponse)
-    } yield ()
-
-  private def sendReturnConfirmationEmail(
-    returnRequest: SubmitReturnRequest,
-    submitReturnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, SubmitReturnResponse] = {
-    val timer = metrics.submitReturnConfirmationEmailTimer.time()
-
-    emailConnector
-      .sendReturnSubmitConfirmationEmail(
-        submitReturnResponse,
-        returnRequest.subscribedDetails
-      )
-      .subflatMap { httpResponse =>
-        timer.close()
-        if (httpResponse.status === ACCEPTED)
-          Right(submitReturnResponse)
-        else {
-          metrics.submitReturnConfirmationEmailErrorCounter.inc()
-          Left(Error(s"Call to send confirmation email came back with status ${httpResponse.status}"))
-        }
-      }
-  }
-
-  private def auditSubscriptionConfirmationEmailSent(
-    returnRequest: SubmitReturnRequest,
-    submitReturnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] =
-    EitherT
-      .pure[Future, Error](
-        auditService.sendEvent(
-          "returnConfirmationEmailSent",
-          ReturnConfirmationEmailSentEvent(
-            returnRequest.subscribedDetails.emailAddress.value,
-            returnRequest.subscribedDetails.cgtReference.value,
-            submitReturnResponse.formBundleId
-          ),
-          "return-confirmation-email-sent"
-        )
-      )
-      .map(_ => submitReturnResponse)
 
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
     hc: HeaderCarrier

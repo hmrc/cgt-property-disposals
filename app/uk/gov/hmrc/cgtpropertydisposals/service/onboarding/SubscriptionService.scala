@@ -23,24 +23,25 @@ import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.http.Status.{ACCEPTED, FORBIDDEN, NOT_FOUND, OK}
+import play.api.http.Status.{FORBIDDEN, NOT_FOUND, OK}
 import play.api.libs.json.Json
 import play.api.mvc.Request
-import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.accounts.{SubscribedDetails, SubscribedUpdateDetails}
+import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, DesErrorResponse, DesSubscriptionUpdateRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, DesErrorResponse, DesSubscriptionUpdateRequest, SubscriptionStatus}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.{SubscriptionConfirmationEmailSentEvent, SubscriptionResponseEvent}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.SubscriptionResponseEvent
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.{AlreadySubscribed, SubscriptionSuccessful}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails, SubscriptionResponse, SubscriptionUpdateResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
+import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesSubscriptionStatusResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.SubscriptionService.DesSubscriptionDisplayDetails
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -65,13 +66,17 @@ trait SubscriptionService {
   def updateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, SubscriptionUpdateResponse]
+
+  def getSubscriptionStatus(
+    sapNumber: SapNumber
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[CgtReference]]
 }
 
 @Singleton
 class SubscriptionServiceImpl @Inject() (
   auditService: AuditService,
   subscriptionConnector: SubscriptionConnector,
-  emailConnector: EmailConnector,
+  emailService: EmailService,
   metrics: Metrics
 )(implicit
   ec: ExecutionContext
@@ -85,7 +90,15 @@ class SubscriptionServiceImpl @Inject() (
       subscriptionResponse <- sendSubscriptionRequest(subscriptionDetails)
       _                    <- subscriptionResponse match {
                                 case successful: SubscriptionSuccessful =>
-                                  sendSubscriptionConfirmationEmail(subscriptionDetails, successful)
+                                  emailService
+                                    .sendSubscriptionConfirmationEmail(
+                                      CgtReference(successful.cgtReferenceNumber),
+                                      subscriptionDetails.emailAddress,
+                                      subscriptionDetails.contactName
+                                    )
+                                    .leftFlatMap(e =>
+                                      EitherT.pure[Future, Error](logger.warn("Could not send subscription confirmation email", e))
+                                    )
                                 case _                                  => EitherT.pure[Future, Error](())
                               }
     } yield subscriptionResponse
@@ -113,32 +126,6 @@ class SubscriptionServiceImpl @Inject() (
         Left(Error(s"call to subscribe came back with status ${response.status}"))
       }
     }
-  }
-
-  private def sendSubscriptionConfirmationEmail(
-    subscriptionDetails: SubscriptionDetails,
-    subscriptionSuccessful: SubscriptionSuccessful
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] = {
-    val timer = metrics.subscriptionConfirmationEmailTimer.time()
-    emailConnector
-      .sendSubscriptionConfirmationEmail(subscriptionDetails, CgtReference(subscriptionSuccessful.cgtReferenceNumber))
-      .map { httpResponse =>
-        timer.close()
-
-        if (httpResponse.status =!= ACCEPTED) {
-          metrics.subscriptionCreateErrorCounter.inc()
-          logger.warn(s"Call to send confirmation email came back with status ${httpResponse.status}")
-        } else
-          auditSubscriptionConfirmationEmailSent(
-            subscriptionDetails.emailAddress.value,
-            subscriptionSuccessful.cgtReferenceNumber
-          )
-      }
-      .leftFlatMap { e =>
-        metrics.subscriptionCreateErrorCounter.inc()
-        logger.warn("Could not send confirmation email", e)
-        EitherT.pure[Future, Error](())
-      }
   }
 
   override def getSubscription(cgtReference: CgtReference)(implicit
@@ -216,6 +203,42 @@ class SubscriptionServiceImpl @Inject() (
       }
   }
 
+  def getSubscriptionStatus(
+    sapNumber: SapNumber
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[CgtReference]] = {
+    val timer = metrics.subscriptionStatusTimer.time()
+
+    subscriptionConnector.getSubscriptionStatus(sapNumber).subflatMap { response =>
+      timer.close()
+      if (response.status === OK)
+        response
+          .parseJSON[DesSubscriptionStatusResponse]()
+          .leftMap { e =>
+            metrics.subscriptionStatusErrorCounter.inc()
+            Error(e)
+          }
+          .flatMap {
+            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, Some("ZCGT"), Some(cgtRef)) =>
+              Right(Some(CgtReference(cgtRef)))
+
+            case DesSubscriptionStatusResponse(SubscriptionStatus.Subscribed, otherIdType, id) =>
+              Left(
+                Error(
+                  s"Could not find cgt reference id in subscription status response. Got id type " +
+                    s"${otherIdType.getOrElse("-")} with id ${id.getOrElse("-")}"
+                )
+              )
+
+            case DesSubscriptionStatusResponse(_, _, _) =>
+              Right(None)
+          }
+      else {
+        metrics.subscriptionStatusErrorCounter.inc()
+        Left(Error(s"Call to get subscription status came back with status ${response.status}"))
+      }
+    }
+  }
+
   private def toSubscriptionDisplayRecord(
     desSubscriptionDisplayDetails: DesSubscriptionDisplayDetails,
     cgtReference: CgtReference
@@ -263,19 +286,6 @@ class SubscriptionServiceImpl @Inject() (
       "subscription-response"
     )
   }
-
-  private def auditSubscriptionConfirmationEmailSent(
-    emailAddress: String,
-    cgtReference: String
-  )(implicit hc: HeaderCarrier, request: Request[_]): Unit =
-    auditService.sendEvent(
-      "subscriptionConfirmationEmailSent",
-      SubscriptionConfirmationEmailSentEvent(
-        emailAddress,
-        cgtReference
-      ),
-      "subscription-confirmation-email-sent"
-    )
 
 }
 

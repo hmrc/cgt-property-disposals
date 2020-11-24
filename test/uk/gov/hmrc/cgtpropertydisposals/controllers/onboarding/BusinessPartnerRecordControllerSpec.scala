@@ -23,7 +23,7 @@ import cats.data.EitherT
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, JsValue, Json}
-import play.api.mvc.Headers
+import play.api.mvc.{Headers, Request}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -50,8 +51,8 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
     result: Either[Error, BusinessPartnerRecordResponse]
   ) =
     (bprService
-      .getBusinessPartnerRecord(_: BusinessPartnerRecordRequest)(_: HeaderCarrier))
-      .expects(expectedBprRequest, *)
+      .getBusinessPartnerRecord(_: BusinessPartnerRecordRequest)(_: HeaderCarrier, _: Request[_]))
+      .expects(expectedBprRequest, *, *)
       .returning(EitherT(Future.successful(result)))
 
   implicit lazy val mat: Materializer = fakeApplication.materializer
@@ -85,9 +86,10 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
       "return a BPR response if one is returned" in {
 
         List(
-          BusinessPartnerRecordResponse(Some(bpr), Some(cgtReference)),
-          BusinessPartnerRecordResponse(Some(bpr), None),
-          BusinessPartnerRecordResponse(None, None)
+          BusinessPartnerRecordResponse(Some(bpr), Some(cgtReference), None),
+          BusinessPartnerRecordResponse(Some(bpr), None, None),
+          BusinessPartnerRecordResponse(None, None, Some(sample[SubscribedDetails])),
+          BusinessPartnerRecordResponse(None, None, None)
         ).foreach { bprResponse =>
           mockBprService(bprRequest)(Right(bprResponse))
 

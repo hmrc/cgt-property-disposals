@@ -34,8 +34,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsMetadata, DmsSub
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids._
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.IndividualBusinessPartnerRecordRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
@@ -68,6 +69,7 @@ object Generators
     extends GenUtils
     with IdGen
     with NameGen
+    with EmailGen
     with OnboardingGen
     with BusinessPartnerRecordGen
     with TaxEnrolmentGen
@@ -169,6 +171,14 @@ trait NameGen { this: GenUtils =>
 
   implicit val trustNameGen: Gen[TrustName] = gen[TrustName]
 
+  implicit val contactNameGen: Gen[ContactName] = gen[ContactName]
+
+}
+
+trait EmailGen { this: GenUtils =>
+
+  implicit val emailGen: Gen[Email] = gen[Email]
+
 }
 
 trait OnboardingGen { this: GenUtils =>
@@ -192,6 +202,9 @@ trait BusinessPartnerRecordGen { this: GenUtils =>
   implicit val bprGen: Gen[BusinessPartnerRecord] = gen[BusinessPartnerRecord]
 
   implicit val bprRequestGen: Gen[BusinessPartnerRecordRequest] = gen[BusinessPartnerRecordRequest]
+
+  implicit val individualBprRequestGen: Gen[IndividualBusinessPartnerRecordRequest] =
+    gen[IndividualBusinessPartnerRecordRequest]
 
 }
 

@@ -37,6 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
 trait TaxEnrolmentService {
+
   def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, Unit]
@@ -61,7 +62,7 @@ class TaxEnrolmentServiceImpl @Inject() (
     extends TaxEnrolmentService
     with Logging {
 
-  def makeES8call(
+  private def makeES8call(
     taxEnrolmentRequest: TaxEnrolmentRequest
   )(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val timer = metrics.eacdCreateEnrolmentTimer.time()
@@ -82,7 +83,7 @@ class TaxEnrolmentServiceImpl @Inject() (
       }
   }
 
-  def makeES6call(
+  private def makeES6call(
     updateVerifiersRequest: UpdateVerifiersRequest
   )(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val timer = metrics.eacdUpdateEnrolmentTimer.time()

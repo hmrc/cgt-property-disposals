@@ -16,20 +16,30 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
+import java.time.{Clock, LocalDateTime, ZoneId, ZoneOffset}
+
 import cats.data.EitherT
+import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsNumber, Json}
+import play.api.libs.json.Json
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.{BusinessPartnerRecordConnector, SubscriptionConnector}
+import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.IndividualBusinessPartnerRecordRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
+import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
+import uk.gov.hmrc.cgtpropertydisposals.service.enrolments.{EnrolmentStoreProxyService, TaxEnrolmentService}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,14 +49,27 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
   val mockBprConnector: BusinessPartnerRecordConnector = mock[BusinessPartnerRecordConnector]
 
-  val mockSubscriptionConnector: SubscriptionConnector = mock[SubscriptionConnector]
+  val mockEnrolmentStoreProxyService: EnrolmentStoreProxyService = mock[EnrolmentStoreProxyService]
+
+  val mockEmailService: EmailService = mock[EmailService]
+
+  val mockSubscriptionService: SubscriptionService = mock[SubscriptionService]
+
+  val mockTaxEnrolmentService: TaxEnrolmentService = mock[TaxEnrolmentService]
+
+  val dummyTimestamp = LocalDateTime.now()
 
   val service =
     new BusinessPartnerRecordServiceImpl(
       mockBprConnector,
-      mockSubscriptionConnector,
+      mockEnrolmentStoreProxyService,
+      mockEmailService,
+      mockSubscriptionService,
+      mockTaxEnrolmentService,
       MockMetrics.metrics
-    )
+    ) {
+      override val clock: Clock = Clock.fixed(dummyTimestamp.toInstant(ZoneOffset.UTC), ZoneId.of("Z"))
+    }
 
   def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
     (mockBprConnector
@@ -54,15 +77,43 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
       .expects(bprRequest, *)
       .returning(EitherT(Future.successful(response)))
 
-  def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, HttpResponse]) =
-    (mockSubscriptionConnector
+  def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, Option[CgtReference]]) =
+    (mockSubscriptionService
       .getSubscriptionStatus(_: SapNumber)(_: HeaderCarrier))
       .expects(sapNumber, *)
       .returning(EitherT(Future.successful(response)))
 
+  def mockEnrolmentExists(cgtReference: CgtReference)(result: Either[Error, Boolean]) =
+    (mockEnrolmentStoreProxyService
+      .cgtEnrolmentExists(_: CgtReference)(_: HeaderCarrier))
+      .expects(cgtReference, *)
+      .returning(EitherT.fromEither[Future](result))
+
+  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, Option[SubscribedDetails]]): Unit =
+    (mockSubscriptionService
+      .getSubscription(_: CgtReference)(_: HeaderCarrier))
+      .expects(cgtReference, *)
+      .returning(EitherT.fromEither(response))
+
+  def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
+    response: Either[Error, Unit]
+  ) =
+    (mockTaxEnrolmentService
+      .allocateEnrolmentToGroup(_: TaxEnrolmentRequest)(_: HeaderCarrier))
+      .expects(taxEnrolmentRequest, *)
+      .returning(EitherT(Future.successful(response)))
+
+  def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
+    result: Either[Error, Unit]
+  ) =
+    (mockEmailService
+      .sendSubscriptionConfirmationEmail(_: CgtReference, _: Email, _: ContactName)(_: HeaderCarrier, _: Request[_]))
+      .expects(cgtReference, email, contactName, *, *)
+      .returning(EitherT.fromEither[Future](result))
+
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val bprRequest = sample[BusinessPartnerRecordRequest]
+  implicit val request: Request[_] = FakeRequest()
 
   val (name, trustName) = sample[IndividualName] -> sample[TrustName]
 
@@ -100,51 +151,31 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
 
       "return an error" when {
 
-        def testGetBprError(response: => Either[Error, HttpResponse]) = {
+        def testGetBprError(bprRequest: BusinessPartnerRecordRequest, response: => Either[Error, HttpResponse]) = {
           mockGetBPR(bprRequest)(response)
-          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
-        }
-
-        def testGetSubscriptionStatusError(response: => Either[Error, HttpResponse]) = {
-          val bprResponseBody = bprResponseJson(
-            """
-              |"address" : {
-              |    "addressLine1" : "line1",
-              |    "addressLine2" : "line2",
-              |    "addressLine3" : "line3",
-              |    "addressLine4" : "line4",
-              |    "postalCode"   : "postcode",
-              |    "countryCode"  : "GB"
-              |  }
-              |""".stripMargin,
-            None,
-            Some(name)
-          )
-
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprResponseBody, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(response)
-          }
 
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
         "the response to get BPR comes back with a status other than 200" in {
-          List(400, 401, 403, 404, 500, 501, 502).foreach(status => testGetBprError(Right(HttpResponse(status, ""))))
+          List(400, 401, 403, 404, 500, 501, 502).foreach(status =>
+            testGetBprError(sample[BusinessPartnerRecordRequest], Right(HttpResponse(status, "")))
+          )
         }
 
         "the json in the response to get BPR cannot be parsed" in {
-          testGetBprError(Right(HttpResponse(200, JsNumber(0), Map.empty[String, Seq[String]])))
-          testGetBprError(Right(HttpResponse(200, "hello")))
-
+          testGetBprError(sample[BusinessPartnerRecordRequest], Right(HttpResponse(200, "hello")))
         }
 
         "there is no json in the http response body when getting a BPR" in {
-          testGetBprError(Right(HttpResponse(200, emptyJsonBody)))
+          testGetBprError(sample[BusinessPartnerRecordRequest], Right(HttpResponse(200, emptyJsonBody)))
         }
 
         "the call to get a BPR fails" in {
+          val bprRequest = sample[BusinessPartnerRecordRequest]
+
           mockGetBPR(bprRequest)(Left(Error(new Exception("Oh no!"))))
+
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
@@ -161,7 +192,10 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             None
           )
 
-          testGetBprError(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+          testGetBprError(
+            sample[BusinessPartnerRecordRequest],
+            Right(HttpResponse(200, body, Map.empty[String, Seq[String]]))
+          )
         }
 
         "there is both an organisation name and an individual name in the response body when getting a BPR" in {
@@ -177,56 +211,162 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             Some(name)
           )
 
-          testGetBprError(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+          testGetBprError(
+            sample[BusinessPartnerRecordRequest],
+            Right(HttpResponse(200, body, Map.empty[String, Seq[String]]))
+          )
         }
 
         "the call to get subscription status fails" in {
-          testGetSubscriptionStatusError(Left(Error("")))
-        }
-
-        "the call to get subscription status returns with an error status code" in {
-          testGetSubscriptionStatusError(Right(HttpResponse(500, emptyJsonBody)))
-        }
-
-        "the response body to get subscription status contains no JSON" in {
-          testGetSubscriptionStatusError(Right(HttpResponse(200, emptyJsonBody)))
-        }
-
-        "the response body to get subscription status contains JSON which cannot be parsed" in {
-          testGetSubscriptionStatusError(Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]])))
-
-        }
-
-        "the response body to get subscription status does not contain a CGT reference id when " +
-          "the status is subscribed" in {
-            List(
-              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL" }"""),
-              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "TYPE", "idValue": "value"}"""),
-              Json.parse("""{ "subscriptionStatus": "SUCCESSFUL", "idType": "ZCGT"}""")
-            ).foreach { json =>
-              withClue(s"For JSON $json ") {
-                testGetSubscriptionStatusError(Right(HttpResponse(200, json, Map.empty[String, Seq[String]])))
-              }
-            }
-          }
-
-        "the response body to get subscription status contains an unknown status" in {
-          testGetSubscriptionStatusError(
-            Right(
-              HttpResponse(
-                200,
-                Json.parse("""{ "subscriptionStatus" : "HELLO" }"""),
-                Map.empty[String, Seq[String]]
-              )
-            )
+          val bprResponseBody = bprResponseJson(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "addressLine2" : "line2",
+              |    "addressLine3" : "line3",
+              |    "addressLine4" : "line4",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+            None,
+            Some(name)
           )
 
+          val bprRequest = sample[BusinessPartnerRecordRequest]
+
+          inSequence {
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprResponseBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Left(Error("")))
+          }
+
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
+
+        "the call to see if an enrolment already exists fails" in {
+          val cgtReference = CgtReference("cgt")
+
+          val bprBody = bprResponseJson(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+            None,
+            Some(name)
+          )
+
+          val bprRequest = sample[IndividualBusinessPartnerRecordRequest]
+            .copy(createNewEnrolmentIfMissing = true)
+
+          inSequence {
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+            mockEnrolmentExists(cgtReference)(Left(Error("")))
+          }
+
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+        }
+
+        "the call to get subscription details fails" in {
+          val cgtReference = CgtReference("cgt")
+
+          val bprBody = bprResponseJson(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+            None,
+            Some(name)
+          )
+
+          val bprRequest = sample[IndividualBusinessPartnerRecordRequest]
+            .copy(createNewEnrolmentIfMissing = true)
+          inSequence {
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+            mockEnrolmentExists(cgtReference)(Right(false))
+            mockGetSubscription(cgtReference)(Left(Error("")))
+          }
+
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+        }
+
+        "the call to get subsription details does not return any details" in {
+          val cgtReference = CgtReference("cgt")
+
+          val bprBody = bprResponseJson(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+            None,
+            Some(name)
+          )
+
+          val bprRequest = sample[IndividualBusinessPartnerRecordRequest]
+            .copy(createNewEnrolmentIfMissing = true)
+
+          inSequence {
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+            mockEnrolmentExists(cgtReference)(Right(false))
+            mockGetSubscription(cgtReference)(Right(None))
+
+          }
+
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+
+        }
+
+        "the call to enrol the user fails" in {
+          val cgtReference = CgtReference("cgt")
+
+          val bprBody = bprResponseJson(
+            """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+            None,
+            Some(name)
+          )
+
+          val ggCredId            = "ggCredId"
+          val bprRequest          = sample[IndividualBusinessPartnerRecordRequest]
+            .copy(createNewEnrolmentIfMissing = true, ggCredId = ggCredId)
+          val subscribedDetails   = sample[SubscribedDetails]
+          val taxEnrolmentRequest = TaxEnrolmentRequest(
+            ggCredId,
+            cgtReference.value,
+            subscribedDetails.address,
+            dummyTimestamp
+          )
+
+          inSequence {
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+            mockEnrolmentExists(cgtReference)(Right(false))
+            mockGetSubscription(cgtReference)(Right(Some(subscribedDetails)))
+            mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("")))
+          }
+
+          await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
+        }
+
       }
 
       "return a BPR response" when {
-
-        val notSubscribedJsonBody = Json.parse("""{ "subscriptionStatus" : "NO_FORM_BUNDLE_FOUND" }""")
 
         "the call comes back with status 200 with valid JSON and a valid UK address" in {
           val body = bprResponseJson(
@@ -245,16 +385,15 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           )
 
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), Postcode("postcode"))
+          val bprRequest      = sample[BusinessPartnerRecordRequest]
 
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(
-              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
-            )
+            mockGetSubscriptionStatus(sapNumber)(Right(None))
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            BusinessPartnerRecordResponse(Some(expectedBpr(Some(expectedAddress), Right(name))), None)
+            BusinessPartnerRecordResponse(Some(expectedBpr(Some(expectedAddress), Right(name))), None, None)
           )
         }
 
@@ -273,15 +412,15 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             Some(name)
           )
 
+          val bprRequest = sample[BusinessPartnerRecordRequest]
+
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(
-              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
-            )
+            mockGetSubscriptionStatus(sapNumber)(Right(None))
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            BusinessPartnerRecordResponse(Some(expectedBpr(None, Right(name))), None)
+            BusinessPartnerRecordResponse(Some(expectedBpr(None, Right(name))), None, None)
           )
         }
 
@@ -303,15 +442,15 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           val expectedAddress =
             NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK"))
 
+          val bprRequest = sample[BusinessPartnerRecordRequest]
+
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(
-              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
-            )
+            mockGetSubscriptionStatus(sapNumber)(Right(None))
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            BusinessPartnerRecordResponse(Some(expectedBpr(Some(expectedAddress), Left(trustName))), None)
+            BusinessPartnerRecordResponse(Some(expectedBpr(Some(expectedAddress), Left(trustName))), None, None)
           )
         }
 
@@ -330,15 +469,15 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             None
           )
 
+          val bprRequest = sample[BusinessPartnerRecordRequest]
+
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(
-              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
-            )
+            mockGetSubscriptionStatus(sapNumber)(Right(None))
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            BusinessPartnerRecordResponse(Some(expectedBpr(None, Left(trustName))), None)
+            BusinessPartnerRecordResponse(Some(expectedBpr(None, Left(trustName))), None, None)
           )
         }
 
@@ -352,14 +491,16 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
               |""".stripMargin
           )
 
+          val bprRequest = sample[BusinessPartnerRecordRequest]
+
           mockGetBPR(bprRequest)(Right(HttpResponse(404, body, Map.empty[String, Seq[String]])))
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            BusinessPartnerRecordResponse(None, None)
+            BusinessPartnerRecordResponse(None, None, None)
           )
         }
 
-        "the call to get a BPR is successful and the user is already subscribed" in {
+        "the call to get a BPR is successful and the user is already subscribed and creating a new enrolment is disabled" in {
           val cgtReference = CgtReference("cgt")
 
           val bprBody = bprResponseJson(
@@ -374,70 +515,106 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
             Some(name)
           )
 
-          val statusBody = Json.parse(s"""
-                                         |{
-                                         |  "subscriptionStatus" : "SUCCESSFUL",
-                                         |  "idType" : "ZCGT",
-                                         |  "idValue" : "${cgtReference.value}"
-                                         |}""".stripMargin)
-
           val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
+          val bprRequest      = sample[IndividualBusinessPartnerRecordRequest].copy(createNewEnrolmentIfMissing = false)
 
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(HttpResponse(200, statusBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-            BusinessPartnerRecordResponse(Some(expectedBpr(Some(expectedAddress), Right(name))), Some(cgtReference))
+            BusinessPartnerRecordResponse(
+              Some(expectedBpr(Some(expectedAddress), Right(name))),
+              Some(cgtReference),
+              None
+            )
           )
         }
 
-        "the call to get a BPR is successful and the subscription status is not 'SUCCESSFUL'" in {
-          List(
-            "NO_FORM_BUNDLE_FOUND",
-            "REG_FORM_RECEIVED",
-            "SENT_TO_DS",
-            "DS_OUTCOME_IN_PROGRESS",
-            "REJECTED",
-            "IN_PROCESSING",
-            "CREATE_FAILED",
-            "WITHDRAWAL",
-            "SENT_TO_RCM",
-            "APPROVED_WITH_CONDITIONS",
-            "REVOKED",
-            "DE-REGISTERED",
-            "CONTRACT_OBJECT_INACTIVE"
-          ).foreach { subscriptionStatus =>
-            withClue(s"For subscription status '$subscriptionStatus' ") {
-              val bprBody = bprResponseJson(
-                """
-                  |"address" : {
-                  |    "addressLine1" : "line1",
-                  |    "postalCode"   : "postcode",
-                  |    "countryCode"  : "GB"
-                  |  }
-                  |""".stripMargin,
-                None,
-                Some(name)
-              )
+        "the call to get a BPR is successful and the user is already subscribed and creating a new enrolment is enabled and " +
+          "an enrolment already exists" in {
+            val cgtReference = CgtReference("cgt")
 
-              val statusBody      = Json.parse(s"""{ "subscriptionStatus" : "$subscriptionStatus"}""".stripMargin)
-              val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
+            val bprBody = bprResponseJson(
+              """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+              None,
+              Some(name)
+            )
 
-              inSequence {
-                mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-                mockGetSubscriptionStatus(sapNumber)(
-                  Right(HttpResponse(200, statusBody, Map.empty[String, Seq[String]]))
-                )
-              }
+            val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
+            val bprRequest      = sample[IndividualBusinessPartnerRecordRequest].copy(createNewEnrolmentIfMissing = true)
 
-              await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
-                BusinessPartnerRecordResponse(Some(expectedBpr(Some(expectedAddress), Right(name))), None)
-              )
+            inSequence {
+              mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+              mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+              mockEnrolmentExists(cgtReference)(Right(true))
             }
+
+            await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+              BusinessPartnerRecordResponse(
+                Some(expectedBpr(Some(expectedAddress), Right(name))),
+                Some(cgtReference),
+                None
+              )
+            )
           }
-        }
+
+        "the call to get a BPR is successful and the user is already subscribed and creating a new enrolment is enabled and " +
+          "an enrolment does not already exists" in {
+            val cgtReference = CgtReference("cgt")
+
+            val bprBody = bprResponseJson(
+              """
+              |"address" : {
+              |    "addressLine1" : "line1",
+              |    "postalCode"   : "postcode",
+              |    "countryCode"  : "GB"
+              |  }
+              |""".stripMargin,
+              None,
+              Some(name)
+            )
+
+            val expectedAddress     = UkAddress("line1", None, None, None, Postcode("postcode"))
+            val ggCredId            = "ggCredId"
+            val bprRequest          = sample[IndividualBusinessPartnerRecordRequest]
+              .copy(createNewEnrolmentIfMissing = true, ggCredId = ggCredId)
+            val subscribedDetails   = sample[SubscribedDetails]
+            val taxEnrolmentRequest = TaxEnrolmentRequest(
+              ggCredId,
+              cgtReference.value,
+              subscribedDetails.address,
+              dummyTimestamp
+            )
+
+            inSequence {
+              mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+              mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+              mockEnrolmentExists(cgtReference)(Right(false))
+              mockGetSubscription(cgtReference)(Right(Some(subscribedDetails)))
+              mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
+              mockSendSubscriptionConfirmationEmail(
+                cgtReference,
+                subscribedDetails.emailAddress,
+                subscribedDetails.contactName
+              )(Right(()))
+            }
+
+            await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
+              BusinessPartnerRecordResponse(
+                Some(expectedBpr(Some(expectedAddress), Right(name))),
+                Some(cgtReference),
+                Some(subscribedDetails)
+              )
+            )
+          }
 
         "the call comes back with slashes in the organisation name" in {
           val body = bprResponseJson(
@@ -457,16 +634,17 @@ class BusinessPartnerRecordServiceImplSpec extends WordSpec with Matchers with M
           val expectedAddress =
             NonUkAddress("line1", Some("line2"), Some("line3"), Some("line4"), None, Country("HK"))
 
+          val bprRequest = sample[BusinessPartnerRecordRequest]
+
           inSequence {
             mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(
-              Right(HttpResponse(200, notSubscribedJsonBody, Map.empty[String, Seq[String]]))
-            )
+            mockGetSubscriptionStatus(sapNumber)(Right(None))
           }
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(
               Some(expectedBpr(Some(expectedAddress), Left(TrustName("a-trust-with--slashes")))),
+              None,
               None
             )
           )
