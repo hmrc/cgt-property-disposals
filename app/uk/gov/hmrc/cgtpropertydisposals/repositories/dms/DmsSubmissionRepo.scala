@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.TimeOps._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem._
+import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -91,25 +92,29 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
     for {
-      result <- super.ensureIndexes
-      _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl.seconds, collection, logger)
+      result <- super.ensureIndexes(ExecutionContext.global)
+      _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl.seconds, collection, logger)(ExecutionContext.global)
     } yield result
 
   override def set(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]] =
     EitherT[Future, Error, WorkItem[DmsSubmissionRequest]](
-      pushNew(dmsSubmissionRequest, now, (_: DmsSubmissionRequest) => ToDo).map(item => Right(item)).recover {
-        case exception: Exception => Left(Error(exception))
+      preservingMdc {
+        pushNew(dmsSubmissionRequest, now, (_: DmsSubmissionRequest) => ToDo).map(item => Right(item)).recover {
+          case exception: Exception => Left(Error(exception))
+        }
       }
     )
 
   override def get: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]] =
     EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]](
-      super
-        .pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
-        .map(workItem => Right(workItem))
-        .recover { case exception: Exception =>
-          Left(Error(exception))
-        }
+      preservingMdc {
+        super
+          .pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
+          .map(workItem => Right(workItem))
+          .recover { case exception: Exception =>
+            Left(Error(exception))
+          }
+      }
     )
 
   override def setProcessingStatus(
@@ -117,15 +122,21 @@ class DefaultDmsSubmissionRepo @Inject() (
     status: ProcessingStatus
   ): EitherT[Future, Error, Boolean] =
     EitherT[Future, Error, Boolean](
-      markAs(id, status, Some(now.plusMillis(retryPeriod)))
-        .map(result => Right(result))
-        .recover { case exception: Exception =>
-          Left(Error(exception))
-        }
+      preservingMdc {
+        markAs(id, status, Some(now.plusMillis(retryPeriod)))
+          .map(result => Right(result))
+          .recover { case exception: Exception =>
+            Left(Error(exception))
+          }
+      }
     )
 
   override def setResultStatus(id: BSONObjectID, status: ResultStatus): EitherT[Future, Error, Boolean] =
-    EitherT[Future, Error, Boolean](complete(id, status).map(result => Right(result)).recover {
-      case exception: Exception => Left(Error(exception))
-    })
+    EitherT[Future, Error, Boolean](
+      preservingMdc {
+        complete(id, status).map(result => Right(result)).recover { case exception: Exception =>
+          Left(Error(exception))
+        }
+      }
+    )
 }

@@ -80,7 +80,11 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
     ).map(_.map(_.draftReturn))
 
   override def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =
-    EitherT(set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id)))
+    EitherT(
+      preservingMdc {
+        set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id))
+      }
+    )
 
   override def delete(cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](

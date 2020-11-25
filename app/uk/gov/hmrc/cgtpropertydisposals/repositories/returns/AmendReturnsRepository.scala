@@ -74,7 +74,11 @@ class DefaultAmendReturnsRepository @Inject() (component: ReactiveMongoComponent
   override def save(
     submitReturnRequest: SubmitReturnRequest
   ): EitherT[Future, Error, Unit] =
-    EitherT(set(submitReturnRequest.id.toString, submitReturnRequest))
+    EitherT(
+      preservingMdc {
+        set(submitReturnRequest.id.toString, submitReturnRequest)
+      }
+    )
 
   private def get(cgtReference: CgtReference): Future[Either[Error, List[SubmitReturnRequest]]] = {
     val selector = Json.obj(key -> cgtReference.value)
