@@ -19,7 +19,7 @@ The other services this service relies on can be run using the `CGTPD_ALL` servi
 sm --start CGTPD_ALL -r
 sm --stop CGTPD
 ```   
-
+ 
 ### License
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
