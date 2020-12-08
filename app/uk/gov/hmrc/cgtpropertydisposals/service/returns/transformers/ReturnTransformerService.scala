@@ -184,7 +184,7 @@ class ReturnTransformerServiceImpl @Inject() (
         val initialGainOrLoss         = constructInitialGainAnswers(singleDisposalDetails)
 
         val yearToDateLiabilityAnswers =
-          if (desReturn.incomeAllowanceDetails.estimatedIncome.isEmpty)
+          if (isFurtherOrAmendReturn(desReturn) || desReturn.incomeAllowanceDetails.estimatedIncome.isEmpty)
             Left(constructNonCalculatedYearToDateAnswers(desReturn))
           else {
             val estimatedIncome =
