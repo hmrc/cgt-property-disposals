@@ -30,15 +30,26 @@ trait TaxYearService {
 
   def getTaxYear(date: LocalDate): Option[TaxYear]
 
+  def getAvailableTaxYears(): List[Int]
+
 }
 
 @Singleton
 class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearService {
+
+  val latestTaxYearEnabled: Boolean =
+    config.underlying.get[Boolean]("latestTaxYear.enabled").value
 
   val taxYears: List[TaxYear] =
     config.underlying.get[List[TaxYear]]("tax-years").value
 
   override def getTaxYear(date: LocalDate): Option[TaxYear] =
     taxYears.find(t => date < t.endDateExclusive && date >= (t.startDateInclusive))
+
+  override def getAvailableTaxYears(): List[Int] =
+    if (latestTaxYearEnabled)
+      taxYears.map(_.startDateInclusive.getYear)
+    else
+      taxYears.map(_.startDateInclusive.getYear).sortWith(_ > _).drop(1)
 
 }
