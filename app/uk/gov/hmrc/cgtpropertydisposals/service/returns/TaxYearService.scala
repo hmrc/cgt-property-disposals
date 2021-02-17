@@ -40,16 +40,18 @@ class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearServic
   val latestTaxYearEnabled: Boolean =
     config.underlying.get[Boolean]("latestTaxYear.enabled").value
 
-  val taxYears: List[TaxYear] =
-    config.underlying.get[List[TaxYear]]("tax-years").value
+  val taxYears: List[TaxYear] = {
+    val taxYearsList = config.underlying.get[List[TaxYear]]("tax-years").value
+    if (latestTaxYearEnabled)
+      taxYearsList
+    else
+      taxYearsList.drop(1)
+  }
 
   override def getTaxYear(date: LocalDate): Option[TaxYear] =
     taxYears.find(t => date < t.endDateExclusive && date >= (t.startDateInclusive))
 
   override def getAvailableTaxYears(): List[Int] =
-    if (latestTaxYearEnabled)
-      taxYears.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)
-    else
-      taxYears.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse).drop(1)
+    taxYears.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)
 
 }
