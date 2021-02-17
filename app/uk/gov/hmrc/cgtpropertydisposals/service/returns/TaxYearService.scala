@@ -48,8 +48,8 @@ class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearServic
 
   override def getAvailableTaxYears(): List[Int] =
     if (latestTaxYearEnabled)
-      taxYears.map(_.startDateInclusive.getYear)
+      taxYears.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)
     else
-      taxYears.map(_.startDateInclusive.getYear).sortWith(_ > _).drop(1)
+      taxYears.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse).drop(1)
 
 }

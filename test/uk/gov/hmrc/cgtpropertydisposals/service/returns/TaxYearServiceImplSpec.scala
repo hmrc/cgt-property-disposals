@@ -26,33 +26,61 @@ import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 
 class TaxYearServiceImplSpec extends WordSpec with Matchers {
 
-  val taxYear =
+  val taxYear2020 =
     sample[TaxYear].copy(
       startDateInclusive = LocalDate.of(2020, 4, 6),
       endDateExclusive = LocalDate.of(2021, 4, 6)
     )
 
+  val taxYear2021 =
+    sample[TaxYear].copy(
+      startDateInclusive = LocalDate.of(2021, 4, 6),
+      endDateExclusive = LocalDate.of(2022, 4, 6)
+    )
+
   val config  = Configuration(
     ConfigFactory.parseString(
       s"""
+        | latestTaxYear.enabled = true
         | tax-years = [
         |  {
-        |    start-year = ${taxYear.startDateInclusive.getYear}
+        |    start-year = ${taxYear2020.startDateInclusive.getYear}
         |    annual-exempt-amount {
-        |      general              = ${taxYear.annualExemptAmountGeneral.inPounds()}
-        |      non-vulnerable-trust = ${taxYear.annualExemptAmountNonVulnerableTrust.inPounds()}
+        |      general              = ${taxYear2020.annualExemptAmountGeneral.inPounds()}
+        |      non-vulnerable-trust = ${taxYear2020.annualExemptAmountNonVulnerableTrust.inPounds()}
         |    }
-        |    personal-allowance = ${taxYear.personalAllowance.inPounds()}
-        |    higher-income-personal-allowance-threshold = ${taxYear.higherIncomePersonalAllowanceThreshold.inPounds()}
+        |    personal-allowance = ${taxYear2020.personalAllowance.inPounds()}
+        |    higher-income-personal-allowance-threshold = ${taxYear2020.higherIncomePersonalAllowanceThreshold
+        .inPounds()}
         |
-        |    max-personal-allowance = ${taxYear.maxPersonalAllowance.inPounds()}
-        |    income-tax-higher-rate-threshold = ${taxYear.incomeTaxHigherRateThreshold.inPounds()}
-        |    lettings-relief-max-threshold = ${taxYear.maxLettingsReliefAmount.inPounds()}
+        |    max-personal-allowance = ${taxYear2020.maxPersonalAllowance.inPounds()}
+        |    income-tax-higher-rate-threshold = ${taxYear2020.incomeTaxHigherRateThreshold.inPounds()}
+        |    lettings-relief-max-threshold = ${taxYear2020.maxLettingsReliefAmount.inPounds()}
         |    cgt-rates {
-        |      lower-band-residential      = ${taxYear.cgtRateLowerBandResidential}
-        |      lower-band-non-residential  = ${taxYear.cgtRateLowerBandNonResidential}
-        |      higher-band-residential     = ${taxYear.cgtRateHigherBandResidential}
-        |      higher-band-non-residential = ${taxYear.cgtRateHigherBandNonResidential}
+        |      lower-band-residential      = ${taxYear2020.cgtRateLowerBandResidential}
+        |      lower-band-non-residential  = ${taxYear2020.cgtRateLowerBandNonResidential}
+        |      higher-band-residential     = ${taxYear2020.cgtRateHigherBandResidential}
+        |      higher-band-non-residential = ${taxYear2020.cgtRateHigherBandNonResidential}
+        |    }
+        |  },
+        |    {
+        |    start-year = ${taxYear2021.startDateInclusive.getYear}
+        |    annual-exempt-amount {
+        |      general              = ${taxYear2021.annualExemptAmountGeneral.inPounds()}
+        |      non-vulnerable-trust = ${taxYear2021.annualExemptAmountNonVulnerableTrust.inPounds()}
+        |    }
+        |    personal-allowance = ${taxYear2021.personalAllowance.inPounds()}
+        |    higher-income-personal-allowance-threshold = ${taxYear2021.higherIncomePersonalAllowanceThreshold
+        .inPounds()}
+        |
+        |    max-personal-allowance = ${taxYear2021.maxPersonalAllowance.inPounds()}
+        |    income-tax-higher-rate-threshold = ${taxYear2021.incomeTaxHigherRateThreshold.inPounds()}
+        |    lettings-relief-max-threshold = ${taxYear2021.maxLettingsReliefAmount.inPounds()}
+        |    cgt-rates {
+        |      lower-band-residential      = ${taxYear2021.cgtRateLowerBandResidential}
+        |      lower-band-non-residential  = ${taxYear2021.cgtRateLowerBandNonResidential}
+        |      higher-band-residential     = ${taxYear2021.cgtRateHigherBandResidential}
+        |      higher-band-non-residential = ${taxYear2021.cgtRateHigherBandNonResidential}
         |    }
         |  }
         | ]
@@ -65,14 +93,27 @@ class TaxYearServiceImplSpec extends WordSpec with Matchers {
 
     "handling requests to get the tax year of a date" must {
 
-      "return a tax year if one can be found" in {
-        service.getTaxYear(taxYear.startDateInclusive)             shouldBe Some(taxYear)
-        service.getTaxYear(taxYear.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear)
+      "return a tax year 2020 if one can be found" in {
+        service.getTaxYear(taxYear2020.startDateInclusive)             shouldBe Some(taxYear2020)
+        service.getTaxYear(taxYear2020.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear2020)
+      }
+
+      "return a tax year 2021 if one can be found" in {
+        service.getTaxYear(taxYear2021.startDateInclusive)             shouldBe Some(taxYear2021)
+        service.getTaxYear(taxYear2021.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear2021)
       }
 
       "return nothing if a tax year cannot be found" in {
-        service.getTaxYear(taxYear.startDateInclusive.minusDays(1L)) shouldBe None
-        service.getTaxYear(taxYear.endDateExclusive)                 shouldBe None
+        service.getTaxYear(taxYear2020.startDateInclusive.minusDays(1L)) shouldBe None
+        service.getTaxYear(taxYear2021.endDateExclusive)                 shouldBe None
+      }
+
+    }
+
+    "handling requests to get the available tax years" must {
+
+      "return available tax years 2021,2020" in {
+        service.getAvailableTaxYears() shouldBe List(2021, 2020)
       }
 
     }

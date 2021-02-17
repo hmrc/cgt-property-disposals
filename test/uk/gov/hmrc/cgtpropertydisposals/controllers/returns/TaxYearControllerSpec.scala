@@ -55,6 +55,7 @@ class TaxYearControllerSpec extends ControllerSpec {
     HeaderCarrier(),
     FakeRequest()
   )
+
   "TaxYearController" when {
 
     "handling requests to get tax years" must {
