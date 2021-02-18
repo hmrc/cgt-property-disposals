@@ -23,7 +23,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
-import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.TaxYearResponse
+import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.{AvailableTaxYearsResponse, TaxYearResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -53,12 +53,19 @@ class TaxYearController @Inject() (
       )
     }
 
+  def availableTaxYears(): Action[AnyContent] =
+    authenticate { _ =>
+      val availableTaxYears = taxYearService.getAvailableTaxYears()
+      Ok(Json.toJson(AvailableTaxYearsResponse(availableTaxYears)))
+    }
 }
 
 object TaxYearController {
 
   final case class TaxYearResponse(value: Option[TaxYear])
+  final case class AvailableTaxYearsResponse(value: List[Int])
 
-  implicit val taxYearResponseFormat: OFormat[TaxYearResponse] = Json.format
+  implicit val taxYearResponseFormat: OFormat[TaxYearResponse]                     = Json.format
+  implicit val availableTaxYearsResponseFormat: OFormat[AvailableTaxYearsResponse] = Json.format
 
 }
