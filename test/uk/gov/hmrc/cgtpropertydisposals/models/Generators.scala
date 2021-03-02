@@ -56,7 +56,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, TaxableGainOrLossCalculationRequest, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UploadDetails, UpscanSuccess}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
@@ -142,6 +142,13 @@ sealed trait GenUtils {
       Gen
         .choose(0L, 10000L)
         .map(_ => BSONObjectID.generate())
+    )
+
+  implicit val instantArb: Arbitrary[Instant] =
+    Arbitrary(
+      Gen
+        .chooseNum(0L, 10000L)
+        .map(l => Instant.ofEpochMilli(l))
     )
 
 }
@@ -241,7 +248,8 @@ trait LowerPriorityDraftReturnGen { this: GenUtils =>
 }
 
 trait UpscanGen { this: GenUtils =>
-
+  implicit val uploadDetails: Gen[UploadDetails]        = gen[UploadDetails]
+  implicit val newUpscanSuccess: Gen[NewUpscanSuccess]  = gen[NewUpscanSuccess]
   implicit val upscanUploadGen: Gen[UpscanUpload]       = gen[UpscanUpload]
   implicit val uploadReferenceGen: Gen[UploadReference] = gen[UploadReference]
   implicit val upscanSuccessGen: Gen[UpscanSuccess]     = gen[UpscanSuccess]

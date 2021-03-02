@@ -25,7 +25,8 @@ import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{UpscanFailure, UpscanSuccess}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UpscanFailure, UpscanSuccess}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{GetUpscanUploadsRequest, GetUpscanUploadsResponse, UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -135,9 +136,9 @@ class UpscanController @Inject() (
                                s"could not get upscan upload value from db for upload reference $uploadReference"
                              )
                            )
-      callBackResult    <- if (fileStatus === READY_FOR_DOWNLOAD)
+      newCallBackResult <- if (fileStatus === READY_FOR_DOWNLOAD)
                              EitherT.fromOption(
-                               request.body.asOpt[UpscanSuccess],
+                               request.body.asOpt[NewUpscanSuccess],
                                Error(
                                  s"could not parse upscan call back response body : ${request.body.toString}"
                                )
@@ -149,6 +150,8 @@ class UpscanController @Inject() (
                                  s"could not parse upscan call back response body : ${request.body.toString}"
                                )
                              )
+
+      callBackResult = convertNewUpscanSuccessToUpscanSuccess(newCallBackResult)
 
       newUpscanUpload = upscanUpload.copy(upscanCallBack = Some(callBackResult))
       _              <- upscanService.updateUpscanUpload(uploadReference, newUpscanUpload)
@@ -165,5 +168,24 @@ class UpscanController @Inject() (
       }
     )
   }
+
+  private def convertNewUpscanSuccessToUpscanSuccess(upscanCallBack: UpscanCallBack): UpscanCallBack =
+    upscanCallBack match {
+      case newUpscanSuccess: NewUpscanSuccess =>
+        val uploadDetails: Map[String, String] =
+          Map(
+            "fileName"        -> newUpscanSuccess.uploadDetails.fileName,
+            "fileMimeType"    -> newUpscanSuccess.uploadDetails.fileMimeType,
+            "uploadTimestamp" -> newUpscanSuccess.uploadDetails.uploadTimestamp.toString,
+            "checksum"        -> newUpscanSuccess.uploadDetails.checksum
+          )
+        UpscanSuccess(
+          reference = newUpscanSuccess.reference,
+          fileStatus = newUpscanSuccess.fileStatus,
+          downloadUrl = newUpscanSuccess.downloadUrl,
+          uploadDetails = uploadDetails
+        )
+      case _                                  => upscanCallBack
+    }
 
 }
