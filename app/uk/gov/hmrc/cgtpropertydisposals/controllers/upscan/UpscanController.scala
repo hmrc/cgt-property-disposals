@@ -177,8 +177,7 @@ class UpscanController @Inject() (
             "fileName"        -> newUpscanSuccess.uploadDetails.fileName,
             "fileMimeType"    -> newUpscanSuccess.uploadDetails.fileMimeType,
             "uploadTimestamp" -> newUpscanSuccess.uploadDetails.uploadTimestamp.toString,
-            "checksum"        -> newUpscanSuccess.uploadDetails.checksum,
-            "size"            -> newUpscanSuccess.uploadDetails.size.toString
+            "checksum"        -> newUpscanSuccess.uploadDetails.checksum
           )
         UpscanSuccess(
           reference = newUpscanSuccess.reference,

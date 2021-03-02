@@ -28,8 +28,7 @@ object UpscanCallBack {
     fileName: String,
     fileMimeType: String,
     uploadTimestamp: Instant,
-    checksum: String,
-    size: Long
+    checksum: String
   )
 
   object UploadDetails {
