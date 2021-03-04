@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
 import java.time.LocalDate
-
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, ValidatedNel}
 import cats.instances.bigDecimal._
@@ -48,7 +47,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxYear, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
 
 @ImplementedBy(classOf[ReturnTransformerServiceImpl])
@@ -103,6 +102,13 @@ class ReturnTransformerServiceImpl @Inject() (
         )
     }
 
+  private def getTaxYearExchangedFromTaxYear(taxYear: TaxYear): TaxYearExchanged =
+    taxYear.startDateInclusive.getYear match {
+      case 2020 => TaxYearExchanged.TaxYear2020
+      case 2021 => TaxYearExchanged.TaxYear2021
+      case _    => TaxYearExchanged.TaxYearBefore2020
+    }
+
   private def validateMultipleDisposal(
     desReturn: DesReturnDetails,
     multipleDisposalDetails: MultipleDisposalDetails
@@ -124,6 +130,7 @@ class ReturnTransformerServiceImpl @Inject() (
           desReturn.returnDetails.numberDisposals,
           country,
           assetTypes,
+          getTaxYearExchangedFromTaxYear(disposalDate.taxYear),
           disposalDate.taxYear,
           CompletionDate(desReturn.returnDetails.completionDate)
         )
@@ -301,6 +308,7 @@ class ReturnTransformerServiceImpl @Inject() (
           desReturn.returnDetails.numberDisposals,
           country,
           assetTypes,
+          getTaxYearExchangedFromTaxYear(disposalDate.taxYear),
           disposalDate.taxYear,
           CompletionDate(desReturn.returnDetails.completionDate)
         )
