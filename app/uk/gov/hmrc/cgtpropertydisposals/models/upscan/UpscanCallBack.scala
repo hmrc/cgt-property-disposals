@@ -18,10 +18,33 @@ package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
+import java.time.Instant
 
 sealed trait UpscanCallBack extends Product with Serializable
 
 object UpscanCallBack {
+
+  final case class UploadDetails(
+    fileName: String,
+    fileMimeType: String,
+    uploadTimestamp: Instant,
+    checksum: String
+  )
+
+  object UploadDetails {
+    implicit val format = Json.format[UploadDetails]
+  }
+
+  final case class NewUpscanSuccess(
+    reference: String,
+    fileStatus: String,
+    downloadUrl: String,
+    uploadDetails: UploadDetails
+  ) extends UpscanCallBack
+
+  object NewUpscanSuccess {
+    implicit val format = Json.format[NewUpscanSuccess]
+  }
 
   final case class UpscanSuccess(
     reference: String,
