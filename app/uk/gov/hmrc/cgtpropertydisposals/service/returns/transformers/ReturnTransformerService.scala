@@ -415,6 +415,7 @@ class ReturnTransformerServiceImpl @Inject() (
       country,
       assetType,
       disposalDate,
+      false,
       CompletionDate(desReturn.returnDetails.completionDate)
     )
 
