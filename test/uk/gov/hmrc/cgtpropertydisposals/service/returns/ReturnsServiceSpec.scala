@@ -1786,6 +1786,8 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
       val cgtReference       = sample[CgtReference]
       val (fromDate, toDate) = LocalDate.now().minusDays(1L) -> LocalDate.now()
 
+      val (fromDate1, toDate1) = LocalDate.of(2020, 4, 6) -> LocalDate.of(2021, 4, 5)
+      val (fromDate2, toDate2) = LocalDate.of(2021, 4, 6) -> LocalDate.of(2022, 4, 5)
       "return an error " when {
 
         "the http call to get the list of returns fails" in {
@@ -1810,46 +1812,60 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "the call to get financial data fails" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
+            mockListReturn(cgtReference, fromDate1, toDate2)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
-            mockGetFinancialData(cgtReference, fromDate, toDate)(Left(Error("")))
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(Left(Error("")))
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value).isLeft shouldBe true
         }
 
         "the http call to get financial data returns with a status which is not 200" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
+            mockListReturn(cgtReference, fromDate1, toDate2)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
-            mockGetFinancialData(cgtReference, fromDate, toDate)(Right(HttpResponse(400, emptyJsonBody)))
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(Right(HttpResponse(400, emptyJsonBody)))
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value).isLeft shouldBe true
         }
 
         "the response body when getting financial data cannot be parsed" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
+            mockListReturn(cgtReference, fromDate1, toDate2)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
-            mockGetFinancialData(cgtReference, fromDate, toDate)(
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
             )
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value).isLeft shouldBe true
         }
 
         "the data cannot be transformed" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
+            mockListReturn(cgtReference, fromDate1, toDate2)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
-            mockGetFinancialData(cgtReference, fromDate, toDate)(
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                               |{
+                               |  "code" : "NOT_FOUND",
+                               |  "reason" : "The remote endpoint has indicated that no data can be found."
+                               |}
+                               |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
+              )
             )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
             mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
@@ -1857,7 +1873,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value).isLeft shouldBe true
         }
 
       }
@@ -1868,11 +1884,25 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
           val summaries = List(sample[ReturnSummary])
 
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
+            mockListReturn(cgtReference, fromDate1, toDate2)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
-            mockGetFinancialData(cgtReference, fromDate, toDate)(
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                               |{
+                               |  "code" : "NOT_FOUND",
+                               |  "reason" : "The remote endpoint has indicated that no data can be found."
+                               |}
+                               |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
+              )
             )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
             mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
@@ -1880,7 +1910,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(summaries)
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value) shouldBe Right(summaries)
         }
 
       }
@@ -1937,10 +1967,10 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
         "the response to get financial data comes back with status 404 and a single error in the body" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
+            mockListReturn(cgtReference, fromDate1, toDate2)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
-            mockGetFinancialData(cgtReference, fromDate, toDate)(
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(
                 HttpResponse(
                   404,
@@ -1954,6 +1984,20 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
                 )
               )
             )
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                               |{
+                               |  "code" : "NOT_FOUND",
+                               |  "reason" : "The remote endpoint has indicated that no data can be found."
+                               |}
+                               |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
+              )
+            )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
 
             mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
@@ -1961,29 +2005,47 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value) shouldBe Right(List.empty)
 
         }
 
         "the response to get financial data comes back with status 404 and multiple errors in the body" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
+            mockListReturn(cgtReference, fromDate1, toDate2)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
-            mockGetFinancialData(cgtReference, fromDate, toDate)(
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(
                 HttpResponse(
                   404,
                   Json.parse("""
-                                    |{
-                                    |  "failures" : [ 
-                                    |    {
-                                    |      "code" : "NOT_FOUND",
-                                    |      "reason" : "The remote endpoint has indicated that no data can be found."
-                                    |    }
-                                    |  ]
-                                    |}  
-                                    |""".stripMargin),
+                               |{
+                               |  "failures" : [
+                               |    {
+                               |      "code" : "NOT_FOUND",
+                               |      "reason" : "The remote endpoint has indicated that no data can be found."
+                               |    }
+                               |  ]
+                               |}
+                               |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
+              )
+            )
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                               |{
+                               |  "failures" : [
+                               |    {
+                               |      "code" : "NOT_FOUND",
+                               |      "reason" : "The remote endpoint has indicated that no data can be found."
+                               |    }
+                               |  ]
+                               |}
+                               |""".stripMargin),
                   Map.empty[String, Seq[String]]
                 )
               )
@@ -1997,7 +2059,7 @@ class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
 
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value) shouldBe Right(List.empty)
         }
 
       }
