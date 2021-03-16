@@ -34,7 +34,6 @@ object MultipleDisposalsTriageAnswers {
     assetTypes: Option[List[AssetType]],
     taxYearExchanged: Option[TaxYearExchanged],
     taxYear: Option[TaxYear],
-    alreadySentSelfAssessment: Option[Boolean] = None,
     completionDate: Option[CompletionDate]
   ) extends MultipleDisposalsTriageAnswers
 
@@ -45,7 +44,6 @@ object MultipleDisposalsTriageAnswers {
     assetTypes: List[AssetType],
     taxYearExchanged: TaxYearExchanged,
     taxYear: TaxYear,
-    alreadySentSelfAssessment: Option[Boolean] = None,
     completionDate: CompletionDate
   ) extends MultipleDisposalsTriageAnswers
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))

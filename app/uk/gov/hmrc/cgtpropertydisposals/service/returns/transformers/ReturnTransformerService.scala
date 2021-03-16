@@ -132,7 +132,6 @@ class ReturnTransformerServiceImpl @Inject() (
           assetTypes,
           getTaxYearExchangedFromTaxYear(disposalDate.taxYear),
           disposalDate.taxYear,
-          None,
           CompletionDate(desReturn.returnDetails.completionDate)
         )
 
@@ -311,7 +310,6 @@ class ReturnTransformerServiceImpl @Inject() (
           assetTypes,
           getTaxYearExchangedFromTaxYear(disposalDate.taxYear),
           disposalDate.taxYear,
-          Some(false),
           CompletionDate(desReturn.returnDetails.completionDate)
         )
 
@@ -415,7 +413,6 @@ class ReturnTransformerServiceImpl @Inject() (
       country,
       assetType,
       disposalDate,
-      None,
       CompletionDate(desReturn.returnDetails.completionDate)
     )
 
