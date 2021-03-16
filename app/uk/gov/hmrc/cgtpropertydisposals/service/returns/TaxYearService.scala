@@ -49,7 +49,7 @@ class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearServic
   }
 
   override def getTaxYear(date: LocalDate): Option[TaxYear] =
-    taxYears.find(t => date < t.endDateExclusive && date >= t.startDateInclusive)
+    taxYears.find(t => date < t.endDateExclusive && date >= (t.startDateInclusive))
 
   override def getAvailableTaxYears(): List[Int] =
     taxYears.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)

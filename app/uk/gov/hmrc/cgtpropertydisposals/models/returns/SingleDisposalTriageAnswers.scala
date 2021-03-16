@@ -32,7 +32,6 @@ object SingleDisposalTriageAnswers {
     countryOfResidence: Option[Country],
     assetType: Option[AssetType],
     disposalDate: Option[DisposalDate],
-    alreadySentSelfAssessment: Option[Boolean] = None,
     completionDate: Option[CompletionDate]
   ) extends SingleDisposalTriageAnswers
 
@@ -42,7 +41,6 @@ object SingleDisposalTriageAnswers {
     countryOfResidence: Country,
     assetType: AssetType,
     disposalDate: DisposalDate,
-    alreadySentSelfAssessment: Option[Boolean] = None,
     completionDate: CompletionDate
   ) extends SingleDisposalTriageAnswers
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
