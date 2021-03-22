@@ -42,7 +42,7 @@ object MultipleDisposalsTriageAnswers {
     numberOfProperties: Int,
     countryOfResidence: Country,
     assetTypes: List[AssetType],
-    taxYearExchanged: TaxYearExchanged,
+    taxYearExchanged: Option[TaxYearExchanged],
     taxYear: TaxYear,
     completionDate: CompletionDate
   ) extends MultipleDisposalsTriageAnswers
