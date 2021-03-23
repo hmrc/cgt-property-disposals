@@ -102,11 +102,11 @@ class ReturnTransformerServiceImpl @Inject() (
         )
     }
 
-  private def getTaxYearExchangedFromTaxYear(taxYear: TaxYear): TaxYearExchanged =
+  private def getTaxYearExchangedFromTaxYear(taxYear: TaxYear): Option[TaxYearExchanged] =
     taxYear.startDateInclusive.getYear match {
-      case 2020 => TaxYearExchanged.TaxYear2020
-      case 2021 => TaxYearExchanged.TaxYear2021
-      case _    => TaxYearExchanged.TaxYearBefore2020
+      case 2020 => Some(TaxYearExchanged.TaxYear2020)
+      case 2021 => Some(TaxYearExchanged.TaxYear2021)
+      case _    => Some(TaxYearExchanged.TaxYearBefore2020)
     }
 
   private def validateMultipleDisposal(
@@ -132,7 +132,6 @@ class ReturnTransformerServiceImpl @Inject() (
           assetTypes,
           getTaxYearExchangedFromTaxYear(disposalDate.taxYear),
           disposalDate.taxYear,
-          None,
           CompletionDate(desReturn.returnDetails.completionDate)
         )
 
@@ -311,7 +310,6 @@ class ReturnTransformerServiceImpl @Inject() (
           assetTypes,
           getTaxYearExchangedFromTaxYear(disposalDate.taxYear),
           disposalDate.taxYear,
-          Some(false),
           CompletionDate(desReturn.returnDetails.completionDate)
         )
 
@@ -415,7 +413,6 @@ class ReturnTransformerServiceImpl @Inject() (
       country,
       assetType,
       disposalDate,
-      None,
       CompletionDate(desReturn.returnDetails.completionDate)
     )
 
