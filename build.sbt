@@ -1,7 +1,6 @@
 import sbt.Keys.resolvers
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
-import uk.gov.hmrc.SbtArtifactory
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 import wartremover.wartremoverExcluded
 
@@ -40,15 +39,12 @@ lazy val scoverageSettings =
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(
     play.sbt.PlayScala,
-    SbtAutoBuildPlugin,
-    SbtGitVersioning,
-    SbtDistributablesPlugin,
-    SbtArtifactory
+    SbtDistributablesPlugin
   )
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
     addCompilerPlugin("org.typelevel"  %% "kind-projector"  % "0.11.0" cross CrossVersion.full),
-    addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.6.0" cross CrossVersion.full)
+    addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.1" cross CrossVersion.full)
   )
   .settings(scalaVersion := "2.12.10")
   .settings(
