@@ -47,10 +47,10 @@ lazy val microservice = Project(appName, file("."))
   )
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
-    addCompilerPlugin("org.typelevel"  %% "kind-projector"  % "0.11.0" cross CrossVersion.full),
-    addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.6.0" cross CrossVersion.full)
+    addCompilerPlugin("org.typelevel"  %% "kind-projector"  % "0.13.0" cross CrossVersion.full),
+    addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.1" cross CrossVersion.full)
   )
-  .settings(scalaVersion := "2.12.10")
+  .settings(scalaVersion := "2.12.11")
   .settings(
     majorVersion := 2,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
@@ -70,7 +70,10 @@ lazy val microservice = Project(appName, file("."))
   .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
-  .settings(resolvers ++= Seq(Resolver.jcenterRepo, "emueller-bintray" at "http://dl.bintray.com/emueller/maven"))
+  .settings(resolvers ++= Seq(
+    Resolver.jcenterRepo,
+    ("emueller-bintray" at "http://dl.bintray.com/emueller/maven").withAllowInsecureProtocol(true)
+    ))
   .settings(Test / resourceDirectory := baseDirectory.value / "/conf/resources")
   .settings(wartremoverSettings: _*)
   .settings(scoverageSettings: _*)
