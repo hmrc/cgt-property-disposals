@@ -33,8 +33,7 @@ lazy val scoverageSettings =
     ScoverageKeys.coverageExcludedPackages := "<empty>;.*Reverse.*;.*(config|views.*);.*(BuildInfo|Routes).*",
     ScoverageKeys.coverageMinimum := 80.00,
     ScoverageKeys.coverageFailOnMinimum := true,
-    ScoverageKeys.coverageHighlighting := true,
-    coverageEnabled.in(ThisBuild, Test, test) := true
+    ScoverageKeys.coverageHighlighting := true
   )
 
 lazy val microservice = Project(appName, file("."))
@@ -64,7 +63,7 @@ lazy val microservice = Project(appName, file("."))
       "-Yrangepos",
       "-language:postfixOps"
     ),
-    scalacOptions in Test --= Seq("-Ywarn-value-discard")
+    Test / scalacOptions --= Seq("-Ywarn-value-discard")
   )
   .settings(scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused:imports"))
   .settings(publishingSettings: _*)
