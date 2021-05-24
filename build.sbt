@@ -12,7 +12,7 @@ addCommandAlias("fix", "all compile:scalafix test:scalafix")
 
 lazy val wartremoverSettings =
   Seq(
-    wartremoverErrors in (Compile, compile) ++= Warts.allBut(
+     Compile / compile / wartremoverErrors ++= Warts.allBut(
       Wart.DefaultArguments,
       Wart.ImplicitConversion,
       Wart.ImplicitParameter,
@@ -20,11 +20,11 @@ lazy val wartremoverSettings =
       Wart.Overloading,
       Wart.ToString
     ),
-    wartremoverExcluded in (Compile, compile) ++=
+    Compile / compile / wartremoverExcluded ++=
       (Compile / routes).value ++
         (baseDirectory.value ** "*.sc").get ++
         Seq(sourceManaged.value / "main" / "sbt-buildinfo" / "BuildInfo.scala"),
-    wartremoverErrors in (Test, compile) --= Seq(Wart.NonUnitStatements, Wart.Null, Wart.PublicInference, Wart.Any)
+    Test / compile / wartremoverErrors --= Seq(Wart.NonUnitStatements, Wart.Null, Wart.PublicInference, Wart.Any)
   )
 
 lazy val scoverageSettings =
@@ -62,10 +62,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
-  .settings(resolvers ++= Seq(
-    Resolver.jcenterRepo,
-    ("emueller-bintray" at "http://dl.bintray.com/emueller/maven").withAllowInsecureProtocol(true)
-    ))
+  .settings(resolvers ++= Seq(("emueller-bintray" at "http://dl.bintray.com/emueller/maven").withAllowInsecureProtocol(true)))
   .settings(Test / resourceDirectory := baseDirectory.value / "/conf/resources")
   .settings(wartremoverSettings: _*)
   .settings(scoverageSettings: _*)
