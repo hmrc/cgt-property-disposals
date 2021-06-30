@@ -68,8 +68,7 @@ class SubmitReturnsController @Inject() (
                                     )
                                   )
             _                   = logger.info(
-                                    s"Enqueued documents to be submitted with details " +
-                                      s"['formBundleId' :${submissionResult.formBundleId}, " +
+                                    s"Enqueued documents to be submitted with details 'formBundleId' :CGTSUBMITDOC" +
                                       s"'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
                                   )
             _                  <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
