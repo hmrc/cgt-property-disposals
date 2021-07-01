@@ -55,6 +55,8 @@ class DmsSubmissionPoller @Inject() (
     TimeUnit.MILLISECONDS
   )
 
+  private val formIdConst = "CGTSUBMITDOC"
+
   private val pollerInterval: FiniteDuration =
     FiniteDuration(servicesConfig.getDuration("dms.submission-poller.interval").toMillis, TimeUnit.MILLISECONDS)
 
@@ -82,7 +84,7 @@ class DmsSubmissionPoller @Inject() (
           dmsSubmissionService
             .submitToDms(
               workItem.item.html,
-              workItem.item.formBundleId,
+              formIdConst,
               workItem.item.cgtReference,
               workItem.item.completeReturn,
               id
