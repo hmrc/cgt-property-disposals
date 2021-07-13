@@ -26,7 +26,8 @@ import play.api.libs.ws
 import play.api.libs.ws.WSResponse
 import play.api.libs.ws.ahc.AhcWSResponse
 import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseHeaders, CacheableHttpResponseStatus}
-import play.api.test.Helpers.{await, _}
+import play.api.test.Helpers._
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
 import play.shaded.ahc.org.asynchttpclient.Response
 import play.shaded.ahc.org.asynchttpclient.uri.Uri
@@ -96,6 +97,7 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
   "Upscan Connector" when {
 
     "it receives a request to download a file" must {
+
       "return an error if the http call to download the file fails" in {
         List(
           buildWsResponse(400),
@@ -160,6 +162,209 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
           }
         }
       }
+
+      "Windows OS filenames" must {
+
+        "replace device with cgt1 if the file was downloaded successfully" +
+          "and it has a Windows OS invalid character" in {
+            List(
+              buildWsResponse(200)
+            ).foreach { httpResponse =>
+              withClue(s"For http response [${httpResponse.toString}]") {
+                mockGet(
+                  "some-url",
+                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  2 minutes
+                )(Future.successful(httpResponse))
+
+                val result = await(
+                  connector
+                    .downloadFile(
+                      UpscanSuccess(
+                        "ref",
+                        "status",
+                        "some-url",
+                        Map("fileName" -> "COM1", "fileMimeType" -> "text/plain")
+                      )
+                    )
+                )
+
+                result match {
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "_"
+                  case _                                        =>
+                }
+
+              }
+            }
+          }
+
+        "replace ascii chars with cgt2 if the file was downloaded successfully" +
+          "and it has a Windows OS invalid character" in {
+            List(
+              buildWsResponse(200)
+            ).foreach { httpResponse =>
+              withClue(s"For http response [${httpResponse.toString}]") {
+                mockGet(
+                  "some-url",
+                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  2 minutes
+                )(Future.successful(httpResponse))
+
+                val result = await(
+                  connector
+                    .downloadFile(
+                      UpscanSuccess(
+                        "ref",
+                        "status",
+                        "some-url",
+                        Map("fileName" -> "31", "fileMimeType" -> "text/plain")
+                      )
+                    )
+                )
+
+                result match {
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "_"
+                  case _                                        =>
+                }
+
+              }
+            }
+          }
+
+        "replace special chars with underscore(_) if the file was downloaded successfully" +
+          "and it has a Windows OS invalid character" in {
+            List(
+              buildWsResponse(200)
+            ).foreach { httpResponse =>
+              withClue(s"For http response [${httpResponse.toString}]") {
+                mockGet(
+                  "some-url",
+                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  2 minutes
+                )(Future.successful(httpResponse))
+
+                val result = await(
+                  connector
+                    .downloadFile(
+                      UpscanSuccess(
+                        "ref",
+                        "status",
+                        "some-url",
+                        Map("fileName" -> "sample<cgt>file?name/one*.txt", "fileMimeType" -> "text/plain")
+                      )
+                    )
+                )
+
+                result match {
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_cgt_file_name_one_.txt"
+                  case _                                        =>
+                }
+
+              }
+            }
+          }
+
+        "replace \" with underscore(_) if the file was downloaded successfully" +
+          "and it has a Windows OS invalid character" in {
+            List(
+              buildWsResponse(200)
+            ).foreach { httpResponse =>
+              withClue(s"For http response [${httpResponse.toString}]") {
+                mockGet(
+                  "some-url",
+                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  2 minutes
+                )(Future.successful(httpResponse))
+
+                val result = await(
+                  connector
+                    .downloadFile(
+                      UpscanSuccess(
+                        "ref",
+                        "status",
+                        "some-url",
+                        Map("fileName" -> "sample\"test.txt", "fileMimeType" -> "text/plain")
+                      )
+                    )
+                )
+
+                result match {
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test.txt"
+                  case _                                        =>
+                }
+
+              }
+            }
+          }
+
+        "replace \\ with underscore(_) if the file was downloaded successfully" +
+          "and it has a Windows OS invalid character" in {
+            List(
+              buildWsResponse(200)
+            ).foreach { httpResponse =>
+              withClue(s"For http response [${httpResponse.toString}]") {
+                mockGet(
+                  "some-url",
+                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  2 minutes
+                )(Future.successful(httpResponse))
+
+                val result = await(
+                  connector
+                    .downloadFile(
+                      UpscanSuccess(
+                        "ref",
+                        "status",
+                        "some-url",
+                        Map("fileName" -> "sample\\test.txt", "fileMimeType" -> "text/plain")
+                      )
+                    )
+                )
+
+                result match {
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test.txt"
+                  case _                                        =>
+                }
+
+              }
+            }
+          }
+
+        "check '%22' does not cause any issues if the file was downloaded successfully" +
+          "and it has a Windows OS invalid character" in {
+            List(
+              buildWsResponse(200)
+            ).foreach { httpResponse =>
+              withClue(s"For http response [${httpResponse.toString}]") {
+                mockGet(
+                  "some-url",
+                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  2 minutes
+                )(Future.successful(httpResponse))
+
+                val result = await(
+                  connector
+                    .downloadFile(
+                      UpscanSuccess(
+                        "ref",
+                        "status",
+                        "some-url",
+                        Map("fileName" -> "sample%22test.txt", "fileMimeType" -> "text/plain")
+                      )
+                    )
+                )
+
+                result match {
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample%22test.txt"
+                  case _                                        =>
+                }
+
+              }
+            }
+          }
+
+      }
+
     }
   }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.service
+package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
 import java.util.{Base64, UUID}
 
@@ -35,7 +35,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionPollerExecutionContext, DmsSubmissionRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}
