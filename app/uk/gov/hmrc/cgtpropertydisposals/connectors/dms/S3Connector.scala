@@ -90,7 +90,7 @@ class S3ConnectorImpl @Inject() (
                         filename,
                         Some(mimeType),
                         bytes
-                      )
+                      ).replaceAllInvalidCharsWithUnderScore()
                     )
                   }
             }

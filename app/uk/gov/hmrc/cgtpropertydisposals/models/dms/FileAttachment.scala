@@ -24,3 +24,34 @@ final case class FileAttachment(
   contentType: Option[String],
   data: Seq[ByteString]
 )
+
+object FileAttachment {
+
+  implicit class FileAttachmentOps(private val f: FileAttachment) extends AnyVal {
+    // It replaces all invalid characters available in Filename with underscore(_)
+    // to avoid issues with Windows OS
+    def replaceAllInvalidCharsWithUnderScore(): FileAttachment = {
+      // Windows device filenames
+      val deviceFileNames     =
+        "CON,PRN,AUX,NUL,COM1,COM2,COM3,COM4,COM5,COM6,COM7,COM8,COM9,LPT1,LPT2,LPT3,LPT4,LPT5,LPT6,LPT7,LPT8,LPT9"
+          .split(",")
+      // \x00-\x1F ==> [1-32]
+      val invalidASCIIChars   = (0 to 31).map(_.toString).toList
+      val invalidSpecialChars = "[<>:/\"|?*\\\\]".r
+
+      val filenameWithExtension = f.filename.split("\\.(?=[^\\.]+$)")
+
+      val updatedFilename =
+        if (deviceFileNames.contains(filenameWithExtension(0))) "_"
+        else if (invalidASCIIChars.contains(filenameWithExtension(0))) "_"
+        else invalidSpecialChars.replaceAllIn(filenameWithExtension(0), "_")
+
+      val fullUpdatedFilename =
+        if (filenameWithExtension.length > 1) s"$updatedFilename.${filenameWithExtension(1)}"
+        else updatedFilename
+
+      f.copy(filename = fullUpdatedFilename)
+    }
+  }
+
+}
