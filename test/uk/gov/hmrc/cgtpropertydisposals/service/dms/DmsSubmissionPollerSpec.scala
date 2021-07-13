@@ -68,6 +68,7 @@ class DmsSubmissionPollerSpec
   val mockUpscanService     = mock[UpscanService]
   val mockDmsSubmissionRepo = mock[DmsSubmissionRepo]
   val mockUUIDGenerator     = mock[UUIDGenerator]
+  val formIdConst           = "CGTSUBMITDOC"
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -141,7 +142,7 @@ class DmsSubmissionPollerSpec
           mockNextUUID(id)
           mockSubmitToDms(
             workItem.item.html,
-            workItem.item.formBundleId,
+            formIdConst,
             workItem.item.cgtReference,
             workItem.item.completeReturn,
             id
@@ -174,7 +175,7 @@ class DmsSubmissionPollerSpec
         mockNextUUID(id)
         mockSubmitToDms(
           workItem.item.html,
-          workItem.item.formBundleId,
+          formIdConst,
           workItem.item.cgtReference,
           workItem.item.completeReturn,
           id
