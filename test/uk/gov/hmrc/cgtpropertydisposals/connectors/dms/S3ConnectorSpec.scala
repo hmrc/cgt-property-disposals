@@ -148,7 +148,7 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
               Seq(("User-Agent" -> "cgt-property-disposals")),
               2 minutes
             )(Future.successful(httpResponse))
-            await(
+            val result = await(
               connector
                 .downloadFile(
                   UpscanSuccess(
@@ -158,45 +158,13 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
                     Map("fileName" -> "f1.text", "fileMimeType" -> "application/pdf")
                   )
                 )
-            ).isRight shouldBe true
+            )
+            result.isRight shouldBe true
           }
         }
       }
 
       "Windows OS filenames" must {
-
-        "replace device with cgt1 if the file was downloaded successfully" +
-          "and it has a Windows OS invalid character" in {
-            List(
-              buildWsResponse(200)
-            ).foreach { httpResponse =>
-              withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
-                  2 minutes
-                )(Future.successful(httpResponse))
-
-                val result = await(
-                  connector
-                    .downloadFile(
-                      UpscanSuccess(
-                        "ref",
-                        "status",
-                        "some-url",
-                        Map("fileName" -> "COM1", "fileMimeType" -> "text/plain")
-                      )
-                    )
-                )
-
-                result match {
-                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "_"
-                  case _                                        =>
-                }
-
-              }
-            }
-          }
 
         "replace ascii chars with cgt2 if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
