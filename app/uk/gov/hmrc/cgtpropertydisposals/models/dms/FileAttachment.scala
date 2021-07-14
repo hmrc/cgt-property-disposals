@@ -32,7 +32,8 @@ object FileAttachment {
     // to avoid issues with Windows OS
     def replaceAllInvalidCharsWithUnderScore(): FileAttachment = {
       // \x00-\x1F ==> [1-32]
-      val invalidASCIIChars   = (0 to 31).map(_.toString).toList
+      // invalidASCIIChars ++:  invalidASCIIChars2
+      val invalidASCIIChars   = (0 to 31).map(_.toString).toList ++: "00,01,02,03,04,05,06,07,08,09".split(",").toList
       val invalidSpecialChars = "[<>:/\"|?*\\\\]".r
 
       val filenameWithExtension = f.filename.split("\\.(?=[^\\.]+$)")
@@ -44,7 +45,7 @@ object FileAttachment {
       val fullUpdatedFilename =
         if (filenameWithExtension.length > 1) s"$updatedFilename.${filenameWithExtension(1)}"
         else updatedFilename
-      
+
       f.copy(filename = fullUpdatedFilename)
     }
   }
