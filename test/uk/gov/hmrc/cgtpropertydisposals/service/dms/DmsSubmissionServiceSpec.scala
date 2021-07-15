@@ -40,7 +40,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
-import uk.gov.hmrc.cgtpropertydisposals.service.DefaultDmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, ProcessingStatus, ResultStatus, WorkItem}

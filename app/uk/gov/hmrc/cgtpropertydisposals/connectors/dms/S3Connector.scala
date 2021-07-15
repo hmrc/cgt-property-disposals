@@ -85,11 +85,13 @@ class S3ConnectorImpl @Inject() (
                   .map { bytes =>
                     logger.info("Successfully downloaded files from S3")
                     Right(
-                      FileAttachment(
-                        UUID.randomUUID().toString,
-                        filename,
-                        Some(mimeType),
-                        bytes
+                      replaceAllInvalidCharsWithUnderScore(
+                        FileAttachment(
+                          UUID.randomUUID().toString,
+                          filename,
+                          Some(mimeType),
+                          bytes
+                        )
                       )
                     )
                   }
@@ -103,4 +105,26 @@ class S3ConnectorImpl @Inject() (
         Future.successful(Left(Error("missing file descriptors")))
     }
   }
+
+  // It replaces all invalid characters available in Filename with underscore(_)
+  // to avoid issues with Windows OS
+  private def replaceAllInvalidCharsWithUnderScore(f: FileAttachment): FileAttachment = {
+    // \x00-\x1F ==> [1-32]
+    // invalidASCIIChars ++:  invalidASCIIChars2
+    val invalidASCIIChars   = (0 to 31).map(_.toString).toList ++: "00,01,02,03,04,05,06,07,08,09".split(",").toList
+    val invalidSpecialChars = "[<>:/\"|?*\\\\]".r
+
+    val filenameWithExtension = f.filename.split("\\.(?=[^\\.]+$)")
+
+    val updatedFilename =
+      if (invalidASCIIChars.contains(filenameWithExtension(0))) "_"
+      else invalidSpecialChars.replaceAllIn(filenameWithExtension(0), "_")
+
+    val fullUpdatedFilename =
+      if (filenameWithExtension.length > 1) s"$updatedFilename.${filenameWithExtension(1)}"
+      else updatedFilename
+
+    f.copy(filename = fullUpdatedFilename)
+  }
+
 }

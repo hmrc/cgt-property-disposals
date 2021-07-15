@@ -39,7 +39,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteM
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId.{NoReferenceId, RepresenteeCgtReference, RepresenteeNino, RepresenteeSautr}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest, SubmitReturnResponse}
-import uk.gov.hmrc.cgtpropertydisposals.service.DmsSubmissionService
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdService, SubscriptionService}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
