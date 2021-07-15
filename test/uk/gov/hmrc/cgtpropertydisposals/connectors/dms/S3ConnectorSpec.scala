@@ -166,6 +166,39 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
 
       "Windows OS filenames" must {
 
+        "return same filename if the file was downloaded successfully" +
+          "and it has no Windows OS invalid character" in {
+            List(
+              buildWsResponse(200)
+            ).foreach { httpResponse =>
+              withClue(s"For http response [${httpResponse.toString}]") {
+                mockGet(
+                  "some-url",
+                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  2 minutes
+                )(Future.successful(httpResponse))
+
+                val result = await(
+                  connector
+                    .downloadFile(
+                      UpscanSuccess(
+                        "ref",
+                        "status",
+                        "some-url",
+                        Map("fileName" -> "sample_test01.edition1.txt", "fileMimeType" -> "text/plain")
+                      )
+                    )
+                )
+
+                result match {
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test01.edition1.txt"
+                  case _                                        =>
+                }
+
+              }
+            }
+          }
+
         "replace 31 ascii chars with underscore(_) if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
             List(
@@ -355,6 +388,39 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample%22test.txt"
+                  case _                                        =>
+                }
+
+              }
+            }
+          }
+
+        "replace : with underscore(_) if the file was downloaded successfully" +
+          "and it has a Windows OS invalid character" in {
+            List(
+              buildWsResponse(200)
+            ).foreach { httpResponse =>
+              withClue(s"For http response [${httpResponse.toString}]") {
+                mockGet(
+                  "some-url",
+                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  2 minutes
+                )(Future.successful(httpResponse))
+
+                val result = await(
+                  connector
+                    .downloadFile(
+                      UpscanSuccess(
+                        "ref",
+                        "status",
+                        "some-url",
+                        Map("fileName" -> "sample:test.txt", "fileMimeType" -> "text/plain")
+                      )
+                    )
+                )
+
+                result match {
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test.txt"
                   case _                                        =>
                 }
 
