@@ -85,7 +85,7 @@ class S3ConnectorImpl @Inject() (
                   .map { bytes =>
                     logger.info("Successfully downloaded files from S3")
                     Right(
-                      replaceAllInvalidCharsWithUnderScore(
+                      replaceAllInvalidCharsWithHyphen(
                         FileAttachment(
                           UUID.randomUUID().toString,
                           filename,
@@ -106,19 +106,18 @@ class S3ConnectorImpl @Inject() (
     }
   }
 
-  // It replaces all invalid characters available in Filename with underscore(_)
+  // It replaces all invalid characters available in Filename with hyphen(_)
   // to avoid issues with Windows OS
-  private def replaceAllInvalidCharsWithUnderScore(f: FileAttachment): FileAttachment = {
+  private def replaceAllInvalidCharsWithHyphen(f: FileAttachment): FileAttachment = {
     // \x00-\x1F ==> [1-32]
-    // invalidASCIIChars ++:  invalidASCIIChars2
     val invalidASCIIChars   = (0 to 31).map(_.toString).toList ++: "00,01,02,03,04,05,06,07,08,09".split(",").toList
-    val invalidSpecialChars = "[<>:/\"|?*\\\\]".r
+    val invalidSpecialChars = "[%<>:/\"|?*\\\\]".r
 
     val filenameWithExtension = f.filename.split("\\.(?=[^\\.]+$)")
 
     val updatedFilename =
-      if (invalidASCIIChars.contains(filenameWithExtension(0))) "_"
-      else invalidSpecialChars.replaceAllIn(filenameWithExtension(0), "_")
+      if (invalidASCIIChars.contains(filenameWithExtension(0))) "-"
+      else invalidSpecialChars.replaceAllIn(filenameWithExtension(0), "-")
 
     val fullUpdatedFilename =
       if (filenameWithExtension.length > 1) s"$updatedFilename.${filenameWithExtension(1)}"
