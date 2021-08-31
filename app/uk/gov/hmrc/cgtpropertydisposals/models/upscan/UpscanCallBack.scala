@@ -32,7 +32,7 @@ object UpscanCallBack {
   )
 
   object UploadDetails {
-    implicit val format = Json.format[UploadDetails]
+    implicit val format: OFormat[UploadDetails] = Json.format[UploadDetails]
   }
 
   final case class NewUpscanSuccess(
@@ -43,7 +43,7 @@ object UpscanCallBack {
   ) extends UpscanCallBack
 
   object NewUpscanSuccess {
-    implicit val format = Json.format[NewUpscanSuccess]
+    implicit val format: OFormat[NewUpscanSuccess] = Json.format[NewUpscanSuccess]
   }
 
   final case class UpscanSuccess(
@@ -54,7 +54,7 @@ object UpscanCallBack {
   ) extends UpscanCallBack
 
   object UpscanSuccess {
-    implicit val format = Json.format[UpscanSuccess]
+    implicit val format: OFormat[UpscanSuccess] = Json.format[UpscanSuccess]
   }
 
   final case class UpscanFailure(
@@ -64,7 +64,7 @@ object UpscanCallBack {
   ) extends UpscanCallBack
 
   object UpscanFailure {
-    implicit val format = Json.format[UpscanFailure]
+    implicit val format: OFormat[UpscanFailure] = Json.format[UpscanFailure]
   }
 
   implicit val format: OFormat[UpscanCallBack] = derived.oformat()

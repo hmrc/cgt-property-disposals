@@ -25,7 +25,8 @@ import cats.data.EitherT
 import cats.instances.future._
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers.await
 import reactivemongo.bson.BSONObjectID
@@ -48,7 +49,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class DmsSubmissionServiceSpec() extends WordSpec with Matchers with MockFactory {
+class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 

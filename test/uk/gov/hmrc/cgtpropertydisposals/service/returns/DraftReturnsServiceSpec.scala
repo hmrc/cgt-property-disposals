@@ -21,7 +21,8 @@ import java.util.UUID
 import cats.data.EitherT
 import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
@@ -33,7 +34,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class DraftReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
+class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
   val draftReturnRepository = mock[DraftReturnsRepository]
   val draftReturnsService   = new DefaultDraftReturnsService(draftReturnRepository)

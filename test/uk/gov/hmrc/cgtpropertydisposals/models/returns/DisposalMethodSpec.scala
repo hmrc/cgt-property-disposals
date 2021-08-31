@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesDisposalType
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalMethod._
 
-class DisposalMethodSpec extends WordSpec with Matchers {
+class DisposalMethodSpec extends AnyWordSpec with Matchers {
 
   "DisposalMethod" must {
 

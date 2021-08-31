@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import com.eclipsesource.schema.drafts.Version4
 import com.eclipsesource.schema.{SchemaType, SchemaValidator}
 import org.scalacheck.Gen
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
@@ -37,7 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 
 import scala.io.Source
 
-class DesSubmitReturnRequestSpec extends WordSpec {
+class DesSubmitReturnRequestSpec extends AnyWordSpec {
 
   "DesSubmitReturnRequest" must {
 

@@ -17,10 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import java.util.UUID
-
-import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
-import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
+import akka.stream.Materializer
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.HeaderNames.USER_AGENT
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
@@ -43,19 +41,15 @@ trait S3Connector {
 
 @Singleton
 class S3ConnectorImpl @Inject() (
-  actorSystem: ActorSystem,
   playHttpClient: PlayHttpClient,
   config: ServicesConfig
 )(implicit
   executionContext: DmsSubmissionPollerExecutionContext,
-  system: ActorSystem
+  materializer: Materializer
 ) extends S3Connector
     with Logging
     with HttpErrorFunctions {
 
-  implicit val mat                           = ActorMaterializer(
-    ActorMaterializerSettings(actorSystem).withDispatcher("dms-submission-poller-dispatcher")
-  )
   private lazy val userAgent: String         = config.getConfString("appName", "cgt-property-disposals")
   private lazy val maxFileDownloadSize       = config.getConfInt("s3.max-file-download-size-in-mb", 5).toLong
   private val limitScaleFactor               = config.getConfInt("s3.upstream-element-limit-scale-factor", 200).toLong

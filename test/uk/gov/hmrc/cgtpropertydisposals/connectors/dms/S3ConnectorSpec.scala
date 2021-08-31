@@ -20,12 +20,14 @@ import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import play.api.Configuration
 import play.api.libs.ws
 import play.api.libs.ws.WSResponse
 import play.api.libs.ws.ahc.AhcWSResponse
-import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseHeaders, CacheableHttpResponseStatus}
+import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseStatus}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
@@ -42,7 +44,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
 
-class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport with BeforeAndAfterAll {
+class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport with BeforeAndAfterAll {
 
   val config = Configuration(
     ConfigFactory.parseString(
@@ -58,21 +60,21 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
 
   val mockWsClient = mock[PlayHttpClient]
 
-  private def buildWsResponse(status: Int): WSResponse =
-    new AhcWSResponse(
-      new Response.ResponseBuilder()
-        .accumulate(
-          new CacheableHttpResponseStatus(
-            Uri.create("https://bucketname.s3.eu-west-2.amazonaws.com"),
-            status,
-            "status text",
-            "protocols!"
-          )
-        )
-        .accumulate(CacheableHttpResponseHeaders(false, new DefaultHttpHeaders().add("My-Header", "value")))
-        .accumulate(new CacheableHttpResponseBodyPart("error body".getBytes(), true))
-        .build()
+  private def buildWsResponse(status: Int): WSResponse = {
+    val responseBuilder = new Response.ResponseBuilder()
+    responseBuilder.accumulate(
+      new CacheableHttpResponseStatus(
+        Uri.create("https://bucketname.s3.eu-west-2.amazonaws.com"),
+        status,
+        "status text",
+        "protocols!"
+      )
     )
+    responseBuilder.accumulate(new DefaultHttpHeaders().add("My-Header", "value"))
+    responseBuilder.accumulate(new CacheableHttpResponseBodyPart("error body".getBytes(), true))
+
+    new AhcWSResponse(responseBuilder.build())
+  }
 
   def mockGet(url: String, headers: Seq[(String, String)], timeout: Duration)(
     response: Future[ws.WSResponse]
@@ -87,7 +89,7 @@ class S3ConnectorSpec extends WordSpec with Matchers with MockFactory with HttpS
   implicit val dmsExectionContext = new DmsSubmissionPollerExecutionContext(actorSystem)
 
   val connector =
-    new S3ConnectorImpl(actorSystem, mockWsClient, new ServicesConfig(config))
+    new S3ConnectorImpl(mockWsClient, new ServicesConfig(config))
 
   override def afterAll(): Unit = {
     Await.ready(actorSystem.terminate(), 10.seconds)

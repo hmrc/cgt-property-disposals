@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.upscan
 
 import java.time.LocalDateTime
-
 import akka.stream.Materializer
 import cats.data.EitherT
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks

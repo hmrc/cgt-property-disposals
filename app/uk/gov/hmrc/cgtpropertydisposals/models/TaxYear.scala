@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import java.time.LocalDate
-
-import configs.Configs
+import configs.ConfigReader
 import configs.syntax._
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+
+import java.time.LocalDate
 
 final case class TaxYear(
   startDateInclusive: LocalDate,
@@ -40,7 +40,7 @@ final case class TaxYear(
 )
 object TaxYear {
 
-  implicit val configs: Configs[TaxYear] = Configs.from { case (config, key) =>
+  implicit val configs: ConfigReader[TaxYear] = ConfigReader.from { case (config, key) =>
     for {
       startYear                              <- config.get[Int](s"$key.start-year")
       annualExemptAmountGeneral              <- config.get[BigDecimal](s"$key.annual-exempt-amount.general")

@@ -17,12 +17,13 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
-class LossSummaryDetailsSpec extends WordSpec with Matchers with MockFactory {
+class LossSummaryDetailsSpec extends AnyWordSpec with Matchers with MockFactory {
 
   "LossSummaryDetails" must {
 

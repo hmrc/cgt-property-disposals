@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.util
 
-import org.scalatest.FlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class HtmlSanitizerSpec extends FlatSpec {
+class HtmlSanitizerSpec extends AnyWordSpec with Matchers {
 
   val htmlToSanitize =
     """

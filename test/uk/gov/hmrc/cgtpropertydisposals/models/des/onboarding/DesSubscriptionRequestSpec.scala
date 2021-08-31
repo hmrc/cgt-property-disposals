@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
@@ -25,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
 
-class DesSubscriptionRequestSpec extends WordSpec with Matchers {
+class DesSubscriptionRequestSpec extends AnyWordSpec with Matchers {
 
   "DesSubscriptionRequest" must {
 

@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType
@@ -24,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteM
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 
-class DesAssetTypeValueSpec extends WordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
+class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   "DesAssetTypeValue" must {
 

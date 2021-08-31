@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -30,7 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 
-class CgtCalculationServiceImplSpec extends WordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
+class CgtCalculationServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   val service = new CgtCalculationServiceImpl
 

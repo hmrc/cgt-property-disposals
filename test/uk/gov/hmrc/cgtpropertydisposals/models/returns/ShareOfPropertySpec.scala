@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ShareOfPropertySpec extends WordSpec with Matchers {
+class ShareOfPropertySpec extends AnyWordSpec with Matchers {
 
   "ShareOfProperty" must {
 

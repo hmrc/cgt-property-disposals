@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.actions
 
-import java.util.concurrent.TimeUnit
+import akka.stream.testkit.NoMaterializer
 
+import java.util.concurrent.TimeUnit
 import akka.util.Timeout
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.{BodyParsers, Results}
-import play.api.test.{FakeRequest, Helpers, NoMaterializer}
+import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
@@ -31,7 +33,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class AuthenticatedActionsSpec extends FlatSpec with Matchers with MockFactory {
+class AuthenticatedActionsSpec extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
@@ -54,38 +56,40 @@ class AuthenticatedActionsSpec extends FlatSpec with Matchers with MockFactory {
       .expects(*, *, *, *)
       .returning(response)
 
-  it should "authorized request" in {
-    mockAuthorise()(Future.successful(Some(Credentials("ggCredId", "provider-type"))))
-    val request  = FakeRequest("POST", "/")
-    val response = builder.apply(_ => Results.Ok("ok")).apply(request)
-    Helpers.status(response) shouldBe 200
-  }
+  "AuthenticatedActionsSpec" should {
+    "authorized request" in {
+      mockAuthorise()(Future.successful(Some(Credentials("ggCredId", "provider-type"))))
+      val request  = FakeRequest("POST", "/")
+      val response = builder.apply(_ => Results.Ok("ok")).apply(request)
+      Helpers.status(response) shouldBe 200
+    }
 
-  it should "forbid when no active session is present" in {
-    mockAuthorise()(Future.failed(SessionRecordNotFound()))
-    val request  = FakeRequest("POST", "/")
-    val response = builder.apply(_ => Results.Ok("ok")).apply(request)
-    Helpers.status(response) shouldBe 403
-  }
+    "forbid when no active session is present" in {
+      mockAuthorise()(Future.failed(SessionRecordNotFound()))
+      val request  = FakeRequest("POST", "/")
+      val response = builder.apply(_ => Results.Ok("ok")).apply(request)
+      Helpers.status(response) shouldBe 403
+    }
 
-  it should "forbid when bearer token is missing" in {
-    mockAuthorise()(Future.failed(MissingBearerToken()))
-    val request  = FakeRequest("POST", "/")
-    val response = builder.apply(_ => Results.Ok("ok")).apply(request)
-    Helpers.status(response) shouldBe 403
-  }
+    "forbid when bearer token is missing" in {
+      mockAuthorise()(Future.failed(MissingBearerToken()))
+      val request  = FakeRequest("POST", "/")
+      val response = builder.apply(_ => Results.Ok("ok")).apply(request)
+      Helpers.status(response) shouldBe 403
+    }
 
-  it should "forbid when bearer token has expired" in {
-    mockAuthorise()(Future.failed(BearerTokenExpired()))
-    val request  = FakeRequest("POST", "/")
-    val response = builder.apply(_ => Results.Ok("ok")).apply(request)
-    Helpers.status(response) shouldBe 403
-  }
+    "forbid when bearer token has expired" in {
+      mockAuthorise()(Future.failed(BearerTokenExpired()))
+      val request  = FakeRequest("POST", "/")
+      val response = builder.apply(_ => Results.Ok("ok")).apply(request)
+      Helpers.status(response) shouldBe 403
+    }
 
-  it should "return forbidden if credential is missing" in {
-    mockAuthorise()(Future.successful(None))
-    val request  = FakeRequest("POST", "/")
-    val response = builder.apply(_ => Results.Ok("ok")).apply(request)
-    Helpers.status(response) shouldBe 403
+    "return forbidden if credential is missing" in {
+      mockAuthorise()(Future.successful(None))
+      val request  = FakeRequest("POST", "/")
+      val response = builder.apply(_ => Results.Ok("ok")).apply(request)
+      Helpers.status(response) shouldBe 403
+    }
   }
 }

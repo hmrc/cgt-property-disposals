@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
 import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestKit, TestProbe}
 import cats.data.EitherT
@@ -25,7 +24,9 @@ import cats.instances.future._
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.Configuration
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
@@ -45,7 +46,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class DmsSubmissionPollerSpec
     extends TestKit(ActorSystem.create("dms-submission-poller"))
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with MockFactory
     with Eventually

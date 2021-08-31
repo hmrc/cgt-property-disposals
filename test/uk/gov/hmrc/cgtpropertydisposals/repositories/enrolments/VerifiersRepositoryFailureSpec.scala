@@ -19,7 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 import java.time.LocalDateTime
 
 import org.scalacheck.Arbitrary
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
@@ -27,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersReques
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class VerifiersRepositoryFailureSpec extends WordSpec with Matchers with MongoSupport {
+class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
 
   val repository = new DefaultVerifiersRepository(reactiveMongoComponent)
 

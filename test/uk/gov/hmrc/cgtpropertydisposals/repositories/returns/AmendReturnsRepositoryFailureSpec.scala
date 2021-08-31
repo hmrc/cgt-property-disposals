@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
@@ -28,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AmendReturnsRepositoryFailureSpec extends WordSpec with Matchers with MongoSupport with MockFactory {
+class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with MockFactory {
   val config = Configuration(
     ConfigFactory.parseString(
       """

@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.enrolments
 
 import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
@@ -37,7 +38,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class TaxEnrolmentServiceImplSpec extends WordSpec with Matchers with MockFactory {
+class TaxEnrolmentServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
 
   val mockConnector: TaxEnrolmentConnector            = mock[TaxEnrolmentConnector]
   val mockEnrolmentRepository: TaxEnrolmentRepository = mock[TaxEnrolmentRepository]

@@ -1,4 +1,3 @@
-import sbt.Keys.resolvers
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
@@ -30,7 +29,7 @@ lazy val wartremoverSettings =
 lazy val scoverageSettings =
   Seq(
     ScoverageKeys.coverageExcludedPackages := "<empty>;.*Reverse.*;.*(config|views.*);.*(BuildInfo|Routes).*",
-    ScoverageKeys.coverageMinimum := 80.00,
+    ScoverageKeys.coverageMinimumStmtTotal := 90.00,
     ScoverageKeys.coverageFailOnMinimum := true,
     ScoverageKeys.coverageHighlighting := true
   )
@@ -42,7 +41,7 @@ lazy val microservice = Project(appName, file("."))
     addCompilerPlugin("org.typelevel"  %% "kind-projector"  % "0.13.0" cross CrossVersion.full),
     addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.1" cross CrossVersion.full)
   )
-  .settings(scalaVersion := "2.12.11")
+  .settings(scalaVersion := "2.12.13")
   .settings(
     majorVersion := 2,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
@@ -62,7 +61,6 @@ lazy val microservice = Project(appName, file("."))
   .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
-  .settings(resolvers ++= Seq(("emueller-bintray" at "http://dl.bintray.com/emueller/maven").withAllowInsecureProtocol(true)))
   .settings(Test / resourceDirectory := baseDirectory.value / "/conf/resources")
   .settings(wartremoverSettings: _*)
   .settings(scoverageSettings: _*)

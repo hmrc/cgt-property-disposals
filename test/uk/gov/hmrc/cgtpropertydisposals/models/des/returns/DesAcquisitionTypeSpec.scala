@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAcquisitionType._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionMethod
 
-class DesAcquisitionTypeSpec extends WordSpec with Matchers {
+class DesAcquisitionTypeSpec extends AnyWordSpec with Matchers {
 
   "DesAcquisitionType" must {
 
