@@ -14,7 +14,7 @@ object AppDependencies {
     "org.julienrf"                            %% "play-json-derived-codecs"  % "10.0.2",
     "com.github.kxbmap"                       %% "configs"                   % "0.6.1",
     "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer" % "20191001.1",
-    "com.github.ghik"                          % "silencer-lib"              % "1.7.1" % Provided cross CrossVersion.full
+    "com.github.ghik"                          % "silencer-lib"              % "1.7.5" % Provided cross CrossVersion.full
   )
 
   val test = Seq(
