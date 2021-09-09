@@ -18,13 +18,14 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import java.time.{Clock, Instant, ZoneId}
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsObject, JsString, JsSuccess, JsValue, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
 
-class DesReturnTypeSpec extends WordSpec with Matchers {
+class DesReturnTypeSpec extends AnyWordSpec with Matchers {
 
   "DesReturnType" must {
 

@@ -21,7 +21,8 @@ import java.time.{LocalDate, LocalDateTime, LocalTime}
 import cats.data.EitherT
 import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
 import play.api.mvc.Request
 import play.api.test.FakeRequest
@@ -51,7 +52,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
+class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
   val returnsConnector = mock[ReturnsConnector]
 

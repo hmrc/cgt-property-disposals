@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
@@ -29,7 +30,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class EnrolmentStoreProxyConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class EnrolmentStoreProxyConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
 
   val config = Configuration(
     ConfigFactory.parseString(

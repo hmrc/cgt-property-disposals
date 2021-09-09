@@ -19,7 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import cats.data.EitherT
 import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -34,7 +35,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AmendReturnsServiceSpec extends WordSpec with Matchers with MockFactory {
+class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
   val mockAmendReturnsRepo = mock[AmendReturnsRepository]
 

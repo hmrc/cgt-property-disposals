@@ -17,7 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -25,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteSi
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 
-class ReliefDetailsSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class ReliefDetailsSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
 
   "ReliefDetails reliefs" must {
 

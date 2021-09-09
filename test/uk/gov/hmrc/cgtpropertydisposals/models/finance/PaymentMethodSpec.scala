@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.PaymentMethod._
 
-class PaymentMethodSpec extends WordSpec with Matchers {
+class PaymentMethodSpec extends AnyWordSpec with Matchers {
 
   "PaymentMethod" must {
 

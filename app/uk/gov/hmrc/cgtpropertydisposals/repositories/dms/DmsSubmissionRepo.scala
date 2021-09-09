@@ -92,8 +92,8 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
     for {
-      result <- super.ensureIndexes(ExecutionContext.global)
-      _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl.seconds, collection, logger)(ExecutionContext.global)
+      result <- super.ensureIndexes
+      _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl.seconds, collection, logger)
     } yield result
 
   override def set(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]] =

@@ -19,12 +19,13 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import java.time.LocalDate
 
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 
-class TaxYearServiceImplSpec extends WordSpec with Matchers {
+class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
 
   val taxYear2020 =
     sample[TaxYear].copy(

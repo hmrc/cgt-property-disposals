@@ -17,14 +17,13 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
 import java.util.{Base64, UUID}
-
 import cats.data.EitherT
 import cats.instances.either._
 import cats.instances.future._
 import cats.instances.list._
 import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.Configs
+import configs.ConfigReader
 import configs.syntax._
 import play.api.Configuration
 import reactivemongo.bson.BSONObjectID
@@ -72,7 +71,7 @@ class DefaultDmsSubmissionService @Inject() (
     extends DmsSubmissionService
     with Logging {
 
-  def getDmsMetaConfig[A : Configs](key: String): A =
+  def getDmsMetaConfig[A : ConfigReader](key: String): A =
     configuration.underlying
       .get[A](s"dms.$key")
       .value

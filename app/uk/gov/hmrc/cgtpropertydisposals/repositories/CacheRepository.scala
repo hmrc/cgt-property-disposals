@@ -56,10 +56,8 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
     for {
-      result <- super.ensureIndexes(ExecutionContext.global)
-      _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)(
-                  ExecutionContext.global
-                )
+      result <- super.ensureIndexes
+      _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
     } yield result
 
   def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =

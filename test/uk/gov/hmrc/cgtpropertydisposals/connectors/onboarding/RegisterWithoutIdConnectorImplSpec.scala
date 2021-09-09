@@ -20,7 +20,8 @@ import java.util.UUID
 
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
@@ -35,7 +36,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RegisterWithoutIdConnectorImplSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 

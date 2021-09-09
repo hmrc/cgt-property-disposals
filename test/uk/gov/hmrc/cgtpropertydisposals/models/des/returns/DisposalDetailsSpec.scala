@@ -17,7 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Postcode
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
@@ -32,7 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, Source}
 
-class DisposalDetailsSpec extends WordSpec with Matchers with MockFactory with ScalaCheckDrivenPropertyChecks {
+class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory with ScalaCheckDrivenPropertyChecks {
 
   "DisposalDetails" when {
 

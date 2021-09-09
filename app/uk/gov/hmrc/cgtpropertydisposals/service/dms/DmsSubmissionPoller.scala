@@ -61,7 +61,9 @@ class DmsSubmissionPoller @Inject() (
 
   private val failureCountLimit: Int = servicesConfig.getInt("dms.submission-poller.failure-count-limit")
 
-  val _ = actorSystem.scheduler.schedule(jitteredInitialDelay, pollerInterval)(poller())(dmsSubmissionPollerContext)
+  val _ = actorSystem.scheduler.scheduleWithFixedDelay(jitteredInitialDelay, pollerInterval)(() => poller())(
+    dmsSubmissionPollerContext
+  )
 
   def getLogMessage(workItem: WorkItem[DmsSubmissionRequest], stateIndicator: String): String =
     s"DMS Submission poller: $stateIndicator:  work-item-id: ${workItem.id}, work-item-failure-count: ${workItem.failureCount}, " +

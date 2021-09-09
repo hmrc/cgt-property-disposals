@@ -17,15 +17,15 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import java.util.UUID
-
 import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.libs.ws
 import play.api.libs.ws.ahc.AhcWSResponse
-import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseHeaders, CacheableHttpResponseStatus}
+import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseStatus}
 import play.api.libs.ws.{BodyWritable, WSResponse}
 import play.api.test.Helpers.{await, _}
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
@@ -41,7 +41,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with HttpSupport {
+class GFormConnectorSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
 
   val config = Configuration(
     ConfigFactory.parseString(
@@ -60,21 +60,16 @@ class GFormConnectorSpec extends WordSpec with Matchers with MockFactory with Ht
 
   val mockWsClient = mock[PlayHttpClient]
 
-  private def buildWsResponse(status: Int, body: String): WSResponse =
-    new AhcWSResponse(
-      new Response.ResponseBuilder()
-        .accumulate(
-          new CacheableHttpResponseStatus(
-            Uri.create("https://gforms"),
-            status,
-            "status text",
-            "protocols"
-          )
-        )
-        .accumulate(new CacheableHttpResponseHeaders(false, new DefaultHttpHeaders().add("my-header", "value")))
-        .accumulate(new CacheableHttpResponseBodyPart(body.getBytes(), true))
-        .build()
+  private def buildWsResponse(status: Int, body: String): WSResponse = {
+    val responseBuilder = new Response.ResponseBuilder()
+    responseBuilder.accumulate(
+      new CacheableHttpResponseStatus(Uri.create("https://gforms"), status, "status text", "protocols")
     )
+    responseBuilder.accumulate(new DefaultHttpHeaders().add("my-header", "value"))
+    responseBuilder.accumulate(new CacheableHttpResponseBodyPart(body.getBytes(), true))
+
+    new AhcWSResponse(responseBuilder.build())
+  }
 
   def mockPost[A](url: String, headers: Seq[(String, String)])(
     response: Future[ws.WSResponse]
