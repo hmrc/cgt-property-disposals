@@ -201,7 +201,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
             }
           }
 
-        "replace 31 ascii chars with underscore(_) if the file was downloaded successfully" +
+        "replace '31' ascii chars with hyphen(-) if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
             List(
               buildWsResponse(200)
@@ -226,14 +226,14 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                 )
 
                 result match {
-                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "_"
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "-"
                   case _                                        =>
                 }
               }
             }
           }
 
-        "replace 01 ascii chars with underscore(_) if the file was downloaded successfully" +
+        "replace '01' ascii chars with hyphen(-) if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
             List(
               buildWsResponse(200)
@@ -258,14 +258,14 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                 )
 
                 result match {
-                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "_"
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "-"
                   case _                                        =>
                 }
               }
             }
           }
 
-        "replace special chars with underscore(_) if the file was downloaded successfully" +
+        "replace special chars with hyphen(-) if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
             List(
               buildWsResponse(200)
@@ -290,7 +290,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                 )
 
                 result match {
-                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_cgt_file_name_one_.txt"
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-cgt-file-name-one-.txt"
                   case _                                        =>
                 }
 
@@ -298,7 +298,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
             }
           }
 
-        "replace \" with underscore(_) if the file was downloaded successfully" +
+        "replace '\"' with hyphen(-) if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
             List(
               buildWsResponse(200)
@@ -323,7 +323,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                 )
 
                 result match {
-                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test.txt"
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
                   case _                                        =>
                 }
 
@@ -331,7 +331,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
             }
           }
 
-        "replace \\ with underscore(_) if the file was downloaded successfully" +
+        "replace '\\' with hyphen(-) if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
             List(
               buildWsResponse(200)
@@ -356,7 +356,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                 )
 
                 result match {
-                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test.txt"
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
                   case _                                        =>
                 }
 
@@ -364,7 +364,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
             }
           }
 
-        "check '%22' does not cause any issues if the file was downloaded successfully" +
+        "check '%' does not cause any issues if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
             List(
               buildWsResponse(200)
@@ -389,7 +389,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                 )
 
                 result match {
-                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample%22test.txt"
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-22test.txt"
                   case _                                        =>
                 }
 
@@ -397,7 +397,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
             }
           }
 
-        "replace : with underscore(_) if the file was downloaded successfully" +
+        "replace : with hyphen(-) if the file was downloaded successfully" +
           "and it has a Windows OS invalid character" in {
             List(
               buildWsResponse(200)
@@ -422,7 +422,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                 )
 
                 result match {
-                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test.txt"
+                  case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
                   case _                                        =>
                 }
 
@@ -433,5 +433,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
       }
 
     }
+
   }
+
 }
