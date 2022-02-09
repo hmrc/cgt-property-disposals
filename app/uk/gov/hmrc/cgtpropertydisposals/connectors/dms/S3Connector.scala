@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,6 @@ class S3ConnectorImpl @Inject() (
               case status if is4xx(status) | is5xx(status) =>
                 logger.warn(
                   s"could not download file from s3 : ${response.toString}" +
-                    s"download url : ${upscanSuccess.downloadUrl}" +
                     s"http status: ${response.status}" +
                     s"http body: ${response.body}"
                 )
