@@ -1789,6 +1789,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
       val (fromDate1, toDate1) = LocalDate.of(2020, 4, 6) -> LocalDate.of(2021, 4, 5)
       val (fromDate2, toDate2) = LocalDate.of(2021, 4, 6) -> LocalDate.of(2022, 4, 5)
+      val (fromDate3, toDate3) = LocalDate.of(2022, 4, 6) -> LocalDate.of(2023, 4, 5)
       "return an error " when {
 
         "the http call to get the list of returns fails" in {

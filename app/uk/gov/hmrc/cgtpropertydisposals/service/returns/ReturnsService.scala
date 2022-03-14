@@ -93,6 +93,8 @@ class DefaultReturnsService @Inject() (
   val toDate1   = LocalDate.of(2021, 4, 5)
   val fromDate2 = LocalDate.of(2021, 4, 6)
   val toDate2   = LocalDate.of(2022, 4, 5)
+  val fromDate3 = LocalDate.of(2022, 4, 6)
+  val toDate3   = LocalDate.of(2023, 4, 5)
 
   override def submitReturn(
     returnRequest: SubmitReturnRequest,
@@ -322,6 +324,7 @@ class DefaultReturnsService @Inject() (
     //Hardcoded values till we change design of the home page to switch between different tax years
     lazy val desFinancialDataTaxYear1 = getDesFinalcialData(cgtReference, fromDate1, toDate1)
     lazy val desFinancialDataTaxYear2 = getDesFinalcialData(cgtReference, fromDate2, toDate2)
+    lazy val desFinancialDataTaxYear3 = getDesFinalcialData(cgtReference, fromDate3, toDate3)
 
     lazy val desReturnList: EitherT[Future, Error, DesListReturnsResponse] = {
       val timer = metrics.listReturnsTimer.time()
@@ -347,7 +350,11 @@ class DefaultReturnsService @Inject() (
                                 else EitherT.pure(DesFinancialDataResponse(List.empty))
       desFinancialData2      <- if (desReturnList.returnList.nonEmpty) desFinancialDataTaxYear2
                                 else EitherT.pure(DesFinancialDataResponse(List.empty))
-      desFinancialData        = desFinancialData1.financialTransactions ++ desFinancialData2.financialTransactions
+      desFinancialData3      <- if (desReturnList.returnList.nonEmpty) desFinancialDataTaxYear3
+                                else EitherT.pure(DesFinancialDataResponse(List.empty))
+      desFinancialData        = desFinancialData1.financialTransactions ++
+                                desFinancialData2.financialTransactions ++
+                                desFinancialData3.financialTransactions
       recentlyAmendedReturns <- recentlyAmendedReturnList
       returnSummaries        <- EitherT.fromEither(
                                   if (desReturnList.returnList.nonEmpty)
