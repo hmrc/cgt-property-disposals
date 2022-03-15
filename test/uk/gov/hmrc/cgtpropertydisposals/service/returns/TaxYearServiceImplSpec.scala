@@ -39,11 +39,37 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
       endDateExclusive = LocalDate.of(2022, 4, 6)
     )
 
+  val taxYear2022 =
+    sample[TaxYear].copy(
+      startDateInclusive = LocalDate.of(2022, 4, 6),
+      endDateExclusive = LocalDate.of(2023, 4, 6)
+    )
+
   def config(flag: Boolean) = Configuration(
     ConfigFactory.parseString(
       s"""
          | latestTaxYear.enabled = $flag
          | tax-years = [
+         |   {
+         |    start-year = ${taxYear2022.startDateInclusive.getYear}
+         |    annual-exempt-amount {
+         |      general              = ${taxYear2022.annualExemptAmountGeneral.inPounds()}
+         |      non-vulnerable-trust = ${taxYear2022.annualExemptAmountNonVulnerableTrust.inPounds()}
+         |    }
+         |    personal-allowance = ${taxYear2022.personalAllowance.inPounds()}
+         |    higher-income-personal-allowance-threshold = ${taxYear2022.higherIncomePersonalAllowanceThreshold
+        .inPounds()}
+         |
+         |    max-personal-allowance = ${taxYear2022.maxPersonalAllowance.inPounds()}
+         |    income-tax-higher-rate-threshold = ${taxYear2022.incomeTaxHigherRateThreshold.inPounds()}
+         |    lettings-relief-max-threshold = ${taxYear2022.maxLettingsReliefAmount.inPounds()}
+         |    cgt-rates {
+         |      lower-band-residential      = ${taxYear2022.cgtRateLowerBandResidential}
+         |      lower-band-non-residential  = ${taxYear2022.cgtRateLowerBandNonResidential}
+         |      higher-band-residential     = ${taxYear2022.cgtRateHigherBandResidential}
+         |      higher-band-non-residential = ${taxYear2022.cgtRateHigherBandNonResidential}
+         |    }
+         |  },
          |  {
          |    start-year = ${taxYear2021.startDateInclusive.getYear}
          |    annual-exempt-amount {
@@ -109,17 +135,22 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
           service.getTaxYear(taxYear2021.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear2021)
         }
 
+        "return a tax year 2022 if one can be found" in {
+          service.getTaxYear(taxYear2022.startDateInclusive)             shouldBe Some(taxYear2022)
+          service.getTaxYear(taxYear2022.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear2022)
+        }
+
         "return nothing if a tax year cannot be found" in {
           service.getTaxYear(taxYear2020.startDateInclusive.minusDays(1L)) shouldBe None
-          service.getTaxYear(taxYear2021.endDateExclusive)                 shouldBe None
+          service.getTaxYear(taxYear2022.endDateExclusive)                 shouldBe None
         }
 
       }
 
       "handling requests to get the available tax years" must {
 
-        "return available tax years 2021,2020" in {
-          service.getAvailableTaxYears() shouldBe List(2021, 2020)
+        "return available tax years 2021,2020,2022" in {
+          service.getAvailableTaxYears() shouldBe List(2022, 2021, 2020)
         }
 
       }
@@ -136,8 +167,13 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
         }
 
         "return a tax year 2021 if one can be found" in {
-          service2.getTaxYear(taxYear2021.startDateInclusive)             shouldBe None
-          service2.getTaxYear(taxYear2021.endDateExclusive.minusDays(1L)) shouldBe None
+          service2.getTaxYear(taxYear2021.startDateInclusive)             shouldBe Some(taxYear2021)
+          service2.getTaxYear(taxYear2021.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear2021)
+        }
+
+        "return a tax year 2022 if one can be found" in {
+          service2.getTaxYear(taxYear2022.startDateInclusive)             shouldBe None
+          service2.getTaxYear(taxYear2022.endDateExclusive.minusDays(1L)) shouldBe None
         }
 
         "return nothing if a tax year cannot be found" in {
@@ -150,7 +186,7 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
       "handling requests to get the available tax years" must {
 
         "return available tax years 2021,2020" in {
-          service2.getAvailableTaxYears() shouldBe List(2020)
+          service2.getAvailableTaxYears() shouldBe List(2021, 2020)
         }
 
       }
