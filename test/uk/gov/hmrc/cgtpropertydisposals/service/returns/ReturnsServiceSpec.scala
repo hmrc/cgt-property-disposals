@@ -1869,6 +1869,20 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                 )
               )
             )
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                               |{
+                               |  "code" : "NOT_FOUND",
+                               |  "reason" : "The remote endpoint has indicated that no data can be found."
+                               |}
+                               |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
+              )
+            )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
             mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
               Left(Error(""))
@@ -1886,7 +1900,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           val summaries = List(sample[ReturnSummary])
 
           inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate2)(
+            mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
@@ -1906,13 +1920,27 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                 )
               )
             )
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                               |{
+                               |  "code" : "NOT_FOUND",
+                               |  "reason" : "The remote endpoint has indicated that no data can be found."
+                               |}
+                               |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
+              )
+            )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
             mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
               Right(summaries)
             )
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value) shouldBe Right(summaries)
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value) shouldBe Right(summaries)
         }
 
       }
@@ -1969,7 +1997,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
         "the response to get financial data comes back with status 404 and a single error in the body" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate2)(
+            mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
@@ -2000,6 +2028,20 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                 )
               )
             )
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                               |{
+                               |  "code" : "NOT_FOUND",
+                               |  "reason" : "The remote endpoint has indicated that no data can be found."
+                               |}
+                               |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
+              )
+            )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
 
             mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
@@ -2007,13 +2049,13 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value) shouldBe Right(List.empty)
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value) shouldBe Right(List.empty)
 
         }
 
         "the response to get financial data comes back with status 404 and multiple errors in the body" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate2)(
+            mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
@@ -2052,7 +2094,24 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                 )
               )
             )
-
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+              Right(
+                HttpResponse(
+                  404,
+                  Json.parse("""
+                               |{
+                               |  "failures" : [
+                               |    {
+                               |      "code" : "NOT_FOUND",
+                               |      "reason" : "The remote endpoint has indicated that no data can be found."
+                               |    }
+                               |  ]
+                               |}
+                               |""".stripMargin),
+                  Map.empty[String, Seq[String]]
+                )
+              )
+            )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
 
             mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
@@ -2061,7 +2120,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value) shouldBe Right(List.empty)
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value) shouldBe Right(List.empty)
         }
 
       }
