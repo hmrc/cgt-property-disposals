@@ -185,7 +185,7 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
 
       "handling requests to get the available tax years" must {
 
-        "return available tax years 2021,2020" in {
+        "return available tax years 2021,2020,2022" in {
           service2.getAvailableTaxYears() shouldBe List(2021, 2020)
         }
 
