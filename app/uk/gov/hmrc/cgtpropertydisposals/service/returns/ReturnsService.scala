@@ -353,8 +353,8 @@ class DefaultReturnsService @Inject() (
       desFinancialData3      <- if (desReturnList.returnList.nonEmpty) desFinancialDataTaxYear3
                                 else EitherT.pure(DesFinancialDataResponse(List.empty))
       desFinancialData        = desFinancialData1.financialTransactions ++
-                                desFinancialData2.financialTransactions ++
-                                desFinancialData3.financialTransactions
+                                  desFinancialData2.financialTransactions ++
+                                  desFinancialData3.financialTransactions
       recentlyAmendedReturns <- recentlyAmendedReturnList
       returnSummaries        <- EitherT.fromEither(
                                   if (desReturnList.returnList.nonEmpty)

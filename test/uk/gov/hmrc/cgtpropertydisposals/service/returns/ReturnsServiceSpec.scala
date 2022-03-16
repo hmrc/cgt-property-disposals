@@ -303,74 +303,6 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
 
-        "there is a positive charge for tax year 2022 to 2023" in {
-
-        val formBundleId    = "804123737752"
-        val chargeReference = "XCRG9448959757"
-
-        val submitReturnResponse = SubmitReturnResponse(
-          "804123737752",
-          LocalDateTime.of(
-            LocalDate.of(2022, 2, 20),
-            LocalTime.of(9, 30, 47)
-          ),
-          Some(
-            ReturnCharge(
-              chargeReference,
-              AmountInPence(1100L),
-              LocalDate.of(2022, 3, 11)
-            )
-          ),
-          None
-        )
-
-        val submitReturnRequest    = sample[SubmitReturnRequest].copy(
-          amendReturnData = None
-        )
-        val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
-
-        val responseJsonBody =
-          Json.parse(s"""
-                        |{
-                        |"processingDate":"2022-02-20T09:30:47Z",
-                        |"ppdReturnResponseDetails": {
-                        |     "chargeType": "Late Penalty",
-                        |     "chargeReference":"$chargeReference",
-                        |     "amount":11.0,
-                        |     "dueDate":"2022-03-11",
-                        |     "formBundleNumber":"$formBundleId",
-                        |     "cgtReferenceNumber":"${submitReturnRequest.subscribedDetails.cgtReference}"
-                        |  }
-                        |}
-                        |""".stripMargin)
-
-        inSequence {
-          mockAuditSubmitReturnEvent(
-            submitReturnRequest.subscribedDetails.cgtReference,
-            desSubmitReturnRequest,
-            submitReturnRequest.agentReferenceNumber
-          )
-          mockSubmitReturn(
-            submitReturnRequest.subscribedDetails.cgtReference,
-            desSubmitReturnRequest
-          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-          mockAuditSubmitReturnResponseEvent(
-            200,
-            Some(responseJsonBody),
-            desSubmitReturnRequest,
-            submitReturnRequest.subscribedDetails.name,
-            submitReturnRequest.agentReferenceNumber,
-            submitReturnRequest.amendReturnData
-          )
-          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-            Right(HttpResponse(ACCEPTED, emptyJsonBody))
-          )
-        }
-
-        await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
-      }
-
         "there is a negative charge" in {
           val formBundleId     = "804123737752"
           val chargeReference  = "XCRG9448959757"
@@ -1917,7 +1849,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
         "the data cannot be transformed" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate2)(
+            mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
@@ -1957,7 +1889,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             )
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value).isLeft shouldBe true
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value).isLeft shouldBe true
         }
 
       }
