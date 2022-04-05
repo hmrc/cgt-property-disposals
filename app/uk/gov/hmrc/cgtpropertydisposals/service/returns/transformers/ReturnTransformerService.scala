@@ -106,6 +106,7 @@ class ReturnTransformerServiceImpl @Inject() (
     taxYear.startDateInclusive.getYear match {
       case 2020 => Some(TaxYearExchanged.TaxYear2020)
       case 2021 => Some(TaxYearExchanged.TaxYear2021)
+      case 2021 => Some(TaxYearExchanged.TaxYear2022)
       case _    => Some(TaxYearExchanged.TaxYearBefore2020)
     }
 
