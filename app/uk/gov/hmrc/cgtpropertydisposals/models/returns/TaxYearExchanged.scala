@@ -24,6 +24,8 @@ sealed trait TaxYearExchanged extends Product with Serializable
 
 object TaxYearExchanged {
 
+  case object TaxYear2022 extends TaxYearExchanged
+
   case object TaxYear2021 extends TaxYearExchanged
 
   case object TaxYear2020 extends TaxYearExchanged
