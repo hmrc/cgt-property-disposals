@@ -84,17 +84,11 @@ class DefaultReturnsService @Inject() (
   amendReturnsService: AmendReturnsService,
   emailService: EmailService,
   auditService: AuditService,
+  taxYearService: TaxYearService,
   metrics: Metrics
 )(implicit ec: ExecutionContext)
     extends ReturnsService
     with Logging {
-
-  val fromDate1 = LocalDate.of(2020, 4, 6)
-  val toDate1   = LocalDate.of(2021, 4, 5)
-  val fromDate2 = LocalDate.of(2021, 4, 6)
-  val toDate2   = LocalDate.of(2022, 4, 5)
-  val fromDate3 = LocalDate.of(2022, 4, 6)
-  val toDate3   = LocalDate.of(2023, 4, 5)
 
   override def submitReturn(
     returnRequest: SubmitReturnRequest,
@@ -322,9 +316,14 @@ class DefaultReturnsService @Inject() (
     hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]] = {
     //Hardcoded values till we change design of the home page to switch between different tax years
-    lazy val desFinancialDataTaxYear1 = getDesFinalcialData(cgtReference, fromDate1, toDate1)
-    lazy val desFinancialDataTaxYear2 = getDesFinalcialData(cgtReference, fromDate2, toDate2)
-    lazy val desFinancialDataTaxYear3 = getDesFinalcialData(cgtReference, fromDate3, toDate3)
+    lazy val taxYearList                  = taxYearService.getAvailableTaxYears()
+    lazy val listOfFutureDesFinancialData = taxYearList.map { year =>
+      getDesFinalcialData(
+        cgtReference = cgtReference,
+        fromDate = LocalDate.of(year, 4, 6),
+        toDate = LocalDate.of(year + 1, 4, 5)
+      )
+    }
 
     lazy val desReturnList: EitherT[Future, Error, DesListReturnsResponse] = {
       val timer = metrics.listReturnsTimer.time()
@@ -345,28 +344,24 @@ class DefaultReturnsService @Inject() (
       amendReturnsService.getAmendedReturn(cgtReference)
 
     for {
-      desReturnList          <- desReturnList
-      desFinancialData1      <- if (desReturnList.returnList.nonEmpty) desFinancialDataTaxYear1
-                                else EitherT.pure(DesFinancialDataResponse(List.empty))
-      desFinancialData2      <- if (desReturnList.returnList.nonEmpty) desFinancialDataTaxYear2
-                                else EitherT.pure(DesFinancialDataResponse(List.empty))
-      desFinancialData3      <- if (desReturnList.returnList.nonEmpty) desFinancialDataTaxYear3
-                                else EitherT.pure(DesFinancialDataResponse(List.empty))
-      desFinancialData        = desFinancialData1.financialTransactions ++
-                                  desFinancialData2.financialTransactions ++
-                                  desFinancialData3.financialTransactions
-      recentlyAmendedReturns <- recentlyAmendedReturnList
-      returnSummaries        <- EitherT.fromEither(
-                                  if (desReturnList.returnList.nonEmpty)
-                                    returnSummaryListTransformerService
-                                      .toReturnSummaryList(
-                                        desReturnList.returnList,
-                                        desFinancialData,
-                                        recentlyAmendedReturns
-                                      )
-                                  else
-                                    Right(List.empty)
-                                )
+      desReturnList                 <- desReturnList
+      listOfDesFinancialData        <- listOfFutureDesFinancialData.traverse(identity)
+      listOfDesFinancialTransactions = listOfDesFinancialData.flatMap(desFinancialData =>
+                                         if (desReturnList.returnList.nonEmpty) desFinancialData.financialTransactions
+                                         else DesFinancialDataResponse(List.empty).financialTransactions
+                                       )
+      recentlyAmendedReturns        <- recentlyAmendedReturnList
+      returnSummaries               <- EitherT.fromEither(
+                                         if (desReturnList.returnList.nonEmpty)
+                                           returnSummaryListTransformerService
+                                             .toReturnSummaryList(
+                                               desReturnList.returnList,
+                                               listOfDesFinancialTransactions,
+                                               recentlyAmendedReturns
+                                             )
+                                         else
+                                           Right(List.empty)
+                                       )
     } yield returnSummaries
   }
 

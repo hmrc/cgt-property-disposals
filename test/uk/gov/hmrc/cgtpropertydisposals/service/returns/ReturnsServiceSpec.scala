@@ -70,6 +70,8 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
   val mockAmendReturnService = mock[AmendReturnsService]
 
+  val mockTaxYearService = mock[TaxYearService]
+
   val returnsService =
     new DefaultReturnsService(
       returnsConnector,
@@ -80,6 +82,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
       mockAmendReturnService,
       mockEmailService,
       mockAuditService,
+      mockTaxYearService,
       MockMetrics.metrics
     )
 
@@ -116,6 +119,8 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
       .getFinancialData(_: CgtReference, _: LocalDate, _: LocalDate)(_: HeaderCarrier))
       .expects(cgtReference, fromDate, toDate, *)
       .returning(EitherT.fromEither[Future](response))
+
+  def mockGetAvailableTaxYears = mockTaxYearService.getAvailableTaxYears _ expects () returning List(2020, 2021, 2022)
 
   def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, DisplayReturn]) =
     (mockReturnTransformerService
@@ -1814,37 +1819,50 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
         "the call to get financial data fails" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate2)(
+            mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
+            mockGetAvailableTaxYears
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(Left(Error("")))
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(Left(Error("")))
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(Left(Error("")))
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value).isLeft shouldBe true
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value).isLeft shouldBe true
         }
 
         "the http call to get financial data returns with a status which is not 200" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate2)(
+            mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
+            mockGetAvailableTaxYears
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(Right(HttpResponse(400, emptyJsonBody)))
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(Right(HttpResponse(400, emptyJsonBody)))
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(Right(HttpResponse(400, emptyJsonBody)))
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value).isLeft shouldBe true
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value).isLeft shouldBe true
         }
 
         "the response body when getting financial data cannot be parsed" in {
           inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate2)(
+            mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
+            mockGetAvailableTaxYears
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+              Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+              Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
               Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
             )
           }
 
-          await(returnsService.listReturns(cgtReference, fromDate1, toDate2).value).isLeft shouldBe true
+          await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value).isLeft shouldBe true
         }
 
         "the data cannot be transformed" in {
@@ -1852,6 +1870,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
+            mockGetAvailableTaxYears
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
             )
@@ -1903,6 +1922,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
+            mockGetAvailableTaxYears
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
             )
@@ -1963,6 +1983,16 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                 )
               )
             )
+            mockGetAvailableTaxYears
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
           }
 
@@ -1990,6 +2020,16 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                 )
               )
             )
+            mockGetAvailableTaxYears
+            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
             mockGetAmendReturnList(cgtReference)(Right(List.empty))
           }
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
@@ -2000,6 +2040,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
+            mockGetAvailableTaxYears
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(
                 HttpResponse(
@@ -2058,6 +2099,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             mockListReturn(cgtReference, fromDate1, toDate3)(
               Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
             )
+            mockGetAvailableTaxYears
             mockGetFinancialData(cgtReference, fromDate1, toDate1)(
               Right(
                 HttpResponse(
