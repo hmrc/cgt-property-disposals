@@ -45,10 +45,15 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
       endDateExclusive = LocalDate.of(2023, 4, 6)
     )
 
-  def config(flag: Boolean) = Configuration(
+  def config(flag: LocalDate) = Configuration(
     ConfigFactory.parseString(
       s"""
-         | latestTaxYear.enabled = $flag
+         | latest-tax-year-go-live-date =
+         | {
+         | day = ${flag.getDayOfMonth}
+         | month = ${flag.getMonthValue}
+         | year = ${flag.getYear}
+         | }
          | tax-years = [
          |   {
          |    start-year = ${taxYear2022.startDateInclusive.getYear}
@@ -115,13 +120,13 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
     )
   )
 
-  val service = new TaxYearServiceImpl(config(true))
+  val service = new TaxYearServiceImpl(config(LocalDate.now.minusMonths(1)))
 
-  val service2 = new TaxYearServiceImpl(config(false))
+  val service2 = new TaxYearServiceImpl(config(LocalDate.now.plusMonths(1)))
 
   "TaxYearServiceImpl" when {
 
-    "latestTaxYear.enabled = true" when {
+    "latestTaxYearGoLiveDate is before or equal to the current date" when {
 
       "handling requests to get the tax year of a date" must {
 
@@ -157,7 +162,7 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
 
     }
 
-    "latestTaxYear.enabled = false" when {
+    "latestTaxYearGoLiveDate is after the current date" when {
 
       "handling requests to get the tax year of a date" must {
 

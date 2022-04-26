@@ -37,12 +37,16 @@ trait TaxYearService {
 @Singleton
 class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearService {
 
-  val latestTaxYearEnabled: Boolean =
-    config.underlying.get[Boolean]("latestTaxYear.enabled").value
+  val taxYearLiveDate      = config.underlying.getConfig("latest-tax-year-go-live-date")
+  val taxYearLiveDateDay   = taxYearLiveDate.get[Int]("day").value
+  val taxYearLiveDateMonth = taxYearLiveDate.get[Int]("month").value
+  val taxYearLiveDateYear  = taxYearLiveDate.get[Int]("year").value
+
+  val latestTaxYearLiveDate: LocalDate = LocalDate.of(taxYearLiveDateYear, taxYearLiveDateMonth, taxYearLiveDateDay)
 
   val taxYears: List[TaxYear] = {
     val taxYearsList = config.underlying.get[List[TaxYear]]("tax-years").value
-    if (latestTaxYearEnabled)
+    if (LocalDate.now.isAfter(latestTaxYearLiveDate) || LocalDate.now.isEqual(latestTaxYearLiveDate))
       taxYearsList
     else
       taxYearsList.drop(1)
