@@ -44,7 +44,7 @@ class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearServic
 
   val latestTaxYearLiveDate: LocalDate = LocalDate.of(taxYearLiveDateYear, taxYearLiveDateMonth, taxYearLiveDateDay)
 
-  val taxYears: List[TaxYear] = {
+  def taxYears: List[TaxYear] = {
     val taxYearsList = config.underlying.get[List[TaxYear]]("tax-years").value
     if (LocalDate.now.isAfter(latestTaxYearLiveDate) || LocalDate.now.isEqual(latestTaxYearLiveDate))
       taxYearsList
