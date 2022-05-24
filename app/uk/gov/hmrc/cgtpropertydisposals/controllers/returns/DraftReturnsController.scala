@@ -56,9 +56,12 @@ class DraftReturnsController @Inject() (
         )
     }
 
-  def storeDraftReturn(cgtReference: String): Action[JsValue] =
+  def storeDraftReturn(cgtReference: String): Action[JsValue] = {
+    println(s"\n\n cgtReference = $cgtReference \n\n")
     authenticate(parse.json).async { implicit request =>
       withJsonBody[DraftReturn] { draftReturn =>
+        println("\n\n ####################### storeDraftReturn \n\n")
+        println(s"\n\n draftReturn = $draftReturn \n\n ")
         draftReturnsService
           .saveDraftReturn(draftReturn, CgtReference(cgtReference))
           .fold(
@@ -70,6 +73,7 @@ class DraftReturnsController @Inject() (
           )
       }
     }
+  }
 
   def deleteDraftReturns(): Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
