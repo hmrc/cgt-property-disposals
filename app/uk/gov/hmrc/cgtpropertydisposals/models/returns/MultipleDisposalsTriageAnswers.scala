@@ -17,8 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import julienrf.json.derived
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{JsPath, Json, OFormat, Reads}
+import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 
@@ -37,22 +36,6 @@ object MultipleDisposalsTriageAnswers {
     completionDate: CompletionDate
   ) extends MultipleDisposalsTriageAnswers
 
-  val answersFormat: OFormat[MultipleDisposalsTriageAnswers] = {
-    val read: Reads[MultipleDisposalsTriageAnswers] = (
-      (JsPath \ "individualUserType").readNullable[IndividualUserType] and
-        (JsPath \ "numberOfProperties").read[Int] and
-        (JsPath \ "countryOfResidence").read[Country] and
-        (JsPath \ "assetTypes").read[List[AssetType]] and
-        (JsPath \ "taxYearExchanged").read[TaxYearExchanged] and
-        (JsPath \ "taxYear").read[TaxYear] and
-        (JsPath \ "alreadySentSelfAssessment").readNullable[Boolean] and
-        (JsPath \ "completionDate").read[CompletionDate]
-    )(MultipleDisposalsTriageAnswers.apply, _)
-
-    OFormat[MultipleDisposalsTriageAnswers](read, Json.writes[MultipleDisposalsTriageAnswers])
-  }
-
-  //@SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-  //implicit val format: OFormat[MultipleDisposalsTriageAnswers] = derived.oformat()
-
+  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
+  implicit val format: OFormat[MultipleDisposalsTriageAnswers] = derived.oformat()
 }
