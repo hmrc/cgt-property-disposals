@@ -63,7 +63,6 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
   def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =
     preservingMdc {
       withCurrentTime { time =>
-        println("\n\n ###### CacheRepository ======= \n\n")
         val lastUpdated: DateTime = overrideLastUpdatedTime.map(toJodaDateTime).getOrElse(time)
         val selector              = Json.obj("_id" -> id)
         val modifier              = Json.obj(

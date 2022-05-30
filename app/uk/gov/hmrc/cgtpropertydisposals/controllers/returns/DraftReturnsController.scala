@@ -56,7 +56,7 @@ class DraftReturnsController @Inject() (
         )
     }
 
-  def storeDraftReturn(cgtReference: String): Action[JsValue] = {
+  def storeDraftReturn(cgtReference: String): Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
       withJsonBody[DraftReturn] { draftReturn =>
         draftReturnsService
@@ -70,7 +70,6 @@ class DraftReturnsController @Inject() (
           )
       }
     }
-  }
 
   def deleteDraftReturns(): Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
