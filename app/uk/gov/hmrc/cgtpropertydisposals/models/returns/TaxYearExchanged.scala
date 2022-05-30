@@ -36,4 +36,5 @@ object TaxYearExchanged {
   implicit val format: OFormat[TaxYearExchanged] = OFormat[TaxYearExchanged](reads, Json.writes[TaxYearExchanged])
 
   implicit val eq: Eq[TaxYearExchanged] = Eq.fromUniversalEquals
+
 }
