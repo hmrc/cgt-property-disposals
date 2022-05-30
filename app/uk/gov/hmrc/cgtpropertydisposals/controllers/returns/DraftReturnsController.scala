@@ -57,13 +57,8 @@ class DraftReturnsController @Inject() (
     }
 
   def storeDraftReturn(cgtReference: String): Action[JsValue] = {
-    println(s"\n\n cgtReference = $cgtReference \n\n")
     authenticate(parse.json).async { implicit request =>
-      println(s"\n\n ###### DraftReturn controller::  storeDraftReturn ======= \n ${request.body} \n\n")
-
       withJsonBody[DraftReturn] { draftReturn =>
-        println("\n\n ####################### storeDraftReturn \n\n")
-        println(s"\n\n draftReturn = $draftReturn \n\n ")
         draftReturnsService
           .saveDraftReturn(draftReturn, CgtReference(cgtReference))
           .fold(

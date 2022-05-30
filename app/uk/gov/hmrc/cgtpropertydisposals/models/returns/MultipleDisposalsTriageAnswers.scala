@@ -25,6 +25,19 @@ sealed trait MultipleDisposalsTriageAnswers
 
 object MultipleDisposalsTriageAnswers {
 
+  final case class IncompleteMultipleDisposalsTriageAnswers(
+    individualUserType: Option[IndividualUserType],
+    numberOfProperties: Option[Int],
+    wasAUKResident: Option[Boolean],
+    countryOfResidence: Option[Country],
+    wereAllPropertiesResidential: Option[Boolean],
+    assetTypes: Option[List[AssetType]],
+    taxYearExchanged: Option[TaxYearExchanged],
+    taxYear: Option[TaxYear],
+    alreadySentSelfAssessment: Option[Boolean],
+    completionDate: Option[CompletionDate]
+  ) extends MultipleDisposalsTriageAnswers
+
   final case class CompleteMultipleDisposalsTriageAnswers(
     individualUserType: Option[IndividualUserType],
     numberOfProperties: Int,

@@ -49,10 +49,9 @@ class DefaultDraftReturnsService @Inject() (
   def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
     draftReturnRepository.fetch(cgtReference)
 
-  override def saveDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] = {
-    println("\n\n ###### DraftReturn service::  saveDraftReturn ======= \n\n")
+  override def saveDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     draftReturnRepository.save(draftReturn, cgtReference)
-  }
+
 
   override def deleteDraftReturns(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
     draftReturnRepository.deleteAll(draftReturnIds)
