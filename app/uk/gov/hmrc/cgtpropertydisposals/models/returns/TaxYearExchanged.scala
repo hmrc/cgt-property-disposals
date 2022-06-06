@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import cats.Eq
-import play.api.libs.json.{JsObject, JsPath, Json, OFormat, Reads, Writes}
+import play.api.libs.json.{JsObject, JsPath, Json, OFormat, Reads}
 
 final case class TaxYearExchanged(year: Int) extends Product with Serializable
 
