@@ -1,7 +1,7 @@
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
-import wartremover.wartremoverExcluded
+import wartremover.WartRemover.autoImport.wartremoverExcluded
 
 val appName = "cgt-property-disposals"
 
@@ -41,7 +41,7 @@ lazy val microservice = Project(appName, file("."))
     addCompilerPlugin("org.typelevel"  %% "kind-projector"  % "0.13.0" cross CrossVersion.full),
     addCompilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.5" cross CrossVersion.full)
   )
-  .settings(scalaVersion := "2.12.13")
+  .settings(scalaVersion := "2.12.14")
   .settings(
     majorVersion := 2,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
