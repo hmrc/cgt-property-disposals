@@ -17,24 +17,24 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import cats.Eq
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{JsObject, JsPath, Json, OFormat, Reads, Writes}
 
-sealed trait TaxYearExchanged extends Product with Serializable
+final case class TaxYearExchanged(year: Int) extends Product with Serializable
 
 object TaxYearExchanged {
+  val taxYearExchangedBefore2020: TaxYearExchanged = TaxYearExchanged(-2020)
 
-  case object TaxYear2022 extends TaxYearExchanged
+  val differentTaxYears: TaxYearExchanged = TaxYearExchanged(-1)
 
-  case object TaxYear2021 extends TaxYearExchanged
+  private val oldReads: Reads[TaxYearExchanged] =
+    (JsPath \ "TaxYear2022").read[JsObject].map(_ => TaxYearExchanged(year = 2022)) orElse
+      (JsPath \ "TaxYear2021").read[JsObject].map(_ => TaxYearExchanged(year = 2021)) orElse
+      (JsPath \ "TaxYear2020").read[JsObject].map(_ => TaxYearExchanged(year = 2020))
 
-  case object TaxYear2020 extends TaxYearExchanged
+  implicit val reads: Reads[TaxYearExchanged] = Json.reads[TaxYearExchanged] orElse oldReads
 
-  case object TaxYearBefore2020 extends TaxYearExchanged
+  implicit val format: OFormat[TaxYearExchanged] = OFormat[TaxYearExchanged](reads, Json.writes[TaxYearExchanged])
 
-  case object DifferentTaxYears extends TaxYearExchanged
-
-  implicit val format: OFormat[TaxYearExchanged] = derived.oformat()
-  implicit val eq: Eq[TaxYearExchanged]          = Eq.fromUniversalEquals
+  implicit val eq: Eq[TaxYearExchanged] = Eq.fromUniversalEquals
 
 }
