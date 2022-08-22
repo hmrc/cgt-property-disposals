@@ -24,14 +24,15 @@ import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
+import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
+import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, InProgress, PermanentlyFailed}
+import uk.gov.hmrc.mongo.workitem.WorkItem
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.workitem.{Failed, InProgress, PermanentlyFailed, WorkItem}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with MongoSupport with MockFactory {
+class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
   val config = Configuration(
     ConfigFactory.parseString(
       """
@@ -53,13 +54,12 @@ class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with MongoSupport 
   )
 
   val repository = new DefaultDmsSubmissionRepo(
-    reactiveMongoComponent,
+    mongoComponent,
     config,
     new ServicesConfig(config)
   )
 
   "DmsSubmission Repo" when {
-
     "set" should {
       "insert a dms request" in {
         val dmsSubmissionRequest = sample[DmsSubmissionRequest]

@@ -17,22 +17,18 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import cats.data.EitherT
-import cats.syntax.either._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import play.api.Configuration
-import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.Cursor
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
-import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
-import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
-import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnWrapper}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
@@ -42,21 +38,24 @@ import scala.util.control.NonFatal
 @ImplementedBy(classOf[DefaultAmendReturnsRepository])
 trait AmendReturnsRepository {
 
-  def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnRequest]]
-  def save(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit]
+  def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnWrapper]]
+  def save(
+    submitReturnRequest: SubmitReturnRequest
+  ): EitherT[Future, Error, Unit]
 
 }
 
 @Singleton
-class DefaultAmendReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(implicit
-  val ec: ExecutionContext
-) extends ReactiveRepository[SubmitReturnRequest, BSONObjectID](
+class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration, clock: CurrentInstant)(
+  implicit val ec: ExecutionContext
+) extends PlayMongoRepository[SubmitReturnWrapper](
+      mongoComponent = mongo,
       collectionName = "amend-returns",
-      mongo = component.mongoConnector.db,
-      domainFormat = SubmitReturnRequest.format
+      domainFormat = SubmitReturnWrapper.format,
+      indexes = Seq()
     )
     with AmendReturnsRepository
-    with CacheRepository[SubmitReturnRequest] {
+    with CacheRepository[SubmitReturnWrapper] {
 
   val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.amend-returns.expiry-time").value
   val maxAmendReturns: Int      = Integer.MAX_VALUE
@@ -64,7 +63,7 @@ class DefaultAmendReturnsRepository @Inject() (component: ReactiveMongoComponent
   val objName: String           = "return"
   val key: String               = "return.subscribedDetails.cgtReference.value"
 
-  override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnRequest]] =
+  override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnWrapper]] =
     EitherT(
       preservingMdc {
         get(cgtReference)
@@ -74,34 +73,38 @@ class DefaultAmendReturnsRepository @Inject() (component: ReactiveMongoComponent
   override def save(
     submitReturnRequest: SubmitReturnRequest
   ): EitherT[Future, Error, Unit] =
-    EitherT(
-      preservingMdc {
-        set(submitReturnRequest.id.toString, submitReturnRequest)
-      }
-    )
+    EitherT(preservingMdc {
+      val selector = Filters.equal("_id", submitReturnRequest.id.toString)
+      val modifier = Updates.combine(
+        Updates.set("return", Codecs.toBson(submitReturnRequest)),
+        Updates.set("lastUpdated", clock.currentInstant()),
+        Updates.setOnInsert("_id", submitReturnRequest.id.toString)
+      )
+      val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
+      collection
+        .findOneAndUpdate(selector, modifier, options)
+        .toFuture()
+        .map(_ => Right(()))
+        .recover { case NonFatal(e) => Left(Error(e)) }
 
-  private def get(cgtReference: CgtReference): Future[Either[Error, List[SubmitReturnRequest]]] = {
-    val selector = Json.obj(key -> cgtReference.value)
+    })
+
+//  EitherT(
+//    preservingMdc {
+//      set(submitReturnRequest.id.toString, submitReturnRequest)
+//    }
+//  )
+
+  private def get(cgtReference: CgtReference): Future[Either[Error, List[SubmitReturnWrapper]]] =
     collection
-      .find(selector, None)
-      .cursor[JsValue]()
-      .collect[List](maxAmendReturns, Cursor.FailOnError[List[JsValue]]())
-      .map { l =>
-        val p: List[Either[Error, SubmitReturnRequest]] = l.map { json =>
-          (json \ objName).validate[SubmitReturnRequest].asEither.leftMap(toError)
-        }
-        val (errors, draftReturns)                      = p.partitionWith(identity)
-        if (errors.nonEmpty)
-          logger.warn(s"Not returning ${errors.size} draft returns: ${errors.mkString("; ")}")
-
-        Right(draftReturns)
+      .find(equal(key, cgtReference.value))
+      .toFuture()
+      .map[Either[Error, List[SubmitReturnWrapper]]] { result =>
+        Right(result.toList)
       }
       .recover { case NonFatal(e) =>
+        logger.warn(s"Not returning draft returns: ${e.getMessage}")
         Left(Error(e))
       }
-  }
-
-  private def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
-    Error(JsError(e).prettyPrint())
 
 }

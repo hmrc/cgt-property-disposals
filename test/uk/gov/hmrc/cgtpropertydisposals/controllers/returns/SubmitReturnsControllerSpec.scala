@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import java.time.LocalDateTime
 import java.util.{Base64, UUID}
-
 import akka.stream.Materializer
 import cats.data.EitherT
 import cats.instances.future._
@@ -45,7 +44,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdSer
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HtmlSanitizer
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.workitem.WorkItem
+import uk.gov.hmrc.mongo.workitem.WorkItem
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

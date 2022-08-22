@@ -25,8 +25,8 @@ import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.ConfigReader
 import configs.syntax._
+import org.bson.types.ObjectId
 import play.api.Configuration
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
@@ -36,7 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSucce
 import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}
+import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import scala.concurrent.Future
 
@@ -47,9 +47,9 @@ trait DmsSubmissionService {
 
   def dequeue: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]]
 
-  def setProcessingStatus(id: BSONObjectID, status: ProcessingStatus): EitherT[Future, Error, Boolean]
+  def setProcessingStatus(id: ObjectId, status: ProcessingStatus): EitherT[Future, Error, Boolean]
 
-  def setResultStatus(id: BSONObjectID, status: ResultStatus): EitherT[Future, Error, Boolean]
+  def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean]
 
   def submitToDms(
     html: B64Html,
@@ -138,10 +138,10 @@ class DefaultDmsSubmissionService @Inject() (
   override def dequeue: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]] =
     dmsSubmissionRepo.get
 
-  override def setProcessingStatus(id: BSONObjectID, status: ProcessingStatus): EitherT[Future, Error, Boolean] =
+  override def setProcessingStatus(id: ObjectId, status: ProcessingStatus): EitherT[Future, Error, Boolean] =
     dmsSubmissionRepo.setProcessingStatus(id, status)
 
-  override def setResultStatus(id: BSONObjectID, status: ResultStatus): EitherT[Future, Error, Boolean] =
+  override def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean] =
     dmsSubmissionRepo.setResultStatus(id, status)
 
 }

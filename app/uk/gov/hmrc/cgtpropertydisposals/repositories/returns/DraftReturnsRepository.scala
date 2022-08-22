@@ -16,30 +16,28 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
-import java.util.UUID
-
 import cats.data.EitherT
 import cats.instances.future._
-import cats.syntax.either._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
+import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.Filters.{equal, or}
+import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.json.{Format, __}
 import play.api.Configuration
+import play.api.libs.json.JsPath.\
 import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.Cursor
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
-import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
-import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
-import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
+import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -56,12 +54,13 @@ trait DraftReturnsRepository {
 }
 
 @Singleton
-class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(implicit
+class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends ReactiveRepository[DraftReturnWithCgtReference, BSONObjectID](
+) extends PlayMongoRepository[DraftReturnWithCgtReference](
+      mongoComponent = mongo,
       collectionName = "draft-returns",
-      mongo = component.mongoConnector.db,
-      domainFormat = DraftReturnWithCgtReference.format
+      domainFormat = DraftReturnWithCgtReference.format,
+      indexes = Seq()
     )
     with DraftReturnsRepository
     with CacheRepository[DraftReturnWithCgtReference] {
@@ -89,14 +88,17 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   override def delete(cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       preservingMdc {
-        remove("return.cgtReference.value" -> cgtReference.value)
-          .map { result: WriteResult =>
-            if (result.ok)
+        collection
+          .deleteOne(equal("return.cgtReference.value", cgtReference.value))
+          .toFuture()
+//        remove("return.cgtReference.value" -> cgtReference.value)
+          .map { result =>
+            if (result.wasAcknowledged())
               Right(())
             else
               Left(
                 Error(
-                  s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
+                  s"WriteResult after trying to delete did not come back ok. Got write errors [$result]"
                 )
               )
           }
@@ -109,48 +111,49 @@ class DefaultDraftReturnsRepository @Inject() (component: ReactiveMongoComponent
   override def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       preservingMdc {
-        remove(
-          "$or" -> JsArray(
-            draftReturnIds.map(id => JsObject(Map("return.draftId" -> JsString(id.toString))))
+//                collection.deleteOne(or(equal("return.draftId", "1"), equal("return.draftId", "2"))).toFuture()
+
+        collection
+          .deleteOne(
+            or(draftReturnIds.map(id => equal("return.draftId", id)): _*)
           )
-        ).map { result: WriteResult =>
-          if (result.ok)
-            Right(())
-          else
-            Left(
-              Error(
-                s"WriteResult after trying to delete did not come back ok. Got write errors [${result.writeErrors.mkString("; ")}]"
+          .toFuture()
+          .map { result =>
+            if (result.wasAcknowledged())
+              Right(())
+            else
+              Left(
+                Error(
+                  s"WriteResult after trying to delete did not come back ok. Got write errors [$result]"
+                )
               )
-            )
-        }.recover { case exception =>
-          Left(Error(exception.getMessage))
-        }
+          }
+          .recover { case exception =>
+            Left(Error(exception.getMessage))
+          }
       }
     )
 
-  private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] = {
-    val selector = Json.obj(key -> cgtReference.value)
+  private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] =
     collection
-      .find(selector, None)
-      .cursor[JsValue]()
-      .collect[List](maxDraftReturns, Cursor.FailOnError[List[JsValue]]())
-      .map { l =>
-        val p: List[Either[Error, DraftReturnWithCgtReference]] = l.map { json =>
-          (json \ objName).validate[DraftReturnWithCgtReference].asEither.leftMap(toError)
-        }
-        val (errors, draftReturns)                              = p.partitionWith(identity)
-        if (errors.nonEmpty)
-          logger.warn(s"Not returning ${errors.size} draft returns: ${errors.mkString("; ")}")
+      .find(filter = Filters.equal("_id", cgtReference.value))
+      .toFuture()
+      .map { returns =>
+//        val p: List[Either[Error, DraftReturnWithCgtReference]] = l.map { json =>
+//          (json \ objName).validate[DraftReturnWithCgtReference].asEither.leftMap(toError)
+//        }
+//        val (errors, draftReturns)                              = p.partitionWith(identity)
+//        if (errors.nonEmpty)
 
-        Right(draftReturns)
+        val (errors, draftReturns)                              = returns.partitionWith(identity)
+        println(s"cgtReference ->  ${cgtReference.value}")
+        println(s"GET ${returns.toList.distinct}")
+        Right(returns.toList.distinct)
       }
       .recover { case NonFatal(e) =>
+        logger.warn(s"Not returning draft returns: ${e.getMessage}")
         Left(Error(e))
       }
-  }
-
-  private def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
-    Error(JsError(e).prettyPrint())
 
 }
 
@@ -159,8 +162,9 @@ object DefaultDraftReturnsRepository {
   final case class DraftReturnWithCgtReference(draftReturn: DraftReturn, cgtReference: CgtReference, draftId: UUID)
 
   object DraftReturnWithCgtReference {
-
-    implicit val format: OFormat[DraftReturnWithCgtReference] = Json.format
-
+    val format: Format[DraftReturnWithCgtReference] =
+      ((__ \ "return").format[DraftReturn]
+        ~ (__ \ "reference").format[CgtReference]
+        ~ (__ \ "_id").format[UUID])(DraftReturnWithCgtReference.apply, unlift(DraftReturnWithCgtReference.unapply))
   }
 }

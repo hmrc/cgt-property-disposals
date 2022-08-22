@@ -16,21 +16,20 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
-import java.time.LocalDateTime
-
 import org.scalacheck.Arbitrary
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
+import uk.gov.hmrc.mongo.test.MongoSupport
 
+import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class TaxEnrolmentRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 
-  val repository = new DefaultTaxEnrolmentRepository(reactiveMongoComponent)
+  val repository = new DefaultTaxEnrolmentRepository(mongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary((LocalDateTime.now()))
@@ -66,11 +65,13 @@ class TaxEnrolmentRepositorySpec extends AnyWordSpec with Matchers with MongoSup
 
     "updating" should {
       val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
+
       "return a the updated tax enrolment record" in {
-        await(repository.save(taxEnrolmentRequest).value)
-        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe (Right(
+        val result = await(repository.save(taxEnrolmentRequest).value)
+        result                                                                                   shouldBe result
+        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe Right(
           Some(updatedTaxEnrolmentRequest)
-        ))
+        )
       }
     }
 

@@ -14,28 +14,27 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.repositories
-
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{FiniteDuration, SECONDS}
-
-trait MongoSupport extends MongoSpecSupport with BeforeAndAfterEach with BeforeAndAfterAll { this: Suite ⇒
-
-  val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
-    override def mongoConnector: MongoConnector = mongoConnectorForTest
-  }
-
-  abstract override def beforeEach(): Unit = {
-    super.beforeEach()
-    mongo().drop()
-  }
-
-  abstract override def afterAll(): Unit = {
-    super.afterAll()
-    reactiveMongoComponent.mongoConnector.helper.driver.close(FiniteDuration(10, SECONDS))
-  }
-}
+//
+//package uk.gov.hmrc.cgtpropertydisposals.repositories
+//
+//import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
+//import uk.gov.hmrc.mongo.test.MongoSupport
+//
+//import scala.concurrent.duration.{FiniteDuration, SECONDS}
+//
+//trait MongoTestSupport extends MongoSupport with BeforeAndAfterEach with BeforeAndAfterAll { this: Suite ⇒
+//
+//  val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
+//    override def mongoConnector: MongoConnector = mongoConnectorForTest
+//  }
+//
+//  abstract override def beforeEach(): Unit = {
+//    super.beforeEach()
+//    mongo().drop()
+//  }
+//
+//  abstract override def afterAll(): Unit = {
+//    super.afterAll()
+//    reactiveMongoComponent.mongoConnector.helper.driver.close(FiniteDuration(10, SECONDS))
+//  }
+//}

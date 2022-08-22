@@ -20,7 +20,7 @@ import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
-import uk.gov.hmrc.workitem.WorkItem
+import uk.gov.hmrc.mongo.workitem.WorkItem
 
 final case class DmsSubmissionRequest(
   html: B64Html,
@@ -33,5 +33,5 @@ object DmsSubmissionRequest {
 
   implicit val dmsSubmissionRequestFormat: OFormat[DmsSubmissionRequest] = Json.format
 
-  val workItemFormat: Format[WorkItem[DmsSubmissionRequest]] = WorkItem.workItemMongoFormat[DmsSubmissionRequest]
+  val workItemFormat: Format[WorkItem[DmsSubmissionRequest]] = WorkItem.workItemRestFormat[DmsSubmissionRequest]
 }

@@ -23,7 +23,8 @@ import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
+import uk.gov.hmrc.cgtpropertydisposals.repositories.DefaultCurrentInstant
+import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -36,9 +37,11 @@ class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSu
     )
   )
 
-  val repository = new DefaultUpscanRepository(reactiveMongoComponent, config)
+  val defaultCurrentInstant = new DefaultCurrentInstant
 
-  repository.count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
+  val repository = new DefaultUpscanRepository(mongoComponent, config, defaultCurrentInstant)
+
+  repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
 
   "Upscan Repository" when {
     "inserting" should {

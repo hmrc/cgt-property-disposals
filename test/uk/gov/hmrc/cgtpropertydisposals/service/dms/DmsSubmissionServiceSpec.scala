@@ -18,18 +18,17 @@ package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-
 import akka.actor.ActorSystem
 import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
 import cats.instances.future._
 import com.typesafe.config.ConfigFactory
+import org.bson.types.ObjectId
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers.await
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
@@ -43,7 +42,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSucce
 import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, ProcessingStatus, ResultStatus, WorkItem}
+import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed}
+import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
@@ -88,15 +88,15 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFact
       .expects(dmsSubmissionRequest)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockSetProcessingStatus(id: BSONObjectID, status: ProcessingStatus)(response: Either[Error, Boolean]) =
+  def mockSetProcessingStatus(id: ObjectId, status: ProcessingStatus)(response: Either[Error, Boolean]) =
     (mockDmsSubmissionRepo
-      .setProcessingStatus(_: BSONObjectID, _: ProcessingStatus))
+      .setProcessingStatus(_: ObjectId, _: ProcessingStatus))
       .expects(id, status)
       .returning(EitherT.fromEither[Future](response))
 
-  def mockSetResultStatus(id: BSONObjectID, status: ResultStatus)(response: Either[Error, Boolean]) =
+  def mockSetResultStatus(id: ObjectId, status: ResultStatus)(response: Either[Error, Boolean]) =
     (mockDmsSubmissionRepo
-      .setResultStatus(_: BSONObjectID, _: ResultStatus))
+      .setResultStatus(_: ObjectId, _: ResultStatus))
       .expects(id, status)
       .returning(EitherT.fromEither[Future](response))
 

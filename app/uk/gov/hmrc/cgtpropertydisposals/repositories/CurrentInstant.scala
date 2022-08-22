@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.upscan
+package uk.gov.hmrc.cgtpropertydisposals.repositories
+import com.google.inject.{ImplementedBy, Singleton}
 
-import play.api.libs.json.{Json, OFormat}
-
-final case class UpscanUploadMeta(
-  reference: String,
-  uploadRequest: UploadRequest
-)
-
-object UpscanUploadMeta {
-  implicit val format: OFormat[UpscanUploadMeta] = Json.format[UpscanUploadMeta]
+import java.time.Instant
+@ImplementedBy(classOf[DefaultCurrentInstant])
+trait CurrentInstant {
+  def currentInstant(): Instant
+}
+@Singleton
+class DefaultCurrentInstant extends CurrentInstant {
+  override def currentInstant(): Instant = Instant.now()
 }

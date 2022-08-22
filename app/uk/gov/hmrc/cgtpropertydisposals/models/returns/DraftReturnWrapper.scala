@@ -16,19 +16,23 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import cats.Eq
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.json.{Format, __}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-sealed trait OldTaxTearExchanged extends Product with Serializable
+import java.time.Instant
 
-object OldTaxTearExchanged {
+final case class DraftReturnWrapper(
+  id: String,
+  draftReturn: DraftReturn,
+  lastUpdated: Instant
+)
 
-  case object TaxYear2021 extends OldTaxTearExchanged
-
-  implicit val format: OFormat[OldTaxTearExchanged] = derived.oformat()
-  implicit val eq: Eq[OldTaxTearExchanged]          = Eq.fromUniversalEquals
-  //implicit val writes: Writes[OldTaxTearExchanged] = Json.writes[OldTaxTearExchanged]
-  //implicit val reads: Reads[OldTaxTearExchanged]   = Json.reads[OldTaxTearExchanged]
-
+object DraftReturnWrapper {
+  val format: Format[DraftReturnWrapper] = {
+    implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
+    ((__ \ "_id").format[String]
+      ~ (__ \ "return").format[DraftReturn]
+      ~ (__ \ "lastUpdated").format[Instant])(DraftReturnWrapper.apply, unlift(DraftReturnWrapper.unapply))
+  }
 }

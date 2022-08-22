@@ -22,10 +22,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
+import uk.gov.hmrc.mongo.test.MongoSupport
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, WorkItem}
+import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed, Succeeded}
+import uk.gov.hmrc.mongo.workitem.WorkItem
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -52,12 +53,12 @@ class DmsSubmissionRepoFailureSpec extends AnyWordSpec with Matchers with MongoS
   )
 
   val repository = new DefaultDmsSubmissionRepo(
-    reactiveMongoComponent,
+    mongoComponent,
     config,
     new ServicesConfig(config)
   )
 
-  repository.count(global).map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
+  repository.count(Succeeded).map(_ => mongoComponent.client.close())
 
   "A broken DmsSubmission Repo" when {
     "inserting" should {
