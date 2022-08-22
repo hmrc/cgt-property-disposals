@@ -19,23 +19,28 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories
 import cats.data.EitherT
 import cats.instances.list._
 import cats.syntax.either._
+import com.mongodb.client.model.Indexes.ascending
+import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.Filters.{equal, in}
-import org.mongodb.scala.model.{UpdateOptions, Updates}
+import org.mongodb.scala.model.{IndexModel, IndexOptions, UpdateOptions, Updates}
 import org.slf4j.Logger
 import play.api.libs.json
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
 import uk.gov.hmrc.mongo.CurrentTime
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import java.time.LocalDateTime
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import org.mongodb.scala.bson
 
-trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
+trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime with Logger{
 
   implicit val ec: ExecutionContext
 
@@ -43,13 +48,14 @@ trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
   val cacheTtlIndexName: String
   val objName: String
 
-  private lazy val cacheTtlIndex = Index(
-    key = Seq("lastUpdated" → IndexType.Ascending),
-    name = Some(cacheTtlIndexName),
-    options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
-  )
+  private lazy val cacheTtlIndex = IndexModel(ascending("lastUpdated"), IndexOptions().name(Some(cacheTtlIndexName).value).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS))
+//    Index(
+//    key = Seq("lastUpdated" → IndexType.Ascending),
+//    name = Some(cacheTtlIndexName),
+//    options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
+//  )
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
       result <- super.ensureIndexes
       _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
@@ -84,7 +90,7 @@ trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
         .find(in("_id", ids))
         .toFuture()
         .map { list =>
-          val (errors, values) = EitherT(list.map(readJson))
+          val (errors, values) = EitherT(list.map(x => readJson(Json.toJsObject(x))))
             .subflatMap(
               Either.fromOption(_, "Could not find value in JSON")
             )
@@ -134,30 +140,26 @@ trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
 }
 
 object CacheRepository {
-
-  def setTtlIndex(
-    ttlIndex: Index,
-    ttlIndexName: String,
-    ttl: FiniteDuration,
-    collection: JSONCollection,
-    logger: Logger
-  )(implicit ex: ExecutionContext): Future[WriteResult] = {
+  def setTtlIndex[A](
+                   ttlIndex: IndexModel,
+                   ttlIndexName: String,
+                   ttl: FiniteDuration,
+                   collection: MongoCollection[A],
+                   logger: Logger
+  )(implicit ex: ExecutionContext): Future[String] = {
     def dropInvalidIndexes(): Future[Unit] =
-      collection.indexesManager.list().flatMap { indexes =>
+      collection.listIndexes().toFuture().flatMap { indexes =>
         indexes
-          .find { index =>
-            index.name.contains(ttlIndexName) &&
-            !index.options.getAs[Long]("expireAfterSeconds").contains(ttl.toSeconds)
-          }
+          .find { index => index.contains(ttlIndexName) && !index.containsValue(ttl.toSeconds)}
           .map { i =>
             logger.warn(s"dropping $i as ttl value is incorrect for index")
-            collection.indexesManager.drop(ttlIndexName).map(_ => ())
+            collection.dropIndex(ttlIndexName).toFuture().map(_ => ())
           }
           .getOrElse(Future.successful(()))
       }
 
     dropInvalidIndexes()
-      .flatMap(_ => collection.indexesManager.create(ttlIndex))
+      .flatMap(_ => collection.createIndex(ttlIndex.getKeys).toFuture())
       .transform { result =>
         result.fold(
           e => logger.warn("Could not ensure ttl index", e),
