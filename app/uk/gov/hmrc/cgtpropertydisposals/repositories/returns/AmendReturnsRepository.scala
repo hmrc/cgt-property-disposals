@@ -32,7 +32,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
-import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.{MongoComponent, ReactiveRepository}
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
@@ -48,12 +49,13 @@ trait AmendReturnsRepository {
 }
 
 @Singleton
-class DefaultAmendReturnsRepository @Inject() (component: ReactiveMongoComponent, config: Configuration)(implicit
+class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends ReactiveRepository[SubmitReturnRequest, BSONObjectID](
+) extends PlayMongoRepository[SubmitReturnRequest](
+      mongoComponent = mongo,
       collectionName = "amend-returns",
-      mongo = component.mongoConnector.db,
-      domainFormat = SubmitReturnRequest.format
+      domainFormat = SubmitReturnRequest.format,
+      indexes = Seq()
     )
     with AmendReturnsRepository
     with CacheRepository[SubmitReturnRequest] {
