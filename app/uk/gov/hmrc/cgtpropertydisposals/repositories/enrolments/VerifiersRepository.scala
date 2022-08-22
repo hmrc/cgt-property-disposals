@@ -18,16 +18,13 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject}
-import play.api.libs.json.Json
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.Indexes.ascending
+import org.mongodb.scala.model.{IndexModel, IndexOptions}
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,31 +36,23 @@ trait VerifiersRepository {
   def delete(ggCredId: String): EitherT[Future, Error, Int]
 }
 
-class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(implicit
+class DefaultVerifiersRepository @Inject() (mongo: MongoComponent)(implicit
   ec: ExecutionContext
-) extends ReactiveRepository[UpdateVerifiersRequest, BSONObjectID](
+) extends PlayMongoRepository[UpdateVerifiersRequest](
+      mongoComponent = mongo,
       collectionName = "update-verifiers-requests",
-      mongo = mongo.mongoConnector.db,
-      UpdateVerifiersRequest.format,
-      ReactiveMongoFormats.objectIdFormats
+      domainFormat = UpdateVerifiersRequest.format,
+      indexes = Seq(IndexModel(ascending("ggCredId"), IndexOptions().name("ggCredIdIndex")))
     )
     with VerifiersRepository {
-
-  override def indexes: Seq[Index] =
-    Seq(
-      Index(
-        key = Seq("ggCredId" → IndexType.Ascending),
-        name = Some("ggCredIdIndex")
-      )
-    )
 
   override def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifiersRequest]] =
     EitherT[Future, Error, Option[UpdateVerifiersRequest]](
       preservingMdc {
         collection
-          .find(Json.obj("ggCredId" -> ggCredId), None)
-          .one[UpdateVerifiersRequest]
-          .map(maybeVerifiersRequest => Right(maybeVerifiersRequest))
+          .find(equal("ggCredId", ggCredId))
+          .toFuture()
+          .map(maybeVerifiersRequest => Right(maybeVerifiersRequest.headOption))
           .recover { case exception =>
             Left(Error(exception.getMessage))
           }
@@ -73,15 +62,16 @@ class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(impli
   override def insert(updateVerifiersRequest: UpdateVerifiersRequest): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       preservingMdc {
-        collection.insert
-          .one[UpdateVerifiersRequest](updateVerifiersRequest)
-          .map[Either[Error, Unit]] { result: WriteResult =>
-            if (result.ok)
+        collection
+          .insertOne(updateVerifiersRequest)
+          .toFuture()
+          .map[Either[Error, Unit]] { result =>
+            if (result.wasAcknowledged())
               Right(())
             else
               Left(
                 Error(
-                  s"Could not insert update verifier request into database: got write errors :${result.writeErrors}"
+                  s"Could not insert update verifier request into database: got write errors :$result"
                 )
               )
           }
@@ -94,9 +84,10 @@ class DefaultVerifiersRepository @Inject() (mongo: ReactiveMongoComponent)(impli
   override def delete(ggCredId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
       preservingMdc {
-        collection.delete
-          .one(Json.obj("ggCredId" -> ggCredId))
-          .map { result: WriteResult => Right(result.n) }
+        collection
+          .deleteOne(equal("ggCredId", ggCredId))
+          .toFuture()
+          .map(result => Right(result.getDeletedCount.intValue()))
           .recover { case exception =>
             Left(Error(exception.getMessage))
           }

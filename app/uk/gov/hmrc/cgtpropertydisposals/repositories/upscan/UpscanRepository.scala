@@ -20,13 +20,11 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
 import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -54,13 +52,13 @@ trait UpscanRepository {
 }
 
 @Singleton
-class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: Configuration)(implicit
+class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends ReactiveRepository[UpscanUpload, BSONObjectID](
+) extends PlayMongoRepository[UpscanUpload](
+      mongoComponent = mongo,
       collectionName = "upscan",
-      mongo = mongo.mongoConnector.db,
-      UpscanUpload.format,
-      ReactiveMongoFormats.objectIdFormats
+      domainFormat = UpscanUpload.format,
+      indexes = Seq()
     )
     with UpscanRepository
     with CacheRepository[UpscanUpload] {

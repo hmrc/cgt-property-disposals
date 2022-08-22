@@ -16,31 +16,26 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
-import java.time.LocalDateTime
-
 import cats.data.EitherT
 import cats.instances.list._
 import cats.syntax.either._
-import org.joda.time.DateTime
+import org.mongodb.scala.model.Filters.{equal, in}
+import org.mongodb.scala.model.{UpdateOptions, Updates}
 import org.slf4j.Logger
+import play.api.libs.json
 import play.api.libs.json._
-import reactivemongo.api.Cursor
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
-import reactivemongo.play.json.collection.JSONCollection
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
+import uk.gov.hmrc.mongo.CurrentTime
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
+import java.time.LocalDateTime
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
+trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
 
   implicit val ec: ExecutionContext
 
@@ -63,24 +58,19 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
   def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =
     preservingMdc {
       withCurrentTime { time =>
-        val lastUpdated: DateTime = overrideLastUpdatedTime.map(toJodaDateTime).getOrElse(time)
-        val selector              = Json.obj("_id" -> id)
-        val modifier              = Json.obj(
-          "$set" -> Json
-            .obj(
-              objName       -> Json.toJson(value),
-              "lastUpdated" -> lastUpdated
-            )
-        )
+        val lastUpdated: LocalDateTime = overrideLastUpdatedTime.map(toJavaDateTime).getOrElse(time)
+        val selector                   = equal("_id", id)
+        val modifier                   = Updates.combine(Updates.set(objName, value), Updates.set("lastUpdated", lastUpdated))
+        val options                    = UpdateOptions().upsert(true)
 
         collection
-          .update(false)
-          .one(selector, modifier, upsert = true)
-          .map { writeResult =>
-            if (writeResult.ok)
+          .updateOne(selector, modifier, options)
+          .toFuture()
+          .map { result =>
+            if (result.wasAcknowledged())
               Right(())
             else
-              Left(Error(s"Could not store draft return: ${writeResult.errmsg.getOrElse("-")}"))
+              Left(Error(s"Could not store draft return: $result"))
           }
           .recover { case NonFatal(e) =>
             Left(Error(e))
@@ -91,12 +81,8 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
   def findAll(ids: List[String]): Future[Either[Error, List[A]]] =
     preservingMdc {
       collection
-        .find(
-          Json.obj("_id" -> Json.obj("$in" -> ids)),
-          None
-        )
-        .cursor[JsObject]()
-        .collect[List](Int.MaxValue, Cursor.FailOnError[List[JsObject]]())
+        .find(in("_id", ids))
+        .toFuture()
         .map { list =>
           val (errors, values) = EitherT(list.map(readJson))
             .subflatMap(
@@ -118,14 +104,11 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
   def find(id: String): Future[Either[Error, Option[A]]] =
     preservingMdc {
       collection
-        .find(
-          Json.obj("_id" -> id),
-          None
-        )
-        .one[JsObject]
+        .find(equal("_id", id))
+        .headOption()
         .map {
           case None       => Left(Error(s"Could not find json for id $id"))
-          case Some(json) => readJson(json).leftMap(Error(_))
+          case Some(json) => readJson(Json.obj("" -> json.toString)).leftMap(Error(_))
         }
         .recover { case exception =>
           Left(Error(exception))
@@ -138,8 +121,8 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
       .asEither
       .leftMap(e ⇒ s"Could not parse session data from mongo: ${e.mkString("; ")}")
 
-  private def toJodaDateTime(dateTime: LocalDateTime): org.joda.time.DateTime =
-    new org.joda.time.DateTime(
+  private def toJavaDateTime(dateTime: LocalDateTime) =
+    new LocalDateTime(
       dateTime.getYear,
       dateTime.getMonthValue,
       dateTime.getDayOfMonth,

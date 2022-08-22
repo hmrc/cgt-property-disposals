@@ -18,15 +18,13 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONObjectID
+import com.mongodb.client.model.Indexes.ascending
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model._
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,35 +41,30 @@ trait TaxEnrolmentRepository {
 }
 
 @Singleton
-class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(implicit
+class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
   ec: ExecutionContext
-) extends ReactiveRepository[TaxEnrolmentRequest, BSONObjectID](
+) extends PlayMongoRepository[TaxEnrolmentRequest](
+      mongoComponent = mongo,
       collectionName = "tax-enrolment-requests",
-      mongo = mongo.mongoConnector.db,
-      TaxEnrolmentRequest.format,
-      ReactiveMongoFormats.objectIdFormats
+      domainFormat = TaxEnrolmentRequest.format,
+      indexes = Seq(IndexModel(ascending("ggCredId"), IndexOptions().name("ggCredIdIndex"))),
+      extraCodecs = Seq(Codecs.playFormatCodec[TaxEnrolmentRequest](TaxEnrolmentRequest.format))
     )
     with TaxEnrolmentRepository {
-
-  override def indexes: Seq[Index] =
-    Seq(
-      Index(
-        key = Seq("ggCredId" → IndexType.Ascending),
-        name = Some("ggCredIdIndex")
-      )
-    )
 
   override def save(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       preservingMdc {
-        insert(cgtEnrolmentRequest)
-          .map[Either[Error, Unit]] { result: WriteResult =>
-            if (result.ok)
+        collection
+          .insertOne(cgtEnrolmentRequest)
+          .toFuture()
+          .map[Either[Error, Unit]] { result =>
+            if (result.wasAcknowledged()) {
               Right(())
-            else
+            } else
               Left(
                 Error(
-                  s"Could not insert enrolment request into database: got write errors :${result.writeErrors}"
+                  s"Could not insert enrolment request into database: got write errors :$result"
                 )
               )
           }
@@ -84,7 +77,9 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(im
   override def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
       preservingMdc {
-        find("ggCredId" -> ggCredId)
+        collection
+          .find(equal("ggCredId", ggCredId))
+          .toFuture()
           .map(maybeEnrolmentRequest => Right(maybeEnrolmentRequest.headOption))
           .recover { case exception =>
             Left(Error(exception.getMessage))
@@ -95,8 +90,10 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(im
   override def delete(ggCredId: String): EitherT[Future, Error, Int] =
     EitherT[Future, Error, Int](
       preservingMdc {
-        remove("ggCredId" -> ggCredId)
-          .map { result: WriteResult => Right(result.n) }
+        collection
+          .deleteOne(equal("ggCredId", ggCredId))
+          .toFuture()
+          .map(result => Right(result.getDeletedCount.intValue()))
           .recover { case exception =>
             Left(Error(exception.getMessage))
           }
@@ -109,11 +106,21 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: ReactiveMongoComponent)(im
   ): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
       preservingMdc {
-        findAndUpdate(
-          Json.obj("ggCredId" -> ggCredId),
-          Json.obj("$set"     -> Json.toJson(cgtEnrolmentRequest)),
-          fetchNewObject = true
-        ).map(dbResult => Right(dbResult.result[TaxEnrolmentRequest]))
+        println(Console.BLUE_B + "LIne 111" + Console.RESET)
+        collection
+          .findOneAndUpdate(
+            filter = equal("ggCredId", ggCredId),
+            update = Updates.set("cgtEnrolmentRequest", Codecs.toBson(cgtEnrolmentRequest)),
+            options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
+          )
+          .toFutureOption()
+          .map { dbResult =>
+            Right(Some(dbResult[TaxEnrolmentRequest]))
+            dbResult match {
+              case Some(result) => Right(dbResult[TaxEnrolmentRequest])
+              case None         => Left(Error("was not able to update"))
+            }
+          }
           .recover { case exception =>
             Left(Error(exception.getMessage))
           }
