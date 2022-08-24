@@ -10,12 +10,13 @@ object AppDependencies {
   val compile = Seq(
     "uk.gov.hmrc.mongo"                       %% "hmrc-mongo-play-28"        % mongoVersion,
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion" % "5.12.0",
-    "uk.gov.hmrc"                             %% "work-item-repo"            % s"8.1.0-$playVersion",
     "org.typelevel"                           %% "cats-core"                 % "2.6.0",
     "org.julienrf"                            %% "play-json-derived-codecs"  % "10.0.2",
     "com.github.kxbmap"                       %% "configs"                   % "0.6.1",
     "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer" % "20191001.1",
-    "com.github.ghik"                          % "silencer-lib"              % "1.7.5" % Provided cross CrossVersion.full
+    "uk.gov.hmrc"                             %% "time"                      % "3.18.0",
+    "com.github.ghik"                          % "silencer-lib"              % "1.7.5" % Provided cross CrossVersion.full,
+    "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion
   )
 
   val test = Seq(

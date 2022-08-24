@@ -17,18 +17,18 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import cats.data.EitherT
-import cats.syntax.either._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
+import org.mongodb.scala.model.Filters.equal
 import play.api.Configuration
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
@@ -78,26 +78,17 @@ class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       }
     )
 
-  private def get(cgtReference: CgtReference): Future[Either[Error, List[SubmitReturnRequest]]] = {
-    val selector = Json.obj(key -> cgtReference.value)
+  private def get(cgtReference: CgtReference): Future[Either[Error, List[SubmitReturnRequest]]] =
     collection
-      .find(selector, None)
-      .cursor[JsValue]()
-      .collect[List](maxAmendReturns, Cursor.FailOnError[List[JsValue]]())
-      .map { l =>
-        val p: List[Either[Error, SubmitReturnRequest]] = l.map { json =>
-          (json \ objName).validate[SubmitReturnRequest].asEither.leftMap(toError)
-        }
-        val (errors, draftReturns)                      = p.partitionWith(identity)
-        if (errors.nonEmpty)
-          logger.warn(s"Not returning ${errors.size} draft returns: ${errors.mkString("; ")}")
-
-        Right(draftReturns)
+      .find(equal(key, cgtReference.value))
+      .toFuture()
+      .map[Either[Error, List[SubmitReturnRequest]]] { result =>
+        Right(result.toList)
       }
       .recover { case NonFatal(e) =>
+        logger.warn(s"Not returning draft returns: ${e.getMessage}")
         Left(Error(e))
       }
-  }
 
   private def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
     Error(JsError(e).prettyPrint())

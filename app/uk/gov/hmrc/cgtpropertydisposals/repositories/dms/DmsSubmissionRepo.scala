@@ -16,81 +16,80 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.dms
 
-import java.time.Clock
-
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
-import javax.inject.{Inject, Singleton}
-import org.joda.time.DateTime
+import org.bson.types.ObjectId
+import org.mongodb.scala.model.Indexes.ascending
+import org.mongodb.scala.model.{IndexModel, IndexOptions}
+import org.scalatest.time.SpanSugar.convertLongToGrainOfTime
 import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers._
+
+import java.time
+
+import java.time.Duration
+import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
-import uk.gov.hmrc.cgtpropertydisposals.util.TimeOps._
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
+import uk.gov.hmrc.mongo.workitem.ProcessingStatus.ToDo
+import uk.gov.hmrc.mongo.workitem._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.workitem._
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
+import java.time.Instant
+import java.util.concurrent.TimeUnit
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
 
 @ImplementedBy(classOf[DefaultDmsSubmissionRepo])
 trait DmsSubmissionRepo {
   def set(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]]
   def get: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]]
   def setProcessingStatus(
-    id: BSONObjectID,
+    id: ObjectId,
     status: ProcessingStatus
   ): EitherT[Future, Error, Boolean]
-  def setResultStatus(id: BSONObjectID, status: ResultStatus): EitherT[Future, Error, Boolean]
+  def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean]
 }
 
 @Singleton
 class DefaultDmsSubmissionRepo @Inject() (
-  reactiveMongoComponent: ReactiveMongoComponent,
+  mongo: MongoComponent,
   configuration: Configuration,
   servicesConfig: ServicesConfig
 )(implicit ec: ExecutionContext)
-    extends WorkItemRepository[DmsSubmissionRequest, BSONObjectID](
+    extends WorkItemRepository[DmsSubmissionRequest](
       collectionName = "dms-submission-request-work-item",
-      mongo = reactiveMongoComponent.mongoConnector.db,
-      itemFormat = DmsSubmissionRequest.workItemFormat,
-      configuration.underlying
+      mongoComponent = mongo,
+      itemFormat = DmsSubmissionRequest.workItemFormat[DmsSubmissionRequest],
+      workItemFields = WorkItemFields.default
     )
     with DmsSubmissionRepo {
 
-  override def now: DateTime = Clock.systemUTC().nowAsJoda
+  override def now(): Instant =
+    Instant.now()
 
-  override def workItemFields: WorkItemFieldNames =
-    new WorkItemFieldNames {
-      val receivedAt   = "receivedAt"
-      val updatedAt    = "updatedAt"
-      val availableAt  = "availableAt"
-      val status       = "status"
-      val id           = "_id"
-      val failureCount = "failureCount"
-    }
+  private def throwConfigNotFoundError(key: String) =
+    throw new RuntimeException(s"Could not find config key '$key'")
 
-  override def inProgressRetryAfterProperty: String = "dms.submission-poller.in-progress-retry-after"
+  override def inProgressRetryAfter: Duration = Duration.ofMillis(configuration.getMillis(inProgressRetryAfterProperty))
+
+  def inProgressRetryAfterProperty: String = "dms.submission-poller.in-progress-retry-after"
 
   private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl").toSeconds
 
-  private val retryPeriod = inProgressRetryAfter.getMillis.toInt
+  private val retryPeriod = inProgressRetryAfter.toSeconds.toInt
 
   private val ttlIndexName: String = "receivedAtTime"
 
-  private val ttlIndex: Index =
-    Index(
-      key = Seq("receivedAt" -> IndexType.Ascending),
-      name = Some(ttlIndexName),
-      options = BSONDocument("expireAfterSeconds" -> ttl)
-    )
+  private val ttlIndex: IndexModel = IndexModel(
+    ascending("receivedAt"),
+    IndexOptions().name(ttlIndexName).expireAfter(ttl, TimeUnit.SECONDS)
+  )
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
+  def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
       result <- super.ensureIndexes
       _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl.seconds, collection, logger)
@@ -118,7 +117,7 @@ class DefaultDmsSubmissionRepo @Inject() (
     )
 
   override def setProcessingStatus(
-    id: BSONObjectID,
+    id: ObjectId,
     status: ProcessingStatus
   ): EitherT[Future, Error, Boolean] =
     EitherT[Future, Error, Boolean](
@@ -131,7 +130,7 @@ class DefaultDmsSubmissionRepo @Inject() (
       }
     )
 
-  override def setResultStatus(id: BSONObjectID, status: ResultStatus): EitherT[Future, Error, Boolean] =
+  override def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean] =
     EitherT[Future, Error, Boolean](
       preservingMdc {
         complete(id, status).map(result => Right(result)).recover { case exception: Exception =>

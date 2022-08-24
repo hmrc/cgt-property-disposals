@@ -16,26 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
-import cats.data.EitherT
-import cats.instances.list._
-import cats.syntax.either._
+import com.mongodb.client.model.Indexes.ascending
+import org.joda.time.DateTime
+import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.Filters.{equal, in}
-import org.mongodb.scala.model.{UpdateOptions, Updates}
+import org.mongodb.scala.model.{IndexModel, IndexOptions, UpdateOptions, Updates}
 import org.slf4j.Logger
-import play.api.libs.json
-import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
-import uk.gov.hmrc.mongo.CurrentTime
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
+import uk.gov.hmrc.time.DateTimeUtils
 
 import java.time.LocalDateTime
-import scala.concurrent.duration.FiniteDuration
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
+trait CacheRepository[A] extends PlayMongoRepository[A] {
 
   implicit val ec: ExecutionContext
 
@@ -43,13 +42,21 @@ trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
   val cacheTtlIndexName: String
   val objName: String
 
-  private lazy val cacheTtlIndex = Index(
-    key = Seq("lastUpdated" → IndexType.Ascending),
-    name = Some(cacheTtlIndexName),
-    options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
+  private lazy val cacheTtlIndex = IndexModel(
+    ascending("lastUpdated"),
+    IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
   )
+//    Index(
+//    key = Seq("lastUpdated" → IndexType.Ascending),
+//    name = Some(cacheTtlIndexName),
+//    options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
+//  )
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
+  val now = DateTimeUtils.now
+
+  def withCurrentTime[A](f: (DateTime) => A) = f(now)
+
+  def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
       result <- super.ensureIndexes
       _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
@@ -82,19 +89,22 @@ trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
     preservingMdc {
       collection
         .find(in("_id", ids))
-        .toFuture()
-        .map { list =>
-          val (errors, values) = EitherT(list.map(readJson))
-            .subflatMap(
-              Either.fromOption(_, "Could not find value in JSON")
-            )
-            .value
-            .partitionWith(identity)
+        .headOption()
+        .map {
+//          list =>
+//          val (errors, values) = EitherT(list.map(readJson))
+//            .subflatMap(
+//              Either.fromOption(_, "Could not find value in JSON")
+//            )
+//            .value
+//            .partitionWith(identity)
+          case None       => Left(Error(s"Could not get all values"))
+          case Some(list) => Right(List(list))
 
-          if (errors.nonEmpty)
-            Left(Error(s"Could not get all values: ${errors.mkString(", ")}]"))
-          else
-            Right(values)
+//          if (errors.nonEmpty)
+//            Left(Error(s"Could not get all values: ${errors.mkString(", ")}]"))
+//          else
+//            Right(values)
         }
         .recover { case exception =>
           Left(Error(exception))
@@ -108,18 +118,18 @@ trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
         .headOption()
         .map {
           case None       => Left(Error(s"Could not find json for id $id"))
-          case Some(json) => readJson(Json.obj("" -> json.toString)).leftMap(Error(_))
+          case Some(json) => Right(Some(json))
         }
         .recover { case exception =>
           Left(Error(exception))
         }
     }
 
-  private def readJson(jsObject: JsObject): Either[String, Option[A]] =
-    (jsObject \ objName)
-      .validateOpt[A]
-      .asEither
-      .leftMap(e ⇒ s"Could not parse session data from mongo: ${e.mkString("; ")}")
+//  private def readJson(jsObject: JsObject): Either[String, Option[A]] =
+//    (jsObject \ objName)
+//      .validateOpt[A]
+//      .asEither
+//      .leftMap(e ⇒ s"Could not parse session data from mongo: ${e.mkString("; ")}")
 
   private def toJavaDateTime(dateTime: LocalDateTime) =
     new LocalDateTime(
@@ -134,30 +144,26 @@ trait CacheRepository[A] extends PlayMongoRepository[A] with CurrentTime {
 }
 
 object CacheRepository {
-
-  def setTtlIndex(
-    ttlIndex: Index,
+  def setTtlIndex[A](
+    ttlIndex: IndexModel,
     ttlIndexName: String,
     ttl: FiniteDuration,
-    collection: JSONCollection,
+    collection: MongoCollection[A],
     logger: Logger
-  )(implicit ex: ExecutionContext): Future[WriteResult] = {
+  )(implicit ex: ExecutionContext): Future[String] = {
     def dropInvalidIndexes(): Future[Unit] =
-      collection.indexesManager.list().flatMap { indexes =>
+      collection.listIndexes().toFuture().flatMap { indexes =>
         indexes
-          .find { index =>
-            index.name.contains(ttlIndexName) &&
-            !index.options.getAs[Long]("expireAfterSeconds").contains(ttl.toSeconds)
-          }
+          .find(index => index.contains(ttlIndexName) && !index.containsValue(ttl.toSeconds))
           .map { i =>
             logger.warn(s"dropping $i as ttl value is incorrect for index")
-            collection.indexesManager.drop(ttlIndexName).map(_ => ())
+            collection.dropIndex(ttlIndexName).toFuture().map(_ => ())
           }
           .getOrElse(Future.successful(()))
       }
 
     dropInvalidIndexes()
-      .flatMap(_ => collection.indexesManager.create(ttlIndex))
+      .flatMap(_ => collection.createIndex(ttlIndex.getKeys).toFuture())
       .transform { result =>
         result.fold(
           e => logger.warn("Could not ensure ttl index", e),
