@@ -30,7 +30,7 @@ import uk.gov.hmrc.time.DateTimeUtils
 
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -46,11 +46,6 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
     ascending("lastUpdated"),
     IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
   )
-//    Index(
-//    key = Seq("lastUpdated" → IndexType.Ascending),
-//    name = Some(cacheTtlIndexName),
-//    options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
-//  )
 
   val now = DateTimeUtils.now
 
@@ -91,20 +86,9 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
         .find(in("_id", ids))
         .headOption()
         .map {
-//          list =>
-//          val (errors, values) = EitherT(list.map(readJson))
-//            .subflatMap(
-//              Either.fromOption(_, "Could not find value in JSON")
-//            )
-//            .value
-//            .partitionWith(identity)
           case None       => Left(Error(s"Could not get all values"))
           case Some(list) => Right(List(list))
 
-//          if (errors.nonEmpty)
-//            Left(Error(s"Could not get all values: ${errors.mkString(", ")}]"))
-//          else
-//            Right(values)
         }
         .recover { case exception =>
           Left(Error(exception))
@@ -124,12 +108,6 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
           Left(Error(exception))
         }
     }
-
-//  private def readJson(jsObject: JsObject): Either[String, Option[A]] =
-//    (jsObject \ objName)
-//      .validateOpt[A]
-//      .asEither
-//      .leftMap(e ⇒ s"Could not parse session data from mongo: ${e.mkString("; ")}")
 
   private def toJavaDateTime(dateTime: LocalDateTime) =
     new LocalDateTime(
