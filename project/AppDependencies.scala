@@ -9,6 +9,7 @@ object AppDependencies {
 
   val compile = Seq(
     "uk.gov.hmrc"                             %% "simple-reactivemongo"      % s"8.0.0-$playVersion",
+    "uk.gov.hmrc.mongo"                       %% "hmrc-mongo-play-28"        % mongoVersion,
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion" % "5.12.0",
     "uk.gov.hmrc"                             %% "work-item-repo"            % s"8.1.0-$playVersion",
     "org.typelevel"                           %% "cats-core"                 % "2.6.0",
@@ -28,6 +29,7 @@ object AppDependencies {
     "com.vladsch.flexmark"        % "flexmark-all"               % "0.35.10"        % "test, it",
     "uk.gov.hmrc"                %% "reactivemongo-test"         % s"5.0.0-$playVersion" % "test",
     "com.eclipsesource"          %% "play-json-schema-validator" % "0.9.5"          % "test",
+    "uk.gov.hmrc.mongo"         %% "hmrc-mongo-test-play-28"     % mongoVersion     % "test",
     "com.typesafe.akka"          %% "akka-testkit"               % akkaVersion      % Test
   )
 
