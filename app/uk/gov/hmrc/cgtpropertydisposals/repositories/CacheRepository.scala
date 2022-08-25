@@ -17,15 +17,12 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
 import java.time.LocalDateTime
+
 import cats.data.EitherT
 import cats.instances.list._
 import cats.syntax.either._
-import com.mongodb.client.model.UpdateOptions
-import org.joda.time.{DateTime, DateTimeZone}
-import org.mongodb.scala.MongoCollection
-import org.mongodb.scala.model.{Filters, UpdateOptions, Updates}
+import org.joda.time.DateTime
 import org.slf4j.Logger
-import play.api.Logging
 import play.api.libs.json._
 import reactivemongo.api.Cursor
 import reactivemongo.api.commands.WriteResult
@@ -37,15 +34,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-trait CacheRepository[A] extends PlayMongoRepository[A]  with Logging
-{
+trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
 
   implicit val ec: ExecutionContext
 
@@ -65,27 +60,29 @@ trait CacheRepository[A] extends PlayMongoRepository[A]  with Logging
       _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
     } yield result
 
-  protected lazy val zone: DateTimeZone = DateTimeZone.UTC
-
-  def withCurrentTime[A](f: DateTime => A) = f(DateTime.now.withZone(zone))
-
   def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =
     preservingMdc {
       withCurrentTime { time =>
         val lastUpdated: DateTime = overrideLastUpdatedTime.map(toJodaDateTime).getOrElse(time)
-        val selector              = Filters.equal("_id", id)
-        val modifier              = Updates.combine(Updates.set(objName, value), Updates.set("lastUpdated", lastUpdated))
+        val selector              = Json.obj("_id" -> id)
+        val modifier              = Json.obj(
+          "$set" -> Json
+            .obj(
+              objName       -> Json.toJson(value),
+              "lastUpdated" -> lastUpdated
+            )
+        )
 
         collection
-          .updateOne(selector, modifier, UpdateOptions().upsert(true))
-          .toFuture()
-          .map { result =>
-            if (result.wasAcknowledged())
+          .update(false)
+          .one(selector, modifier, upsert = true)
+          .map { writeResult =>
+            if (writeResult.ok)
               Right(())
             else
-              Left(Error(s"Could not store draft return: $result"))
+              Left(Error(s"Could not store draft return: ${writeResult.errmsg.getOrElse("-")}"))
           }
-          .recover { case e =>
+          .recover { case NonFatal(e) =>
             Left(Error(e))
           }
       }
@@ -156,11 +153,11 @@ trait CacheRepository[A] extends PlayMongoRepository[A]  with Logging
 object CacheRepository {
 
   def setTtlIndex(
-                   ttlIndex: Index,
-                   ttlIndexName: String,
-                   ttl: FiniteDuration,
-                   collection: MongoCollection[A],
-                   logger: Logger
+    ttlIndex: Index,
+    ttlIndexName: String,
+    ttl: FiniteDuration,
+    collection: JSONCollection,
+    logger: Logger
   )(implicit ex: ExecutionContext): Future[WriteResult] = {
     def dropInvalidIndexes(): Future[Unit] =
       collection.indexesManager.list().flatMap { indexes =>
