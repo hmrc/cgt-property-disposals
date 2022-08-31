@@ -7,6 +7,16 @@ object AppDependencies {
   val playVersion = "play-28"
   val mongoVersion = "0.68.0"
 
+  private val bootstrapPlay28Version = "5.24.0"
+  private val mockitoCoreVersion     = "2.25.0"
+  private val pegdownVersion         = "1.6.0"
+  private val hmrcMongoVersion       = "0.53.0"
+  private val scalacheckRegexVersion = "0.1.1"
+  private val scalacheckVersion      = "1.14.0"
+  private val scalaTestPlusVersion   = "5.1.0"
+  private val scalaTestVersion       = "3.0.8"
+  private val wireMockVersion        = "2.21.0"
+
   val compile = Seq(
     "uk.gov.hmrc.mongo"                       %% "hmrc-mongo-play-28"        % mongoVersion,
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion" % "5.12.0",
@@ -15,7 +25,7 @@ object AppDependencies {
     "com.github.kxbmap"                       %% "configs"                   % "0.6.1",
     "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer" % "20191001.1",
     "uk.gov.hmrc"                             %% "time"                      % "3.18.0",
-    "com.github.ghik"                          % "silencer-lib"              % "1.7.5" % Provided cross CrossVersion.full,
+    "com.github.ghik"                          % "silencer-lib"              % "1.7.9" % Provided cross CrossVersion.full,
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion
   )
 
