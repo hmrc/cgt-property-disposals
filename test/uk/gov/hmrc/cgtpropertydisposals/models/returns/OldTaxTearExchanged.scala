@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import cats.Eq
 import julienrf.json.derived
-import play.api.libs.json.{Json, OFormat, Reads, Writes}
+import play.api.libs.json.OFormat
 
 sealed trait OldTaxTearExchanged extends Product with Serializable
 

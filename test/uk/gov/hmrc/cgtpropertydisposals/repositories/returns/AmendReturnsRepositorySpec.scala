@@ -25,7 +25,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
+import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -38,7 +38,7 @@ class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSup
     )
   )
 
-  val repository = new DefaultAmendReturnsRepository(reactiveMongoComponent, config)
+  val repository = new DefaultAmendReturnsRepository(mongoComponent, config)
 
   "DraftAmendReturnsRepository" when {
     "inserting" should {

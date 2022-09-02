@@ -24,12 +24,10 @@ import org.mongodb.scala.model.Filters.{equal, or}
 import play.api.Configuration
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
-import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -155,9 +153,6 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
         logger.warn(s"Not returning draft returns: ${e.getMessage}")
         Left(Error(e))
       }
-
-  private def toError(e: Seq[(JsPath, Seq[JsonValidationError])]): Error =
-    Error(JsError(e).prettyPrint())
 
 }
 

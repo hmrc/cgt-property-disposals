@@ -23,11 +23,6 @@ import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.{IndexModel, IndexOptions}
 import org.scalatest.time.SpanSugar.convertLongToGrainOfTime
 import play.api.Configuration
-
-import java.time
-
-import java.time.Duration
-import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
@@ -38,7 +33,7 @@ import uk.gov.hmrc.mongo.workitem._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
-import java.time.Instant
+import java.time.{Duration, Instant}
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -63,7 +58,7 @@ class DefaultDmsSubmissionRepo @Inject() (
     extends WorkItemRepository[DmsSubmissionRequest](
       collectionName = "dms-submission-request-work-item",
       mongoComponent = mongo,
-      itemFormat = DmsSubmissionRequest.workItemFormat[DmsSubmissionRequest],
+      itemFormat = DmsSubmissionRequest.dmsSubmissionRequestFormat,
       workItemFields = WorkItemFields.default
     )
     with DmsSubmissionRepo {
@@ -71,16 +66,13 @@ class DefaultDmsSubmissionRepo @Inject() (
   override def now(): Instant =
     Instant.now()
 
-  private def throwConfigNotFoundError(key: String) =
-    throw new RuntimeException(s"Could not find config key '$key'")
-
   override def inProgressRetryAfter: Duration = Duration.ofMillis(configuration.getMillis(inProgressRetryAfterProperty))
 
   def inProgressRetryAfterProperty: String = "dms.submission-poller.in-progress-retry-after"
 
   private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl").toSeconds
 
-  private val retryPeriod = inProgressRetryAfter.toSeconds.toInt
+  private val retryPeriod = inProgressRetryAfter.toSeconds
 
   private val ttlIndexName: String = "receivedAtTime"
 
@@ -98,7 +90,7 @@ class DefaultDmsSubmissionRepo @Inject() (
   override def set(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]] =
     EitherT[Future, Error, WorkItem[DmsSubmissionRequest]](
       preservingMdc {
-        pushNew(dmsSubmissionRequest, now, (_: DmsSubmissionRequest) => ToDo).map(item => Right(item)).recover {
+        pushNew(dmsSubmissionRequest, now(), (_: DmsSubmissionRequest) => ToDo).map(item => Right(item)).recover {
           case exception: Exception => Left(Error(exception))
         }
       }
@@ -108,7 +100,7 @@ class DefaultDmsSubmissionRepo @Inject() (
     EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]](
       preservingMdc {
         super
-          .pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
+          .pullOutstanding(failedBefore = now().minusMillis(retryPeriod), availableBefore = now())
           .map(workItem => Right(workItem))
           .recover { case exception: Exception =>
             Left(Error(exception))

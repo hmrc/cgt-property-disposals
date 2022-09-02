@@ -25,7 +25,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
+import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -39,14 +39,15 @@ class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
     )
   )
 
-  val repository = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
+  val repository = new DefaultDraftReturnsRepository(mongoComponent, config)
 
   val draftReturn  = sample[DraftReturn]
   val cgtReference = sample[CgtReference]
 
   "DraftReturnsRepository" when {
 
-    repository.count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
+    repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
+//    count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
 
     "inserting" should {
       "create a new draft return successfully" in {

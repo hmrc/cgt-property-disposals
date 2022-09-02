@@ -16,14 +16,11 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
-import java.util.Base64
-
 import akka.util.ByteString
+import org.bson.types.ObjectId
 import org.joda.time.DateTime
 import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
@@ -55,14 +52,16 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.{CompleteSupportingEvidenceAnswers, SupportingEvidence}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, TaxableGainOrLossCalculationRequest, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UploadDetails, UpscanSuccess}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
-import uk.gov.hmrc.workitem.WorkItem
+import uk.gov.hmrc.mongo.workitem.WorkItem
 
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
+import java.util.Base64
 import scala.reflect.{ClassTag, classTag}
 
 object Generators
@@ -92,12 +91,10 @@ object Generators
       .sample
       .getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
 
-  implicit def arb[A](implicit g: Gen[A]): Arbitrary[A] = Arbitrary(g)
-
 }
 
 sealed trait GenUtils {
-
+  implicit def arb[A](implicit g: Gen[A]): Arbitrary[A] = Arbitrary(g)
   def gen[A](implicit arb: Arbitrary[A]): Gen[A] = arb.arbitrary
 
   // define our own Arbitrary instance for String to generate more legible strings
@@ -137,11 +134,11 @@ sealed trait GenUtils {
         .map(s => ByteString(s))
     )
 
-  implicit val bsonObjectId: Arbitrary[BSONObjectID] =
+  implicit val bsonObjectId: Arbitrary[ObjectId] =
     Arbitrary(
       Gen
         .choose(0L, 10000L)
-        .map(_ => BSONObjectID.generate())
+        .map(_ => ObjectId.get())
     )
 
   implicit val instantArb: Arbitrary[Instant] =

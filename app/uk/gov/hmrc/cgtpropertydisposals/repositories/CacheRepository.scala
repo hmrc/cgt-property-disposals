@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
 import com.mongodb.client.model.Indexes.ascending
-import org.joda.time.DateTime
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.Filters.{equal, in}
 import org.mongodb.scala.model.{IndexModel, IndexOptions, UpdateOptions, Updates}
@@ -26,12 +25,12 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
-import uk.gov.hmrc.time.DateTimeUtils
 
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
 trait CacheRepository[A] extends PlayMongoRepository[A] {
@@ -47,9 +46,9 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
     IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
   )
 
-  val now = DateTimeUtils.now
+  val now = LocalDateTime.now()
 
-  def withCurrentTime[A](f: (DateTime) => A) = f(now)
+  def withCurrentTime[B](f: (LocalDateTime) => B) = f(now)
 
   def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
@@ -80,25 +79,24 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
       }
     }
 
-  def findAll(ids: List[String]): Future[Either[Error, List[A]]] =
+  def findAll[C : ClassTag](ids: List[String]): Future[Either[Error, List[C]]] =
     preservingMdc {
       collection
-        .find(in("_id", ids))
+        .find[C](in("_id", ids))
         .headOption()
         .map {
-          case None       => Left(Error(s"Could not get all values"))
+          case None       => Left(Error(s"Could not get id value"))
           case Some(list) => Right(List(list))
-
         }
         .recover { case exception =>
           Left(Error(exception))
         }
     }
 
-  def find(id: String): Future[Either[Error, Option[A]]] =
+  def find[C : ClassTag](id: String): Future[Either[Error, Option[C]]] =
     preservingMdc {
       collection
-        .find(equal("_id", id))
+        .find[C](equal("_id", id))
         .headOption()
         .map {
           case None       => Left(Error(s"Could not find json for id $id"))
@@ -110,7 +108,7 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
     }
 
   private def toJavaDateTime(dateTime: LocalDateTime) =
-    new LocalDateTime(
+    LocalDateTime.of(
       dateTime.getYear,
       dateTime.getMonthValue,
       dateTime.getDayOfMonth,

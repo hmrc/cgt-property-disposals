@@ -25,7 +25,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
+import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -38,14 +38,15 @@ class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
     )
   )
 
-  val repository = new DefaultAmendReturnsRepository(reactiveMongoComponent, config)
+  val repository = new DefaultAmendReturnsRepository(mongoComponent, config)
 
   val submitReturnRequest = sample[SubmitReturnRequest]
   val cgtReference        = sample[CgtReference]
 
   "AmendReturnsRepository" when {
 
-    repository.count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
+    repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
+//      count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
 
     "inserting" should {
       "insert an amend return request successfully" in {

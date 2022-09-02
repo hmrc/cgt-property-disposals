@@ -115,10 +115,9 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
           )
           .toFutureOption()
           .map { dbResult =>
-            Right(Some(dbResult[TaxEnrolmentRequest]))
             dbResult match {
-              case Some(result) => Right(dbResult[TaxEnrolmentRequest])
-              case None         => Left(Error("was not able to update"))
+              case Some(_) => Right(dbResult)
+              case None    => Left(Error("was not able to update"))
             }
           }
           .recover { case exception =>

@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
-import java.time.{Clock, LocalDateTime}
-
 import com.typesafe.config.ConfigFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -25,8 +23,9 @@ import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
+import uk.gov.hmrc.mongo.test.MongoSupport
 
+import java.time.{Clock, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
@@ -39,7 +38,7 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
     )
   )
 
-  val repository = new DefaultUpscanRepository(reactiveMongoComponent, config)
+  val repository = new DefaultUpscanRepository(mongoComponent, config)
 
   "Upscan Repository" when {
     "inserting" should {
