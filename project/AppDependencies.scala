@@ -3,7 +3,7 @@ import sbt._
 
 object AppDependencies {
 
-  val akkaVersion = "2.6.14"
+  val akkaVersion = "2.6.19"
   val playVersion = "play-28"
   val mongoVersion = "0.68.0"
 
@@ -39,7 +39,12 @@ object AppDependencies {
     "com.vladsch.flexmark"        % "flexmark-all"               % "0.35.10"        % "test, it",
     "uk.gov.hmrc.mongo"          %% "hmrc-mongo-test-play-28"    % mongoVersion     % "test",
     "com.eclipsesource"          %% "play-json-schema-validator" % "0.9.5"          % "test",
-    "com.typesafe.akka"          %% "akka-testkit"               % akkaVersion      % Test
+    "com.typesafe.akka"          %% "akka-testkit"               % akkaVersion      % Test,
+    "com.typesafe.akka"          %% "akka-slf4j"                 % akkaVersion      % Test,
+    "com.typesafe.akka"          %% "akka-protobuf-v3"           % akkaVersion      % Test,
+    "com.typesafe.akka"          %% "akka-serialization-jackson" % akkaVersion      % Test,
+    "com.typesafe.akka"          %% "akka-stream"                % akkaVersion      % Test,
+    "com.typesafe.akka"          %% "akka-actor-typed"           % akkaVersion      % Test
   )
 
 }

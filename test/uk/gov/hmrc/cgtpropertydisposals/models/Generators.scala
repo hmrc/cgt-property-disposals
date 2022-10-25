@@ -91,10 +91,10 @@ object Generators
       .sample
       .getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
 
+  implicit def arb[A](implicit g: Gen[A]): Arbitrary[A] = Arbitrary(g)
 }
 
 sealed trait GenUtils {
-  implicit def arb[A](implicit g: Gen[A]): Arbitrary[A] = Arbitrary(g)
   def gen[A](implicit arb: Arbitrary[A]): Gen[A] = arb.arbitrary
 
   // define our own Arbitrary instance for String to generate more legible strings

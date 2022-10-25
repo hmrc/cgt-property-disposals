@@ -116,7 +116,6 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
       dateTime.getMinute,
       dateTime.getSecond
     )
-
 }
 
 object CacheRepository {

@@ -72,7 +72,7 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl").toSeconds
 
-  private val retryPeriod = inProgressRetryAfter.toSeconds
+  private val retryPeriod = inProgressRetryAfter.getSeconds
 
   private val ttlIndexName: String = "receivedAtTime"
 
