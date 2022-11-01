@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 final case class UpscanUploadMeta(
   reference: String,
@@ -24,5 +24,5 @@ final case class UpscanUploadMeta(
 )
 
 object UpscanUploadMeta {
-  implicit val format = Json.format[UpscanUploadMeta]
+  implicit val format: OFormat[UpscanUploadMeta] = Json.format[UpscanUploadMeta]
 }

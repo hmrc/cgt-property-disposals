@@ -10,7 +10,7 @@ object AppDependencies {
   private val bootstrapPlay28Version = "5.24.0"
   private val mockitoCoreVersion     = "2.25.0"
   private val pegdownVersion         = "1.6.0"
-  private val hmrcMongoVersion       = "0.53.0"
+  private val hmrcMongoVersion       = "0.68.0"
   private val scalacheckRegexVersion = "0.1.1"
   private val scalacheckVersion      = "1.14.0"
   private val scalaTestPlusVersion   = "5.1.0"

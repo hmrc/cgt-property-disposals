@@ -16,9 +16,11 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import java.time.LocalDateTime
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json.Format.GenericFormat
 
-import play.api.libs.json.Json
+import java.time.LocalDateTime
+import play.api.libs.json.{JsPath, Json, OFormat, Reads}
 
 final case class UpscanUpload(
   uploadReference: UploadReference,
@@ -28,5 +30,12 @@ final case class UpscanUpload(
 )
 
 object UpscanUpload {
-  implicit val format = Json.format[UpscanUpload]
+  implicit val format: OFormat[UpscanUpload] = Json.format[UpscanUpload]
+
+  implicit val reads: Reads[UpscanUpload] = (
+    (JsPath \ "uploadReference").read[UploadReference] and
+      (JsPath \ "upscanUploadMeta").read[UpscanUploadMeta] and
+      (JsPath \ "uploadedOn").read[LocalDateTime] and
+      (JsPath \ "upscanCallBack").readNullable[UpscanCallBack]
+  )(UpscanUpload.apply _)
 }

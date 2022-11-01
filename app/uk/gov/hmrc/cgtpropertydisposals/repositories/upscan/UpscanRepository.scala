@@ -83,7 +83,7 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
   override def select(
     uploadReference: UploadReference
   ): EitherT[Future, Error, Option[UpscanUpload]] =
-    EitherT(find(uploadReference.value))
+    EitherT(find[UpscanUpload](uploadReference.value))
 
   override def update(
     uploadReference: UploadReference,

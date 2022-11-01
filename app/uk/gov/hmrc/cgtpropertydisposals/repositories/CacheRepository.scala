@@ -107,6 +107,13 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
         }
     }
 
+//  private def readJson(jsObject: JsObject): Option[A] =
+//    (jsObject \ objName)
+//      .validateOpt[A](domainFormat)
+//      .get
+//      .asEither
+//      .leftMap(Left(Error(s"Could not find json for id $id")))
+
   private def toJavaDateTime(dateTime: LocalDateTime) =
     LocalDateTime.of(
       dateTime.getYear,
