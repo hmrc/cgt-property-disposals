@@ -21,8 +21,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Postcode
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.mongo.test.MongoSupport
 
@@ -66,13 +64,14 @@ class TaxEnrolmentRepositorySpec extends AnyWordSpec with Matchers with MongoSup
     }
 
     "updating" should {
-//      val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
-      val updatedTaxEnrolmentRequest1 = TaxEnrolmentRequest("", "", UkAddress("", None, None, None, Postcode("")))
-      //   val updatedTaxEnrolmentRequest  = sample[TaxEnrolmentRequest].copy(ggCredId = taxEnrolmentRequest.ggCredId)
+      val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
+      // val updatedTaxEnrolmentRequest1 = TaxEnrolmentRequest("", "", UkAddress("", None, None, None, Postcode("")))
+
       "return a the updated tax enrolment record" in {
-        await(repository.save(taxEnrolmentRequest).value)
-        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest1).value) shouldBe (Right(
-          Some(updatedTaxEnrolmentRequest1)
+        val result = await(repository.save(taxEnrolmentRequest).value)
+        result                                                                                   shouldBe result
+        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe (Right(
+          Some(updatedTaxEnrolmentRequest)
         ))
       }
     }

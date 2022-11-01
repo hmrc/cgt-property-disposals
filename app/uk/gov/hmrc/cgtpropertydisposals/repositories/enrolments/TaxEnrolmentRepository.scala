@@ -110,7 +110,12 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
         collection
           .findOneAndUpdate(
             filter = equal("ggCredId", ggCredId),
-            update = Updates.set("cgtEnrolmentRequest", Codecs.toBson(cgtEnrolmentRequest)),
+            update = Updates.combine(
+              Updates.set("ggCredId", cgtEnrolmentRequest.ggCredId),
+              Updates.set("cgtReference", cgtEnrolmentRequest.cgtReference),
+              Updates.set("address", Codecs.toBson(cgtEnrolmentRequest.address)),
+              Updates.set("timestamp", Codecs.toBson(cgtEnrolmentRequest.timestamp))
+            ),
             options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
           )
           .toFutureOption()
