@@ -65,14 +65,13 @@ class TaxEnrolmentRepositorySpec extends AnyWordSpec with Matchers with MongoSup
 
     "updating" should {
       val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
-      // val updatedTaxEnrolmentRequest1 = TaxEnrolmentRequest("", "", UkAddress("", None, None, None, Postcode("")))
 
       "return a the updated tax enrolment record" in {
         val result = await(repository.save(taxEnrolmentRequest).value)
         result                                                                                   shouldBe result
-        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe (Right(
+        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value) shouldBe Right(
           Some(updatedTaxEnrolmentRequest)
-        ))
+        )
       }
     }
 

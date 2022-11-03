@@ -79,10 +79,10 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
     (mockUpscanService
       .readUpscanUpload(_: UploadReference))
       .expects(uploadReference)
-      .returning(EitherT[Future, Error, Option[UpscanUpload]](Future.successful(response)))
+      .returning(EitherT[Future, Error, Option[UpscanUploadNew]](Future.successful(response)))
 
   def mockGetUpscanUploads(uploadReferences: List[UploadReference])(
-    response: Either[Error, List[UpscanUpload]]
+    response: Either[Error, List[UpscanUploadNew]]
   ) =
     (mockUpscanService
       .readUpscanUploads(_: List[UploadReference]))
@@ -196,7 +196,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
       "return a 200 OK if the backend call succeeds" in {
 
-        val upscanUpload = sample[UpscanUpload]
+        val upscanUpload = sample[UpscanUploadNew]
 
         val request =
           new AuthenticatedRequest(

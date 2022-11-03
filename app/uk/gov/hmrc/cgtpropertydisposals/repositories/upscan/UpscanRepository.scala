@@ -38,7 +38,7 @@ trait UpscanRepository {
 
   def select(
     uploadReference: UploadReference
-  ): EitherT[Future, Error, Option[UpscanUpload]]
+  ): EitherT[Future, Error, Option[UpscanUploadNew]]
 
   def update(
     uploadReference: UploadReference,
@@ -54,14 +54,14 @@ trait UpscanRepository {
 @Singleton
 class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends PlayMongoRepository[UpscanUpload](
+) extends PlayMongoRepository[UpscanUploadNew](
       mongoComponent = mongo,
       collectionName = "upscan",
-      domainFormat = UpscanUpload.format,
+      domainFormat = UpscanUploadNew.format,
       indexes = Seq()
     )
     with UpscanRepository
-    with CacheRepository[UpscanUpload] {
+    with CacheRepository[UpscanUploadNew] {
 
   override val cacheTtlIndexName: String = "upscan-cache-ttl"
 
@@ -75,15 +75,15 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
     EitherT(
       set(
         upscanUpload.uploadReference.value,
-        upscanUpload,
+        UpscanUploadNew(upscanUpload),
         Some(upscanUpload.uploadedOn)
       )
     )
 
   override def select(
     uploadReference: UploadReference
-  ): EitherT[Future, Error, Option[UpscanUpload]] =
-    EitherT(find[UpscanUpload](uploadReference.value))
+  ): EitherT[Future, Error, Option[UpscanUploadNew]] =
+    EitherT(find[UpscanUploadNew](uploadReference.value))
 
   override def update(
     uploadReference: UploadReference,
@@ -92,7 +92,7 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
     EitherT(
       set(
         uploadReference.value,
-        upscanUpload,
+        UpscanUploadNew(upscanUpload),
         Some(upscanUpload.uploadedOn)
       )
     )

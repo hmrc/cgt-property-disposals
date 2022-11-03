@@ -130,12 +130,13 @@ class UpscanController @Inject() (
   ): Future[Result] = {
     val result = for {
       maybeUpscanUpload <- upscanService.readUpscanUpload(uploadReference)
-      upscanUpload      <- EitherT.fromOption(
+      upscanUploadNew   <- EitherT.fromOption(
                              maybeUpscanUpload,
                              Error(
                                s"could not get upscan upload value from db for upload reference $uploadReference"
                              )
                            )
+      upscanUpload       = upscanUploadNew.upscanUpload
       newCallBackResult <- if (fileStatus === READY_FOR_DOWNLOAD)
                              EitherT.fromOption(
                                request.body.asOpt[NewUpscanSuccess],

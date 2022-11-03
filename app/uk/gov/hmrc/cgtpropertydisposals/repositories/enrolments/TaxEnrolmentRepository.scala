@@ -106,7 +106,6 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
   ): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
     EitherT[Future, Error, Option[TaxEnrolmentRequest]](
       preservingMdc {
-        println(Console.BLUE_B + "LIne 111" + Console.RESET)
         collection
           .findOneAndUpdate(
             filter = equal("ggCredId", ggCredId),
