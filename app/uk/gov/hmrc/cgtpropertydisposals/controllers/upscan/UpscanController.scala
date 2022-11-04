@@ -136,7 +136,7 @@ class UpscanController @Inject() (
                                s"could not get upscan upload value from db for upload reference $uploadReference"
                              )
                            )
-      upscanUpload       = upscanUploadNew.upscanUpload
+      upscanUpload       = upscanUploadNew.upscan
       newCallBackResult <- if (fileStatus === READY_FOR_DOWNLOAD)
                              EitherT.fromOption(
                                request.body.asOpt[NewUpscanSuccess],
