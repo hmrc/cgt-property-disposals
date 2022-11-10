@@ -54,7 +54,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UploadDetails, UpscanSuccess}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
@@ -245,11 +245,12 @@ trait LowerPriorityDraftReturnGen { this: GenUtils =>
 }
 
 trait UpscanGen { this: GenUtils =>
-  implicit val uploadDetails: Gen[UploadDetails]        = gen[UploadDetails]
-  implicit val newUpscanSuccess: Gen[NewUpscanSuccess]  = gen[NewUpscanSuccess]
-  implicit val upscanUploadGen: Gen[UpscanUpload]       = gen[UpscanUpload]
-  implicit val uploadReferenceGen: Gen[UploadReference] = gen[UploadReference]
-  implicit val upscanSuccessGen: Gen[UpscanSuccess]     = gen[UpscanSuccess]
+  implicit val uploadDetails: Gen[UploadDetails]            = gen[UploadDetails]
+  implicit val newUpscanSuccess: Gen[NewUpscanSuccess]      = gen[NewUpscanSuccess]
+  implicit val upscanUploadGen: Gen[UpscanUpload]           = gen[UpscanUpload]
+  implicit val upscanUploadNewGen: Gen[UpscanUploadWrapper] = gen[UpscanUploadWrapper]
+  implicit val uploadReferenceGen: Gen[UploadReference]     = gen[UploadReference]
+  implicit val upscanSuccessGen: Gen[UpscanSuccess]         = gen[UpscanSuccess]
 }
 
 trait DmsSubmissionGen {

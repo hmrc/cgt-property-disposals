@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.util.UUID
+import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 
-import play.api.libs.json.{Json, OFormat}
+import java.util.UUID
+import play.api.libs.json.{Format, __}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
@@ -35,6 +36,16 @@ final case class SubmitReturnRequest(
 
 object SubmitReturnRequest {
 
-  implicit val format: OFormat[SubmitReturnRequest] = Json.format[SubmitReturnRequest]
+//  implicit val format: OFormat[SubmitReturnRequest] = Json.format[SubmitReturnRequest]
+
+  implicit val format: Format[SubmitReturnRequest] =
+    ((__ \ "completeReturn").format[CompleteReturn]
+      ~ (__ \ "_id").format[UUID]
+      ~ (__ \ "subscribedDetails").format[SubscribedDetails]
+      ~ (__ \ "agentReferenceNumber").formatNullable[AgentReferenceNumber]
+      ~ (__ \ "isFurtherReturn").format[Boolean]
+      ~ (__ \ "checkYourAnswerPageHtml").format[B64Html]
+      ~ (__ \ "amendReturnData")
+        .formatNullable[AmendReturnData])(SubmitReturnRequest.apply, unlift(SubmitReturnRequest.unapply))
 
 }

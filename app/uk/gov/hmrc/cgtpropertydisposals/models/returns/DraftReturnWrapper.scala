@@ -14,37 +14,25 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.upscan
+package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.functional.syntax.unlift
-import play.api.libs.json.{Format, Json, OFormat, __}
-import play.api.libs.functional.syntax._
-
+import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.json.{Format, __}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
 
-final case class UpscanUploadNew(
-  upscan: UpscanUpload
-)
-
-object UpscanUploadNew {
-  implicit val format: OFormat[UpscanUploadNew] = Json.format[UpscanUploadNew]
-}
-
-final case class UpscanUpload2(
+final case class DraftReturnWrapper(
   id: String,
-  upscan: UpscanUpload,
+  draftReturn: DraftReturn,
   lastUpdated: Instant
 )
 
-object UpscanUpload2 {
-
-  val format: Format[UpscanUpload2] = {
+object DraftReturnWrapper {
+  val format: Format[DraftReturnWrapper] = {
     implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
     ((__ \ "_id").format[String]
-      ~ (__ \ "upscan").format[UpscanUpload]
-      ~ (__ \ "lastUpdated").format[Instant])(UpscanUpload2.apply, unlift(UpscanUpload2.unapply))
+      ~ (__ \ "return").format[DraftReturn]
+      ~ (__ \ "lastUpdated").format[Instant])(DraftReturnWrapper.apply, unlift(DraftReturnWrapper.unapply))
   }
-
 }

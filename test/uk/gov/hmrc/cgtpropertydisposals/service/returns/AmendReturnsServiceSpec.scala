@@ -46,7 +46,7 @@ class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory
 
   def mockGetAmendReturnList(
     cgtReference: CgtReference
-  )(result: Either[Error, List[SubmitReturnRequest]]) =
+  )(result: Either[Error, List[SubmitReturnWrapper]]) =
     (mockAmendReturnsRepo
       .fetch(_: CgtReference))
       .expects(cgtReference)

@@ -20,19 +20,21 @@ import cats.data.EitherT
 import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
+import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import org.mongodb.scala.model.Filters.{equal, or}
 import play.api.Configuration
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, DraftReturnWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
+import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,7 +42,7 @@ import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultDraftReturnsRepository])
 trait DraftReturnsRepository {
-  def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]]
+  def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturnWrapper]]
 
   def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit]
 
@@ -52,14 +54,14 @@ trait DraftReturnsRepository {
 @Singleton
 class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends PlayMongoRepository[DraftReturnWithCgtReference](
+) extends PlayMongoRepository[DraftReturnWrapper](
       mongoComponent = mongo,
       collectionName = "draft-returns",
-      domainFormat = DraftReturnWithCgtReference.format,
+      domainFormat = DraftReturnWrapper.format,
       indexes = Seq()
     )
     with DraftReturnsRepository
-    with CacheRepository[DraftReturnWithCgtReference] {
+    with CacheRepository[DraftReturnWrapper] {
 
   val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
   val maxDraftReturns: Int      = config.underlying.get[Int]("mongodb.draft-returns.max-draft-returns").value
@@ -67,7 +69,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
   val objName: String           = "return"
   val key: String               = "return.cgtReference.value"
 
-  override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
+  override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturnWrapper]] =
     EitherT(
       preservingMdc {
         get(cgtReference)
@@ -75,11 +77,27 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
     ).map(_.map(_.draftReturn))
 
   override def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =
-    EitherT(
-      preservingMdc {
-        set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id))
-      }
-    )
+//    EitherT(
+//      preservingMdc {
+//        set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id))
+//      }
+//    )
+    EitherT(preservingMdc {
+      val time     = Instant.now()
+      val selector = Filters.equal("_id", draftReturn.id.toString)
+      val modifier = Updates.combine(
+        Updates.set("return", Codecs.toBson(DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id))),
+        Updates.set("lastUpdated", time),
+        Updates.setOnInsert("_id", draftReturn.id.toString)
+      )
+      val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
+      collection
+        .findOneAndUpdate(selector, modifier, options)
+        .toFuture()
+        .map(_ => Right(()))
+        .recover { case NonFatal(e) => Left(Error(e)) }
+
+    })
 
   override def delete(cgtReference: CgtReference): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
@@ -146,7 +164,6 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
 //        }
 //        val (errors, draftReturns)                              = p.partitionWith(identity)
 //        if (errors.nonEmpty)
-
         Right(returns.toList)
       }
       .recover { case NonFatal(e) =>
