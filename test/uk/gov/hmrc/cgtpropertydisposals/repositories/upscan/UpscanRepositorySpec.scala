@@ -25,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.mongo.test.MongoSupport
 
-import java.time.{Clock, LocalDateTime, ZoneOffset}
+import java.time.{Clock, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
@@ -59,10 +59,10 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
           uploadReference = UploadReference(s"${upscanUpload.uploadReference}-2"),
           uploadedOn = LocalDateTime.now(Clock.systemUTC())
         )
-        val upscanUploadNew = sample[UpscanUploadWrapper].copy(
-          s"${upscanUpload.uploadReference.value}-2",
-          newUpscanUpload
-        )
+//        val upscanUploadNew = sample[UpscanUploadWrapper].copy(
+//          s"${upscanUpload.uploadReference.value}-2",
+//          newUpscanUpload
+//        )
 
         await(
           repository
@@ -77,7 +77,7 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
           repository
             .select(upscanUpload.uploadReference)
             .value
-        ) shouldBe Right(Some(upscanUploadNew))
+        ) shouldBe Right(Some(newUpscanUpload))
       }
     }
 
@@ -85,8 +85,8 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
       "select an upscan upload document if it exists" in {
         import java.time.Instant
 
+        val k  = LocalDateTime.now(Clock.systemUTC())
         val in = Instant.now()
-        val k  = in.atZone(ZoneOffset.UTC).toLocalDateTime
 
         val upscanUpload  = sample[UpscanUpload].copy(uploadedOn = k)
         val upscanUpload2 = sample[UpscanUpload].copy(uploadedOn = k)

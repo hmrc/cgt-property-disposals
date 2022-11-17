@@ -21,7 +21,7 @@ import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, DraftReturnWrapper}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DraftReturnsRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
@@ -45,7 +45,7 @@ class DefaultDraftReturnsService @Inject() (
 ) extends DraftReturnsService
     with Logging {
 
-  def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturnWrapper]] =
+  def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
     draftReturnRepository.fetch(cgtReference)
 
   override def saveDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =

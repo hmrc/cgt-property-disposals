@@ -103,11 +103,10 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
     EitherT(preservingMdc {
-      val time     = Instant.now()
       val selector = Filters.equal("_id", upscanUpload.uploadReference.value)
       val modifier = Updates.combine(
         Updates.set("upscan", Codecs.toBson(upscanUpload)),
-        Updates.set("lastUpdated", time),
+        Updates.set("lastUpdated", upscanUpload.uploadedOn),
         Updates.setOnInsert("_id", upscanUpload.uploadReference.value)
       )
       val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)

@@ -60,7 +60,6 @@ class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with MongoSupport 
   )
 
   "DmsSubmission Repo" when {
-
     "set" should {
       "insert a dms request" in {
         val dmsSubmissionRequest = sample[DmsSubmissionRequest]
