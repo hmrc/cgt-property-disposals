@@ -163,8 +163,8 @@ object DefaultDraftReturnsRepository {
 
   object DraftReturnWithCgtReference {
     val format: Format[DraftReturnWithCgtReference] =
-      ((__ \ "return").format[DraftReturn]
-        ~ (__ \ "reference").format[CgtReference]
-        ~ (__ \ "_id").format[UUID])(DraftReturnWithCgtReference.apply, unlift(DraftReturnWithCgtReference.unapply))
+      ((__ \ "draftReturn").format[DraftReturn]
+        ~ (__ \ "cgtReference").format[CgtReference]
+        ~ (__ \ "draftId").format[UUID])(DraftReturnWithCgtReference.apply, unlift(DraftReturnWithCgtReference.unapply))
   }
 }
