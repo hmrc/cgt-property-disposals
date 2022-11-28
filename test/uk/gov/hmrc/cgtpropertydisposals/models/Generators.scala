@@ -308,6 +308,8 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
   implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
 
+  implicit val submitReturnWrapperGen: Gen[SubmitReturnWrapper] = gen[SubmitReturnWrapper]
+
   implicit val submitReturnResponseGen: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
 
   implicit val taxYearGen: Gen[TaxYear] = gen[TaxYear]

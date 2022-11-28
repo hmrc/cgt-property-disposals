@@ -25,13 +25,12 @@ import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnWrapper}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
+import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
-import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -40,13 +39,15 @@ import scala.util.control.NonFatal
 trait AmendReturnsRepository {
 
   def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnWrapper]]
-  def save(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit]
+  def save(
+    submitReturnRequest: SubmitReturnRequest
+  ): EitherT[Future, Error, Unit]
 
 }
 
 @Singleton
-class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
-  val ec: ExecutionContext
+class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration, clock: CurrentInstant)(
+  implicit val ec: ExecutionContext
 ) extends PlayMongoRepository[SubmitReturnWrapper](
       mongoComponent = mongo,
       collectionName = "amend-returns",
@@ -73,11 +74,10 @@ class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Co
     submitReturnRequest: SubmitReturnRequest
   ): EitherT[Future, Error, Unit] =
     EitherT(preservingMdc {
-      val time     = Instant.now()
       val selector = Filters.equal("_id", submitReturnRequest.id.toString)
       val modifier = Updates.combine(
         Updates.set("return", Codecs.toBson(submitReturnRequest)),
-        Updates.set("lastUpdated", time),
+        Updates.set("lastUpdated", clock.currentInstant()),
         Updates.setOnInsert("_id", submitReturnRequest.id.toString)
       )
       val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)

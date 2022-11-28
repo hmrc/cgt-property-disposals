@@ -19,16 +19,16 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
+import org.mongodb.scala.model.Filters.in
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
-import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
+import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
-import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -56,7 +56,7 @@ trait UpscanRepository {
 }
 
 @Singleton
-class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
+class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configuration, clock: CurrentInstant)(implicit
   val ec: ExecutionContext
 ) extends PlayMongoRepository[UpscanUploadWrapper](
       mongoComponent = mongo,
@@ -77,11 +77,10 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
     EitherT(preservingMdc {
-      val time     = Instant.now()
       val selector = Filters.equal("_id", upscanUpload.uploadReference.value)
       val modifier = Updates.combine(
         Updates.set("upscan", Codecs.toBson(upscanUpload)),
-        Updates.set("lastUpdated", time),
+        Updates.set("lastUpdated", clock.currentInstant()),
         Updates.setOnInsert("_id", upscanUpload.uploadReference.value)
       )
       val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
@@ -103,7 +102,7 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
     EitherT(preservingMdc {
-      val selector = Filters.equal("_id", upscanUpload.uploadReference.value)
+      val selector = Filters.equal("_id", uploadReference.value)
       val modifier = Updates.combine(
         Updates.set("upscan", Codecs.toBson(upscanUpload)),
         Updates.set("lastUpdated", upscanUpload.uploadedOn),
@@ -121,6 +120,19 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
   override def selectAll(
     uploadReference: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUploadWrapper]] =
-    EitherT(findAll(uploadReference.map(_.value)))
+    EitherT(
+      preservingMdc {
+        collection
+          .find(in("_id", uploadReference.map(_.value): _*))
+          .toFuture()
+          .map { a =>
+            if (a.isEmpty) Left(Error(s"Could not get ids value"))
+            else Right(a.toList)
+          }
+          .recover { case exception =>
+            Left(Error(exception))
+          }
+      }
+    )
 
 }

@@ -29,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.repositories.DefaultCurrentInstant
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.AmendReturnsRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -43,6 +44,8 @@ class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory
 
   implicit val hc: HeaderCarrier   = HeaderCarrier()
   implicit val request: Request[_] = FakeRequest()
+
+  val currentInstance = new DefaultCurrentInstant
 
   def mockGetAmendReturnList(
     cgtReference: CgtReference

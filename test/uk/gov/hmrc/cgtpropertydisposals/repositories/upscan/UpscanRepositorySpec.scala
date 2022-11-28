@@ -23,9 +23,10 @@ import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.CurrentInstant
 import uk.gov.hmrc.mongo.test.MongoSupport
 
-import java.time.{Clock, LocalDateTime}
+import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
@@ -38,7 +39,13 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
     )
   )
 
-  val repository = new DefaultUpscanRepository(mongoComponent, config)
+  val stagedInstant = sample[UpscanUploadWrapper].lastUpdated
+
+  val currentInstant = new CurrentInstant {
+    override def currentInstant(): Instant = stagedInstant
+  }
+
+  val repository = new DefaultUpscanRepository(mongoComponent, config, currentInstant)
 
   "Upscan Repository" when {
     "inserting" should {
@@ -57,12 +64,13 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 
         val newUpscanUpload = sample[UpscanUpload].copy(
           uploadReference = UploadReference(s"${upscanUpload.uploadReference}-2"),
-          uploadedOn = LocalDateTime.now(Clock.systemUTC())
+          uploadedOn = LocalDateTime.ofInstant(stagedInstant, ZoneOffset.UTC)
         )
-//        val upscanUploadNew = sample[UpscanUploadWrapper].copy(
-//          s"${upscanUpload.uploadReference.value}-2",
-//          newUpscanUpload
-//        )
+        val upscanUploadNew = sample[UpscanUploadWrapper].copy(
+          upscanUpload.uploadReference.value,
+          newUpscanUpload,
+          stagedInstant
+        )
 
         await(
           repository
@@ -77,24 +85,26 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
           repository
             .select(upscanUpload.uploadReference)
             .value
-        ) shouldBe Right(Some(newUpscanUpload))
+        ) shouldBe Right(Some(upscanUploadNew))
       }
     }
 
     "selecting upscan upload documents" should {
       "select an upscan upload document if it exists" in {
-        import java.time.Instant
 
-        val k  = LocalDateTime.now(Clock.systemUTC())
-        val in = Instant.now()
+        val upscanUpload  = sample[UpscanUpload]
+        val upscanUpload2 = sample[UpscanUpload]
 
-        val upscanUpload  = sample[UpscanUpload].copy(uploadedOn = k)
-        val upscanUpload2 = sample[UpscanUpload].copy(uploadedOn = k)
-
-        val upscanUploadNew = sample[UpscanUploadWrapper].copy(
+        val upscanUploadWrapper = sample[UpscanUploadWrapper].copy(
           id = upscanUpload.uploadReference.value,
           upscan = upscanUpload,
-          lastUpdated = in
+          lastUpdated = stagedInstant
+        )
+
+        val upscanUploadWrapper2 = sample[UpscanUploadWrapper].copy(
+          id = upscanUpload2.uploadReference.value,
+          upscan = upscanUpload2,
+          lastUpdated = stagedInstant
         )
 
         await(repository.insert(upscanUpload).value)  shouldBe Right(())
@@ -104,11 +114,11 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
           repository
             .select(upscanUpload.uploadReference)
             .value
-        ) shouldBe Right(Some(upscanUploadNew))
+        ) shouldBe Right(Some(upscanUploadWrapper))
 
         await(repository.selectAll(List(upscanUpload.uploadReference, upscanUpload2.uploadReference)).value)
           .map(_.toSet) shouldBe Right(
-          Set(upscanUpload, upscanUpload2)
+          Set(upscanUploadWrapper, upscanUploadWrapper2)
         )
 
       }

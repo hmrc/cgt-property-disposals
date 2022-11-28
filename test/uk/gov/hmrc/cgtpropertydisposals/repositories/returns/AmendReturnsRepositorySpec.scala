@@ -24,9 +24,11 @@ import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnWrapper}
 import uk.gov.hmrc.mongo.test.MongoSupport
+import uk.gov.hmrc.cgtpropertydisposals.repositories.CurrentInstant
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSupport with MockFactory {
@@ -38,7 +40,13 @@ class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSup
     )
   )
 
-  val repository = new DefaultAmendReturnsRepository(mongoComponent, config)
+  val stagedInstant = sample[SubmitReturnWrapper].lastUpdated
+
+  val currentInstant = new CurrentInstant {
+    override def currentInstant(): Instant = stagedInstant
+  }
+
+  val repository = new DefaultAmendReturnsRepository(mongoComponent, config, currentInstant)
 
   "DraftAmendReturnsRepository" when {
     "inserting" should {
@@ -56,10 +64,23 @@ class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSup
         val submitReturnRequest1 = sample[SubmitReturnRequest].copy(subscribedDetails = subscribedDetails)
         val submitReturnRequest2 = sample[SubmitReturnRequest].copy(subscribedDetails = subscribedDetails)
 
+        val submitReturnWrapper1 = sample[SubmitReturnWrapper]
+          .copy(
+            id = submitReturnRequest1.id.toString,
+            submitReturnRequest = submitReturnRequest1,
+            lastUpdated = stagedInstant
+          )
+        val submitReturnWrapper2 = sample[SubmitReturnWrapper]
+          .copy(
+            id = submitReturnRequest2.id.toString,
+            submitReturnRequest = submitReturnRequest2,
+            lastUpdated = stagedInstant
+          )
+
         await(repository.save(submitReturnRequest1).value)       shouldBe Right(())
         await(repository.save(submitReturnRequest2).value)       shouldBe Right(())
         await(repository.fetch(cgtReference).value).map(_.toSet) shouldBe Right(
-          Set(submitReturnRequest1, submitReturnRequest2)
+          Set(submitReturnWrapper1, submitReturnWrapper2)
         )
       }
     }

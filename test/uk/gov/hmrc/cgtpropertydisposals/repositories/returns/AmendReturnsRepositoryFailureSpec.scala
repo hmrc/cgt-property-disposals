@@ -25,6 +25,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.repositories.DefaultCurrentInstant
 import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -38,7 +39,9 @@ class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
     )
   )
 
-  val repository = new DefaultAmendReturnsRepository(mongoComponent, config)
+  val defaultCurrentInstant = new DefaultCurrentInstant
+
+  val repository = new DefaultAmendReturnsRepository(mongoComponent, config, defaultCurrentInstant)
 
   val submitReturnRequest = sample[SubmitReturnRequest]
   val cgtReference        = sample[CgtReference]

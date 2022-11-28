@@ -25,14 +25,14 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
-import uk.gov.hmrc.mongo.test.MongoSupport
+import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, InProgress, PermanentlyFailed}
 import uk.gov.hmrc.mongo.workitem.WorkItem
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with MongoSupport with MockFactory {
+class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
   val config = Configuration(
     ConfigFactory.parseString(
       """
