@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class GetDraftReturnResponse(draftReturns: List[DraftReturn])
+final case class GetDraftReturnResponse(draftReturns: Seq[DraftReturn])
 
 object GetDraftReturnResponse {
 

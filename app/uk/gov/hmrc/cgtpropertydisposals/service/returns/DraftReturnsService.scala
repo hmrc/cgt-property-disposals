@@ -30,7 +30,7 @@ import scala.concurrent.Future
 @ImplementedBy(classOf[DefaultDraftReturnsService])
 trait DraftReturnsService {
 
-  def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]]
+  def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, Seq[DraftReturn]]
 
   def saveDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit]
 
@@ -45,7 +45,7 @@ class DefaultDraftReturnsService @Inject() (
 ) extends DraftReturnsService
     with Logging {
 
-  def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
+  def getDraftReturn(cgtReference: CgtReference): EitherT[Future, Error, Seq[DraftReturn]] =
     draftReturnRepository.fetch(cgtReference)
 
   override def saveDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =

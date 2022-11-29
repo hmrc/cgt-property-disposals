@@ -19,13 +19,13 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 import cats.data.EitherT
 import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
 import org.mongodb.scala.model.Filters
+import configs.syntax._
 import org.mongodb.scala.model.Filters.{equal, or}
-import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
-import play.api.libs.json.{Format, __}
 import play.api.Configuration
-import play.api.libs.json.JsPath.\
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Format.GenericFormat
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -33,18 +33,16 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultDraftReturnsRepository])
 trait DraftReturnsRepository {
-  def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]]
+  def fetch(cgtReference: CgtReference): EitherT[Future, Error, Seq[DraftReturn]]
 
   def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit]
 
@@ -71,7 +69,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
   val objName: String           = "return"
   val key: String               = "return.cgtReference.value"
 
-  override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
+  override def fetch(cgtReference: CgtReference): EitherT[Future, Error, Seq[DraftReturn]] =
     EitherT(
       preservingMdc {
         get(cgtReference)
@@ -134,27 +132,13 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       }
     )
 
-  private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] =
+  private def get(cgtReference: CgtReference): Future[Either[Error, Seq[DraftReturnWithCgtReference]]] =
     collection
-      .find(filter = Filters.equal("_id", cgtReference.value))
-      .toFuture()
-      .map { returns =>
-//        val p: List[Either[Error, DraftReturnWithCgtReference]] = l.map { json =>
-//          (json \ objName).validate[DraftReturnWithCgtReference].asEither.leftMap(toError)
-//        }
-//        val (errors, draftReturns)                              = p.partitionWith(identity)
-//        if (errors.nonEmpty)
-
-        val (errors, draftReturns)                              = returns.partitionWith(identity)
-        println(s"cgtReference ->  ${cgtReference.value}")
-        println(s"GET ${returns.toList.distinct}")
-        Right(returns.toList.distinct)
+      .find(filter = Filters.equal(key, cgtReference.value))
+      .toFuture
+      .map { json =>
+        Right(json)
       }
-      .recover { case NonFatal(e) =>
-        logger.warn(s"Not returning draft returns: ${e.getMessage}")
-        Left(Error(e))
-      }
-
 }
 
 object DefaultDraftReturnsRepository {
@@ -162,9 +146,26 @@ object DefaultDraftReturnsRepository {
   final case class DraftReturnWithCgtReference(draftReturn: DraftReturn, cgtReference: CgtReference, draftId: UUID)
 
   object DraftReturnWithCgtReference {
-    val format: Format[DraftReturnWithCgtReference] =
-      ((__ \ "draftReturn").format[DraftReturn]
-        ~ (__ \ "cgtReference").format[CgtReference]
-        ~ (__ \ "draftId").format[UUID])(DraftReturnWithCgtReference.apply, unlift(DraftReturnWithCgtReference.unapply))
+
+//    val format: Format[DraftReturnWithCgtReference] =
+//      ((__ \ "draftReturn").format[DraftReturn]
+//        ~ (__ \ "cgtReference").format[CgtReference]
+//        ~ (__ \ "draftId").format[UUID])(DraftReturnWithCgtReference.apply, unlift(DraftReturnWithCgtReference.unapply))
+
+    val reads: Reads[DraftReturnWithCgtReference] =
+      (
+        (JsPath \ "draftReturn").read[DraftReturn] and
+          (JsPath \ "cgtReference").read[CgtReference] and
+          (JsPath \ "draftId").read[UUID]
+      )(DraftReturnWithCgtReference.apply _)
+
+    val writes: OWrites[DraftReturnWithCgtReference] =
+      (
+        (JsPath \ "draftReturn").write[DraftReturn] and
+          (JsPath \ "cgtReference").write[CgtReference] and
+          (JsPath \ "draftId").write[UUID]
+      )(unlift(DraftReturnWithCgtReference.unapply))
+
+    implicit val format: OFormat[DraftReturnWithCgtReference] = OFormat(reads, writes)
   }
 }
