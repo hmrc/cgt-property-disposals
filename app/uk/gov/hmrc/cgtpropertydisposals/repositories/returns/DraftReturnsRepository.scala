@@ -21,21 +21,24 @@ import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import org.mongodb.scala.model.Filters
 import configs.syntax._
+import org.bson.types.ObjectId
 import org.mongodb.scala.model.Filters.{equal, or}
 import play.api.Configuration
+import play.api.libs.json._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Format.GenericFormat
-import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
-import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
+import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.{DraftReturnWithCgtReference, DraftReturnWithCgtReferenceWrapper}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
+import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -54,10 +57,10 @@ trait DraftReturnsRepository {
 @Singleton
 class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends PlayMongoRepository[DraftReturnWithCgtReference](
+) extends PlayMongoRepository[DraftReturnWithCgtReferenceWrapper](
       mongoComponent = mongo,
       collectionName = "draft-returns",
-      domainFormat = DraftReturnWithCgtReference.format,
+      domainFormat = DraftReturnWithCgtReferenceWrapper.format,
       indexes = Seq()
     )
     with DraftReturnsRepository
@@ -137,21 +140,26 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       .find(filter = Filters.equal(key, cgtReference.value))
       .toFuture
       .map { json =>
-        Right(json)
+        Right(json.map(_.returns))
       }
 }
 
 object DefaultDraftReturnsRepository {
 
-  final case class DraftReturnWithCgtReference(draftReturn: DraftReturn, cgtReference: CgtReference, draftId: UUID)
+  final case class DraftReturnWithCgtReferenceWrapper(
+    _id: String,
+    lastUpdated: Instant,
+    returns: DraftReturnWithCgtReference
+  )
+
+  object DraftReturnWithCgtReferenceWrapper {
+    implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
+    implicit val format               = Json.format[DraftReturnWithCgtReferenceWrapper]
+  }
+
+  case class DraftReturnWithCgtReference(draftReturn: DraftReturn, cgtReference: CgtReference, draftId: UUID)
 
   object DraftReturnWithCgtReference {
-
-//    val format: Format[DraftReturnWithCgtReference] =
-//      ((__ \ "draftReturn").format[DraftReturn]
-//        ~ (__ \ "cgtReference").format[CgtReference]
-//        ~ (__ \ "draftId").format[UUID])(DraftReturnWithCgtReference.apply, unlift(DraftReturnWithCgtReference.unapply))
-
     val reads: Reads[DraftReturnWithCgtReference] =
       (
         (JsPath \ "draftReturn").read[DraftReturn] and
@@ -159,13 +167,12 @@ object DefaultDraftReturnsRepository {
           (JsPath \ "draftId").read[UUID]
       )(DraftReturnWithCgtReference.apply _)
 
-    val writes: OWrites[DraftReturnWithCgtReference] =
+    val writes: OWrites[DraftReturnWithCgtReference]          =
       (
         (JsPath \ "draftReturn").write[DraftReturn] and
           (JsPath \ "cgtReference").write[CgtReference] and
           (JsPath \ "draftId").write[UUID]
       )(unlift(DraftReturnWithCgtReference.unapply))
-
     implicit val format: OFormat[DraftReturnWithCgtReference] = OFormat(reads, writes)
   }
 }
