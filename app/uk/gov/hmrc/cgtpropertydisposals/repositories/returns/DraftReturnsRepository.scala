@@ -21,7 +21,6 @@ import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import org.mongodb.scala.model.Filters
 import configs.syntax._
-import org.bson.types.ObjectId
 import org.mongodb.scala.model.Filters.{equal, or}
 import play.api.Configuration
 import play.api.libs.json._
@@ -34,7 +33,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.{DraftReturnWithCgtReference, DraftReturnWithCgtReferenceWrapper}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
@@ -42,12 +42,16 @@ import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultDraftReturnsRepository])
 trait DraftReturnsRepository {
   def fetch(cgtReference: CgtReference): EitherT[Future, Error, Seq[DraftReturn]]
 
-  def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit]
+  def save(
+    draftReturn: DraftReturn,
+    cgtReference: CgtReference
+  ): EitherT[Future, Error, Unit]
 
   def delete(cgtReference: CgtReference): EitherT[Future, Error, Unit]
 
@@ -64,7 +68,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       indexes = Seq()
     )
     with DraftReturnsRepository
-    with CacheRepository[DraftReturnWithCgtReference] {
+    with CacheRepository[DraftReturnWithCgtReferenceWrapper] {
 
   val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
   val maxDraftReturns: Int      = config.underlying.get[Int]("mongodb.draft-returns.max-draft-returns").value
@@ -79,10 +83,20 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       }
     ).map(_.map(_.draftReturn))
 
-  override def save(draftReturn: DraftReturn, cgtReference: CgtReference): EitherT[Future, Error, Unit] =
+  override def save(
+    draftReturn: DraftReturn,
+    cgtReference: CgtReference
+  ): EitherT[Future, Error, Unit] =
     EitherT(
       preservingMdc {
-        set(draftReturn.id.toString, DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id))
+        set(
+          draftReturn.id.toString,
+          DraftReturnWithCgtReferenceWrapper(
+            draftReturn.id.toString,
+            Instant.now(),
+            DraftReturnWithCgtReference(draftReturn, cgtReference, draftReturn.id)
+          )
+        )
       }
     )
 
@@ -90,7 +104,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
     EitherT[Future, Error, Unit](
       preservingMdc {
         collection
-          .deleteOne(equal("return.cgtReference.value", cgtReference.value))
+          .deleteMany(equal("return.cgtReference.value", cgtReference.value))
           .toFuture()
 //        remove("return.cgtReference.value" -> cgtReference.value)
           .map { result =>
@@ -115,8 +129,8 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
 //                collection.deleteOne(or(equal("return.draftId", "1"), equal("return.draftId", "2"))).toFuture()
 
         collection
-          .deleteOne(
-            or(draftReturnIds.map(id => equal("return.draftId", id)): _*)
+          .deleteMany(
+            or(draftReturnIds.map(id => equal("return.draftId", Codecs.toBson(id))): _*)
           )
           .toFuture()
           .map { result =>
@@ -140,7 +154,11 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       .find(filter = Filters.equal(key, cgtReference.value))
       .toFuture
       .map { json =>
-        Right(json.map(_.returns))
+        Right(json.map(_.`return`))
+      }
+      .recover { case NonFatal(e) =>
+        logger.warn(s"Not returning draft returns: ${e.getMessage}")
+        Left(Error(e))
       }
 }
 
@@ -149,7 +167,7 @@ object DefaultDraftReturnsRepository {
   final case class DraftReturnWithCgtReferenceWrapper(
     _id: String,
     lastUpdated: Instant,
-    returns: DraftReturnWithCgtReference
+    `return`: DraftReturnWithCgtReference
   )
 
   object DraftReturnWithCgtReferenceWrapper {
@@ -157,7 +175,11 @@ object DefaultDraftReturnsRepository {
     implicit val format               = Json.format[DraftReturnWithCgtReferenceWrapper]
   }
 
-  case class DraftReturnWithCgtReference(draftReturn: DraftReturn, cgtReference: CgtReference, draftId: UUID)
+  case class DraftReturnWithCgtReference(
+    draftReturn: DraftReturn,
+    cgtReference: CgtReference,
+    draftId: UUID
+  )
 
   object DraftReturnWithCgtReference {
     val reads: Reads[DraftReturnWithCgtReference] =

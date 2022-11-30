@@ -63,11 +63,12 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMon
           Set(draftReturn, draftReturn2)
         )
       }
+    }
 
-      "filter out draft returns which cannot be parsed" in {
+//      "filter out draft returns which cannot be parsed" in {
 //        implicit val w: OWrites[JsObject] = OWrites.apply(identity)
-        val draftReturn = sample[DraftReturn]
-
+//        val draftReturn = sample[DraftReturn]
+//
 //        val result = repository.collection.insert.one(
 //          Json
 //            .parse(
@@ -82,12 +83,12 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMon
 //            .as[JsObject]
 //        )
 //        await(result).writeErrors                               shouldBe Seq.empty
-        await(repository.save(draftReturn, cgtReference).value) shouldBe Right(())
-
-        await(repository.fetch(cgtReference).value) shouldBe Right(List(draftReturn))
-      }
-
-    }
+//        await(repository.save(draftReturn, cgtReference).value) shouldBe Right(())
+//
+//        await(repository.fetch(cgtReference).value) shouldBe Right(List(draftReturn))
+//      }
+//
+//    }
 
     "deleting" should {
 
