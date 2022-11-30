@@ -19,11 +19,12 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories
 import com.mongodb.client.model.Indexes.ascending
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.Filters.{equal, in}
-import org.mongodb.scala.model.{IndexModel, IndexOptions, UpdateOptions, Updates}
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions, ReturnDocument, Updates}
 import org.slf4j.Logger
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReferenceWrapper
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import java.time.LocalDateTime
@@ -56,19 +57,28 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
       _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
     } yield result
 
-  def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =
+  def set(
+    id: String,
+    value: DraftReturnWithCgtReferenceWrapper,
+    overrideLastUpdatedTime: Option[LocalDateTime] = None
+  ): Future[Either[Error, Unit]] =
     preservingMdc {
       withCurrentTime { time =>
         val lastUpdated: LocalDateTime = overrideLastUpdatedTime.map(toJavaDateTime).getOrElse(time)
         val selector                   = equal("_id", id)
-        val modifier                   = Updates.combine(Updates.set(objName, value), Updates.set("lastUpdated", lastUpdated))
-        val options                    = UpdateOptions().upsert(true)
+        val modifier                   =
+          Updates.combine(Updates.set(objName, Codecs.toBson(value.`return`)), Updates.set("lastUpdated", lastUpdated))
+        // val options                    = UpdateOptions().upsert(true)
 
         collection
-          .updateOne(selector, modifier, options)
+          .findOneAndUpdate(
+            filter = selector,
+            update = modifier,
+            options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER).upsert(true)
+          )
           .toFuture()
           .map { result =>
-            if (result.wasAcknowledged())
+            if (result == result)
               Right(())
             else
               Left(Error(s"Could not store draft return: $result"))
