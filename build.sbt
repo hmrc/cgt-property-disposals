@@ -9,23 +9,6 @@ addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 addCommandAlias("fix", "all compile:scalafix test:scalafix")
 
-//lazy val wartremoverSettings =
-//  Seq(
-//     Compile / compile / wartremoverErrors ++= Warts.allBut(
-//      Wart.DefaultArguments,
-//      Wart.ImplicitConversion,
-//      Wart.ImplicitParameter,
-//      Wart.Nothing,
-//      Wart.Overloading,
-//      Wart.ToString
-//    ),
-//    Compile / compile / wartremoverExcluded ++=
-//      (Compile / routes).value ++
-//        (baseDirectory.value ** "*.sc").get ++
-//        Seq(sourceManaged.value / "main" / "sbt-buildinfo" / "BuildInfo.scala"),
-//    Test / compile / wartremoverErrors --= Seq(Wart.NonUnitStatements, Wart.Null, Wart.PublicInference, Wart.Any)
-//  )
-
 lazy val scoverageSettings =
   Seq(
     ScoverageKeys.coverageExcludedPackages := "<empty>;.*Reverse.*;.*(config|views.*);.*(BuildInfo|Routes).*",

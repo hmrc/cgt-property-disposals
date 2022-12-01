@@ -39,7 +39,6 @@ class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with Mong
   "The Update Verifiers repository" when {
 
     repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
-//      .count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
 
     "inserting into a broken repository" should {
       "fail the insert" in {
