@@ -21,15 +21,11 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
-import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReference
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
-
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
