@@ -89,12 +89,6 @@ class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Co
 
     })
 
-//  EitherT(
-//    preservingMdc {
-//      set(submitReturnRequest.id.toString, submitReturnRequest)
-//    }
-//  )
-
   private def get(cgtReference: CgtReference): Future[Either[Error, List[SubmitReturnWrapper]]] =
     collection
       .find(equal(key, cgtReference.value))

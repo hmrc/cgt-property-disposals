@@ -38,20 +38,3 @@ object UpscanUploadWrapper {
       ~ (__ \ "lastUpdated").format[Instant])(UpscanUploadWrapper.apply, unlift(UpscanUploadWrapper.unapply))
   }
 }
-
-final case class UpscanUpload2(
-  id: String,
-  upscan: UpscanUpload,
-  lastUpdated: Instant
-)
-
-object UpscanUpload2 {
-
-  val format: Format[UpscanUpload2] = {
-    implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
-    ((__ \ "_id").format[String]
-      ~ (__ \ "upscan").format[UpscanUpload]
-      ~ (__ \ "lastUpdated").format[Instant])(UpscanUpload2.apply, unlift(UpscanUpload2.unapply))
-  }
-
-}

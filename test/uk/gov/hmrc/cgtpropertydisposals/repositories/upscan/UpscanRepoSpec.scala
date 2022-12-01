@@ -24,7 +24,7 @@ import play.api.Configuration
 import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanUpload, UpscanUpload2}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
 import java.time.{Clock, LocalDateTime}
@@ -32,7 +32,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class UpscanRepoSpec
     extends AnyWordSpec
-    with DefaultPlayMongoRepositorySupport[UpscanUpload2]
+    with DefaultPlayMongoRepositorySupport[UpscanUploadWrapper]
     with ScalaFutures
     with DefaultAwaitTimeout
     with Matchers {

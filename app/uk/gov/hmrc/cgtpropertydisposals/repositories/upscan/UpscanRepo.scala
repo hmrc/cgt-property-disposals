@@ -46,10 +46,10 @@ trait UpscanRepo {
 @Singleton
 class DefaultUpscanRepo @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends PlayMongoRepository[UpscanUpload2](
+) extends PlayMongoRepository[UpscanUploadWrapper](
       mongoComponent = mongo,
       collectionName = "upscan",
-      domainFormat = UpscanUpload2.format,
+      domainFormat = UpscanUploadWrapper.format,
       indexes = Seq(
         IndexModel(
           ascending("lastUpdated"),

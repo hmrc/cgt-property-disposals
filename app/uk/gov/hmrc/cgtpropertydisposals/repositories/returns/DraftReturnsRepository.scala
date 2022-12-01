@@ -126,7 +126,6 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
   override def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       preservingMdc {
-//                collection.deleteOne(or(equal("return.draftId", "1"), equal("return.draftId", "2"))).toFuture()
 
         collection
           .deleteMany(
