@@ -24,8 +24,6 @@ import configs.syntax._
 import org.mongodb.scala.model.Filters.{equal, or}
 import play.api.Configuration
 import play.api.libs.json._
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.functional.syntax._
 import play.api.libs.json.Format.GenericFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -46,7 +44,7 @@ import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultDraftReturnsRepository])
 trait DraftReturnsRepository {
-  def fetch(cgtReference: CgtReference): EitherT[Future, Error, Seq[DraftReturn]]
+  def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]]
 
   def save(
     draftReturn: DraftReturn,
@@ -76,7 +74,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
   val objName: String           = "return"
   val key: String               = "return.cgtReference.value"
 
-  override def fetch(cgtReference: CgtReference): EitherT[Future, Error, Seq[DraftReturn]] =
+  override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
     EitherT(
       preservingMdc {
         get(cgtReference)
@@ -106,7 +104,6 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
         collection
           .deleteMany(equal("return.cgtReference.value", cgtReference.value))
           .toFuture()
-//        remove("return.cgtReference.value" -> cgtReference.value)
           .map { result =>
             if (result.wasAcknowledged())
               Right(())
@@ -148,12 +145,12 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       }
     )
 
-  private def get(cgtReference: CgtReference): Future[Either[Error, Seq[DraftReturnWithCgtReference]]] =
+  private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] =
     collection
       .find(filter = Filters.equal(key, cgtReference.value))
       .toFuture
       .map { json =>
-        Right(json.map(_.`return`))
+        Right(json.map(_.`return`).toList)
       }
       .recover { case NonFatal(e) =>
         logger.warn(s"Not returning draft returns: ${e.getMessage}")
@@ -181,19 +178,6 @@ object DefaultDraftReturnsRepository {
   )
 
   object DraftReturnWithCgtReference {
-    val reads: Reads[DraftReturnWithCgtReference] =
-      (
-        (JsPath \ "draftReturn").read[DraftReturn] and
-          (JsPath \ "cgtReference").read[CgtReference] and
-          (JsPath \ "draftId").read[UUID]
-      )(DraftReturnWithCgtReference.apply _)
-
-    val writes: OWrites[DraftReturnWithCgtReference]          =
-      (
-        (JsPath \ "draftReturn").write[DraftReturn] and
-          (JsPath \ "cgtReference").write[CgtReference] and
-          (JsPath \ "draftId").write[UUID]
-      )(unlift(DraftReturnWithCgtReference.unapply))
-    implicit val format: OFormat[DraftReturnWithCgtReference] = OFormat(reads, writes)
+    implicit val format: OFormat[DraftReturnWithCgtReference] = Json.format[DraftReturnWithCgtReference]
   }
 }

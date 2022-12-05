@@ -34,11 +34,12 @@ import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments.{TaxEnrolmentRepository, VerifiersRepository}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class TaxEnrolmentServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
+class TaxEnrolmentServiceImplSpec extends AnyWordSpec with Matchers with MockFactory with CleanMongoCollectionSupport {
 
   val mockConnector: TaxEnrolmentConnector            = mock[TaxEnrolmentConnector]
   val mockEnrolmentRepository: TaxEnrolmentRepository = mock[TaxEnrolmentRepository]

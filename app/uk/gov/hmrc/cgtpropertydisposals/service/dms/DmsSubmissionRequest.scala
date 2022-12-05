@@ -30,8 +30,6 @@ final case class DmsSubmissionRequest(
 )
 
 object DmsSubmissionRequest {
-
   implicit val dmsSubmissionRequestFormat: OFormat[DmsSubmissionRequest] = Json.format
-
-  val workItemFormat: Format[WorkItem[DmsSubmissionRequest]] = WorkItem.workItemRestFormat[DmsSubmissionRequest]
+  val workItemFormat: Format[WorkItem[DmsSubmissionRequest]]             = WorkItem.workItemRestFormat[DmsSubmissionRequest]
 }
