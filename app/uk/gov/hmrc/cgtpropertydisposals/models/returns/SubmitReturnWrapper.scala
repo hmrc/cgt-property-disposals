@@ -16,9 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{Format, __}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import play.api.libs.json.{Json, OFormat}
 
 import java.time.Instant
 
@@ -29,10 +27,5 @@ final case class SubmitReturnWrapper(
 )
 
 object SubmitReturnWrapper {
-  val format: Format[SubmitReturnWrapper] = {
-    implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
-    ((__ \ "_id").format[String]
-      ~ (__ \ "return").format[SubmitReturnRequest]
-      ~ (__ \ "lastUpdated").format[Instant])(SubmitReturnWrapper.apply, unlift(SubmitReturnWrapper.unapply))
-  }
+  implicit val format: OFormat[SubmitReturnWrapper] = Json.format[SubmitReturnWrapper]
 }

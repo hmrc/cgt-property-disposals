@@ -1,7 +1,6 @@
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
-//import wartremover.WartRemover.autoImport.wartremoverExcluded
 
 val appName = "cgt-property-disposals"
 
@@ -44,7 +43,6 @@ lazy val microservice = Project(appName, file("."))
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
   .settings(Test / resourceDirectory := baseDirectory.value / "/conf/resources")
-//  .settings(wartremoverSettings: _*)
   .settings(scoverageSettings: _*)
   .settings(PlayKeys.playDefaultPort := 7021)
 
