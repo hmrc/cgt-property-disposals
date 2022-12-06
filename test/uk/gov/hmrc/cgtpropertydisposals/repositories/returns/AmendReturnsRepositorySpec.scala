@@ -25,13 +25,13 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnWrapper}
-import uk.gov.hmrc.mongo.test.MongoSupport
+import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CurrentInstant
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSupport with MockFactory {
+class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
   val config = Configuration(
     ConfigFactory.parseString(
       """
