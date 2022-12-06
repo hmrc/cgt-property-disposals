@@ -31,6 +31,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -387,49 +388,49 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
-//      "return NO CONTENT if the payload contains a valid status" in {
-//        val uploadReference = UploadReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
-//        val upscanUpload    = sample[UpscanUploadWrapper].copy(uploadReference = uploadReference)
-//        val upscanSuccess   = sample[UpscanSuccess].copy(
-//          reference = "reference",
-//          fileStatus = "READY",
-//          downloadUrl = "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
-//          uploadDetails = Map(
-//            ("uploadTimestamp", "2018-04-24T09:30:00Z"),
-//            ("checksum", "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100"),
-//            ("fileName", "test.pdf"),
-//            ("fileMimeType", "application/pdf")
-//          )
-//        )
-//
-//        val upscanCallBackRequest =
-//          s"""
-//            |{
-//            |    "reference" : "reference",
-//            |    "fileStatus" : "READY",
-//            |    "downloadUrl" : "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
-//            |    "uploadDetails": {
-//            |        "uploadTimestamp": "2018-04-24T09:30:00Z",
-//            |        "checksum": "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100",
-//            |        "fileName": "test.pdf",
-//            |        "fileMimeType": "application/pdf"
-//            |    }
-//            |}
-//            |""".stripMargin
-//
-//        inSequence {
-//          mockGetUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUploadWrapper)))
-//          mockUpdateUpscanUpload(
-//            upscanUpload.uploadReference,
-//            upscanUpload.copy(upscanCallBack = Some(upscanSuccess))
-//          )(Right(()))
-//        }
-//
-//        val result = controller.callback(
-//          uploadReference
-//        )(fakeRequestWithJsonBody(Json.parse(upscanCallBackRequest)))
-//        status(result) shouldBe NO_CONTENT
-//      }
+      "return NO CONTENT if the payload contains a valid status" in {
+        val uploadReference = UploadReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
+        val upscanUpload    = sample[UpscanUploadWrapper].copy(upscan= sample[UpscanUpload].copy(uploadReference = uploadReference))
+        val upscanSuccess   = sample[UpscanSuccess].copy(
+          reference = "reference",
+          fileStatus = "READY",
+          downloadUrl = "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
+          uploadDetails = Map(
+            ("uploadTimestamp", "2018-04-24T09:30:00Z"),
+            ("checksum", "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100"),
+            ("fileName", "test.pdf"),
+            ("fileMimeType", "application/pdf")
+          )
+        )
+
+        val upscanCallBackRequest =
+          s"""
+            |{
+            |    "reference" : "reference",
+            |    "fileStatus" : "READY",
+            |    "downloadUrl" : "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
+            |    "uploadDetails": {
+            |        "uploadTimestamp": "2018-04-24T09:30:00Z",
+            |        "checksum": "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100",
+            |        "fileName": "test.pdf",
+            |        "fileMimeType": "application/pdf"
+            |    }
+            |}
+            |""".stripMargin
+
+        inSequence {
+          mockGetUpscanUpload(upscanUpload.upscan.uploadReference)(Right(Some(upscanUpload)))
+          mockUpdateUpscanUpload(
+            upscanUpload.upscan.uploadReference,
+            upscanUpload.upscan.copy(upscanCallBack = Some(upscanSuccess))
+          )(Right(()))
+        }
+
+        val result = controller.callback(
+          uploadReference
+        )(fakeRequestWithJsonBody(Json.parse(upscanCallBackRequest)))
+        status(result) shouldBe NO_CONTENT
+      }
 
     }
 
