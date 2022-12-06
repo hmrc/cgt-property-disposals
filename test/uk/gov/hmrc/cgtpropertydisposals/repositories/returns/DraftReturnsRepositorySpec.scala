@@ -30,6 +30,10 @@ import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
+
+  override def beforeEach(): Unit =
+    dropDatabase()
+
   val config = Configuration(
     ConfigFactory.parseString(
       """
