@@ -390,7 +390,8 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
       "return NO CONTENT if the payload contains a valid status" in {
         val uploadReference = UploadReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
-        val upscanUpload    = sample[UpscanUploadWrapper].copy(upscan= sample[UpscanUpload].copy(uploadReference = uploadReference))
+        val upscanUpload    =
+          sample[UpscanUploadWrapper].copy(upscan = sample[UpscanUpload].copy(uploadReference = uploadReference))
         val upscanSuccess   = sample[UpscanSuccess].copy(
           reference = "reference",
           fileStatus = "READY",
