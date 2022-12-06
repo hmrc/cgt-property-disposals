@@ -24,11 +24,11 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.DefaultCurrentInstant
-import uk.gov.hmrc.mongo.test.MongoSupport
+import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
+class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
   val config = Configuration(
     ConfigFactory.parseString(
       """

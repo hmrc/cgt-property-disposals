@@ -30,7 +30,7 @@ final case class SubmitReturnWrapper(
 
 object SubmitReturnWrapper {
   val format: Format[SubmitReturnWrapper] = {
-    implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
+    implicit val formatInstant: Format[Instant] = MongoJavatimeFormats.instantFormat
     ((__ \ "_id").format[String]
       ~ (__ \ "return").format[SubmitReturnRequest]
       ~ (__ \ "lastUpdated").format[Instant])(SubmitReturnWrapper.apply, unlift(SubmitReturnWrapper.unapply))
