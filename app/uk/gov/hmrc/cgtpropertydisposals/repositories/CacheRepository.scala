@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories
 import com.mongodb.client.model.Indexes.ascending
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.Filters.{equal, in}
-import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions, ReturnDocument, UpdateOptions, Updates}
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions, ReturnDocument, Updates}
 import org.slf4j.Logger
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReferenceWrapper
