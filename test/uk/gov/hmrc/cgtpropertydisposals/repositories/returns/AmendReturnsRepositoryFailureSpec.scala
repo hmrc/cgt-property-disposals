@@ -49,7 +49,6 @@ class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
   "AmendReturnsRepository" when {
 
     repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
-//      count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
 
     "inserting" should {
       "insert an amend return request successfully" in {

@@ -63,7 +63,6 @@ class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
   "DraftReturnsRepository" when {
 
     repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
-//    count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
 
     "inserting" should {
       "create a new draft return successfully" in {
