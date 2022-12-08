@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import java.util.UUID
-
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error

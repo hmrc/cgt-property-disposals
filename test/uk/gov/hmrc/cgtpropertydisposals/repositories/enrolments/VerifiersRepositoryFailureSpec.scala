@@ -16,21 +16,20 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
-import java.time.LocalDateTime
-
 import org.scalacheck.Arbitrary
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+import uk.gov.hmrc.mongo.test.MongoSupport
 
+import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
 
-  val repository = new DefaultVerifiersRepository(reactiveMongoComponent)
+  val repository = new DefaultVerifiersRepository(mongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary((LocalDateTime.now()))
@@ -39,7 +38,7 @@ class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with Mong
 
   "The Update Verifiers repository" when {
 
-    repository.count.map(_ => reactiveMongoComponent.mongoConnector.helper.driver.close())
+    repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
 
     "inserting into a broken repository" should {
       "fail the insert" in {

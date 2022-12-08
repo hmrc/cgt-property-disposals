@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.returns
+package uk.gov.hmrc.cgtpropertydisposals.repositories
+import com.google.inject.{ImplementedBy, Singleton}
 
-import play.api.libs.json.{Json, OFormat}
-
-final case class GetDraftReturnResponse(draftReturns: Seq[DraftReturn])
-
-object GetDraftReturnResponse {
-
-  implicit val format: OFormat[GetDraftReturnResponse] = Json.format[GetDraftReturnResponse]
+import java.time.Instant
+@ImplementedBy(classOf[DefaultCurrentInstant])
+trait CurrentInstant {
+  def currentInstant(): Instant
+}
+@Singleton
+class DefaultCurrentInstant extends CurrentInstant {
+  override def currentInstant(): Instant = Instant.now()
 }

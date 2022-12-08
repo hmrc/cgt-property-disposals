@@ -21,7 +21,7 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{AmendReturnType, CreateReturnType, DesReturnType}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.AmendReturnsRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
@@ -29,7 +29,7 @@ import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultAmendReturnsService])
 trait AmendReturnsService {
-  def getAmendedReturn(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnRequest]]
+  def getAmendedReturn(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnWrapper]]
 
   def saveAmendedReturn(
     submitReturnRequest: SubmitReturnRequest
@@ -42,7 +42,7 @@ class DefaultAmendReturnsService @Inject() (
 ) extends AmendReturnsService
     with Logging {
 
-  def getAmendedReturn(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnRequest]] =
+  def getAmendedReturn(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnWrapper]] =
     amendReturnsRepository.fetch(cgtReference)
 
   override def saveAmendedReturn(

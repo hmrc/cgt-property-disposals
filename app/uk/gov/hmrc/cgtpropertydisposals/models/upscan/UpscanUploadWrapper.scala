@@ -16,13 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.functional.syntax.unlift
+import play.api.libs.json.{Format, __}
+import play.api.libs.functional.syntax._
 
-final case class UpscanUploadMeta(
-  reference: String,
-  uploadRequest: UploadRequest
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+
+import java.time.Instant
+
+final case class UpscanUploadWrapper(
+  id: String,
+  upscan: UpscanUpload,
+  lastUpdated: Instant
 )
 
-object UpscanUploadMeta {
-  implicit val format: OFormat[UpscanUploadMeta] = Json.format[UpscanUploadMeta]
+object UpscanUploadWrapper {
+  val format: Format[UpscanUploadWrapper] = {
+    implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
+    ((__ \ "_id").format[String]
+      ~ (__ \ "upscan").format[UpscanUpload]
+      ~ (__ \ "lastUpdated").format[Instant])(UpscanUploadWrapper.apply, unlift(UpscanUploadWrapper.unapply))
+  }
 }

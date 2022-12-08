@@ -19,17 +19,19 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import configs.syntax._
+import org.mongodb.scala.model.Filters.in
+import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
-import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultUpscanRepository])
 trait UpscanRepository {
@@ -40,7 +42,7 @@ trait UpscanRepository {
 
   def select(
     uploadReference: UploadReference
-  ): EitherT[Future, Error, Option[UpscanUpload]]
+  ): EitherT[Future, Error, Option[UpscanUploadWrapper]]
 
   def update(
     uploadReference: UploadReference,
@@ -49,21 +51,21 @@ trait UpscanRepository {
 
   def selectAll(
     uploadReference: List[UploadReference]
-  ): EitherT[Future, Error, List[UpscanUpload]]
+  ): EitherT[Future, Error, List[UpscanUploadWrapper]]
 
 }
 
 @Singleton
-class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: Configuration)(implicit
+class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configuration, clock: CurrentInstant)(implicit
   val ec: ExecutionContext
-) extends ReactiveRepository[UpscanUpload, BSONObjectID](
+) extends PlayMongoRepository[UpscanUploadWrapper](
+      mongoComponent = mongo,
       collectionName = "upscan",
-      mongo = mongo.mongoConnector.db,
-      UpscanUpload.format,
-      ReactiveMongoFormats.objectIdFormats
+      domainFormat = UpscanUploadWrapper.format,
+      indexes = Seq()
     )
     with UpscanRepository
-    with CacheRepository[UpscanUpload] {
+    with CacheRepository[UpscanUploadWrapper] {
 
   override val cacheTtlIndexName: String = "upscan-cache-ttl"
 
@@ -74,34 +76,63 @@ class DefaultUpscanRepository @Inject() (mongo: ReactiveMongoComponent, config: 
   override def insert(
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
-    EitherT(
-      set(
-        upscanUpload.uploadReference.value,
-        upscanUpload,
-        Some(upscanUpload.uploadedOn)
+    EitherT(preservingMdc {
+      val selector = Filters.equal("_id", upscanUpload.uploadReference.value)
+      val modifier = Updates.combine(
+        Updates.set("upscan", Codecs.toBson(upscanUpload)),
+        Updates.set("lastUpdated", clock.currentInstant()),
+        Updates.setOnInsert("_id", upscanUpload.uploadReference.value)
       )
-    )
+      val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
+      collection
+        .findOneAndUpdate(selector, modifier, options)
+        .toFuture()
+        .map(_ => Right(()))
+        .recover { case NonFatal(e) => Left(Error(e)) }
+
+    })
 
   override def select(
     uploadReference: UploadReference
-  ): EitherT[Future, Error, Option[UpscanUpload]] =
-    EitherT(find(uploadReference.value))
+  ): EitherT[Future, Error, Option[UpscanUploadWrapper]] =
+    EitherT(find[UpscanUploadWrapper](uploadReference.value))
 
   override def update(
     uploadReference: UploadReference,
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit] =
-    EitherT(
-      set(
-        uploadReference.value,
-        upscanUpload,
-        Some(upscanUpload.uploadedOn)
+    EitherT(preservingMdc {
+      val selector = Filters.equal("_id", uploadReference.value)
+      val modifier = Updates.combine(
+        Updates.set("upscan", Codecs.toBson(upscanUpload)),
+        Updates.set("lastUpdated", upscanUpload.uploadedOn),
+        Updates.setOnInsert("_id", upscanUpload.uploadReference.value)
       )
-    )
+      val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
+      collection
+        .findOneAndUpdate(selector, modifier, options)
+        .toFuture()
+        .map(_ => Right(()))
+        .recover { case NonFatal(e) => Left(Error(e)) }
+
+    })
 
   override def selectAll(
     uploadReference: List[UploadReference]
-  ): EitherT[Future, Error, List[UpscanUpload]] =
-    EitherT(findAll(uploadReference.map(_.value)))
+  ): EitherT[Future, Error, List[UpscanUploadWrapper]] =
+    EitherT(
+      preservingMdc {
+        collection
+          .find(in("_id", uploadReference.map(_.value): _*))
+          .toFuture()
+          .map { a =>
+            if (a.isEmpty) Left(Error(s"Could not get ids value"))
+            else Right(a.toList)
+          }
+          .recover { case exception =>
+            Left(Error(exception))
+          }
+      }
+    )
 
 }

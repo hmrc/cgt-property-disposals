@@ -16,23 +16,24 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
-import java.util.UUID
-
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
-import uk.gov.hmrc.cgtpropertydisposals.repositories.MongoSupport
+import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSupport with MockFactory {
+class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
+
+  override def beforeEach(): Unit =
+    dropDatabase()
+
   val config = Configuration(
     ConfigFactory.parseString(
       """
@@ -42,7 +43,7 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSup
     )
   )
 
-  val repository    = new DefaultDraftReturnsRepository(reactiveMongoComponent, config)
+  val repository    = new DefaultDraftReturnsRepository(mongoComponent, config)
   val cgtReference  = sample[CgtReference]
   val cgtReference2 = sample[CgtReference]
 
@@ -66,30 +67,6 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSup
           Set(draftReturn, draftReturn2)
         )
       }
-
-      "filter out draft returns which cannot be parsed" in {
-        implicit val w: OWrites[JsObject] = OWrites.apply(identity)
-        val draftReturn                   = sample[DraftReturn]
-
-        val result = repository.collection.insert.one(
-          Json
-            .parse(
-              s"""{
-              |  "return" : {
-              |    "draftId" : "${UUID.randomUUID().toString}",
-              |    "cgtReference" : { "value" : "${cgtReference.value}" },
-              |    "draftReturn" : { }
-              |  }
-              |}""".stripMargin
-            )
-            .as[JsObject]
-        )
-        await(result).writeErrors                               shouldBe Seq.empty
-        await(repository.save(draftReturn, cgtReference).value) shouldBe Right(())
-
-        await(repository.fetch(cgtReference).value) shouldBe Right(List(draftReturn))
-      }
-
     }
 
     "deleting" should {
@@ -142,6 +119,5 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with MongoSup
       }
 
     }
-
   }
 }

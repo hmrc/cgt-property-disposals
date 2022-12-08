@@ -16,31 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories
 
-import java.time.LocalDateTime
-
-import cats.data.EitherT
-import cats.instances.list._
-import cats.syntax.either._
-import org.joda.time.DateTime
+import com.mongodb.client.model.Indexes.ascending
+import org.mongodb.scala.MongoCollection
+import org.mongodb.scala.model.Filters.{equal, in}
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions, ReturnDocument, Updates}
 import org.slf4j.Logger
-import play.api.libs.json._
-import reactivemongo.api.Cursor
-import reactivemongo.api.commands.WriteResult
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers.JsObjectDocumentWriter
-import reactivemongo.play.json.collection.JSONCollection
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils._
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeWrite
+import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReferenceWrapper
+import uk.gov.hmrc.mongo.play.json.Codecs.logger
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
+import java.time.LocalDateTime
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
-trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
+trait CacheRepository[A] extends PlayMongoRepository[A] {
 
   implicit val ec: ExecutionContext
 
@@ -48,39 +42,45 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
   val cacheTtlIndexName: String
   val objName: String
 
-  private lazy val cacheTtlIndex = Index(
-    key = Seq("lastUpdated" → IndexType.Ascending),
-    name = Some(cacheTtlIndexName),
-    options = BSONDocument("expireAfterSeconds" -> cacheTtl.toSeconds)
+  private lazy val cacheTtlIndex = IndexModel(
+    ascending("lastUpdated"),
+    IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
   )
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
+  val now = LocalDateTime.now()
+
+  def withCurrentTime[B](f: (LocalDateTime) => B) = f(now)
+
+  def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
       result <- super.ensureIndexes
       _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
     } yield result
 
-  def set(id: String, value: A, overrideLastUpdatedTime: Option[LocalDateTime] = None): Future[Either[Error, Unit]] =
+  def set(
+    id: String,
+    value: DraftReturnWithCgtReferenceWrapper,
+    overrideLastUpdatedTime: Option[LocalDateTime] = None
+  ): Future[Either[Error, Unit]] =
     preservingMdc {
       withCurrentTime { time =>
-        val lastUpdated: DateTime = overrideLastUpdatedTime.map(toJodaDateTime).getOrElse(time)
-        val selector              = Json.obj("_id" -> id)
-        val modifier              = Json.obj(
-          "$set" -> Json
-            .obj(
-              objName       -> Json.toJson(value),
-              "lastUpdated" -> lastUpdated
-            )
-        )
+        val lastUpdated: LocalDateTime = overrideLastUpdatedTime.map(toJavaDateTime).getOrElse(time)
+        val selector                   = equal("_id", id)
+        val modifier                   =
+          Updates.combine(Updates.set(objName, Codecs.toBson(value.`return`)), Updates.set("lastUpdated", lastUpdated))
 
         collection
-          .update(false)
-          .one(selector, modifier, upsert = true)
-          .map { writeResult =>
-            if (writeResult.ok)
+          .findOneAndUpdate(
+            filter = selector,
+            update = modifier,
+            options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER).upsert(true)
+          )
+          .toFuture()
+          .map { result =>
+            if (result == result)
               Right(())
             else
-              Left(Error(s"Could not store draft return: ${writeResult.errmsg.getOrElse("-")}"))
+              Left(Error(s"Could not store draft return: $result"))
           }
           .recover { case NonFatal(e) =>
             Left(Error(e))
@@ -88,58 +88,36 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
       }
     }
 
-  def findAll(ids: List[String]): Future[Either[Error, List[A]]] =
+  def findAll[C : ClassTag](ids: List[String]): Future[Either[Error, List[C]]] =
     preservingMdc {
       collection
-        .find(
-          Json.obj("_id" -> Json.obj("$in" -> ids)),
-          None
-        )
-        .cursor[JsObject]()
-        .collect[List](Int.MaxValue, Cursor.FailOnError[List[JsObject]]())
-        .map { list =>
-          val (errors, values) = EitherT(list.map(readJson))
-            .subflatMap(
-              Either.fromOption(_, "Could not find value in JSON")
-            )
-            .value
-            .partitionWith(identity)
-
-          if (errors.nonEmpty)
-            Left(Error(s"Could not get all values: ${errors.mkString(", ")}]"))
-          else
-            Right(values)
+        .find[C](in("_id", ids))
+        .headOption()
+        .map {
+          case None       => Left(Error(s"Could not get id value"))
+          case Some(list) => Right(List(list))
         }
         .recover { case exception =>
           Left(Error(exception))
         }
     }
 
-  def find(id: String): Future[Either[Error, Option[A]]] =
+  def find[C : ClassTag](id: String): Future[Either[Error, Option[C]]] =
     preservingMdc {
       collection
-        .find(
-          Json.obj("_id" -> id),
-          None
-        )
-        .one[JsObject]
+        .find[C](equal("_id", id))
+        .headOption()
         .map {
           case None       => Left(Error(s"Could not find json for id $id"))
-          case Some(json) => readJson(json).leftMap(Error(_))
+          case Some(json) => Right(Some(json))
         }
         .recover { case exception =>
           Left(Error(exception))
         }
     }
 
-  private def readJson(jsObject: JsObject): Either[String, Option[A]] =
-    (jsObject \ objName)
-      .validateOpt[A]
-      .asEither
-      .leftMap(e ⇒ s"Could not parse session data from mongo: ${e.mkString("; ")}")
-
-  private def toJodaDateTime(dateTime: LocalDateTime): org.joda.time.DateTime =
-    new org.joda.time.DateTime(
+  private def toJavaDateTime(dateTime: LocalDateTime) =
+    LocalDateTime.of(
       dateTime.getYear,
       dateTime.getMonthValue,
       dateTime.getDayOfMonth,
@@ -147,34 +125,29 @@ trait CacheRepository[A] extends ReactiveRepository[A, BSONObjectID] {
       dateTime.getMinute,
       dateTime.getSecond
     )
-
 }
 
 object CacheRepository {
-
-  def setTtlIndex(
-    ttlIndex: Index,
+  def setTtlIndex[A](
+    ttlIndex: IndexModel,
     ttlIndexName: String,
     ttl: FiniteDuration,
-    collection: JSONCollection,
+    collection: MongoCollection[A],
     logger: Logger
-  )(implicit ex: ExecutionContext): Future[WriteResult] = {
+  )(implicit ex: ExecutionContext): Future[String] = {
     def dropInvalidIndexes(): Future[Unit] =
-      collection.indexesManager.list().flatMap { indexes =>
+      collection.listIndexes().toFuture().flatMap { indexes =>
         indexes
-          .find { index =>
-            index.name.contains(ttlIndexName) &&
-            !index.options.getAs[Long]("expireAfterSeconds").contains(ttl.toSeconds)
-          }
+          .find(index => index.contains(ttlIndexName) && !index.containsValue(ttl.toSeconds))
           .map { i =>
             logger.warn(s"dropping $i as ttl value is incorrect for index")
-            collection.indexesManager.drop(ttlIndexName).map(_ => ())
+            collection.dropIndex(ttlIndexName).toFuture().map(_ => ())
           }
           .getOrElse(Future.successful(()))
       }
 
     dropInvalidIndexes()
-      .flatMap(_ => collection.indexesManager.create(ttlIndex))
+      .flatMap(_ => collection.createIndex(ttlIndex.getKeys).toFuture())
       .transform { result =>
         result.fold(
           e => logger.warn("Could not ensure ttl index", e),

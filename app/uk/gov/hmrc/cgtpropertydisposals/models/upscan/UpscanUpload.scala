@@ -17,8 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
 import java.time.LocalDateTime
-
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 final case class UpscanUpload(
   uploadReference: UploadReference,
@@ -28,5 +27,5 @@ final case class UpscanUpload(
 )
 
 object UpscanUpload {
-  implicit val format = Json.format[UpscanUpload]
+  implicit val format: OFormat[UpscanUpload] = Json.format[UpscanUpload]
 }

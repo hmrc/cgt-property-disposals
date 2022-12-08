@@ -31,11 +31,12 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscribe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.AmendReturnsRepository
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
+class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory with MongoSupport {
 
   val mockAmendReturnsRepo = mock[AmendReturnsRepository]
 
@@ -46,7 +47,7 @@ class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory
 
   def mockGetAmendReturnList(
     cgtReference: CgtReference
-  )(result: Either[Error, List[SubmitReturnRequest]]) =
+  )(result: Either[Error, List[SubmitReturnWrapper]]) =
     (mockAmendReturnsRepo
       .fetch(_: CgtReference))
       .expects(cgtReference)

@@ -74,20 +74,20 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       .returning(EitherT[Future, Error, Unit](Future.successful(response)))
 
   def mockGetUpscanUpload(uploadReference: UploadReference)(
-    response: Either[Error, Option[UpscanUpload]]
+    response: Either[Error, Option[UpscanUploadWrapper]]
   ) =
     (mockUpscanService
       .readUpscanUpload(_: UploadReference))
       .expects(uploadReference)
-      .returning(EitherT[Future, Error, Option[UpscanUpload]](Future.successful(response)))
+      .returning(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
 
   def mockGetUpscanUploads(uploadReferences: List[UploadReference])(
-    response: Either[Error, List[UpscanUpload]]
+    response: Either[Error, List[UpscanUploadWrapper]]
   ) =
     (mockUpscanService
       .readUpscanUploads(_: List[UploadReference]))
       .expects(uploadReferences)
-      .returning(EitherT[Future, Error, List[UpscanUpload]](Future.successful(response)))
+      .returning(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
 
   val request = new AuthenticatedRequest(
     Fake.user,
@@ -145,7 +145,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
       "return a 200 OK if the backend call succeeds" in {
 
-        val upscanUpload = sample[UpscanUpload]
+        val upscanUpload = sample[UpscanUploadWrapper]
 
         val request =
           new AuthenticatedRequest(
@@ -196,7 +196,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
       "return a 200 OK if the backend call succeeds" in {
 
-        val upscanUpload = sample[UpscanUpload]
+        val upscanUpload = sample[UpscanUploadWrapper]
 
         val request =
           new AuthenticatedRequest(
@@ -390,7 +390,8 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
       "return NO CONTENT if the payload contains a valid status" in {
         val uploadReference = UploadReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
-        val upscanUpload    = sample[UpscanUpload].copy(uploadReference = uploadReference)
+        val upscanUpload    =
+          sample[UpscanUploadWrapper].copy(upscan = sample[UpscanUpload].copy(uploadReference = uploadReference))
         val upscanSuccess   = sample[UpscanSuccess].copy(
           reference = "reference",
           fileStatus = "READY",
@@ -419,10 +420,10 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             |""".stripMargin
 
         inSequence {
-          mockGetUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUpload)))
+          mockGetUpscanUpload(upscanUpload.upscan.uploadReference)(Right(Some(upscanUpload)))
           mockUpdateUpscanUpload(
-            upscanUpload.uploadReference,
-            upscanUpload.copy(upscanCallBack = Some(upscanSuccess))
+            upscanUpload.upscan.uploadReference,
+            upscanUpload.upscan.copy(upscanCallBack = Some(upscanSuccess))
           )(Right(()))
         }
 

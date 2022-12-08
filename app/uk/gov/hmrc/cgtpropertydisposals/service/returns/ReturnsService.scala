@@ -340,7 +340,7 @@ class DefaultReturnsService @Inject() (
       }
     }
 
-    lazy val recentlyAmendedReturnList: EitherT[Future, Error, List[SubmitReturnRequest]] =
+    lazy val recentlyAmendedReturnList: EitherT[Future, Error, List[SubmitReturnWrapper]] =
       amendReturnsService.getAmendedReturn(cgtReference)
 
     for {
@@ -351,17 +351,18 @@ class DefaultReturnsService @Inject() (
                                          else DesFinancialDataResponse(List.empty).financialTransactions
                                        )
       recentlyAmendedReturns        <- recentlyAmendedReturnList
-      returnSummaries               <- EitherT.fromEither(
-                                         if (desReturnList.returnList.nonEmpty)
-                                           returnSummaryListTransformerService
-                                             .toReturnSummaryList(
-                                               desReturnList.returnList,
-                                               listOfDesFinancialTransactions,
-                                               recentlyAmendedReturns
-                                             )
-                                         else
-                                           Right(List.empty)
-                                       )
+      returnSummaries               <-
+        EitherT.fromEither(
+          if (desReturnList.returnList.nonEmpty)
+            returnSummaryListTransformerService
+              .toReturnSummaryList(
+                desReturnList.returnList,
+                listOfDesFinancialTransactions,
+                recentlyAmendedReturns.map(submitReturnWrapper => submitReturnWrapper.submitReturnRequest)
+              )
+          else
+            Right(List.empty)
+        )
     } yield returnSummaries
   }
 

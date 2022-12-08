@@ -22,7 +22,7 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.S3Connector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload}
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
@@ -37,11 +37,11 @@ trait UpscanService {
 
   def readUpscanUpload(
     uploadReference: UploadReference
-  ): EitherT[Future, Error, Option[UpscanUpload]]
+  ): EitherT[Future, Error, Option[UpscanUploadWrapper]]
 
   def readUpscanUploads(
     uploadReferences: List[UploadReference]
-  ): EitherT[Future, Error, List[UpscanUpload]]
+  ): EitherT[Future, Error, List[UpscanUploadWrapper]]
 
   def updateUpscanUpload(
     uploadReference: UploadReference,
@@ -67,7 +67,7 @@ class UpscanServiceImpl @Inject() (
 
   override def readUpscanUpload(
     uploadReference: UploadReference
-  ): EitherT[Future, Error, Option[UpscanUpload]] =
+  ): EitherT[Future, Error, Option[UpscanUploadWrapper]] =
     upscanRepository.select(uploadReference)
 
   override def updateUpscanUpload(
@@ -78,7 +78,7 @@ class UpscanServiceImpl @Inject() (
 
   override def readUpscanUploads(
     uploadReferences: List[UploadReference]
-  ): EitherT[Future, Error, List[UpscanUpload]] =
+  ): EitherT[Future, Error, List[UpscanUploadWrapper]] =
     upscanRepository.selectAll(uploadReferences)
 
   override def downloadFilesFromS3(
