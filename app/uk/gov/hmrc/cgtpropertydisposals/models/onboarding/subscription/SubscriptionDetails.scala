@@ -18,11 +18,10 @@ package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
 
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.{EitherFormat, Email}
 
 final case class SubscriptionDetails(
   name: Either[TrustName, IndividualName],
@@ -31,8 +30,11 @@ final case class SubscriptionDetails(
   address: Address,
   sapNumber: SapNumber
 )
+
 object SubscriptionDetails {
-  implicit val format: Format[SubscriptionDetails] = Json.format[SubscriptionDetails]
+  implicit val eitherFormat: Format[Either[TrustName, IndividualName]] =
+    EitherFormat.eitherFormat[TrustName, IndividualName]
+  implicit val format: Format[SubscriptionDetails]                     = Json.format[SubscriptionDetails]
 
   def fromRegistrationDetails(registrationDetails: RegistrationDetails, sapNumber: SapNumber): SubscriptionDetails =
     SubscriptionDetails(

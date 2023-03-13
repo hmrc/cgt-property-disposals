@@ -17,10 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr
 
 import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat._
 
 final case class BusinessPartnerRecord(
   emailAddress: Option[String],
@@ -31,6 +31,8 @@ final case class BusinessPartnerRecord(
 
 object BusinessPartnerRecord {
 
-  implicit val format: Format[BusinessPartnerRecord] = Json.format
+  implicit val eitherFormat: Format[Either[TrustName, IndividualName]] =
+    EitherFormat.eitherFormat[TrustName, IndividualName]
+  implicit val format: Format[BusinessPartnerRecord]                   = Json.format[BusinessPartnerRecord]
 
 }

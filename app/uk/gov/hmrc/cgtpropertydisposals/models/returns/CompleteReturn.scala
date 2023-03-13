@@ -18,8 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import com.github.ghik.silencer.silent
 import julienrf.json.derived
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
+import play.api.libs.json.{Format, Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -121,24 +121,41 @@ object CompleteReturn {
 
   }
 
+  implicit val singleDisposalTriageFormat: Format[CompleteSingleDisposalTriageAnswers]              = Json.format
+  implicit val multipleDisposalsTriageFormat: Format[CompleteMultipleDisposalsTriageAnswers]        = Json.format
+  implicit val ukAddressFormat: Format[UkAddress]                                                   = Json.format
+  implicit val examplePropertyDetailsFormat: Format[CompleteExamplePropertyDetailsAnswers]          = Json.format
+  implicit val disposalDetailsFormat: Format[CompleteDisposalDetailsAnswers]                        = Json.format
+  implicit val acquisitionDetailsFormat: Format[CompleteAcquisitionDetailsAnswers]                  = Json.format
+  implicit val reliefDetailsFormat: Format[CompleteReliefDetailsAnswers]                            = Json.format
+  implicit val exemptionAndLossesFormat: Format[CompleteExemptionAndLossesAnswers]                  = Json.format
+  implicit val nonCalculatedYearToDateLiabilityFormat: Format[CompleteNonCalculatedYTDAnswers]      = Json.format
+  implicit val calculatedYearToDateLiabilityFormat: Format[CompleteCalculatedYTDAnswers]            = Json.format
+  implicit val supportingDocumentsAnswersFormat: Format[CompleteSupportingEvidenceAnswers]          = Json.format
+  implicit val representeeAnswersFormat: Format[CompleteRepresenteeAnswers]                         = Json.format
+  implicit val exampleCompanyDetailsAnswersFormat: Format[CompleteExampleCompanyDetailsAnswers]     = Json.format
+  implicit val mixedUsePropertyDetailsAnswersFormat: Format[CompleteMixedUsePropertyDetailsAnswers] = Json.format
+
+  implicit val eitherFormat: Format[Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]] =
+    EitherFormat.eitherFormat[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]
+
   @silent
   implicit val format: OFormat[CompleteReturn] = {
-    implicit val singleDisposalTriageFormat: OFormat[CompleteSingleDisposalTriageAnswers]              = Json.format
-    implicit val multipleDisposalsTriageFormat: OFormat[CompleteMultipleDisposalsTriageAnswers]        = Json.format
-    implicit val ukAddressFormat: OFormat[UkAddress]                                                   = Json.format
-    implicit val examplePropertyDetailsFormat: OFormat[CompleteExamplePropertyDetailsAnswers]          = Json.format
-    implicit val disposalDetailsFormat: OFormat[CompleteDisposalDetailsAnswers]                        = Json.format
-    implicit val acquisitionDetailsFormat: OFormat[CompleteAcquisitionDetailsAnswers]                  = Json.format
-    implicit val reliefDetailsFormat: OFormat[CompleteReliefDetailsAnswers]                            = Json.format
-    implicit val exemptionAndLossesFormat: OFormat[CompleteExemptionAndLossesAnswers]                  = Json.format
-    implicit val nonCalculatedYearToDateLiabilityFormat: OFormat[CompleteNonCalculatedYTDAnswers]      = Json.format
-    implicit val calculatedYearToDateLiabilityFormat: OFormat[CompleteCalculatedYTDAnswers]            = Json.format
-    implicit val supportingDocumentsAnswersFormat: OFormat[CompleteSupportingEvidenceAnswers]          = Json.format
-    implicit val representeeAnswersFormat: OFormat[CompleteRepresenteeAnswers]                         = Json.format
-    implicit val exampleCompanyDetailsAnswersFormat: OFormat[CompleteExampleCompanyDetailsAnswers]     = Json.format
-    implicit val mixedUsePropertyDetailsAnswersFormat: OFormat[CompleteMixedUsePropertyDetailsAnswers] = Json.format
-
+    singleDisposalTriageFormat
+    multipleDisposalsTriageFormat
+    ukAddressFormat
+    examplePropertyDetailsFormat
+    disposalDetailsFormat
+    disposalDetailsFormat
+    acquisitionDetailsFormat
+    reliefDetailsFormat
+    exemptionAndLossesFormat
+    nonCalculatedYearToDateLiabilityFormat
+    calculatedYearToDateLiabilityFormat
+    supportingDocumentsAnswersFormat
+    representeeAnswersFormat
+    exampleCompanyDetailsAnswersFormat
+    mixedUsePropertyDetailsAnswersFormat
     derived.oformat()
   }
-
 }
