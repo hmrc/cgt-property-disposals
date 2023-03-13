@@ -16,15 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import java.time.{Clock, Instant, ZoneId}
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsObject, JsString, JsSuccess, JsValue, Json}
+import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
 
+import java.time.{Clock, Instant, ZoneId}
 class DesReturnTypeSpec extends AnyWordSpec with Matchers {
 
   "DesReturnType" must {

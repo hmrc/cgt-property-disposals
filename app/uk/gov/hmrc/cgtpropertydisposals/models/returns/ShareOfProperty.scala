@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import cats.instances.bigDecimal._
 import cats.syntax.eq._
-
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 

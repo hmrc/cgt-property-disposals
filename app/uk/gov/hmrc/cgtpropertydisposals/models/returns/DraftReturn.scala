@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import java.time.LocalDate
-import java.util.UUID
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+
+import java.time.LocalDate
+import java.util.UUID
 
 sealed trait DraftReturn extends Product with Serializable {
   val id: UUID

@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des
 
-import java.time.LocalDate
-
 import cats.Eq
 import play.api.libs.json.{Format, Json, OFormat}
+
+import java.time.LocalDate
 
 final case class DesFinancialDataResponse(
   financialTransactions: List[DesFinancialTransaction]

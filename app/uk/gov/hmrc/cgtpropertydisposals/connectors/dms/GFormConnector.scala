@@ -16,10 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
-import java.io.File
-import java.nio.file.{Files, _}
-import java.util.UUID
-
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.util.ByteString
 import cats.data.EitherT
@@ -36,6 +32,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsSubmissionPayload, Envelo
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.io.File
+import java.nio.file._
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -100,6 +99,7 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
   }
 
   private def is4xx(status: Int): Boolean = status >= 400 && status < 500
+
   private def is5xx(status: Int): Boolean = status >= 500 && status < 600
 }
 

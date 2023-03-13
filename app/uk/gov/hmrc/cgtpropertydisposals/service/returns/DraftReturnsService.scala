@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import java.util.UUID
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -25,6 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DraftReturnsRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
+import java.util.UUID
 import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultDraftReturnsService])

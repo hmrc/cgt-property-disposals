@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import java.time.LocalDateTime
 import play.api.libs.json.{Json, OFormat}
+
+import java.time.LocalDateTime
 
 final case class UpscanUpload(
   uploadReference: UploadReference,

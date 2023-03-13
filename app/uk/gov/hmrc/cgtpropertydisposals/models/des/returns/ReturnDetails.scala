@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import java.time.LocalDate
-
 import cats.syntax.order._
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+
+import java.time.LocalDate
 
 final case class ReturnDetails(
   customerType: CustomerType,

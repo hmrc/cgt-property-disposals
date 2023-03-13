@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -29,6 +26,8 @@ import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import scala.util.Try
 
 @Singleton
@@ -63,6 +62,7 @@ class TaxYearController @Inject() (
 object TaxYearController {
 
   final case class TaxYearResponse(value: Option[TaxYear])
+
   final case class AvailableTaxYearsResponse(value: List[Int])
 
   implicit val taxYearResponseFormat: OFormat[TaxYearResponse]                     = Json.format

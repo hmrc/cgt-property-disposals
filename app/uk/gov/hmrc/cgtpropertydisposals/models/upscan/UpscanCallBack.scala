@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
 import julienrf.json.derived
 import play.api.libs.json.{Json, OFormat}
+
 import java.time.Instant
 
 sealed trait UpscanCallBack extends Product with Serializable

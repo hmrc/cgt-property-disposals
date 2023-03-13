@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
-import java.time.{Clock, LocalDateTime, ZoneId, ZoneOffset}
-
 import cats.data.EitherT
 import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
@@ -29,7 +27,6 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
@@ -39,10 +36,12 @@ import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.IndividualBusinessPartnerRecordRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error}
 import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
 import uk.gov.hmrc.cgtpropertydisposals.service.enrolments.{EnrolmentStoreProxyService, TaxEnrolmentService}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
+import java.time.{Clock, LocalDateTime, ZoneId, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription
 
-import java.time.LocalDateTime
-
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country.CountryCode
+
+import java.time.LocalDateTime
 
 final case class SubscriptionUpdateResponse(
   regime: String,

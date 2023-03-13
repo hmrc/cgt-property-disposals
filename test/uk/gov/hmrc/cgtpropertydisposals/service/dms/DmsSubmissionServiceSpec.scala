@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
@@ -30,7 +28,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers.await
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -39,12 +36,15 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
+import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed}
 import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
+import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}

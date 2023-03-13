@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
-import java.util.UUID
 import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
@@ -38,6 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

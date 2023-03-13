@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import java.time.{LocalDate, LocalDateTime, LocalTime}
-
 import cats.data.EitherT
 import cats.instances.future._
 import org.scalamock.scalatest.MockFactory
@@ -49,6 +47,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{D
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
+import java.time.{LocalDate, LocalDateTime, LocalTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

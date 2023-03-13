@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import java.time.LocalDate
-
 import cats.syntax.either._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
@@ -37,6 +35,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxYear}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
+
+import java.time.LocalDate
 
 class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
 

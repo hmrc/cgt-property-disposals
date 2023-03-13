@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.returns
 
-import java.time.LocalDate
-
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
@@ -31,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class ReturnsConnectorSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {

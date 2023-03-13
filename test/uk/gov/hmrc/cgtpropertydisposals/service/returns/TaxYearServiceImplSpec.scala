@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import java.time.LocalDate
-
 import com.typesafe.config.ConfigFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
+
+import java.time.LocalDate
 
 class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
 

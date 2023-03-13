@@ -21,16 +21,16 @@ import cats.instances.future._
 import cats.instances.int._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.mvc.Request
 import play.api.http.Status.ACCEPTED
+import play.api.mvc.Request
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.SubscriptionConfirmationEmailSentEvent
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.ReturnConfirmationEmailSentEvent
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier

@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
-import java.time.{Clock, LocalDateTime}
-
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{EitherT, NonEmptyList}
 import cats.instances.future._
@@ -41,13 +39,14 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscribe
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation}
 import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
 import uk.gov.hmrc.cgtpropertydisposals.service.enrolments.{EnrolmentStoreProxyService, TaxEnrolmentService}
-import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord
+import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordServiceImpl.DesBusinessPartnerRecord.DesErrorResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
+import java.time.{Clock, LocalDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[BusinessPartnerRecordServiceImpl])

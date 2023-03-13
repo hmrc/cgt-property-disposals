@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.MixedUsePropertyDetailsAn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturn, CompleteReturnWithSummary, RepresenteeContactDetails, RepresenteeDetails, ReturnSummary, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 
 import scala.io.Source

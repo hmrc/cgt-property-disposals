@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import java.time.{LocalDate, LocalDateTime}
-
 import cats.data.EitherT
 import cats.instances.future._
 import play.api.libs.json.Json
@@ -34,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DisplayReturn, ListRetur
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.ReturnsService
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

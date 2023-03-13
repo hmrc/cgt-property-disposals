@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.util
 
+import org.joda.time.{DateTime, DateTimeZone}
+
 import java.time.Clock
 import java.util.TimeZone
-
-import org.joda.time.{DateTime, DateTimeZone}
 
 object TimeOps {
   implicit class JavaToJoda(clock: Clock) {

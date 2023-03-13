@@ -32,8 +32,6 @@
 //
 package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
 import org.scalamock.scalatest.MockFactory
@@ -49,6 +47,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUp
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
+import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 

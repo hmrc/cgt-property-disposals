@@ -18,8 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Singleton}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
@@ -28,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, AssetType, CalculatedTaxDue, FurtherReturnCalculationData, Source, TaxableAmountOfMoney, TaxableGainOrLossCalculation, TaxableGainOrLossCalculationRequest, YearToDateLiabilityCalculation, YearToDateLiabilityCalculationRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 @ImplementedBy(classOf[CgtCalculationServiceImpl])
 trait CgtCalculationService {
@@ -47,6 +47,7 @@ trait CgtCalculationService {
   ): CalculatedTaxDue
 
   def calculateTaxableGainOrLoss(request: TaxableGainOrLossCalculationRequest): TaxableGainOrLossCalculation
+
   def calculateYearToDateLiability(request: YearToDateLiabilityCalculationRequest): YearToDateLiabilityCalculation
 
 }

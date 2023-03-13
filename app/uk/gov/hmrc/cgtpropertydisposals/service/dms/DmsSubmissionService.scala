@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import java.util.{Base64, UUID}
 import cats.data.EitherT
 import cats.instances.either._
 import cats.instances.future._
@@ -38,6 +37,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
+import java.util.{Base64, UUID}
 import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultDmsSubmissionService])

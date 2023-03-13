@@ -16,21 +16,20 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import java.util.UUID
-
+import cats.instances.future._
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
+import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import cats.instances.future._
-import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext
 
 @Singleton

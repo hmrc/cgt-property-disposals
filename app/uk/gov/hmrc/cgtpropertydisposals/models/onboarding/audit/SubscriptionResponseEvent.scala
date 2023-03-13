@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit
 
 import com.github.ghik.silencer.silent
-
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.TypeOfPersonDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.TypeOfPersonDetails.{Individual, Trustee}

@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import java.time.{Clock, Instant}
-
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
+
+import java.time.{Clock, Instant}
 
 sealed trait DesReturnType extends Product with Serializable {
   val source: String

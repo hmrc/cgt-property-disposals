@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
-import java.util.UUID
-import akka.stream.scaladsl.Sink
 import akka.stream.Materializer
+import akka.stream.scaladsl.Sink
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.HeaderNames.USER_AGENT
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
@@ -30,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HttpErrorFunctions
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.util.UUID
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.control.NonFatal

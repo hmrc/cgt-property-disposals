@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.audit
 
 import com.google.inject.ImplementedBy
-import javax.inject.Inject
 import play.api.libs.json.{Json, Writes}
 import play.api.mvc.Request
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -26,6 +25,7 @@ import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
+import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
 @ImplementedBy(classOf[AuditServiceImpl])

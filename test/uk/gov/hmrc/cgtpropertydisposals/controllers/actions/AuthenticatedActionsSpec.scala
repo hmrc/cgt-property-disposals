@@ -17,19 +17,18 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.actions
 
 import akka.stream.testkit.NoMaterializer
-
-import java.util.concurrent.TimeUnit
 import akka.util.Timeout
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.{BodyParsers, Results}
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
+import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, MissingBearerToken, SessionRecordNotFound}
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 

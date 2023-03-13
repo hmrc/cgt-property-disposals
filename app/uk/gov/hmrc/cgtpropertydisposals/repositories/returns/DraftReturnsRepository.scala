@@ -19,12 +19,12 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 import cats.data.EitherT
 import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import org.mongodb.scala.model.Filters
 import configs.syntax._
+import org.mongodb.scala.model.Filters
 import org.mongodb.scala.model.Filters.{equal, or}
 import play.api.Configuration
-import play.api.libs.json._
 import play.api.libs.json.Format.GenericFormat
+import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
@@ -32,8 +32,8 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.{DraftReturnWithCgtReference, DraftReturnWithCgtReferenceWrapper}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import java.time.Instant

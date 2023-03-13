@@ -16,20 +16,20 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.actions
 
-import java.time.LocalDateTime
-
 import com.google.inject.ImplementedBy
-import javax.inject.Inject
 import play.api.mvc._
 import uk.gov.hmrc.auth.core.AuthProvider.GovernmentGateway
+import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve._
-import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, _}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
+import java.time.LocalDateTime
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 final case class AuthenticatedUser(ggCredId: String)
+
 class AuthenticatedRequest[+A](
   val user: AuthenticatedUser,
   val timestamp: LocalDateTime,

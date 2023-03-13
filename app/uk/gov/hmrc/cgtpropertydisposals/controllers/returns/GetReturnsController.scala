@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-
 import cats.instances.future._
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.Json
@@ -31,6 +28,8 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 

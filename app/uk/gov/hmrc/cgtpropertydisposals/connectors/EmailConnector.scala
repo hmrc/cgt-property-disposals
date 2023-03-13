@@ -21,12 +21,12 @@ import cats.implicits._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnectorImpl.SendEmailRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error}
 import uk.gov.hmrc.cgtpropertydisposals.models.http.AcceptLanguage
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig

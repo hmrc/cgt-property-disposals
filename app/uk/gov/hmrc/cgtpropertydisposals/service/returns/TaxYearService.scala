@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import java.time.LocalDate
-
 import cats.syntax.order._
-import configs.syntax._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import configs.syntax._
 import play.api.Configuration
-import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils._
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
+
+import java.time.LocalDate
 
 @ImplementedBy(classOf[TaxYearServiceImpl])
 trait TaxYearService {

@@ -31,8 +31,8 @@ import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
+import uk.gov.hmrc.cgtpropertydisposals.models.des._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, ContactDetails, DesErrorResponse, DesSubscriptionUpdateRequest, SubscriptionStatus}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, Name, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.SubscriptionResponseEvent

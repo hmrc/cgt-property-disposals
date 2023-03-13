@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import java.time.LocalDateTime
-
 import play.api.libs.json.{JsNumber, JsValue, Json}
 import play.api.mvc.{Headers, Result}
 import play.api.test.FakeRequest
@@ -33,10 +31,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.Co
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CalculateCgtTaxDueRequest, CalculatedTaxDue, TaxableGainOrLossCalculation, TaxableGainOrLossCalculationRequest, YearToDateLiabilityCalculation, YearToDateLiabilityCalculationRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.CgtCalculationService
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class CalculatorControllerSpec extends ControllerSpec {
