@@ -21,7 +21,6 @@ import com.google.inject.ImplementedBy
 import org.bson.types.ObjectId
 import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.{IndexModel, IndexOptions}
-import org.scalatest.time.SpanSugar.convertLongToGrainOfTime
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
@@ -41,11 +40,14 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultDmsSubmissionRepo])
 trait DmsSubmissionRepo {
   def set(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]]
+
   def get: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]]
+
   def setProcessingStatus(
     id: ObjectId,
     status: ProcessingStatus
   ): EitherT[Future, Error, Boolean]
+
   def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean]
 }
 
@@ -70,7 +72,7 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   def inProgressRetryAfterProperty: String = "dms.submission-poller.in-progress-retry-after"
 
-  private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl").toSeconds
+  private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl")
 
   private val retryPeriod = inProgressRetryAfter.getSeconds
 
@@ -78,13 +80,13 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   private val ttlIndex: IndexModel = IndexModel(
     ascending("receivedAt"),
-    IndexOptions().name(ttlIndexName).expireAfter(ttl, TimeUnit.SECONDS)
+    IndexOptions().name(ttlIndexName).expireAfter(ttl.toSeconds, TimeUnit.SECONDS)
   )
 
   def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
       result <- super.ensureIndexes
-      _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl.seconds, collection, logger)
+      _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl, collection, logger)
     } yield result
 
   override def set(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]] =
@@ -114,7 +116,7 @@ class DefaultDmsSubmissionRepo @Inject() (
   ): EitherT[Future, Error, Boolean] =
     EitherT[Future, Error, Boolean](
       preservingMdc {
-        markAs(id, status, Some(now.plusMillis(retryPeriod)))
+        markAs(id, status, Some(now().plusMillis(retryPeriod)))
           .map(result => Right(result))
           .recover { case exception: Exception =>
             Left(Error(exception))
