@@ -17,8 +17,8 @@ Use `sbt run` in a terminal to run this service. This service runs on port `7021
 The other services this service relies on can be run using the `CGTPD_ALL` service manager profile and stopping the 
 `CGTPD` service if you want to run this service from source, e.g.:
 ```
-sm --start CGTPD_ALL -r
-sm --stop CGTPD
+sm2 --start CGTPD_ALL
+sm2 --stop CGTPD
 ```   
 
 ### License
