@@ -38,19 +38,5 @@ class TaxYearExchangedSpec extends AnyWordSpec with Matchers {
 
       }
     }
-
-    "old case class" when {
-
-      "given old json object should match with an expected new case class " in {
-
-        val oldTaxTearExchanged = """
-            | {"TaxYear2021":{}}
-            |""".stripMargin
-
-        Json.parse(oldTaxTearExchanged).as[TaxYearExchanged] shouldBe TaxYearExchanged(year = 2021)
-
-      }
-    }
-
   }
 }
