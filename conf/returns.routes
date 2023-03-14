@@ -1,15 +1,15 @@
-POST /draft-returns/delete                     uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.deleteDraftReturns()
-GET  /draft-returns/:cgtReference              uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturns(cgtReference:String)
-POST /draft-return/:cgtReference               uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.storeDraftReturn(cgtReference: String)
+POST        /draft-returns/delete                           uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.deleteDraftReturns()
+GET         /draft-returns/:cgtReference                    uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.draftReturns(cgtReference:String)
+POST        /draft-return/:cgtReference                     uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.storeDraftReturn(cgtReference: String)
 
-GET  /tax-year/:date                           uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.taxYear(date: String)
-GET  /available-tax-years                      uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.availableTaxYears()
+GET         /tax-year/:date                                 uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.taxYear(date: String)
+GET         /available-tax-years                            uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.availableTaxYears()
 
-POST /calculate-tax-due                        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateTaxDue()
-POST /calculate-taxable-gain-or-loss           uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateTaxableGainOrLoss()
-POST /calculate-year-to-date-liability         uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateYearToDateLiability()
+POST        /calculate-tax-due                              uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateTaxDue()
+POST        /calculate-taxable-gain-or-loss                 uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateTaxableGainOrLoss()
+POST        /calculate-year-to-date-liability               uk.gov.hmrc.cgtpropertydisposals.controllers.returns.CalculatorController.calculateYearToDateLiability()
 
-POST /return                                   uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.submitReturn()
+POST        /return                                         uk.gov.hmrc.cgtpropertydisposals.controllers.returns.SubmitReturnsController.submitReturn()
 
-GET /returns/:cgtReference/:fromDate/:toDate   uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.listReturns(cgtReference: String, fromDate: String, toDate: String)
-GET /return/:cgtReference/:submissionId        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.displayReturn(cgtReference: String, submissionId: String)
+GET         /returns/:cgtReference/:fromDate/:toDate        uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.listReturns(cgtReference: String, fromDate: String, toDate: String)
+GET         /return/:cgtReference/:submissionId             uk.gov.hmrc.cgtpropertydisposals.controllers.returns.GetReturnsController.displayReturn(cgtReference: String, submissionId: String)

@@ -26,6 +26,7 @@ final case class RegistrationDetails(
   emailAddress: Email,
   address: Address
 )
+
 object RegistrationDetails {
   implicit val format: Format[RegistrationDetails] = Json.format[RegistrationDetails]
 }

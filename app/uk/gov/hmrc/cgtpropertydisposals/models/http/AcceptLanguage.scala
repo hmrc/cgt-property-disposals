@@ -19,10 +19,12 @@ package uk.gov.hmrc.cgtpropertydisposals.models.http
 import cats.instances.string._
 import cats.syntax.eq._
 import uk.gov.hmrc.http.HeaderCarrier
+
 sealed trait AcceptLanguage
 
 object AcceptLanguage {
   case object EN extends AcceptLanguage
+
   case object CY extends AcceptLanguage
 
   def fromHeaderCarrier(headerCarrier: HeaderCarrier): Option[AcceptLanguage] =

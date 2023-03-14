@@ -32,7 +32,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultVerifiersRepository])
 trait VerifiersRepository {
   def get(ggCredId: String): EitherT[Future, Error, Option[UpdateVerifiersRequest]]
+
   def insert(updateVerifiersRequest: UpdateVerifiersRequest): EitherT[Future, Error, Unit]
+
   def delete(ggCredId: String): EitherT[Future, Error, Int]
 }
 

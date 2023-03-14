@@ -32,8 +32,11 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultTaxEnrolmentRepository])
 trait TaxEnrolmentRepository {
   def get(ggCredId: String): EitherT[Future, Error, Option[TaxEnrolmentRequest]]
+
   def save(cgtEnrolmentRequest: TaxEnrolmentRequest): EitherT[Future, Error, Unit]
+
   def delete(userId: String): EitherT[Future, Error, Int]
+
   def update(
     ggCredId: String,
     cgtEnrolmentRequest: TaxEnrolmentRequest

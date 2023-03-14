@@ -42,26 +42,26 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory 
   val config = Configuration(
     ConfigFactory.parseString(
       s"""
-        |microservice {
-        |  services {
-        |    email {
-        |      protocol = http
-        |      host     = host
-        |      port     = 123
-        |    }
-        |  }
-        |}
-        |
-        |email {
-        |    account-created {
-        |        template-id = "$accountCreatedTemplateId"
-        |        sign-in-url = "$accountCreatedSignInUrl"
-        |    }
-        |    return-submitted {
-        |        template-id = "$returnSubmittedTemplateId"
-        |    }
-        |}
-        |""".stripMargin
+         |microservice {
+         |  services {
+         |    email {
+         |      protocol = http
+         |      host     = host
+         |      port     = 123
+         |    }
+         |  }
+         |}
+         |
+         |email {
+         |    account-created {
+         |        template-id = "$accountCreatedTemplateId"
+         |        sign-in-url = "$accountCreatedSignInUrl"
+         |    }
+         |    return-submitted {
+         |        template-id = "$returnSubmittedTemplateId"
+         |    }
+         |}
+         |""".stripMargin
     )
   )
 

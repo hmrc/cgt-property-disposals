@@ -124,7 +124,7 @@ sealed trait GenUtils {
     )
 
   implicit val localDateArb: Arbitrary[LocalDate] = Arbitrary(
-    Gen.chooseNum(0, 10000L).map(LocalDate.ofEpochDay(_))
+    Gen.chooseNum(0, 10000L).map(LocalDate.ofEpochDay)
   )
 
   implicit val byteStringArb: Arbitrary[ByteString] =
@@ -147,10 +147,10 @@ sealed trait GenUtils {
         .chooseNum(0L, 10000L)
         .map(l => Instant.ofEpochMilli(l))
     )
-
 }
 
-trait IdGen { this: GenUtils =>
+trait IdGen {
+  this: GenUtils =>
 
   implicit val cgtReferenceGen: Gen[CgtReference] = gen[CgtReference]
 
@@ -164,12 +164,14 @@ trait IdGen { this: GenUtils =>
 
 }
 
-trait B64HtmlGen { this: GenUtils =>
+trait B64HtmlGen {
+  this: GenUtils =>
   implicit val b64HtmlGen: Gen[B64Html] =
     Gen.asciiStr.map(s => B64Html(new String(Base64.getEncoder.encode(s.getBytes()))))
 }
 
-trait NameGen { this: GenUtils =>
+trait NameGen {
+  this: GenUtils =>
 
   implicit val individualNameGen: Gen[IndividualName] = gen[IndividualName]
 
@@ -179,13 +181,15 @@ trait NameGen { this: GenUtils =>
 
 }
 
-trait EmailGen { this: GenUtils =>
+trait EmailGen {
+  this: GenUtils =>
 
   implicit val emailGen: Gen[Email] = gen[Email]
 
 }
 
-trait OnboardingGen { this: GenUtils =>
+trait OnboardingGen {
+  this: GenUtils =>
 
   implicit val registrationDetailsGen: Gen[RegistrationDetails] = gen[RegistrationDetails]
 
@@ -201,7 +205,8 @@ trait OnboardingGen { this: GenUtils =>
 
 }
 
-trait BusinessPartnerRecordGen { this: GenUtils =>
+trait BusinessPartnerRecordGen {
+  this: GenUtils =>
 
   implicit val bprGen: Gen[BusinessPartnerRecord] = gen[BusinessPartnerRecord]
 
@@ -212,7 +217,8 @@ trait BusinessPartnerRecordGen { this: GenUtils =>
 
 }
 
-trait TaxEnrolmentGen { this: GenUtils =>
+trait TaxEnrolmentGen {
+  this: GenUtils =>
 
   implicit val taxEnrolmentRequestGen: Gen[TaxEnrolmentRequest] = gen[TaxEnrolmentRequest]
 
@@ -220,7 +226,8 @@ trait TaxEnrolmentGen { this: GenUtils =>
 
 }
 
-trait DraftReturnGen extends LowerPriorityDraftReturnGen { this: GenUtils =>
+trait DraftReturnGen extends LowerPriorityDraftReturnGen {
+  this: GenUtils =>
 
   implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 
@@ -229,7 +236,8 @@ trait DraftReturnGen extends LowerPriorityDraftReturnGen { this: GenUtils =>
 
 }
 
-trait LowerPriorityDraftReturnGen { this: GenUtils =>
+trait LowerPriorityDraftReturnGen {
+  this: GenUtils =>
 
   implicit val multipleDisposalDraftReturnGen: Gen[DraftMultipleDisposalsReturn] = gen[DraftMultipleDisposalsReturn]
 
@@ -244,7 +252,8 @@ trait LowerPriorityDraftReturnGen { this: GenUtils =>
 
 }
 
-trait UpscanGen { this: GenUtils =>
+trait UpscanGen {
+  this: GenUtils =>
   implicit val uploadDetails: Gen[UploadDetails]            = gen[UploadDetails]
   implicit val newUpscanSuccess: Gen[NewUpscanSuccess]      = gen[NewUpscanSuccess]
   implicit val upscanUploadGen: Gen[UpscanUpload]           = gen[UpscanUpload]
@@ -262,7 +271,8 @@ trait DmsSubmissionGen {
   implicit val workItemGen: Gen[WorkItem[DmsSubmissionRequest]]   = gen[WorkItem[DmsSubmissionRequest]]
 }
 
-trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
+trait ReturnsGen extends LowerPriorityReturnsGen {
+  this: GenUtils =>
 
   implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
 
@@ -345,7 +355,8 @@ trait ReturnsGen extends LowerPriorityReturnsGen { this: GenUtils =>
 
 }
 
-trait LowerPriorityReturnsGen { this: GenUtils =>
+trait LowerPriorityReturnsGen {
+  this: GenUtils =>
 
   implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
 
@@ -366,7 +377,8 @@ trait LowerPriorityReturnsGen { this: GenUtils =>
 
 }
 
-trait DesReturnsGen { this: GenUtils =>
+trait DesReturnsGen {
+  this: GenUtils =>
 
   implicit val desReturnDetailsGen: Gen[DesReturnDetails] = gen[DesReturnDetails]
 
@@ -398,7 +410,8 @@ trait DesReturnsGen { this: GenUtils =>
 
 }
 
-trait AddressGen extends AddressLowerPriorityGen { this: GenUtils =>
+trait AddressGen extends AddressLowerPriorityGen {
+  this: GenUtils =>
 
   implicit val addressGen: Gen[Address] = gen[Address]
 
@@ -415,13 +428,15 @@ trait AddressGen extends AddressLowerPriorityGen { this: GenUtils =>
 
 }
 
-trait AddressLowerPriorityGen { this: GenUtils =>
+trait AddressLowerPriorityGen {
+  this: GenUtils =>
 
   implicit val nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
 
 }
 
-trait MoneyGen { this: GenUtils =>
+trait MoneyGen {
+  this: GenUtils =>
 
   implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
 
@@ -429,7 +444,8 @@ trait MoneyGen { this: GenUtils =>
 
 }
 
-trait FurtherReturnCalculationGen { this: GenUtils =>
+trait FurtherReturnCalculationGen {
+  this: GenUtils =>
 
   implicit val taxableGainOrLossCalculationRequestGen: Gen[TaxableGainOrLossCalculationRequest] =
     gen[TaxableGainOrLossCalculationRequest]

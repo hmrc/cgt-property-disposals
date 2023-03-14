@@ -40,21 +40,21 @@ class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with MockF
   val config = Configuration(
     ConfigFactory.parseString(
       s"""
-       |microservice {
-       |  services {
-       |      subscription {
-       |      protocol = http
-       |      host     = host
-       |      port     = 123
-       |    }
-       |  }
-       |}
-       |
-       |des {
-       |  bearer-token = $desBearerToken
-       |  environment  = $desEnvironment
-       |}
-       |""".stripMargin
+         |microservice {
+         |  services {
+         |      subscription {
+         |      protocol = http
+         |      host     = host
+         |      port     = 123
+         |    }
+         |  }
+         |}
+         |
+         |des {
+         |  bearer-token = $desBearerToken
+         |  environment  = $desEnvironment
+         |}
+         |""".stripMargin
     )
   )
 
@@ -64,9 +64,10 @@ class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with MockF
 
   "SubscriptionConnectorImpl" when {
 
-    implicit val hc: HeaderCarrier                                 = HeaderCarrier()
-    val expectedHeaders                                            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-    val expectedSubscriptionUrl                                    = "http://host:123/subscriptions/create/CGT"
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
+    val expectedSubscriptionUrl    = "http://host:123/subscriptions/create/CGT"
+
     def expectedSubscriptionDisplayUrl(cgtReference: CgtReference) =
       s"http://host:123/subscriptions/CGT/ZCGT/${cgtReference.value}"
 

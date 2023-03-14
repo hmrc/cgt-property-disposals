@@ -28,6 +28,7 @@ import scala.concurrent.duration.Duration
 trait PlayHttpClient {
 
   def get(url: String, headers: Seq[(String, String)], timeout: Duration): Future[ws.WSResponse]
+
   def post[A](url: String, headers: Seq[(String, String)], body: A)(implicit
     bodyWritable: BodyWritable[A]
   ): Future[ws.WSResponse]

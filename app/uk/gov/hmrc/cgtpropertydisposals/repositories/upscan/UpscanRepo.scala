@@ -65,9 +65,10 @@ class DefaultUpscanRepo @Inject() (mongo: MongoComponent, config: Configuration)
     with UpscanRepo
     with TimestampSupport {
   override def timestamp(): Instant = Instant.now()
+
   override def insert(
     upscanUpload: UpscanUpload
-  ): EitherT[Future, Error, Unit]   =
+  ): EitherT[Future, Error, Unit] =
     EitherT(preservingMdc {
       val time     = timestamp()
       val selector = Filters.equal("_id", upscanUpload.uploadReference.value)

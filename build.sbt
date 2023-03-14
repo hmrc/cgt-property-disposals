@@ -45,4 +45,4 @@ lazy val microservice = Project(appName, file("."))
   .settings(scoverageSettings: _*)
   .settings(PlayKeys.playDefaultPort := 7021)
 
-addCompilerPlugin("org.typelevel"  %% "kind-projector"  % "0.13.2" cross CrossVersion.full),
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full)

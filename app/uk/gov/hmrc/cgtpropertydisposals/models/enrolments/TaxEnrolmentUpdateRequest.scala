@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.enrolments
 import play.api.libs.json.{Json, OFormat}
 
 final case class Legacy(previousVerifiers: List[KeyValuePair])
+
 final case class TaxEnrolmentUpdateRequest(verifiers: List[KeyValuePair], legacy: Legacy)
 
 object TaxEnrolmentUpdateRequest {

@@ -134,20 +134,20 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
         individualName: Option[IndividualName]
       ) =
         Json.parse(s"""
-           |{
-           |  ${individualName
+             |{
+             |  ${individualName
           .map(n => s""""individual":{"firstName":"${n.firstName}","lastName":"${n.lastName}"},""")
           .getOrElse("")}
-           |  "contactDetails" : {
-           |    "emailAddress" : "email"
-           |  },
-           |  "sapNumber" : "${sapNumber.value}",
-           |  ${organisationName
+             |  "contactDetails" : {
+             |    "emailAddress" : "email"
+             |  },
+             |  "sapNumber" : "${sapNumber.value}",
+             |  ${organisationName
           .map(trustName => s""""organisation":{"organisationName":"${trustName.value}"},""")
           .getOrElse("")}
-           |  $addressBody
-           |}
-           |""".stripMargin)
+             |  $addressBody
+             |}
+             |""".stripMargin)
 
       "return an error" when {
 
@@ -457,14 +457,14 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
         "the call comes back with status 200 with valid JSON and a country code where a country name does not exist" in {
           val body = bprResponseJson(
             s"""
-              |"address" : {
-              |    "addressLine1" : "line1",
-              |    "addressLine2" : "line2",
-              |    "addressLine3" : "line3",
-              |    "addressLine4" : "line4",
-              |    "countryCode"  : "ZZ"
-              |  }
-              |""".stripMargin,
+               |"address" : {
+               |    "addressLine1" : "line1",
+               |    "addressLine2" : "line2",
+               |    "addressLine3" : "line3",
+               |    "addressLine4" : "line4",
+               |    "countryCode"  : "ZZ"
+               |  }
+               |""".stripMargin,
             Some(trustName),
             None
           )
