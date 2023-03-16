@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
 import cats.data.EitherT
-import com.google.inject.{ImplementedBy, Inject}
+import com.google.inject.{ImplementedBy, Inject, Singleton}
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.{IndexModel, IndexOptions}
@@ -38,6 +38,7 @@ trait VerifiersRepository {
   def delete(ggCredId: String): EitherT[Future, Error, Int]
 }
 
+@Singleton
 class DefaultVerifiersRepository @Inject() (mongo: MongoComponent)(implicit
   ec: ExecutionContext
 ) extends PlayMongoRepository[UpdateVerifiersRequest](

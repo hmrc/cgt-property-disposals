@@ -1,6 +1,5 @@
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName = "cgt-property-disposals"
 
@@ -38,7 +37,6 @@ lazy val microservice = Project(appName, file("."))
     Test / scalacOptions --= Seq("-Ywarn-value-discard")
   )
   .settings(scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused:imports"))
-  .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
   .settings(Test / resourceDirectory := baseDirectory.value / "/conf/resources")
