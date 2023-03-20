@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
-import java.util.UUID
-
 import com.typesafe.config.ConfigFactory
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
@@ -34,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {

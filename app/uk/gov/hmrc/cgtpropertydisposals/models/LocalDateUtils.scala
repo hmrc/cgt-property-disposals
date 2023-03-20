@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import java.time.LocalDate
-
 import cats.Order
+
+import java.time.LocalDate
 
 object LocalDateUtils {
 

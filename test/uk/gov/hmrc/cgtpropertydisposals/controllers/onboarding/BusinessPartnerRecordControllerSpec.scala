@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
-import java.time.LocalDateTime
-
 import akka.stream.Materializer
 import cats.data.EitherT
 import play.api.inject.bind
@@ -37,6 +35,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.Subscribe
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.BusinessPartnerRecordService
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

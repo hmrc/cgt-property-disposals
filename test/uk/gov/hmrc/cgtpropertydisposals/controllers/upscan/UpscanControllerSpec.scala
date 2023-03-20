@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.upscan
 
-import java.time.LocalDateTime
 import akka.stream.Materializer
 import cats.data.EitherT
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
@@ -36,6 +35,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

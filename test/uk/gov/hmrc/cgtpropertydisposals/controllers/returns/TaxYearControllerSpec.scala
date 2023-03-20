@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import java.time.{LocalDate, LocalDateTime}
-
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -31,6 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.Future
 
 class TaxYearControllerSpec extends ControllerSpec {

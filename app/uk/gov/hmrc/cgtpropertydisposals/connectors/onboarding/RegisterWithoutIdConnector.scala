@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
-import java.util.UUID
-
 import cats.data.EitherT
 import cats.instances.char._
 import cats.syntax.eq._
@@ -28,10 +26,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpReads.Implicits._
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[RegisterWithoutIdConnectorImpl])
@@ -48,6 +47,7 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: Se
   ec: ExecutionContext
 ) extends RegisterWithoutIdConnector
     with DesConnector {
+
   import RegisterWithoutIdConnectorImpl._
 
   val baseUrl: String = config.baseUrl("register-without-id")

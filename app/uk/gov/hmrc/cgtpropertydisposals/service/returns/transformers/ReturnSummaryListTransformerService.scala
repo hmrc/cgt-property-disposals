@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import java.time.LocalDate
-
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated}
 import cats.instances.bigDecimal._
@@ -36,6 +34,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{ReturnSummary, SubmitRet
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+
+import java.time.LocalDate
 
 @ImplementedBy(classOf[ReturnSummaryListTransformerServiceImpl])
 trait ReturnSummaryListTransformerService {

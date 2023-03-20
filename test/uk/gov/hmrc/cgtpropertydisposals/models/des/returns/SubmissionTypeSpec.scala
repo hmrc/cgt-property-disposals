@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsError, JsNull, JsString, JsSuccess, JsValue, Json}
+import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.SubmissionType.{Amend, New}
 
 class SubmissionTypeSpec extends AnyWordSpec with Matchers {

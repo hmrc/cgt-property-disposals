@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals
 
-import java.time.LocalDateTime
-
 import play.api.mvc._
 import play.api.test.Helpers
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest, AuthenticatedUser}
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.LocalDateTime
 import scala.concurrent.{ExecutionContext, Future}
 
 object Fake {

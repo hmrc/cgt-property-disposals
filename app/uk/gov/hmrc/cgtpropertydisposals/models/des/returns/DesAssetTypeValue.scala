@@ -18,9 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import cats.instances.string._
 import cats.syntax.eq._
-
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AssetType, CompleteReturn}
 

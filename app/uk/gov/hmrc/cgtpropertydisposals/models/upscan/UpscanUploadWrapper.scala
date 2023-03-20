@@ -16,10 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.functional.syntax.unlift
-import play.api.libs.json.{Format, __}
 import play.api.libs.functional.syntax._
-
+import play.api.libs.json.{Format, __}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant

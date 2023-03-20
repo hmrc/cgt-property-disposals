@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import play.api.libs.json.{Format, JsObject, JsResult, JsValue, Json}
+import play.api.libs.json._
 
 object EitherFormat {
 

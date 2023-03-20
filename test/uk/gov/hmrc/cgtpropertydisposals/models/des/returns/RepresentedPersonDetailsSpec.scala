@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import java.time.LocalDate
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
@@ -27,6 +25,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DateOfDeath, RepresenteeContactDetails, RepresenteeDetails}
+
+import java.time.LocalDate
 
 class RepresentedPersonDetailsSpec extends AnyWordSpec with Matchers {
 

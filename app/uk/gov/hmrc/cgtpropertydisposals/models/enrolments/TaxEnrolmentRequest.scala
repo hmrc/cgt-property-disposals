@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.enrolments
 
-import java.time.LocalDateTime
-
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
+
+import java.time.LocalDateTime
 
 final case class TaxEnrolmentRequest(
   ggCredId: String,
