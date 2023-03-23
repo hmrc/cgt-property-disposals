@@ -3,18 +3,21 @@
   -->
 <configuration>
     <!-- Suppress logback complaining about multiple logback-test.xml files -->
-    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-                <pattern>%green(%date{ISO8601}) %gray(level=)[%highlight(%5level)] %gray(message=[%yellow(%message)])  %gray(logger=[%logger] thread=[%thread] rid=[%X{X-Request-ID}] user=[%X{Authorization}]) %replace(exception=[%xException]){'^exception=\[\]$',''}%n</pattern>
+                <pattern>%green(%date{ISO8601}) %gray(level=)[%highlight(%5level)] %gray(message=[%yellow(%message)])
+                    %gray(logger=[%logger] thread=[%thread] rid=[%X{X-Request-ID}] user=[%X{Authorization}])
+                    %replace(exception=[%xException]){'^exception=\[\]$',''}%n
+                </pattern>
             </encoder>
         </encoder>
     </appender>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT"/>
     </root>
 
 </configuration>

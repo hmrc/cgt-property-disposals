@@ -38,6 +38,7 @@ final case class TaxYear(
   cgtRateHigherBandNonResidential: BigDecimal,
   maxLettingsReliefAmount: AmountInPence
 )
+
 object TaxYear {
 
   implicit val configs: ConfigReader[TaxYear] = ConfigReader.from { case (config, key) =>

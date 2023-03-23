@@ -17,10 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr
 
 import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{Format, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR, TRN}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat.eitherFormat
 
 object BusinessPartnerRecordRequest {
 
@@ -37,6 +37,11 @@ object BusinessPartnerRecordRequest {
     ggCredId: String,
     createNewEnrolmentIfMissing: Boolean
   ) extends BusinessPartnerRecordRequest
+
+  implicit val sautrNinoFormat: Format[Either[SAUTR, NINO]] =
+    EitherFormat.eitherFormat[SAUTR, NINO]
+  implicit val trnSautrFormat: Format[Either[TRN, SAUTR]]   =
+    EitherFormat.eitherFormat[TRN, SAUTR]
 
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[BusinessPartnerRecordRequest] = derived.oformat()

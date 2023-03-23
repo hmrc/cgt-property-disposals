@@ -32,6 +32,7 @@ class CustomerTypeSpec extends AnyWordSpec with Matchers {
 
       "can write JSON correctly" in {
         def test(c: CustomerType, expectedJson: JsValue) = Json.toJson(c) shouldBe expectedJson
+
         test(Trust, JsString("trust"))
         test(Individual, JsString("individual"))
       }

@@ -39,6 +39,7 @@ import scala.util.control.NonFatal
 trait AmendReturnsRepository {
 
   def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnWrapper]]
+
   def save(
     submitReturnRequest: SubmitReturnRequest
   ): EitherT[Future, Error, Unit]

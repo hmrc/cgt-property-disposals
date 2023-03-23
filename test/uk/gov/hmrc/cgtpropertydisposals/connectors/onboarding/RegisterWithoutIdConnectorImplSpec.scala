@@ -88,28 +88,28 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
 
       val expectedRequest = Json.parse(
         s"""
-          |{
-          |  "regime": "CGT",
-          |  "acknowledgementReference" : "${referenceId.toString.replaceAllLiterally("-", "")}",
-          |  "isAnAgent": false,
-          |  "isAGroup": false,
-          |  "individual": {
-          |    "firstName": "name",
-          |    "lastName":  "surname"
-          |  },
-          |  "address" : {
-          |    "addressLine1" : "addressLine1",
-          |    "addressLine2" : "addressLine2",
-          |    "addressLine3" : "addressLine3",
-          |    "addressLine4" : "addressLine4",
-          |    "postalCode" : "postcode",
-          |    "countryCode" : "GB"
-          |  },
-          |  "contactDetails" : {
-          |    "emailAddress" : "email"
-          |  }
-          |}
-          |""".stripMargin
+           |{
+           |  "regime": "CGT",
+           |  "acknowledgementReference" : "${referenceId.toString.replaceAllLiterally("-", "")}",
+           |  "isAnAgent": false,
+           |  "isAGroup": false,
+           |  "individual": {
+           |    "firstName": "name",
+           |    "lastName":  "surname"
+           |  },
+           |  "address" : {
+           |    "addressLine1" : "addressLine1",
+           |    "addressLine2" : "addressLine2",
+           |    "addressLine3" : "addressLine3",
+           |    "addressLine4" : "addressLine4",
+           |    "postalCode" : "postcode",
+           |    "countryCode" : "GB"
+           |  },
+           |  "contactDetails" : {
+           |    "emailAddress" : "email"
+           |  }
+           |}
+           |""".stripMargin
       )
 
       "do a post http call and return the result" in {
@@ -152,28 +152,28 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
 
         val expectedRequest = Json.parse(
           s"""
-              |{
-              |  "regime": "CGT",
-              |  "acknowledgementReference" : "${referenceId.toString.replaceAllLiterally("-", "")}",
-              |  "isAnAgent": false,
-              |  "isAGroup": false,
-              |  "individual": {
-              |    "firstName": "name",
-              |    "lastName":  "surname"
-              |  },
-              |  "address" : {
-              |    "addressLine1" : "addressLine1",
-              |    "addressLine2" : "addressLine2",
-              |    "addressLine3" : "addressLine3",
-              |    "addressLine4" : "addressLine4",
-              |    "postalCode" : "postcode",
-              |    "countryCode" : "HK"
-              |  },
-              |  "contactDetails" : {
-              |    "emailAddress" : "email"
-              |  }
-              |}
-              |""".stripMargin
+             |{
+             |  "regime": "CGT",
+             |  "acknowledgementReference" : "${referenceId.toString.replaceAllLiterally("-", "")}",
+             |  "isAnAgent": false,
+             |  "isAGroup": false,
+             |  "individual": {
+             |    "firstName": "name",
+             |    "lastName":  "surname"
+             |  },
+             |  "address" : {
+             |    "addressLine1" : "addressLine1",
+             |    "addressLine2" : "addressLine2",
+             |    "addressLine3" : "addressLine3",
+             |    "addressLine4" : "addressLine4",
+             |    "postalCode" : "postcode",
+             |    "countryCode" : "HK"
+             |  },
+             |  "contactDetails" : {
+             |    "emailAddress" : "email"
+             |  }
+             |}
+             |""".stripMargin
         )
 
         mockPost(expectedUrl, expectedHeaders, expectedRequest)(Some(httpResponse))

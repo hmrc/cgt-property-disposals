@@ -80,20 +80,20 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
         val individualJsonString =
           if (requiresNameMatch)
             """,
-            |  "individual" : {
-            |     "firstName" : "forename",
-            |     "lastName" : "surname"
-            |    }
-            |""".stripMargin
+              |  "individual" : {
+              |     "firstName" : "forename",
+              |     "lastName" : "surname"
+              |    }
+              |""".stripMargin
           else ""
 
         Json.parse(s"""
-                      | {
-                      |   "regime" : "CGT",
-                      |   "requiresNameMatch" : $requiresNameMatch,
-                      |   "isAnAgent" : false$individualJsonString
-                      | }
-                      |""".stripMargin)
+             | {
+             |   "regime" : "CGT",
+             |   "requiresNameMatch" : $requiresNameMatch,
+             |   "isAnAgent" : false$individualJsonString
+             | }
+             |""".stripMargin)
       }
 
       "handling individuals with NINOs" must {
@@ -195,8 +195,9 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
       }
 
       "handling organisations" must {
-        val trn                                                              = TRN("t r n ")
-        val sautr                                                            = SAUTR(" sa utr ")
+        val trn   = TRN("t r n ")
+        val sautr = SAUTR(" sa utr ")
+
         def bprRequest(id: Either[TRN, SAUTR], nameMatch: Option[TrustName]) =
           TrustBusinessPartnerRecordRequest(id, nameMatch, ggCredId, false)
 
@@ -212,12 +213,12 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
             }
 
           Json.parse(s"""
-                        | {
-                        |   "regime" : "CGT",
-                        |   "requiresNameMatch" : ${nameMatch.isDefined},
-                        |   "isAnAgent" : false$organisationJsonString
-                        | }
-                        |""".stripMargin)
+               | {
+               |   "regime" : "CGT",
+               |   "requiresNameMatch" : ${nameMatch.isDefined},
+               |   "isAnAgent" : false$organisationJsonString
+               | }
+               |""".stripMargin)
         }
 
         val idsWithExpectedUrlsList = List[(Either[TRN, SAUTR], String)](

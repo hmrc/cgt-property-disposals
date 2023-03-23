@@ -15,13 +15,16 @@
  */
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories
+
 import com.google.inject.{ImplementedBy, Singleton}
 
 import java.time.Instant
+
 @ImplementedBy(classOf[DefaultCurrentInstant])
 trait CurrentInstant {
   def currentInstant(): Instant
 }
+
 @Singleton
 class DefaultCurrentInstant extends CurrentInstant {
   override def currentInstant(): Instant = Instant.now()

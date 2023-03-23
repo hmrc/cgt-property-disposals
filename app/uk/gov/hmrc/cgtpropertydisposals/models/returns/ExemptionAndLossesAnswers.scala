@@ -35,6 +35,7 @@ object ExemptionAndLossesAnswers {
     previousYearsLosses: AmountInPence,
     annualExemptAmount: AmountInPence
   ) extends ExemptionAndLossesAnswers
+
   @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ExemptionAndLossesAnswers] = derived.oformat()
 

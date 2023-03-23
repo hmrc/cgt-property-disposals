@@ -24,6 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
 
 import java.time.{Clock, Instant, ZoneId}
+
 class DesReturnTypeSpec extends AnyWordSpec with Matchers {
 
   "DesReturnType" must {
@@ -50,11 +51,11 @@ class DesReturnTypeSpec extends AnyWordSpec with Matchers {
         Json
           .parse(
             """
-            |{
-            | "source": "source",
-            | "submissionType" : "New"
-            |}
-            |""".stripMargin
+              |{
+              | "source": "source",
+              | "submissionType" : "New"
+              |}
+              |""".stripMargin
           )
           .validate[DesReturnType] shouldBe JsSuccess(CreateReturnType("source"))
 

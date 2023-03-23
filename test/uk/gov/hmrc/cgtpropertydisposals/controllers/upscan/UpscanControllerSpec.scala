@@ -221,21 +221,21 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
         val upscanUploadPayload =
           s"""
-            |{
-            |    "uploadReference" : "abc",
-            |    "upscanUploadMeta" : {
-            |        "reference" : "glwibAzzhpamXyavalyif",
-            |        "uploadRequest" : {
-            |            "href" : "wveovofmaobqq",
-            |            "fields" : {}
-            |        }
-            |    },
-            |    "uploadedOn" : "1970-01-01T01:00:07.665",
-            |    "upscanUploadStatus" : {
-            |        "Initiated" : {}
-            |    }
-            |}
-            |""".stripMargin
+             |{
+             |    "uploadReference" : "abc",
+             |    "upscanUploadMeta" : {
+             |        "reference" : "glwibAzzhpamXyavalyif",
+             |        "uploadRequest" : {
+             |            "href" : "wveovofmaobqq",
+             |            "fields" : {}
+             |        }
+             |    },
+             |    "uploadedOn" : "1970-01-01T01:00:07.665",
+             |    "upscanUploadStatus" : {
+             |        "Initiated" : {}
+             |    }
+             |}
+             |""".stripMargin
 
         val request =
           new AuthenticatedRequest(
@@ -406,18 +406,18 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
         val upscanCallBackRequest =
           s"""
-            |{
-            |    "reference" : "reference",
-            |    "fileStatus" : "READY",
-            |    "downloadUrl" : "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
-            |    "uploadDetails": {
-            |        "uploadTimestamp": "2018-04-24T09:30:00Z",
-            |        "checksum": "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100",
-            |        "fileName": "test.pdf",
-            |        "fileMimeType": "application/pdf"
-            |    }
-            |}
-            |""".stripMargin
+             |{
+             |    "reference" : "reference",
+             |    "fileStatus" : "READY",
+             |    "downloadUrl" : "https://bucketName.s3.eu-west-2.amazonaws.com?1235676",
+             |    "uploadDetails": {
+             |        "uploadTimestamp": "2018-04-24T09:30:00Z",
+             |        "checksum": "396f101dd52e8b2ace0dcf5ed09b1d1f030e608938510ce46e7a5c7a4e775100",
+             |        "fileName": "test.pdf",
+             |        "fileMimeType": "application/pdf"
+             |    }
+             |}
+             |""".stripMargin
 
         inSequence {
           mockGetUpscanUpload(upscanUpload.upscan.uploadReference)(Right(Some(upscanUpload)))

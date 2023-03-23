@@ -10,6 +10,6 @@
 # Failing to follow this rule may result in test routes deployed in production.
 
 # Add all the application routes to the prod.routes file
-->          /                           prod.Routes
+->            /                                                                  prod.Routes
 
-DELETE      /test-only/cgt-property-disposals/draftReturn/:cgtReference             uk.gov.hmrc.cgtpropertydisposals.controllers.testonly.TestOnlyController.deleteDraftReturn(cgtReference: String)
+DELETE        /test-only/cgt-property-disposals/draftReturn/:cgtReference        uk.gov.hmrc.cgtpropertydisposals.controllers.testonly.TestOnlyController.deleteDraftReturn(cgtReference: String)

@@ -24,11 +24,17 @@ sealed trait ClearingReason
 
 object ClearingReason {
   case object IncomingPayment extends ClearingReason
+
   case object OutgoingPayment extends ClearingReason
+
   case object WriteOff extends ClearingReason
+
   case object Reversal extends ClearingReason
+
   case object MassWriteOff extends ClearingReason
+
   case object AutomaticClearing extends ClearingReason
+
   case object SomeOtherClearingReason extends ClearingReason
 
   def fromString(clearingReason: String): ClearingReason =

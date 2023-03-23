@@ -1,6 +1,5 @@
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName = "cgt-property-disposals"
 
@@ -38,11 +37,10 @@ lazy val microservice = Project(appName, file("."))
     Test / scalacOptions --= Seq("-Ywarn-value-discard")
   )
   .settings(scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused:imports"))
-  .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
   .settings(Test / resourceDirectory := baseDirectory.value / "/conf/resources")
   .settings(scoverageSettings: _*)
   .settings(PlayKeys.playDefaultPort := 7021)
 
-addCompilerPlugin("org.typelevel"  %% "kind-projector"  % "0.13.2" cross CrossVersion.full),
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full)

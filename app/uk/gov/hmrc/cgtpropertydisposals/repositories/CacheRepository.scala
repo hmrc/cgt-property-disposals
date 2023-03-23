@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories
 import com.mongodb.client.model.Indexes.ascending
 import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.Filters.{equal, in}
-import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions, ReturnDocument, Updates}
+import org.mongodb.scala.model._
 import org.slf4j.Logger
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReferenceWrapper
@@ -29,7 +29,7 @@ import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
@@ -131,14 +131,14 @@ object CacheRepository {
   def setTtlIndex[A](
     ttlIndex: IndexModel,
     ttlIndexName: String,
-    ttl: FiniteDuration,
+    ttl: Duration,
     collection: MongoCollection[A],
     logger: Logger
   )(implicit ex: ExecutionContext): Future[String] = {
     def dropInvalidIndexes(): Future[Unit] =
       collection.listIndexes().toFuture().flatMap { indexes =>
         indexes
-          .find(index => index.contains(ttlIndexName) && !index.containsValue(ttl.toSeconds))
+          .find(index => index.contains(ttlIndexName) && !index.containsValue(ttl))
           .map { i =>
             logger.warn(s"dropping $i as ttl value is incorrect for index")
             collection.dropIndex(ttlIndexName).toFuture().map(_ => ())

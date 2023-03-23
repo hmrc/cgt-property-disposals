@@ -47,7 +47,8 @@ class UpscanRepoSpec
 
   override protected def beforeAll(): Unit =
     dropDatabase()
-  override protected def repository        = new DefaultUpscanRepo(mongoComponent, config)
+
+  override protected def repository = new DefaultUpscanRepo(mongoComponent, config)
 
   "Upscan Repository" when {
     "inserting" should {
