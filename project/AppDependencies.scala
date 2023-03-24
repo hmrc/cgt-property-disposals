@@ -7,7 +7,7 @@ object AppDependencies {
   val playVersion  = "play-28"
   val mongoVersion = "0.68.0"
 
-  private val bootstrapPlay28Version = "5.24.0"
+  private val bootstrapPlay28Version = "5.25.0"
   private val mockitoCoreVersion     = "2.25.0"
   private val pegdownVersion         = "1.6.0"
   private val hmrcMongoVersion       = "0.68.0"
@@ -18,7 +18,7 @@ object AppDependencies {
   private val wireMockVersion        = "2.21.0"
 
   val compile = Seq(
-    "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % "5.12.0",
+    "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapPlay28Version,
     "com.github.ghik"                          % "silencer-lib"                            % "1.7.9" % Provided cross CrossVersion.full,
     "org.typelevel"                           %% "cats-core"                               % "2.6.0",
     "org.julienrf"                            %% "play-json-derived-codecs"                % "10.0.2",
