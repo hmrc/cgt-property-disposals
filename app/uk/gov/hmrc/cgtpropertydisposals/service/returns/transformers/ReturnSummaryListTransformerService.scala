@@ -24,7 +24,7 @@ import cats.syntax.apply._
 import cats.syntax.either._
 import cats.syntax.eq._
 import cats.syntax.traverse._
-import com.google.inject.{ImplementedBy, Singleton}
+import com.google.inject.{ImplementedBy, Inject, Singleton}
 import uk.gov.hmrc.cgtpropertydisposals.models.ListUtils.ListOps
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialTransaction, DesFinancialTransactionItem}
@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
 import java.time.LocalDate
@@ -49,7 +50,10 @@ trait ReturnSummaryListTransformerService {
 }
 
 @Singleton
-class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransformerService with Logging {
+class ReturnSummaryListTransformerServiceImpl @Inject() (
+  taxYearService: TaxYearService
+) extends ReturnSummaryListTransformerService
+    with Logging {
 
   def toReturnSummaryList(
     returns: List[DesReturnSummary],
@@ -110,6 +114,9 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
 
     (chargesValidation, addressValidation, mainReturnChargeAmountValidation).mapN {
       case (charges, address, (mainReturnChargeAmount, mainReturnChargeReference)) =>
+        val taxYear       = taxYearService.getTaxYear(returnSummary.completionDate).get
+        val amendDeadline = LocalDate.of(taxYear.endDateExclusive.getYear, 1, 31).plusYears(2)
+
         ReturnSummary(
           returnSummary.submissionId,
           returnSummary.submissionDate,
@@ -120,7 +127,8 @@ class ReturnSummaryListTransformerServiceImpl extends ReturnSummaryListTransform
           mainReturnChargeReference,
           address,
           charges,
-          isRecentlyAmendedReturn
+          isRecentlyAmendedReturn,
+          amendDeadline
         )
     }
   }
