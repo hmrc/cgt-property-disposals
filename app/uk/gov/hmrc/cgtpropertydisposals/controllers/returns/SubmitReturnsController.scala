@@ -30,7 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionRequest, DmsSubmissionService}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.cgtpropertydisposals.util.{HtmlSanitizer, Logging}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -73,10 +73,21 @@ class SubmitReturnsController @Inject() (
           } yield submissionResult
 
         result.fold(
-          { e =>
-            logger.warn("Could not submit return", e)
-            InternalServerError
-          },
+          e =>
+            e.value match {
+              case Left(value) =>
+                value match {
+                  case "Amend deadline has passed" =>
+                    logger.warn(value)
+                    BadRequest(value)
+                  case _                           =>
+                    logger.warn("Could not submit return", e)
+                    InternalServerError
+                }
+              case Right(_)    =>
+                logger.warn("Could not submit return", e)
+                InternalServerError
+            },
           s => Ok(Json.toJson(s))
         )
       }
