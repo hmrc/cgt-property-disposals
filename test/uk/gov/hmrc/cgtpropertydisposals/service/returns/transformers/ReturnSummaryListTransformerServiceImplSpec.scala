@@ -16,9 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.OneInstancePerTest
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesFinancialTransactionItem}
@@ -26,19 +29,27 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, 
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 
 import java.time.LocalDate
 
-class ReturnSummaryListTransformerServiceImplSpec extends AnyWordSpec with Matchers {
+class ReturnSummaryListTransformerServiceImplSpec
+    extends AnyWordSpec
+    with Matchers
+    with MockFactory
+    with OneInstancePerTest {
+
+  val mockTaxYearService = mock[TaxYearService]
+
+  (mockTaxYearService.getTaxYear(_: LocalDate)).expects(*).returning(Some(sample[TaxYear])).anyNumberOfTimes()
+
+  val transformer = new ReturnSummaryListTransformerServiceImpl(mockTaxYearService)
 
   "ReturnSummaryListTransformerServiceImpl" when {
-
-    val transformer = new ReturnSummaryListTransformerServiceImpl
 
     "converting from des data to a return list" must {
 
       "return an error" when {
-
         val ukAddress = sample[UkAddress]
 
         val validDesCharge = DesCharge(
@@ -549,7 +560,6 @@ class ReturnSummaryListTransformerServiceImplSpec extends AnyWordSpec with Match
             case other           => fail(s"Expected one return summary but got $other")
           }
         }
-
       }
 
       "accept non uk addresses" in {
