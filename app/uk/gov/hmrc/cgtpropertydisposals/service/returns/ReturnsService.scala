@@ -93,6 +93,12 @@ class DefaultReturnsService @Inject() (
     representeeDetails: Option[RepresenteeDetails]
   )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
     val isAmendReturn                                  = returnRequest.amendReturnData.isDefined
+    if (isAmendReturn) {
+      if (returnRequest.amendReturnData.get.originalReturn.summary.expired) {
+        logger.warn("Amend deadline has passed, cannot amend return")
+        return EitherT.leftT(Error(DefaultReturnsService.expiredMessage))
+      }
+    }
     val cgtReference                                   = returnRequest.subscribedDetails.cgtReference
     val taxYear                                        = returnRequest.completeReturn.fold(
       _.triageAnswers.taxYear,
@@ -525,4 +531,5 @@ object DefaultReturnsService {
     Json.format[DesSubmitReturnResponseDetails]
   implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse]               = Json.format[DesSubmitReturnResponse]
 
+  val expiredMessage = "Amend deadline has passed"
 }

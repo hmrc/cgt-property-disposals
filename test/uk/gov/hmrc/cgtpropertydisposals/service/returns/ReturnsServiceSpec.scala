@@ -527,7 +527,10 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             Some(
               sample[AmendReturnData].copy(
                 originalReturn = sample[CompleteReturnWithSummary].copy(
-                  summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                  summary = sample[ReturnSummary].copy(
+                    submissionId = formBundleId,
+                    expired = false
+                  )
                 )
               )
             )
@@ -804,7 +807,15 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
         }
 
         "the call to submit a return fails" in {
-          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData =
+            Some(
+              sample[AmendReturnData].copy(
+                originalReturn = sample[CompleteReturnWithSummary].copy(
+                  summary = sample[ReturnSummary].copy(expired = false)
+                )
+              )
+            )
+          )
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
@@ -825,7 +836,15 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
         }
 
         "the http call comes back with a status other than 200" in {
-          val submitReturnRequest    = sample[SubmitReturnRequest]
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData =
+            Some(
+              sample[AmendReturnData].copy(
+                originalReturn = sample[CompleteReturnWithSummary].copy(
+                  summary = sample[ReturnSummary].copy(expired = false)
+                )
+              )
+            )
+          )
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
           inSequence {
@@ -856,7 +875,10 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             Some(
               sample[AmendReturnData].copy(
                 originalReturn = sample[CompleteReturnWithSummary].copy(
-                  summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                  summary = sample[ReturnSummary].copy(
+                    submissionId = formBundleId,
+                    expired = false
+                  )
                 )
               )
             )
@@ -953,7 +975,10 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             amendReturnData = Some(
               sample[AmendReturnData].copy(
                 originalReturn = sample[CompleteReturnWithSummary].copy(
-                  summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                  summary = sample[ReturnSummary].copy(
+                    submissionId = formBundleId,
+                    expired = false
+                  )
                 )
               )
             )
@@ -1064,7 +1089,10 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             amendReturnData = Some(
               sample[AmendReturnData].copy(
                 originalReturn = sample[CompleteReturnWithSummary].copy(
-                  summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                  summary = sample[ReturnSummary].copy(
+                    submissionId = formBundleId,
+                    expired = false
+                  )
                 )
               )
             )
@@ -1261,7 +1289,10 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
               amendReturnData = Some(
                 sample[AmendReturnData].copy(
                   originalReturn = sample[CompleteReturnWithSummary].copy(
-                    summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                    summary = sample[ReturnSummary].copy(
+                      submissionId = formBundleId,
+                      expired = false
+                    )
                   )
                 )
               )
@@ -1406,7 +1437,10 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
               amendReturnData = Some(
                 sample[AmendReturnData].copy(
                   originalReturn = sample[CompleteReturnWithSummary].copy(
-                    summary = sample[ReturnSummary].copy(submissionId = formBundleId)
+                    summary = sample[ReturnSummary].copy(
+                      submissionId = formBundleId,
+                      expired = false
+                    )
                   )
                 )
               )

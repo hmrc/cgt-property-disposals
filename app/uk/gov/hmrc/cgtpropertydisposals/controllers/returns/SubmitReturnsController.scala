@@ -29,8 +29,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.Comple
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionRequest, DmsSubmissionService}
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
+import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DefaultReturnsService, DraftReturnsService, ReturnsService}
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.cgtpropertydisposals.util.{HtmlSanitizer, Logging}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -73,10 +73,18 @@ class SubmitReturnsController @Inject() (
           } yield submissionResult
 
         result.fold(
-          { e =>
-            logger.warn("Could not submit return", e)
-            InternalServerError
-          },
+          error =>
+            error.value match {
+              case Left(value) if value == DefaultReturnsService.expiredMessage =>
+                logger.warn(value)
+                BadRequest(value)
+              case Left(_)                                                      =>
+                logger.warn("Could not submit return", error)
+                InternalServerError
+              case Right(_)                                                     =>
+                logger.warn("Could not submit return", error)
+                InternalServerError
+            },
           s => Ok(Json.toJson(s))
         )
       }
