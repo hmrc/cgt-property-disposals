@@ -17,7 +17,7 @@ object AppDependencies {
   private val scalaTestVersion       = "3.0.8"
   private val wireMockVersion        = "2.21.0"
 
-  val compile = Seq(
+  val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapPlay28Version,
     "com.github.ghik"                          % "silencer-lib"                            % "1.7.9" % Provided cross CrossVersion.full,
     "org.typelevel"                           %% "cats-core"                               % "2.6.0",
@@ -28,7 +28,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion
   )
 
-  val test = Seq(
+  val test: Seq[ModuleID] = Seq(
     "org.scalatest"              %% "scalatest"                  % "3.2.9"       % "test",
     "com.typesafe.play"          %% "play-test"                  % current       % "test",
     "org.scalamock"              %% "scalamock"                  % "5.1.0"       % "test",
