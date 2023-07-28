@@ -265,7 +265,7 @@ class DefaultReturnsService @Inject() (
                                }
         _                   <- modifiedDraftReturns
                                  .map(d => draftReturnsService.saveDraftReturn(d, cgtReference))
-                                 .sequence[EitherT[Future, Error, *], Unit]
+                                 .sequence
       } yield ()
     }
   }
