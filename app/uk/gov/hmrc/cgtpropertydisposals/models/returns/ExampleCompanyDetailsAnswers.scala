@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import com.github.ghik.silencer.silent
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
@@ -38,7 +37,6 @@ object ExampleCompanyDetailsAnswers {
     acquisitionPrice: AmountInPence
   ) extends ExampleCompanyDetailsAnswers
 
-  @silent
   implicit val format: OFormat[ExampleCompanyDetailsAnswers] = derived.oformat()
 
 }

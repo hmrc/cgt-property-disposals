@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit
 
-import com.github.ghik.silencer.silent
 import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.TypeOfPersonDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.des.TypeOfPersonDetails.{Individual, Trustee}
@@ -31,7 +30,6 @@ final case class SubscriptionResponseEvent(
 
 object SubscriptionResponseEvent {
 
-  @silent
   implicit val writes: Writes[SubscriptionResponseEvent] = {
     val desSubscriptionRequestWrites: Writes[DesSubscriptionRequest] = {
       implicit val typeOfPersonDetailsWrites: Writes[TypeOfPersonDetails] = Writes { t =>

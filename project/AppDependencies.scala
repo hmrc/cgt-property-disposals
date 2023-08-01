@@ -1,5 +1,5 @@
 import play.core.PlayVersion.current
-import sbt._
+import sbt.*
 
 object AppDependencies {
 
@@ -19,7 +19,6 @@ object AppDependencies {
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapPlay28Version,
-    "com.github.ghik"                          % "silencer-lib"                            % "1.7.9" % Provided cross CrossVersion.full,
     "org.typelevel"                           %% "cats-core"                               % "2.6.0",
     "org.julienrf"                            %% "play-json-derived-codecs"                % "10.0.2",
     "com.github.kxbmap"                       %% "configs"                                 % "0.6.1",
@@ -28,22 +27,21 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion
   )
 
-  val test: Seq[ModuleID] = Seq(
-    "org.scalatest"              %% "scalatest"                  % "3.2.9"       % "test",
-    "com.typesafe.play"          %% "play-test"                  % current       % "test",
-    "org.scalamock"              %% "scalamock"                  % "5.1.0"       % "test",
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"  % "1.2.5"       % "test",
-    "org.scalatestplus.play"     %% "scalatestplus-play"         % "5.1.0"       % "test",
-    "org.scalatestplus"          %% "scalatestplus-scalacheck"   % "3.1.0.0-RC2" % "test",
-    "com.vladsch.flexmark"        % "flexmark-all"               % "0.35.10"     % "test",
-    "uk.gov.hmrc.mongo"          %% "hmrc-mongo-test-play-28"    % mongoVersion  % "test",
-    "com.eclipsesource"          %% "play-json-schema-validator" % "0.9.5"       % "test",
-    "com.typesafe.akka"          %% "akka-testkit"               % akkaVersion   % Test,
-    "com.typesafe.akka"          %% "akka-slf4j"                 % akkaVersion   % Test,
-    "com.typesafe.akka"          %% "akka-protobuf-v3"           % akkaVersion   % Test,
-    "com.typesafe.akka"          %% "akka-serialization-jackson" % akkaVersion   % Test,
-    "com.typesafe.akka"          %% "akka-stream"                % akkaVersion   % Test,
-    "com.typesafe.akka"          %% "akka-actor-typed"           % akkaVersion   % Test
+  def test(scope: String = "test"): Seq[ModuleID] = Seq(
+    "org.scalatest"              %% "scalatest"                  % "3.2.9"       % scope,
+    "com.typesafe.play"          %% "play-test"                  % current       % scope,
+    "org.scalamock"              %% "scalamock"                  % "5.1.0"       % scope,
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"  % "1.2.5"       % scope,
+    "org.scalatestplus.play"     %% "scalatestplus-play"         % "5.1.0"       % scope,
+    "org.scalatestplus"          %% "scalatestplus-scalacheck"   % "3.1.0.0-RC2" % scope,
+    "com.vladsch.flexmark"        % "flexmark-all"               % "0.35.10"     % scope,
+    "uk.gov.hmrc.mongo"          %% "hmrc-mongo-test-play-28"    % mongoVersion  % scope,
+    "com.eclipsesource"          %% "play-json-schema-validator" % "0.9.5"       % scope,
+    "com.typesafe.akka"          %% "akka-testkit"               % akkaVersion   % scope,
+    "com.typesafe.akka"          %% "akka-slf4j"                 % akkaVersion   % scope,
+    "com.typesafe.akka"          %% "akka-protobuf-v3"           % akkaVersion   % scope,
+    "com.typesafe.akka"          %% "akka-serialization-jackson" % akkaVersion   % scope,
+    "com.typesafe.akka"          %% "akka-stream"                % akkaVersion   % scope,
+    "com.typesafe.akka"          %% "akka-actor-typed"           % akkaVersion   % scope
   )
-
 }
