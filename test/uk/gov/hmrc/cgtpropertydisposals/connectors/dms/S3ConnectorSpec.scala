@@ -43,6 +43,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
+import scala.language.postfixOps
 
 class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport with BeforeAndAfterAll {
 
@@ -92,7 +93,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
     new S3ConnectorImpl(mockWsClient, new ServicesConfig(config))
 
   override def afterAll(): Unit = {
-    Await.ready(actorSystem.terminate(), 10.seconds)
+    Await.ready(actorSystem.terminate(), 10 seconds)
     super.afterAll()
   }
 

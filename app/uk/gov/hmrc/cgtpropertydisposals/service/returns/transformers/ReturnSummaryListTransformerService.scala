@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
 import cats.data.Validated.{Invalid, Valid}
-import cats.data.{NonEmptyList, Validated}
+import cats.data.NonEmptyList
 import cats.instances.bigDecimal._
 import cats.instances.list._
 import cats.syntax.apply._
@@ -76,9 +76,7 @@ class ReturnSummaryListTransformerServiceImpl @Inject() (
         )
       }
 
-    returnSummaries
-      .sequence[Validated[NonEmptyList[String], *], ReturnSummary]
-      .toEither
+    returnSummaries.sequence.toEither
       .leftMap(e => Error(s"Could not convert return summaries with financial data: [${e.toList.mkString("; ")}]"))
   }
 
@@ -200,7 +198,7 @@ class ReturnSummaryListTransformerServiceImpl @Inject() (
           }
         }
 
-    charges.sequence[Validated[NonEmptyList[String], *], List[Charge]].map(_.flatten)
+    charges.sequence.map(_.flatten)
   }
 
   // if a delta charge has been raised, the main charge and the delta charge won't appear in the
