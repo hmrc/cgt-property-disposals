@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -30,8 +29,8 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with MockFactory {
-  val config = Configuration(
+class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         | mongodb.amend-returns.expiry-time = 24hours
@@ -43,11 +42,10 @@ class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
 
   val repository = new DefaultAmendReturnsRepository(mongoComponent, config, defaultCurrentInstant)
 
-  val submitReturnRequest = sample[SubmitReturnRequest]
-  val cgtReference        = sample[CgtReference]
+  private val submitReturnRequest = sample[SubmitReturnRequest]
+  private val cgtReference        = sample[CgtReference]
 
   "AmendReturnsRepository" when {
-
     repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
 
     "inserting" should {
@@ -62,5 +60,4 @@ class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
       }
     }
   }
-
 }

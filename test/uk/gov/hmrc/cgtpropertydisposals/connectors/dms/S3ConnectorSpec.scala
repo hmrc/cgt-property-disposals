@@ -18,8 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
-import org.scalamock.handlers.CallHandler3
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -45,9 +44,9 @@ import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
-class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport with BeforeAndAfterAll {
+class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport with BeforeAndAfterAll {
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         | s3 {
@@ -59,7 +58,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
     )
   )
 
-  val mockWsClient = mock[PlayHttpClient]
+  private val mockWsClient = mock[PlayHttpClient]
 
   private def buildWsResponse(status: Int): WSResponse = {
     val responseBuilder = new Response.ResponseBuilder()
@@ -77,17 +76,15 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
     new AhcWSResponse(responseBuilder.build())
   }
 
-  def mockGet(url: String, headers: Seq[(String, String)], timeout: Duration)(
+  private def mockGet(url: String, headers: Seq[(String, String)], timeout: Duration)(
     response: Future[ws.WSResponse]
-  ): CallHandler3[String, Seq[(String, String)], Duration, Future[ws.WSResponse]] =
-    (mockWsClient
-      .get(_: String, _: Seq[(String, String)], _: Duration))
-      .expects(url, headers, timeout)
-      .returning(response)
+  ) = mockWsClient.get(url, headers, timeout).returns(response)
 
-  implicit val hc: HeaderCarrier  = HeaderCarrier()
-  implicit val actorSystem        = ActorSystem()
-  implicit val dmsExectionContext = new DmsSubmissionPollerExecutionContext(actorSystem)
+  implicit val hc: HeaderCarrier                                       = HeaderCarrier()
+  implicit val actorSystem: ActorSystem                                = ActorSystem()
+  implicit val dmsExectionContext: DmsSubmissionPollerExecutionContext = new DmsSubmissionPollerExecutionContext(
+    actorSystem
+  )
 
   val connector =
     new S3ConnectorImpl(mockWsClient, new ServicesConfig(config))
@@ -98,9 +95,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
   }
 
   "Upscan Connector" when {
-
     "it receives a request to download a file" must {
-
       "return an error if the http call to download the file fails" in {
         List(
           buildWsResponse(400),
@@ -109,7 +104,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
               "some-url",
-              Seq(("User-Agent" -> "cgt-property-disposals")),
+              Seq("User-Agent" -> "cgt-property-disposals"),
               2 minutes
             )(Future.successful(httpResponse))
             await(
@@ -148,7 +143,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
           withClue(s"For http response [${httpResponse.toString}]") {
             mockGet(
               "some-url",
-              Seq(("User-Agent" -> "cgt-property-disposals")),
+              Seq("User-Agent" -> "cgt-property-disposals"),
               2 minutes
             )(Future.successful(httpResponse))
             val result = await(
@@ -168,7 +163,6 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
       }
 
       "Windows OS filenames" must {
-
         "return same filename if the file was downloaded successfully" +
           "and it has no Windows OS invalid character" in {
             List(
@@ -177,7 +171,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
               withClue(s"For http response [${httpResponse.toString}]") {
                 mockGet(
                   "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  Seq("User-Agent" -> "cgt-property-disposals"),
                   2 minutes
                 )(Future.successful(httpResponse))
 
@@ -197,7 +191,6 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test01.edition1.txt"
                   case _                                        =>
                 }
-
               }
             }
           }
@@ -210,7 +203,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
               withClue(s"For http response [${httpResponse.toString}]") {
                 mockGet(
                   "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  Seq("User-Agent" -> "cgt-property-disposals"),
                   2 minutes
                 )(Future.successful(httpResponse))
 
@@ -242,7 +235,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
               withClue(s"For http response [${httpResponse.toString}]") {
                 mockGet(
                   "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  Seq("User-Agent" -> "cgt-property-disposals"),
                   2 minutes
                 )(Future.successful(httpResponse))
 
@@ -274,7 +267,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
               withClue(s"For http response [${httpResponse.toString}]") {
                 mockGet(
                   "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  Seq("User-Agent" -> "cgt-property-disposals"),
                   2 minutes
                 )(Future.successful(httpResponse))
 
@@ -294,7 +287,6 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-cgt-file-name-one-.txt"
                   case _                                        =>
                 }
-
               }
             }
           }
@@ -307,7 +299,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
               withClue(s"For http response [${httpResponse.toString}]") {
                 mockGet(
                   "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  Seq("User-Agent" -> "cgt-property-disposals"),
                   2 minutes
                 )(Future.successful(httpResponse))
 
@@ -327,7 +319,6 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
                   case _                                        =>
                 }
-
               }
             }
           }
@@ -340,7 +331,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
               withClue(s"For http response [${httpResponse.toString}]") {
                 mockGet(
                   "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  Seq("User-Agent" -> "cgt-property-disposals"),
                   2 minutes
                 )(Future.successful(httpResponse))
 
@@ -360,7 +351,6 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
                   case _                                        =>
                 }
-
               }
             }
           }
@@ -373,7 +363,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
               withClue(s"For http response [${httpResponse.toString}]") {
                 mockGet(
                   "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  Seq("User-Agent" -> "cgt-property-disposals"),
                   2 minutes
                 )(Future.successful(httpResponse))
 
@@ -393,7 +383,6 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-22test.txt"
                   case _                                        =>
                 }
-
               }
             }
           }
@@ -406,7 +395,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
               withClue(s"For http response [${httpResponse.toString}]") {
                 mockGet(
                   "some-url",
-                  Seq(("User-Agent" -> "cgt-property-disposals")),
+                  Seq("User-Agent" -> "cgt-property-disposals"),
                   2 minutes
                 )(Future.successful(httpResponse))
 
@@ -426,15 +415,10 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with MockFactory with Ht
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
                   case _                                        =>
                 }
-
               }
             }
           }
-
       }
-
     }
-
   }
-
 }

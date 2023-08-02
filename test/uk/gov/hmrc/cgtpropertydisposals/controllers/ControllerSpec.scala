@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -29,7 +29,7 @@ import uk.gov.hmrc.cgtpropertydisposals.module.DmsSubmissionModule
 
 import scala.reflect.ClassTag
 
-trait ControllerSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockFactory {
+trait ControllerSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with IdiomaticMockito {
 
   val overrideBindings: List[GuiceableModule] = List.empty[GuiceableModule]
 
@@ -65,5 +65,4 @@ trait ControllerSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
     Play.stop(fakeApplication)
     super.afterAll()
   }
-
 }

@@ -22,12 +22,14 @@ import cats.data.EitherT
 import cats.instances.future._
 import com.typesafe.config.ConfigFactory
 import org.bson.types.ObjectId
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers.await
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -36,7 +38,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -45,24 +46,22 @@ import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFactory {
+class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with IdiomaticMockito {
 
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
-  val mockGFormConnector    = mock[GFormConnector]
-  val mockUpscanService     = mock[UpscanService]
-  val mockDmsSubmissionRepo = mock[DmsSubmissionRepo]
-  val mockUUIDGenerator     = mock[UUIDGenerator]
+  private val mockGFormConnector    = mock[GFormConnector]
+  private val mockUpscanService     = mock[UpscanService]
+  private val mockDmsSubmissionRepo = mock[DmsSubmissionRepo]
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         | dms {
@@ -75,55 +74,48 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFact
     )
   )
 
-  def mockDmsSubmissionRequestGet()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
-    (mockDmsSubmissionRepo.get _)
-      .expects()
-      .returning(EitherT.fromEither[Future](response))
+  private def mockDmsSubmissionRequestGet()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
+    mockDmsSubmissionRepo.get.returns(EitherT.fromEither[Future](response))
 
-  def mockDmsSubmissionRequestSet(
+  private def mockDmsSubmissionRequestSet(
     dmsSubmissionRequest: DmsSubmissionRequest
   )(response: Either[Error, WorkItem[DmsSubmissionRequest]]) =
-    (mockDmsSubmissionRepo
-      .set(_: DmsSubmissionRequest))
-      .expects(dmsSubmissionRequest)
-      .returning(EitherT.fromEither[Future](response))
+    mockDmsSubmissionRepo
+      .set(dmsSubmissionRequest)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockSetProcessingStatus(id: ObjectId, status: ProcessingStatus)(response: Either[Error, Boolean]) =
-    (mockDmsSubmissionRepo
-      .setProcessingStatus(_: ObjectId, _: ProcessingStatus))
-      .expects(id, status)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockSetProcessingStatus(id: ObjectId, status: ProcessingStatus)(response: Either[Error, Boolean]) =
+    mockDmsSubmissionRepo
+      .setProcessingStatus(id, status)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockSetResultStatus(id: ObjectId, status: ResultStatus)(response: Either[Error, Boolean]) =
-    (mockDmsSubmissionRepo
-      .setResultStatus(_: ObjectId, _: ResultStatus))
-      .expects(id, status)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockSetResultStatus(id: ObjectId, status: ResultStatus)(response: Either[Error, Boolean]) =
+    mockDmsSubmissionRepo
+      .setResultStatus(id, status)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockGFormSubmission(dmsSubmissionPayload: DmsSubmissionPayload)(
+  private def mockGFormSubmission(dmsSubmissionPayload: DmsSubmissionPayload)(
     response: Either[Error, EnvelopeId]
   ) =
-    (mockGFormConnector
-      .submitToDms(_: DmsSubmissionPayload, _: UUID))
-      .expects(dmsSubmissionPayload, *)
-      .returning(EitherT[Future, Error, EnvelopeId](Future.successful(response)))
+    mockGFormConnector
+      .submitToDms(dmsSubmissionPayload, *)
+      .returns(EitherT[Future, Error, EnvelopeId](Future.successful(response)))
 
-  def mockDownloadS3Urls(upscanSuccesses: List[UpscanSuccess])(
+  private def mockDownloadS3Urls(upscanSuccesses: List[UpscanSuccess])(
     response: List[Either[Error, FileAttachment]]
   ) =
-    (mockUpscanService
-      .downloadFilesFromS3(_: List[UpscanSuccess]))
-      .expects(upscanSuccesses)
-      .returning(Future.successful(response))
+    mockUpscanService
+      .downloadFilesFromS3(upscanSuccesses)
+      .returns(Future.successful(response))
 
-  val actorSystem                                  = ActorSystem()
-  implicit val dmsSubmissionPollerExecutionContext = new DmsSubmissionPollerExecutionContext(actorSystem)
+  private val actorSystem                                                               = ActorSystem()
+  implicit val dmsSubmissionPollerExecutionContext: DmsSubmissionPollerExecutionContext =
+    new DmsSubmissionPollerExecutionContext(actorSystem)
 
   val dmsSubmissionService =
     new DefaultDmsSubmissionService(mockGFormConnector, mockUpscanService, mockDmsSubmissionRepo, config)
 
   "Dms Submission Service" when {
-
     "the submission poller requests a work item" must {
       "dequeue the next work item" in {
         val workItem = sample[WorkItem[DmsSubmissionRequest]]
@@ -173,19 +165,17 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFact
         yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers].copy(
           mandatoryEvidence = Some(sample[MandatoryEvidence].copy(upscanSuccess = upscanSuccess))
         ),
-        supportingDocumentAnswers = CompleteSupportingEvidenceAnswers(false, List.empty)
+        supportingDocumentAnswers =
+          CompleteSupportingEvidenceAnswers(doYouWantToUploadSupportingEvidence = false, List.empty)
       )
 
       "return an error" when {
-
         "there is an issue with the gform service" in {
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
-          inSequence {
-            mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
-            mockGFormSubmission(dmsSubmissionPayload)(Left(Error("gForm service error")))
-          }
+          mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
+          mockGFormSubmission(dmsSubmissionPayload)(Left(Error("gForm service error")))
 
           await(
             dmsSubmissionService
@@ -204,11 +194,9 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFact
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
-          inSequence {
-            mockDownloadS3Urls(List(upscanSuccess))(
-              List(Left(Error("error downloading file")))
-            )
-          }
+          mockDownloadS3Urls(List(upscanSuccess))(
+            List(Left(Error("error downloading file")))
+          )
 
           await(
             dmsSubmissionService
@@ -222,17 +210,14 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFact
               .value
           ).isLeft shouldBe true
         }
-
       }
 
       "return an envelope id when files have been successfully submitted to the gform service" in {
         val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
         val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
-        inSequence {
-          mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
-          mockGFormSubmission(dmsSubmissionPayload)(Right(EnvelopeId("env-id")))
-        }
+        mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
+        mockGFormSubmission(dmsSubmissionPayload)(Right(EnvelopeId("env-id")))
         await(
           dmsSubmissionService
             .submitToDms(
@@ -270,10 +255,8 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFact
         val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
         val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
-        inSequence {
-          mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
-          mockGFormSubmission(dmsSubmissionPayload)(Right(EnvelopeId("env-id")))
-        }
+        mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
+        mockGFormSubmission(dmsSubmissionPayload)(Right(EnvelopeId("env-id")))
         await(
           dmsSubmissionService
             .submitToDms(
@@ -290,8 +273,6 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockFact
           )
         )
       }
-
     }
   }
-
 }

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -31,8 +30,8 @@ import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
-  val config = Configuration(
+class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         | mongodb.amend-returns.expiry-time = 24hours
@@ -40,9 +39,9 @@ class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMon
     )
   )
 
-  val stagedInstant = sample[SubmitReturnWrapper].lastUpdated
+  private val stagedInstant = sample[SubmitReturnWrapper].lastUpdated
 
-  val currentInstant = new CurrentInstant {
+  private val currentInstant = new CurrentInstant {
     override def currentInstant(): Instant = stagedInstant
   }
 
@@ -55,7 +54,8 @@ class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMon
         await(repository.save(submitReturnRequest).value) shouldBe Right(())
       }
     }
-    "getting"   should {
+
+    "getting" should {
       "retrieve an existing record" in {
         val cgtReference         = sample[CgtReference]
         val subscribedDetails    =

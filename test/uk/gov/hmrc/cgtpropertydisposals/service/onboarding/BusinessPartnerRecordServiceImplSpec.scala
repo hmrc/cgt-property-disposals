@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
@@ -45,7 +46,7 @@ import java.time.{Clock, LocalDateTime, ZoneId, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
+class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
 
   val mockBprConnector: BusinessPartnerRecordConnector = mock[BusinessPartnerRecordConnector]
 
@@ -57,9 +58,9 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
 
   val mockTaxEnrolmentService: TaxEnrolmentService = mock[TaxEnrolmentService]
 
-  val dummyTimestamp = LocalDateTime.now()
+  private val dummyTimestamp = LocalDateTime.now()
 
-  val service =
+  private val service =
     new BusinessPartnerRecordServiceImpl(
       mockBprConnector,
       mockEnrolmentStoreProxyService,
@@ -71,45 +72,41 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
       override val clock: Clock = Clock.fixed(dummyTimestamp.toInstant(ZoneOffset.UTC), ZoneId.of("Z"))
     }
 
-  def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
-    (mockBprConnector
-      .getBusinessPartnerRecord(_: BusinessPartnerRecordRequest)(_: HeaderCarrier))
-      .expects(bprRequest, *)
-      .returning(EitherT(Future.successful(response)))
+  private def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
+    mockBprConnector
+      .getBusinessPartnerRecord(bprRequest)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, Option[CgtReference]]) =
-    (mockSubscriptionService
-      .getSubscriptionStatus(_: SapNumber)(_: HeaderCarrier))
-      .expects(sapNumber, *)
-      .returning(EitherT(Future.successful(response)))
+  private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, Option[CgtReference]]) =
+    mockSubscriptionService
+      .getSubscriptionStatus(sapNumber)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockEnrolmentExists(cgtReference: CgtReference)(result: Either[Error, Boolean]) =
-    (mockEnrolmentStoreProxyService
-      .cgtEnrolmentExists(_: CgtReference)(_: HeaderCarrier))
-      .expects(cgtReference, *)
-      .returning(EitherT.fromEither[Future](result))
+  private def mockEnrolmentExists(cgtReference: CgtReference)(result: Either[Error, Boolean]) =
+    mockEnrolmentStoreProxyService
+      .cgtEnrolmentExists(cgtReference)(*)
+      .returns(EitherT.fromEither[Future](result))
 
-  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, Option[SubscribedDetails]]): Unit =
-    (mockSubscriptionService
-      .getSubscription(_: CgtReference)(_: HeaderCarrier))
-      .expects(cgtReference, *)
-      .returning(EitherT.fromEither(response))
+  private def mockGetSubscription(
+    cgtReference: CgtReference
+  )(response: Either[Error, Option[SubscribedDetails]]): Unit =
+    mockSubscriptionService
+      .getSubscription(cgtReference)(*)
+      .returns(EitherT.fromEither(response))
 
-  def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
+  private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
-    (mockTaxEnrolmentService
-      .allocateEnrolmentToGroup(_: TaxEnrolmentRequest)(_: HeaderCarrier))
-      .expects(taxEnrolmentRequest, *)
-      .returning(EitherT(Future.successful(response)))
+    mockTaxEnrolmentService
+      .allocateEnrolmentToGroup(taxEnrolmentRequest)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
+  private def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     result: Either[Error, Unit]
   ) =
-    (mockEmailService
-      .sendSubscriptionConfirmationEmail(_: CgtReference, _: Email, _: ContactName)(_: HeaderCarrier, _: Request[_]))
-      .expects(cgtReference, email, contactName, *, *)
-      .returning(EitherT.fromEither[Future](result))
+    mockEmailService
+      .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(*, *)
+      .returns(EitherT.fromEither[Future](result))
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -117,14 +114,12 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
 
   val (name, trustName) = sample[IndividualName] -> sample[TrustName]
 
-  val sapNumber = sample[SapNumber]
+  private val sapNumber = sample[SapNumber]
 
   private val emptyJsonBody = "{}"
 
   "The BusinessPartnerRecordServiceImpl" when {
-
     "getting a business partner record" must {
-
       def expectedBpr(address: Option[Address], name: Either[TrustName, IndividualName]) =
         BusinessPartnerRecord(Some("email"), address, sapNumber, name)
 
@@ -150,7 +145,6 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
              |""".stripMargin)
 
       "return an error" when {
-
         def testGetBprError(bprRequest: BusinessPartnerRecordRequest, response: => Either[Error, HttpResponse]) = {
           mockGetBPR(bprRequest)(response)
 
@@ -235,10 +229,8 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
 
           val bprRequest = sample[BusinessPartnerRecordRequest]
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprResponseBody, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Left(Error("")))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, bprResponseBody, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Left(Error("")))
 
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
@@ -261,11 +253,9 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
           val bprRequest = sample[IndividualBusinessPartnerRecordRequest]
             .copy(createNewEnrolmentIfMissing = true)
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
-            mockEnrolmentExists(cgtReference)(Left(Error("")))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+          mockEnrolmentExists(cgtReference)(Left(Error("")))
 
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
@@ -287,17 +277,15 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
 
           val bprRequest = sample[IndividualBusinessPartnerRecordRequest]
             .copy(createNewEnrolmentIfMissing = true)
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
-            mockEnrolmentExists(cgtReference)(Right(false))
-            mockGetSubscription(cgtReference)(Left(Error("")))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+          mockEnrolmentExists(cgtReference)(Right(false))
+          mockGetSubscription(cgtReference)(Left(Error("")))
 
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
 
-        "the call to get subsription details does not return any details" in {
+        "the call to get subscription details does not return any details" in {
           val cgtReference = CgtReference("cgt")
 
           val bprBody = bprResponseJson(
@@ -315,16 +303,12 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
           val bprRequest = sample[IndividualBusinessPartnerRecordRequest]
             .copy(createNewEnrolmentIfMissing = true)
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
-            mockEnrolmentExists(cgtReference)(Right(false))
-            mockGetSubscription(cgtReference)(Right(None))
-
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+          mockEnrolmentExists(cgtReference)(Right(false))
+          mockGetSubscription(cgtReference)(Right(None))
 
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
-
         }
 
         "the call to enrol the user fails" in {
@@ -353,21 +337,17 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
             dummyTimestamp
           )
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
-            mockEnrolmentExists(cgtReference)(Right(false))
-            mockGetSubscription(cgtReference)(Right(Some(subscribedDetails)))
-            mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("")))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+          mockEnrolmentExists(cgtReference)(Right(false))
+          mockGetSubscription(cgtReference)(Right(Some(subscribedDetails)))
+          mockAllocateEnrolment(taxEnrolmentRequest)(Left(Error("")))
 
           await(service.getBusinessPartnerRecord(bprRequest).value).isLeft shouldBe true
         }
-
       }
 
       "return a BPR response" when {
-
         "the call comes back with status 200 with valid JSON and a valid UK address" in {
           val body = bprResponseJson(
             """
@@ -387,10 +367,8 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
           val expectedAddress = UkAddress("line1", Some("line2"), Some("line3"), Some("line4"), Postcode("postcode"))
           val bprRequest      = sample[BusinessPartnerRecordRequest]
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(None))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(None))
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(Some(expectedAddress), Right(name))), None, None)
@@ -414,10 +392,8 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
 
           val bprRequest = sample[BusinessPartnerRecordRequest]
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(None))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(None))
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(None, Right(name))), None, None)
@@ -444,10 +420,8 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
 
           val bprRequest = sample[BusinessPartnerRecordRequest]
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(None))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(None))
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(Some(expectedAddress), Left(trustName))), None, None)
@@ -471,10 +445,8 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
 
           val bprRequest = sample[BusinessPartnerRecordRequest]
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(None))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(None))
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(Some(expectedBpr(None, Left(trustName))), None, None)
@@ -518,10 +490,8 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
           val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
           val bprRequest      = sample[IndividualBusinessPartnerRecordRequest].copy(createNewEnrolmentIfMissing = false)
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(
@@ -551,11 +521,9 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
             val expectedAddress = UkAddress("line1", None, None, None, Postcode("postcode"))
             val bprRequest      = sample[IndividualBusinessPartnerRecordRequest].copy(createNewEnrolmentIfMissing = true)
 
-            inSequence {
-              mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-              mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
-              mockEnrolmentExists(cgtReference)(Right(true))
-            }
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+            mockEnrolmentExists(cgtReference)(Right(true))
 
             await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
               BusinessPartnerRecordResponse(
@@ -594,18 +562,16 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
               dummyTimestamp
             )
 
-            inSequence {
-              mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
-              mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
-              mockEnrolmentExists(cgtReference)(Right(false))
-              mockGetSubscription(cgtReference)(Right(Some(subscribedDetails)))
-              mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
-              mockSendSubscriptionConfirmationEmail(
-                cgtReference,
-                subscribedDetails.emailAddress,
-                subscribedDetails.contactName
-              )(Right(()))
-            }
+            mockGetBPR(bprRequest)(Right(HttpResponse(200, bprBody, Map.empty[String, Seq[String]])))
+            mockGetSubscriptionStatus(sapNumber)(Right(Some(cgtReference)))
+            mockEnrolmentExists(cgtReference)(Right(false))
+            mockGetSubscription(cgtReference)(Right(Some(subscribedDetails)))
+            mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
+            mockSendSubscriptionConfirmationEmail(
+              cgtReference,
+              subscribedDetails.emailAddress,
+              subscribedDetails.contactName
+            )(Right(()))
 
             await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
               BusinessPartnerRecordResponse(
@@ -636,10 +602,8 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
 
           val bprRequest = sample[BusinessPartnerRecordRequest]
 
-          inSequence {
-            mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
-            mockGetSubscriptionStatus(sapNumber)(Right(None))
-          }
+          mockGetBPR(bprRequest)(Right(HttpResponse(200, body, Map.empty[String, Seq[String]])))
+          mockGetSubscriptionStatus(sapNumber)(Right(None))
 
           await(service.getBusinessPartnerRecord(bprRequest).value) shouldBe Right(
             BusinessPartnerRecordResponse(
@@ -648,11 +612,8 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
               None
             )
           )
-
         }
-
       }
     }
   }
-
 }

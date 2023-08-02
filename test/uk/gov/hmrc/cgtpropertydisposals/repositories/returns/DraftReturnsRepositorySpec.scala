@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -29,12 +28,12 @@ import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
+class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
 
   override def beforeEach(): Unit =
     dropDatabase()
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         | mongodb.draft-returns.expiry-time = 30days
@@ -43,12 +42,11 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMon
     )
   )
 
-  val repository    = new DefaultDraftReturnsRepository(mongoComponent, config)
-  val cgtReference  = sample[CgtReference]
-  val cgtReference2 = sample[CgtReference]
+  val repository            = new DefaultDraftReturnsRepository(mongoComponent, config)
+  private val cgtReference  = sample[CgtReference]
+  private val cgtReference2 = sample[CgtReference]
 
   "DraftReturnsRepository" when {
-
     "inserting" should {
       "create a new draft return successfully" in {
         val draftReturn = sample[DraftReturn]
@@ -70,7 +68,6 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMon
     }
 
     "deleting" should {
-
       "delete single return with the given cgtReference" in {
         val draftReturn  = sample[DraftReturn]
         val draftReturn2 = sample[DraftReturn]
@@ -117,7 +114,6 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMon
         await(repository.deleteAll(List(draftReturn.id, draftReturn2.id)).value) shouldBe Right(())
         await(repository.fetch(cgtReference).value)                              shouldBe Right(List.empty)
       }
-
     }
   }
 }

@@ -17,15 +17,14 @@
 package uk.gov.hmrc.cgtpropertydisposals.metrics
 
 import com.codahale.metrics.{Counter, Timer}
-import com.kenshoo.play.metrics.{Metrics => PlayMetrics}
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 
-object MockMetrics extends MockFactory {
+object MockMetrics extends IdiomaticMockito {
 
-  val metrics = new Metrics(stub[PlayMetrics]) {
+  val metrics: Metrics = new Metrics(mock[com.kenshoo.play.metrics.Metrics]) {
+
     override def timer(name: String): Timer = new Timer()
 
     override def counter(name: String): Counter = new Counter()
   }
-
 }

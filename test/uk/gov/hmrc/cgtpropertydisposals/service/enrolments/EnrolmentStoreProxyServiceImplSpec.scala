@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.enrolments
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
@@ -32,22 +33,19 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
-  val mockEnrolmentProxyConnector = mock[EnrolmentStoreProxyConnector]
+  private val mockEnrolmentProxyConnector = mock[EnrolmentStoreProxyConnector]
 
   val service = new EnrolmentStoreProxyServiceImpl(mockEnrolmentProxyConnector)
 
-  def mockGetPrincipalEnrolments(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
-    (mockEnrolmentProxyConnector
-      .getPrincipalEnrolments(_: CgtReference)(_: HeaderCarrier))
-      .expects(cgtReference, *)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockGetPrincipalEnrolments(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
+    mockEnrolmentProxyConnector
+      .getPrincipalEnrolments(cgtReference)(*)
+      .returns(EitherT.fromEither[Future](response))
 
   "EnrolmentStoreProxyServiceImpl" when {
-
     "handling requests to determine whether a cgt enrolment exists for a cgt reference" must {
-
       implicit val hc: HeaderCarrier = HeaderCarrier()
 
       val cgtReference = sample[CgtReference]
@@ -65,7 +63,6 @@ class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers with 
       }
 
       "return an error" when {
-
         "the call is not successful" in {
           mockGetPrincipalEnrolments(cgtReference)(Left(Error("")))
 
@@ -77,11 +74,7 @@ class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers with 
 
           await(service.cgtEnrolmentExists(cgtReference).value).isLeft shouldBe true
         }
-
       }
-
     }
-
   }
-
 }

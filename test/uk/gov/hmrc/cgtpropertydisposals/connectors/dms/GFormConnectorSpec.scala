@@ -18,14 +18,15 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.libs.ws
+import play.api.libs.ws.WSResponse
 import play.api.libs.ws.ahc.AhcWSResponse
 import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseStatus}
-import play.api.libs.ws.{BodyWritable, WSResponse}
 import play.api.test.Helpers.{await, _}
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
 import play.shaded.ahc.org.asynchttpclient.Response
@@ -41,9 +42,9 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class GFormConnectorSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         |microservice {
@@ -58,7 +59,7 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with MockFactory with
     )
   )
 
-  val mockWsClient = mock[PlayHttpClient]
+  private val mockWsClient = mock[PlayHttpClient]
 
   private def buildWsResponse(status: Int, body: String): WSResponse = {
     val responseBuilder = new Response.ResponseBuilder()
@@ -71,20 +72,15 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with MockFactory with
     new AhcWSResponse(responseBuilder.build())
   }
 
-  def mockPost[A](url: String, headers: Seq[(String, String)])(
+  private def mockPost[A](url: String, headers: Seq[(String, String)])(
     response: Future[ws.WSResponse]
   ) =
-    (mockWsClient
-      .post(_: String, _: Seq[(String, String)], _: A)(_: BodyWritable[A]))
-      .expects(url, headers, *, *)
-      .returning(response)
+    mockWsClient.post[A](url, headers, *)(*).returns(response)
 
   val connector = new GFormConnectorImpl(mockWsClient, new ServicesConfig(config))
 
   "GForm Connector" when {
-
     "return an error if the http call to download the file fails" in {
-
       val dms = DmsSubmissionPayload(
         B64Html("html"),
         List(FileAttachment("key", "filename", Some("application/pdf"), Seq(ByteString("data")))),
@@ -107,7 +103,6 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with MockFactory with
     }
 
     "return an envelope id if successful call is made" in {
-
       val dms = DmsSubmissionPayload(
         B64Html("html"),
         List.empty,
@@ -133,7 +128,5 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with MockFactory with
         }
       }
     }
-
   }
-
 }

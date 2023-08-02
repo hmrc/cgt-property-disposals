@@ -41,35 +41,26 @@ import scala.concurrent.Future
 
 class DraftReturnsControllerSpec extends ControllerSpec {
 
-  val draftReturnsService = mock[DraftReturnsService]
+  private val draftReturnsService = mock[DraftReturnsService]
 
-  implicit val headerCarrier = HeaderCarrier()
+  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val draftReturn = sample[DraftReturn]
+  private val draftReturn = sample[DraftReturn]
 
-  def mockStoreDraftReturnsService(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    (draftReturnsService
-      .saveDraftReturn(_: DraftReturn, _: CgtReference))
-      .expects(df, cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockStoreDraftReturnsService(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
+    draftReturnsService
+      .saveDraftReturn(df, cgtReference)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockGetDraftReturnsService(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
-    (draftReturnsService
-      .getDraftReturn(_: CgtReference))
-      .expects(cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockGetDraftReturnsService(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
+    draftReturnsService
+      .getDraftReturn(cgtReference)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockDeleteDraftReturnsService(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
-    (draftReturnsService
-      .deleteDraftReturns(_: List[UUID]))
-      .expects(draftReturnIds)
-      .returning(EitherT.fromEither[Future](response))
-
-  def mockDeleteDraftReturnService(cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    (draftReturnsService
-      .deleteDraftReturn(_: CgtReference))
-      .expects(cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockDeleteDraftReturnsService(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
+    draftReturnsService
+      .deleteDraftReturns(draftReturnIds)
+      .returns(EitherT.fromEither[Future](response))
 
   implicit lazy val mat: Materializer = fakeApplication.materializer
 
@@ -80,18 +71,17 @@ class DraftReturnsControllerSpec extends ControllerSpec {
     FakeRequest()
   )
 
-  def fakeRequestWithJsonBody(body: JsValue) = request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
+  private def fakeRequestWithJsonBody(body: JsValue) =
+    request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
-  val controller = new DraftReturnsController(
+  val controller                                     = new DraftReturnsController(
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     draftReturnsService = draftReturnsService,
     cc = Helpers.stubControllerComponents()
   )
 
   "DraftReturnsController" when {
-
     "handling requests to store a draft return" must {
-
       val cgtReference = sample[CgtReference]
 
       "return a 415 response if the request body does not cotnain any JSON" in {
@@ -123,7 +113,6 @@ class DraftReturnsControllerSpec extends ControllerSpec {
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
       }
-
     }
 
     "handling requests to get draft returns" must {
@@ -131,27 +120,22 @@ class DraftReturnsControllerSpec extends ControllerSpec {
       val draftReturns = List.fill(10)(sample[DraftReturn])
 
       "return available draft returns from mongo successfully" in {
-
         mockGetDraftReturnsService(cgtReference)(Right(draftReturns))
 
         val result = controller.draftReturns(cgtReference.value)(request)
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.toJson(GetDraftReturnResponse(draftReturns))
-
       }
 
       "return a 500 response if the draft return was not retrieved successfully" in {
-
         mockGetDraftReturnsService(cgtReference)(Left(Error("")))
 
         val result = controller.draftReturns(cgtReference.value)(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
-
     }
 
     "handling requests to delete draft returns" must {
-
       "return a 415 response if the request body does not cotnain any JSON" in {
         val result = controller.deleteDraftReturns()(request)
         status(result) shouldBe UNSUPPORTED_MEDIA_TYPE
@@ -179,9 +163,6 @@ class DraftReturnsControllerSpec extends ControllerSpec {
           controller.deleteDraftReturns()(fakeRequestWithJsonBody(Json.toJson(DeleteDraftReturnsRequest(ids))))
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
-
     }
-
   }
-
 }

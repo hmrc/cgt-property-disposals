@@ -34,13 +34,12 @@ import scala.concurrent.Future
 
 class TaxYearControllerSpec extends ControllerSpec {
 
-  val mockTaxYearService = mock[TaxYearService]
+  private val mockTaxYearService = mock[TaxYearService]
 
-  def mockGetTaxYear(date: LocalDate)(response: Option[TaxYear]) =
-    (mockTaxYearService
-      .getTaxYear(_: LocalDate))
-      .expects(date)
-      .returning(response)
+  private def mockGetTaxYear(date: LocalDate)(response: Option[TaxYear]) =
+    mockTaxYearService
+      .getTaxYear(date)
+      .returns(response)
 
   val controller = new TaxYearController(
     Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
@@ -56,22 +55,17 @@ class TaxYearControllerSpec extends ControllerSpec {
   )
 
   "TaxYearController" when {
-
     "handling requests to get tax years" must {
-
       def performAction(date: String): Future[Result] =
         controller.taxYear(date)(request)
 
       "return a bad request" when {
-
         "the date cannot be parsed" in {
           status(performAction("abc")) shouldBe BAD_REQUEST
         }
-
       }
 
       "return an ok response" when {
-
         val (date, dateString) = LocalDate.of(2020, 1, 2) -> "2020-01-02"
 
         "a tax year is found" in {
@@ -90,11 +84,7 @@ class TaxYearControllerSpec extends ControllerSpec {
           status(result)        shouldBe OK
           contentAsJson(result) shouldBe Json.toJson(TaxYearResponse(None))
         }
-
       }
-
     }
-
   }
-
 }

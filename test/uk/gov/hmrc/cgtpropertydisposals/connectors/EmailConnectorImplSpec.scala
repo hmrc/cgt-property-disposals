@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -34,12 +34,12 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class EmailConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class EmailConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
   val (accountCreatedTemplateId, accountCreatedSignInUrl, returnSubmittedTemplateId) =
     ("template", "sign-in", "template-return-submitted")
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       s"""
          |microservice {
@@ -71,9 +71,7 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory 
     new EmailConnectorImpl(mockHttp, new ServicesConfig(config))
 
   "EmailConnectorImpl" when {
-
     "it receives a request to send an account created confirmation email in English" must {
-
       implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "en"))
 
       val cgtReference = sample[CgtReference]
@@ -115,7 +113,6 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory 
       }
 
       "return an error" when {
-
         "the call fails" in {
           mockPost(
             s"http://host:123/hmrc/email",
@@ -131,7 +128,6 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory 
     }
 
     "it receives a request to send an account created confirmation email in Welsh" must {
-
       implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("accept-language" -> "CY"))
 
       val cgtReference = sample[CgtReference]
@@ -174,7 +170,6 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory 
     }
 
     "it receives a request to send a return submitted confirmation email in English" must {
-
       implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "en"))
 
       val submissionId         = "submissionId"
@@ -217,7 +212,6 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory 
       }
 
       "return an error" when {
-
         "the call fails" in {
           mockPost(
             s"http://host:123/hmrc/email",
@@ -233,7 +227,6 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory 
     }
 
     "it receives a request to send a return submitted confirmation email in Welsh" must {
-
       implicit val hc: HeaderCarrier = HeaderCarrier().copy(otherHeaders = Seq("Accept-Language" -> "cy"))
 
       val submissionId         = "submissionId"

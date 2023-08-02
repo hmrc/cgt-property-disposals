@@ -22,21 +22,18 @@ import cats.data.EitherT
 import cats.instances.future._
 import com.typesafe.config.ConfigFactory
 import org.bson.types.ObjectId
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.Configuration
-import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, EnvelopeId}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
-import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller.OnCompleteHandler
-import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed, Succeeded, ToDo}
 import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
@@ -49,7 +46,7 @@ class DmsSubmissionPollerSpec
     extends TestKit(ActorSystem.create("dms-submission-poller"))
     with AnyWordSpecLike
     with Matchers
-    with MockFactory
+    with IdiomaticMockito
     with Eventually
     with BeforeAndAfterAll {
 
@@ -66,15 +63,12 @@ class DmsSubmissionPollerSpec
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
-  val mockGFormConnector    = mock[GFormConnector]
-  val mockUpscanService     = mock[UpscanService]
-  val mockDmsSubmissionRepo = mock[DmsSubmissionRepo]
-  val mockUUIDGenerator     = mock[UUIDGenerator]
-  val formIdConst           = "CGTSUBMITDOC"
+  private val mockUUIDGenerator = mock[UUIDGenerator]
+  val formIdConst               = "CGTSUBMITDOC"
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         |dms {
@@ -96,41 +90,37 @@ class DmsSubmissionPollerSpec
     )
   )
 
-  val mockDmsSubmissionService                     = mock[DmsSubmissionService]
-  implicit val dmsSubmissionPollerExecutionContext = new DmsSubmissionPollerExecutionContext(system)
-  val servicesConfig                               = new ServicesConfig(config)
+  private val mockDmsSubmissionService                                                  = mock[DmsSubmissionService]
+  implicit val dmsSubmissionPollerExecutionContext: DmsSubmissionPollerExecutionContext =
+    new DmsSubmissionPollerExecutionContext(system)
+  val servicesConfig                                                                    = new ServicesConfig(config)
 
-  def mockDmsSubmissionRequestDequeue()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
-    (mockDmsSubmissionService.dequeue _)
-      .expects()
-      .returning(EitherT.fromEither[Future](response))
+  private def mockDmsSubmissionRequestDequeue()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
+    mockDmsSubmissionService.dequeue.returns(EitherT.fromEither[Future](response))
 
-  def mockSubmitToDms(
+  private def mockSubmitToDms(
     html: B64Html,
     formBundleId: String,
     cgtReference: CgtReference,
     completeReturn: CompleteReturn,
     id: UUID
   )(response: Either[Error, EnvelopeId]) =
-    (mockDmsSubmissionService
-      .submitToDms(_: B64Html, _: String, _: CgtReference, _: CompleteReturn, _: UUID))
-      .expects(html, formBundleId, cgtReference, completeReturn, id)
-      .returning(EitherT.fromEither(response))
+    mockDmsSubmissionService
+      .submitToDms(html, formBundleId, cgtReference, completeReturn, id)
+      .returns(EitherT.fromEither(response))
 
-  def mockSetProcessingStatus(id: ObjectId, status: ProcessingStatus)(response: Either[Error, Boolean]) =
-    (mockDmsSubmissionService
-      .setProcessingStatus(_: ObjectId, _: ProcessingStatus))
-      .expects(id, status)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockSetProcessingStatus(id: ObjectId, status: ProcessingStatus)(response: Either[Error, Boolean]) =
+    mockDmsSubmissionService
+      .setProcessingStatus(id, status)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockSetResultStatus(id: ObjectId, status: ResultStatus)(response: Either[Error, Boolean]) =
-    (mockDmsSubmissionService
-      .setResultStatus(_: ObjectId, _: ResultStatus))
-      .expects(id, status)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockSetResultStatus(id: ObjectId, status: ResultStatus)(response: Either[Error, Boolean]) =
+    mockDmsSubmissionService
+      .setResultStatus(id, status)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockNextUUID(uuid: UUID) =
-    (mockUUIDGenerator.nextId _).expects().returning(uuid)
+  private def mockNextUUID(uuid: UUID) =
+    mockUUIDGenerator.nextId().returns(uuid)
 
   "DMS Submission Poller" when {
     "it picks up a work item" must {
@@ -139,18 +129,16 @@ class DmsSubmissionPollerSpec
         val workItem           = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 0, status = ToDo)
         val id                 = UUID.randomUUID()
 
-        inSequence {
-          mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
-          mockNextUUID(id)
-          mockSubmitToDms(
-            workItem.item.html,
-            formIdConst,
-            workItem.item.cgtReference,
-            workItem.item.completeReturn,
-            id
-          )(Right(EnvelopeId("id")))
-          mockSetResultStatus(workItem.id, Succeeded)(Right(true))
-        }
+        mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
+        mockNextUUID(id)
+        mockSubmitToDms(
+          workItem.item.html,
+          formIdConst,
+          workItem.item.cgtReference,
+          workItem.item.completeReturn,
+          id
+        )(Right(EnvelopeId("id")))
+        mockSetResultStatus(workItem.id, Succeeded)(Right(true))
 
         val _ =
           new DmsSubmissionPoller(
@@ -172,18 +160,16 @@ class DmsSubmissionPollerSpec
       val workItem = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 0, status = ToDo)
       val id       = UUID.randomUUID()
 
-      inSequence {
-        mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
-        mockNextUUID(id)
-        mockSubmitToDms(
-          workItem.item.html,
-          formIdConst,
-          workItem.item.cgtReference,
-          workItem.item.completeReturn,
-          id
-        )(Left(Error("some-error")))
-        mockSetProcessingStatus(workItem.id, Failed)(Right(true))
-      }
+      mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
+      mockNextUUID(id)
+      mockSubmitToDms(
+        workItem.item.html,
+        formIdConst,
+        workItem.item.cgtReference,
+        workItem.item.completeReturn,
+        id
+      )(Left(Error("some-error")))
+      mockSetProcessingStatus(workItem.id, Failed)(Right(true))
 
       val _ =
         new DmsSubmissionPoller(
@@ -202,10 +188,8 @@ class DmsSubmissionPollerSpec
       val onCompleteListener = TestProbe()
 
       val workItem = sample[WorkItem[DmsSubmissionRequest]].copy(failureCount = 10, status = Failed)
-      inSequence {
-        mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
-        mockSetResultStatus(workItem.id, PermanentlyFailed)(Right(true))
-      }
+      mockDmsSubmissionRequestDequeue()(Right(Some(workItem)))
+      mockSetResultStatus(workItem.id, PermanentlyFailed)(Right(true))
 
       val _ =
         new DmsSubmissionPoller(

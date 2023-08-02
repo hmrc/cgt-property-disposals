@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -30,9 +30,9 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class EnrolmentStoreProxyConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class EnrolmentStoreProxyConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         |microservice {
@@ -53,9 +53,7 @@ class EnrolmentStoreProxyConnectorImplSpec extends AnyWordSpec with Matchers wit
   val connector = new EnrolmentStoreProxyConnectorImpl(mockHttp, new ServicesConfig(config))
 
   "EnrolmentStoreProxyConnectorImpl" when {
-
     "handling requests to get all principal enrolments for a cgt reference" must {
-
       val emptyJsonBody = "{}"
 
       def expectedUrl(cgtReference: CgtReference) =
@@ -89,7 +87,5 @@ class EnrolmentStoreProxyConnectorImplSpec extends AnyWordSpec with Matchers wit
         }
       }
     }
-
   }
-
 }

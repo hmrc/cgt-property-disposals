@@ -14,27 +14,11 @@
  * limitations under the License.
  */
 
-///*
-// * Copyright 2022 HM Revenue & Customs
-// *
-// * Licensed under the Apache License, Version 2.0 (the "License");
-// * you may not use this file except in compliance with the License.
-// * You may obtain a copy of the License at
-// *
-// *     http://www.apache.org/licenses/LICENSE-2.0
-// *
-// * Unless required by applicable law or agreed to in writing, software
-// * distributed under the License is distributed on an "AS IS" BASIS,
-// * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// * See the License for the specific language governing permissions and
-// * limitations under the License.
-// */
-//
 package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 
 import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers.await
@@ -52,62 +36,54 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class UpscanServiceSpec extends AnyWordSpec with Matchers with MockFactory with CleanMongoCollectionSupport {
+class UpscanServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito with CleanMongoCollectionSupport {
 
   implicit val timeout: Timeout                           = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
-  val mockUpscanRepository                                = mock[UpscanRepository]
-  val mockUpscanConnector                                 = mock[S3Connector]
+  private val mockUpscanRepository                        = mock[UpscanRepository]
+  private val mockUpscanConnector                         = mock[S3Connector]
   val service                                             = new UpscanServiceImpl(mockUpscanRepository, mockUpscanConnector)
 
-  def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
+  private def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
     response: Either[Error, Unit]
   ) =
-    (mockUpscanRepository
-      .insert(_: UpscanUpload))
-      .expects(upscanUpload)
-      .returning(EitherT[Future, Error, Unit](Future.successful(response)))
+    mockUpscanRepository
+      .insert(upscanUpload)
+      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
 
-  def mockReadUpscanUpload(uploadReference: UploadReference)(
+  private def mockReadUpscanUpload(uploadReference: UploadReference)(
     response: Either[Error, Option[UpscanUploadWrapper]]
   ) =
-    (mockUpscanRepository
-      .select(_: UploadReference))
-      .expects(uploadReference)
-      .returning(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
+    mockUpscanRepository
+      .select(uploadReference)
+      .returns(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
 
-  def mockReadUpscanUploads(uploadReferences: List[UploadReference])(
+  private def mockReadUpscanUploads(uploadReferences: List[UploadReference])(
     response: Either[Error, List[UpscanUploadWrapper]]
   ) =
-    (mockUpscanRepository
-      .selectAll(_: List[UploadReference]))
-      .expects(uploadReferences)
-      .returning(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
+    mockUpscanRepository
+      .selectAll(uploadReferences)
+      .returns(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
 
-  def mockUpdateUpscanUpload(
+  private def mockUpdateUpscanUpload(
     uploadReference: UploadReference,
     upscanUpload: UpscanUpload
-  )(
-    response: Either[Error, Unit]
-  ) =
-    (mockUpscanRepository
-      .update(_: UploadReference, _: UpscanUpload))
-      .expects(uploadReference, upscanUpload)
-      .returning(EitherT[Future, Error, Unit](Future.successful(response)))
+  )(response: Either[Error, Unit]) =
+    mockUpscanRepository
+      .update(uploadReference, upscanUpload)
+      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
 
-  def mockDownloadFile(upscanSuccess: UpscanSuccess)(
+  private def mockDownloadFile(upscanSuccess: UpscanSuccess)(
     response: Either[Error, FileAttachment]
   ) =
-    (mockUpscanConnector
-      .downloadFile(_: UpscanSuccess))
-      .expects(upscanSuccess)
-      .returning(Future[Either[Error, FileAttachment]](response))
+    mockUpscanConnector
+      .downloadFile(upscanSuccess)
+      .returns(Future[Either[Error, FileAttachment]](response))
 
-  val upscanUpload        = sample[UpscanUpload]
-  val upscanUploadWrapper = sample[UpscanUploadWrapper]
+  private val upscanUpload        = sample[UpscanUpload]
+  private val upscanUploadWrapper = sample[UpscanUploadWrapper]
 
   "Upscan Service" when {
-
     "it receives a request to store an upscan upload" must {
       "return an error" when {
         "there is a mongo exception" in {
@@ -115,6 +91,7 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with MockFactory with 
           await(service.storeUpscanUpload(upscanUpload).value).isLeft shouldBe true
         }
       }
+
       "return unit" when {
         "it successfully stores the data" in {
           mockStoreUpscanUpload(upscanUpload)(Right(()))
@@ -130,6 +107,7 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with MockFactory with 
           await(service.readUpscanUpload(upscanUpload.uploadReference).value).isLeft shouldBe true
         }
       }
+
       "return some upscan upload" when {
         "it successfully reads the data" in {
           mockReadUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUploadWrapper)))
@@ -145,6 +123,7 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with MockFactory with 
           await(service.readUpscanUploads(List(upscanUpload.uploadReference)).value).isLeft shouldBe true
         }
       }
+
       "return some upscan upload" when {
         "it successfully reads the data" in {
           mockReadUpscanUploads(List(upscanUpload.uploadReference))(Right(List(upscanUploadWrapper)))
@@ -162,6 +141,7 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with MockFactory with 
           await(service.updateUpscanUpload(upscanUpload.uploadReference, upscanUpload).value).isLeft shouldBe true
         }
       }
+
       "return some upscan upload" when {
         "it successfully stores the data" in {
           mockUpdateUpscanUpload(upscanUpload.uploadReference, upscanUpload)(Right(()))
@@ -171,14 +151,12 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with MockFactory with 
     }
 
     "it receives a request to download a S3 file" must {
-
       val upscanSuccess1  = sample[UpscanSuccess]
       val upscanSuccess2  = sample[UpscanSuccess]
       val fileAttachment1 = FileAttachment(UUID.randomUUID().toString, "filename", Some("pdf"), Seq(ByteString(1)))
       val fileAttachment2 = FileAttachment(UUID.randomUUID().toString, "filename2", Some("pdf"), Seq(ByteString(2)))
 
       "return an error" when {
-
         "some of the downloads fail" in {
           mockDownloadFile(upscanSuccess1)(Right(fileAttachment1))
           mockDownloadFile(upscanSuccess2)(Left(Error("")))
@@ -189,6 +167,7 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with MockFactory with 
           )
         }
       }
+
       "return file attachments" when {
         "it successfully downloads the file" in {
           mockDownloadFile(upscanSuccess1)(Right(fileAttachment1))
@@ -198,10 +177,8 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with MockFactory with 
             Right(fileAttachment1),
             Right(fileAttachment2)
           )
-
         }
       }
     }
-
   }
 }

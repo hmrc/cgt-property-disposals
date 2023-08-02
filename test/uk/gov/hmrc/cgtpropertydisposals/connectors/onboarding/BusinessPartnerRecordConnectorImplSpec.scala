@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -32,11 +32,11 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       s"""
          |microservice {
@@ -63,9 +63,7 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
   private val emptyJsonBody = "{}"
 
   "BusinessPartnerRecordConnectorImpl" when {
-
     "handling request to get the business partner records" when {
-
       implicit val hc: HeaderCarrier = HeaderCarrier()
       val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
@@ -190,7 +188,6 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
           await(
             connector.getBusinessPartnerRecord(individualBprRequest(Left(SAUTR(" 12 34 5 ")), false)).value
           ).isLeft shouldBe true
-
         }
       }
 
@@ -260,7 +257,6 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
               )
             }
           }
-
         }
 
         "return an error when the future fails" in {
@@ -274,7 +270,5 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
         }
       }
     }
-
   }
-
 }

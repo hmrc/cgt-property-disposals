@@ -33,7 +33,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -45,8 +44,8 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with MockFactory {
-  val config = Configuration(
+class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         | mongodb.draft-returns.expiry-time = 30days
@@ -57,11 +56,10 @@ class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
 
   val repository = new DefaultDraftReturnsRepository(mongoComponent, config)
 
-  val draftReturn  = sample[DraftReturn]
-  val cgtReference = sample[CgtReference]
+  private val draftReturn  = sample[DraftReturn]
+  private val cgtReference = sample[CgtReference]
 
   "DraftReturnsRepository" when {
-
     repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
 
     "inserting" should {
@@ -76,5 +74,4 @@ class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
       }
     }
   }
-
 }

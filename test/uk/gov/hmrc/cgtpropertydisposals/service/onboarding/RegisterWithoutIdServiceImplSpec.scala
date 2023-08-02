@@ -17,10 +17,11 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsNumber, JsValue, Json, Writes}
+import play.api.libs.json.{JsNumber, JsValue, Json}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -38,54 +39,47 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
+class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
 
-  val mockConnector = mock[RegisterWithoutIdConnector]
+  private val mockConnector = mock[RegisterWithoutIdConnector]
 
-  val mockAuditService = mock[AuditService]
+  private val mockAuditService = mock[AuditService]
 
-  val mockUUIDGenerator = mock[UUIDGenerator]
+  private val mockUUIDGenerator = mock[UUIDGenerator]
 
   val service =
     new RegisterWithoutIdServiceImpl(mockConnector, mockUUIDGenerator, mockAuditService, MockMetrics.metrics)
 
-  def mockGenerateUUID(uuid: UUID) =
-    (mockUUIDGenerator.nextId: () => UUID).expects().returning(uuid)
+  private def mockGenerateUUID(uuid: UUID) =
+    mockUUIDGenerator.nextId().returns(uuid)
 
-  def mockRegisterWithoutId(expectedRegistrationDetails: RegistrationDetails, expectedReferenceId: UUID)(
+  private def mockRegisterWithoutId(expectedRegistrationDetails: RegistrationDetails, expectedReferenceId: UUID)(
     response: Either[Error, HttpResponse]
   ) =
-    (mockConnector
-      .registerWithoutId(_: RegistrationDetails, _: UUID)(_: HeaderCarrier))
-      .expects(expectedRegistrationDetails, expectedReferenceId, *)
-      .returning(EitherT(Future.successful(response)))
+    mockConnector
+      .registerWithoutId(expectedRegistrationDetails, expectedReferenceId)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockAuditRegistrationResponse(httpStatus: Int, responseBody: Option[JsValue]) =
-    (mockAuditService
-      .sendEvent(_: String, _: RegistrationResponseEvent, _: String)(
-        _: HeaderCarrier,
-        _: Writes[RegistrationResponseEvent],
-        _: Request[_]
-      ))
-      .expects(
+  private def mockAuditRegistrationResponse(httpStatus: Int, responseBody: Option[JsValue]) =
+    mockAuditService
+      .sendEvent(
         "registrationResponse",
         RegistrationResponseEvent(
           httpStatus,
           responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }"""))
         ),
-        "registration-response",
+        "registration-response"
+      )(
         *,
         *,
         *
       )
-      .returning(())
+      .doesNothing()
 
   private val noJsonInBody = ""
 
   "RegisterWithoutIdServiceImpl" when {
-
     "handling requests to register without id" must {
-
       implicit val hc: HeaderCarrier   = HeaderCarrier()
       implicit val request: Request[_] = FakeRequest()
       val registrationDetails          = sample[RegistrationDetails]
@@ -93,37 +87,32 @@ class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
       "return an error" when {
         "the http call comes back with a status other than 200" in {
-          inSequence {
-            mockGenerateUUID(referenceId)
-            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(500, noJsonInBody)))
-            mockAuditRegistrationResponse(500, None)
-          }
+          mockGenerateUUID(referenceId)
+          mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(500, noJsonInBody)))
+          mockAuditRegistrationResponse(500, None)
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
         }
 
         "there is no JSON in the body of the http response" in {
-          inSequence {
-            mockGenerateUUID(referenceId)
-            mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, noJsonInBody)))
-            mockAuditRegistrationResponse(200, None)
-          }
+          mockGenerateUUID(referenceId)
+          mockRegisterWithoutId(registrationDetails, referenceId)(Right(HttpResponse(200, noJsonInBody)))
+          mockAuditRegistrationResponse(200, None)
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
         }
 
         "the JSON body of the response cannot be parsed" in {
-          inSequence {
-            mockGenerateUUID(referenceId)
-            mockRegisterWithoutId(registrationDetails, referenceId)(
-              Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
-            )
-            mockAuditRegistrationResponse(200, Some(JsNumber(1)))
-          }
+          mockGenerateUUID(referenceId)
+          mockRegisterWithoutId(registrationDetails, referenceId)(
+            Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+          )
+          mockAuditRegistrationResponse(200, Some(JsNumber(1)))
 
           await(service.registerWithoutId(registrationDetails).value).isLeft shouldBe true
         }
       }
+
       "return the sap number if the call comes back with a 200 status and the JSON body can be parsed" in {
         val sapNumber = "number"
         val jsonBody  = Json.parse(
@@ -134,13 +123,11 @@ class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers with Mo
              |""".stripMargin
         )
 
-        inSequence {
-          mockGenerateUUID(referenceId)
-          mockRegisterWithoutId(registrationDetails, referenceId)(
-            Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]]))
-          )
-          mockAuditRegistrationResponse(200, Some(jsonBody))
-        }
+        mockGenerateUUID(referenceId)
+        mockRegisterWithoutId(registrationDetails, referenceId)(
+          Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]]))
+        )
+        mockAuditRegistrationResponse(200, Some(jsonBody))
 
         await(service.registerWithoutId(registrationDetails).value) shouldBe Right(SapNumber(sapNumber))
       }

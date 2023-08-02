@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -35,11 +35,11 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       s"""
          |microservice {
@@ -66,12 +66,10 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
   private val emptyJsonBody = "{}"
 
   "RegisterWithoutIdConnectorImpl" when {
-
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     "handling request to subscribe for individuals" must {
-
       val expectedUrl         = "http://host:123/registration/02.00.00/individual"
       val registrationDetails = RegistrationDetails(
         IndividualName("name", "surname"),
@@ -181,7 +179,5 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
         await(connector.registerWithoutId(registrationDetails, referenceId).value) shouldBe Right(httpResponse)
       }
     }
-
   }
-
 }

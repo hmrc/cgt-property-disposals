@@ -19,8 +19,9 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 import akka.stream.Materializer
 import cats.data.EitherT
 import cats.instances.future._
+import org.mockito.ArgumentMatchersSugar.*
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Headers, Request}
+import play.api.mvc.Headers
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
@@ -29,9 +30,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR, SapNumber}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscriptionDetails, SubscriptionResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId.{NoReferenceId, RepresenteeCgtReference, RepresenteeNino, RepresenteeSautr}
@@ -56,9 +55,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   val subscriptionService: SubscriptionService      = mock[SubscriptionService]
   val registrationService: RegisterWithoutIdService = mock[RegisterWithoutIdService]
 
-  implicit val headerCarrier          = HeaderCarrier()
-  implicit lazy val mat: Materializer = fakeApplication.materializer
-  val dmsSubmissionRequestWorkItem    = sample[WorkItem[DmsSubmissionRequest]]
+  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+  implicit lazy val mat: Materializer       = fakeApplication.materializer
+  private val dmsSubmissionRequestWorkItem  = sample[WorkItem[DmsSubmissionRequest]]
 
   val request = new AuthenticatedRequest(
     Fake.user,
@@ -67,9 +66,10 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     FakeRequest()
   )
 
-  def fakeRequestWithJsonBody(body: JsValue) = request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
+  private def fakeRequestWithJsonBody(body: JsValue) =
+    request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
-  val controller = new SubmitReturnsController(
+  val controller                                     = new SubmitReturnsController(
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     draftReturnsService = draftReturnsService,
     returnsService = returnsService,
@@ -77,53 +77,34 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     cc = Helpers.stubControllerComponents()
   )
 
-  def mockSubmitReturnService(request: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
+  private def mockSubmitReturnService(request: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
     response: Either[Error, SubmitReturnResponse]
   ) =
-    (returnsService
-      .submitReturn(_: SubmitReturnRequest, _: Option[RepresenteeDetails])(_: HeaderCarrier, _: Request[_]))
-      .expects(request, representeeDetails, *, *)
-      .returning(EitherT.fromEither[Future](response))
+    returnsService
+      .submitReturn(request, representeeDetails)(*, *)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Unit]) =
-    (draftReturnsService
-      .deleteDraftReturns(_: List[UUID]))
-      .expects(List(id))
-      .returning(EitherT.fromEither[Future](response))
+  private def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Unit]) =
+    draftReturnsService
+      .deleteDraftReturns(List(id))
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockDmsRequestEnqueue() =
-    (dmsService
-      .enqueue(_: DmsSubmissionRequest))
-      .expects(*)
-      .returning(EitherT.pure(dmsSubmissionRequestWorkItem))
-
-  def mockRegisterWithoutId(registrationDetails: RegistrationDetails)(response: Either[Error, SapNumber]) =
-    (registrationService
-      .registerWithoutId(_: RegistrationDetails)(_: HeaderCarrier, _: Request[_]))
-      .expects(registrationDetails, *, *)
-      .returning(EitherT.fromEither[Future](response))
-
-  def mockSubscribe(subscriptionDetails: SubscriptionDetails)(response: Either[Error, SubscriptionResponse]) =
-    (subscriptionService
-      .subscribe(_: SubscriptionDetails)(_: HeaderCarrier, _: Request[_]))
-      .expects(subscriptionDetails, *, *)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockDmsRequestEnqueue() =
+    dmsService
+      .enqueue(*)
+      .returns(EitherT.pure(dmsSubmissionRequestWorkItem))
 
   "SubmitReturnsController" when {
-
     "handling requests to submit returns" must {
-
       "return 200 for successful submission" in {
         val expectedResponseBody = sample[SubmitReturnResponse]
         val requestBody          = sample[SubmitReturnRequest].copy(
           checkYourAnswerPageHtml = sample[B64Html],
           completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None)
         )
-        inSequence {
-          mockSubmitReturnService(requestBody, None)(Right(expectedResponseBody))
-          mockDmsRequestEnqueue()
-          mockDeleteDraftReturnService(requestBody.id)(Right(()))
-        }
+        mockSubmitReturnService(requestBody, None)(Right(expectedResponseBody))
+        mockDmsRequestEnqueue()
+        mockDeleteDraftReturnService(requestBody.id)(Right(()))
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result)        shouldBe OK
@@ -155,11 +136,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
                 representeeAnswers = Some(representeeAnswers)
               )
             )
-            inSequence {
-              mockSubmitReturnService(requestBody, Some(representeeDetails))(Right(expectedResponseBody))
-              mockDmsRequestEnqueue()
-              mockDeleteDraftReturnService(requestBody.id)(Right(()))
-            }
+            mockSubmitReturnService(requestBody, Some(representeeDetails))(Right(expectedResponseBody))
+            mockDmsRequestEnqueue()
+            mockDeleteDraftReturnService(requestBody.id)(Right(()))
 
             val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
             status(result)        shouldBe OK
@@ -190,11 +169,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
                 B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes())))
             )
 
-            inSequence {
-              mockSubmitReturnService(requestBodyWithForbiddenElements, None)(Right(expectedResponseBody))
-              mockDmsRequestEnqueue()
-              mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
-            }
+            mockSubmitReturnService(requestBodyWithForbiddenElements, None)(Right(expectedResponseBody))
+            mockDmsRequestEnqueue()
+            mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
 
             val result =
               controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBodyWithForbiddenElements)))
@@ -221,20 +198,16 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           completeReturn = sample[CompleteMultipleDisposalsReturn].copy(representeeAnswers = None),
           checkYourAnswerPageHtml = sample[B64Html]
         )
-        inSequence {
-          mockSubmitReturnService(requestBody, None)(Right(sample[SubmitReturnResponse]))
-          mockDmsRequestEnqueue()
-          mockDeleteDraftReturnService(requestBody.id)(Left(Error.apply("error while deleting draft return")))
-        }
+        mockSubmitReturnService(requestBody, None)(Right(sample[SubmitReturnResponse]))
+        mockDmsRequestEnqueue()
+        mockDeleteDraftReturnService(requestBody.id)(Left(Error.apply("error while deleting draft return")))
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
       "return a 500" when {
-
         "there is no reference id for a representee" in {
-
           val requestBody = sample[SubmitReturnRequest].copy(
             checkYourAnswerPageHtml = sample[B64Html],
             completeReturn = sample[CompleteSingleDisposalReturn].copy(
@@ -245,13 +218,8 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           )
           val result      = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
           status(result) shouldBe INTERNAL_SERVER_ERROR
-
         }
-
       }
-
     }
-
   }
-
 }

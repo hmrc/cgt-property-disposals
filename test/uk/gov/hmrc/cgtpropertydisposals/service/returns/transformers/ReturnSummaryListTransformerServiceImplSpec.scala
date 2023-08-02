@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.OneInstancePerTest
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -36,19 +37,17 @@ import java.time.LocalDate
 class ReturnSummaryListTransformerServiceImplSpec
     extends AnyWordSpec
     with Matchers
-    with MockFactory
+    with IdiomaticMockito
     with OneInstancePerTest {
 
-  val mockTaxYearService = mock[TaxYearService]
+  private val mockTaxYearService = mock[TaxYearService]
 
-  (mockTaxYearService.getTaxYear(_: LocalDate)).expects(*).returning(Some(sample[TaxYear])).anyNumberOfTimes()
+  mockTaxYearService.getTaxYear(*).returns(Some(sample[TaxYear]))
 
   val transformer = new ReturnSummaryListTransformerServiceImpl(mockTaxYearService)
 
   "ReturnSummaryListTransformerServiceImpl" when {
-
     "converting from des data to a return list" must {
-
       "return an error" when {
         val ukAddress = sample[UkAddress]
 
@@ -130,9 +129,7 @@ class ReturnSummaryListTransformerServiceImplSpec
 
               result.isLeft shouldBe true
             }
-
           }
-
         }
 
         "an address is found which is a non-uk address" in {
@@ -167,7 +164,6 @@ class ReturnSummaryListTransformerServiceImplSpec
           )
 
           result.isLeft shouldBe true
-
         }
 
         "an financial transaction item cannot be found with a due date which is the same as the due date in the return summary" in {
@@ -253,7 +249,6 @@ class ReturnSummaryListTransformerServiceImplSpec
 
           result.isLeft shouldBe true
         }
-
       }
 
       "transform the data correctly" when {
@@ -403,7 +398,6 @@ class ReturnSummaryListTransformerServiceImplSpec
           result.map(_.map(_.completionDate)) shouldBe Right(
             List(validDesReturnSummary1.completionDate, validDesReturnSummary2.completionDate)
           )
-
         }
 
         "finding the tax year" in {
@@ -429,10 +423,10 @@ class ReturnSummaryListTransformerServiceImplSpec
           result.map(_.map(_.propertyAddress)) shouldBe Right(
             List(
               ukAddress1.copy(
-                postcode = Postcode(ukAddress1.postcode.stripAllSpaces)
+                postcode = Postcode(ukAddress1.postcode.stripAllSpaces())
               ),
               ukAddress2.copy(
-                postcode = Postcode(ukAddress2.postcode.stripAllSpaces)
+                postcode = Postcode(ukAddress2.postcode.stripAllSpaces())
               )
             )
           )
@@ -496,7 +490,6 @@ class ReturnSummaryListTransformerServiceImplSpec
               r.charges                   shouldBe List.empty
             case other           => fail(s"Expected one return summary but got $other")
           }
-
         }
 
         "finding a delta charge if one exists" in {
@@ -601,9 +594,6 @@ class ReturnSummaryListTransformerServiceImplSpec
           List(nonUkAddress)
         )
       }
-
     }
-
   }
-
 }

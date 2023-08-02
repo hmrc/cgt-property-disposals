@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.account
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -61,13 +61,12 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Mock
   def queryParams(fromDate: LocalDate, toDate: LocalDate): Seq[(String, String)] =
     Seq("dateFrom" -> fromDate.toString, "dateTo" -> toDate.toString)
 
-  val cgtReference                                                               = sample[CgtReference]
+  private val cgtReference                                                       = sample[CgtReference]
   val (fromDate, toDate)                                                         = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
 
   private val emptyJsonBody = "{}"
 
   "FinancialDataConnectorImpl" when {
-
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
@@ -75,9 +74,7 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Mock
       s"http://localhost:7022/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT"
 
     "handling request to get financial data" must {
-
       "do a GET http call and get the result" in {
-
         List(
           HttpResponse(200, emptyJsonBody),
           HttpResponse(400, emptyJsonBody),
@@ -99,13 +96,10 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Mock
             await(connector.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(httpResponse)
           }
         }
-
       }
-
     }
 
     "return an error" when {
-
       "the call fails" in {
         mockGetWithQueryWithHeaders(
           expectedFinancialDataUrl(cgtReference),
@@ -116,7 +110,5 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Mock
         await(connector.getFinancialData(cgtReference, fromDate, toDate).value).isLeft shouldBe true
       }
     }
-
   }
-
 }

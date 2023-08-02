@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
@@ -31,14 +30,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, TaxableAmountOfMoney}
 
-class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with ScalaCheckDrivenPropertyChecks {
+class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   "ReturnDetails" when {
-
     "getting the TaxableGainOrNetLoss" when {
-
       "given a calculated journey" must {
-
         "return totalTaxableGain value when the user has made a gain" in {
           val amountInPounds      = BigDecimal(1000)
           val calculatedTaxDue    =
@@ -88,11 +84,9 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
           result.totalTaxableGain shouldBe BigDecimal("0")
           result.totalNetLoss     shouldBe Some(amountInPounds * -1)
         }
-
       }
 
       "given a non-calculated journey" which {
-
         def commonBehaviour(toCompleteReturn: CompleteNonCalculatedYTDAnswers => CompleteReturn): Unit = {
           "return totalTaxableGain value when the user has made a gain" in {
             val amountInPounds      = BigDecimal(1000)
@@ -131,7 +125,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
             result.totalTaxableGain shouldBe BigDecimal("0")
             result.totalNetLoss     shouldBe Some(amountInPounds * -1)
           }
-
         }
 
         "is on a single disposal journey" must {
@@ -149,13 +142,10 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
             )
           )
         }
-
       }
-
     }
 
     "given a single disposal return" must {
-
       val completeReturn = sample[CompleteSingleDisposalReturn].copy(hasAttachments = false)
 
       val singleDisposalSubmitReturnRequest = sample[SubmitReturnRequest].copy(
@@ -163,7 +153,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
       )
 
       "find the correct customer type" in {
-
         ReturnDetails(
           singleDisposalSubmitReturnRequest.copy(
             subscribedDetails = sample[SubscribedDetails].copy(
@@ -307,11 +296,9 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
         result.attachmentID        shouldBe None
         result.entrepreneursRelief shouldBe None
       }
-
     }
 
     "given a multiple disposals return" must {
-
       val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(hasAttachments = true)
 
       val multipleDisposalsSubmitReturnRequest = sample[SubmitReturnRequest].copy(
@@ -319,7 +306,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
       )
 
       "find the correct customer type" in {
-
         ReturnDetails(
           multipleDisposalsSubmitReturnRequest.copy(
             subscribedDetails = sample[SubscribedDetails].copy(
@@ -385,7 +371,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
             .getOrElse(nonCalculatedYtdAnswers.taxDue)
             .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
-
         }
       }
 
@@ -409,11 +394,9 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
         result.attachmentID          shouldBe None
         result.entrepreneursRelief   shouldBe None
       }
-
     }
 
     "given a single indirect disposal return" must {
-
       val completeReturn = sample[CompleteSingleIndirectDisposalReturn].copy(hasAttachments = true)
 
       val singleIndirectDisposalSubmitReturnRequest = sample[SubmitReturnRequest].copy(
@@ -421,7 +404,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
       )
 
       "find the correct customer type" in {
-
         ReturnDetails(
           singleIndirectDisposalSubmitReturnRequest.copy(
             subscribedDetails = sample[SubscribedDetails].copy(
@@ -489,7 +471,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
             .getOrElse(nonCalculatedYtdAnswers.taxDue)
             .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
-
         }
       }
 
@@ -512,11 +493,9 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
         result.attachmentID        shouldBe None
         result.entrepreneursRelief shouldBe None
       }
-
     }
 
     "given a multiple indirect disposals return" must {
-
       val completeReturn = sample[CompleteMultipleIndirectDisposalReturn].copy(hasAttachments = true)
 
       val multipleIndirectDisposalsSubmitReturnRequest = sample[SubmitReturnRequest].copy(
@@ -524,7 +503,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
       )
 
       "find the correct customer type" in {
-
         ReturnDetails(
           multipleIndirectDisposalsSubmitReturnRequest.copy(
             subscribedDetails = sample[SubscribedDetails].copy(
@@ -590,7 +568,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
             .getOrElse(nonCalculatedYtdAnswers.taxDue)
             .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
-
         }
       }
 
@@ -614,17 +591,14 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
         result.attachmentID          shouldBe None
         result.entrepreneursRelief   shouldBe None
       }
-
     }
 
     "given a single mixed use disposal return" must {
-
       val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(hasAttachments = true)
 
       val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
 
       "find the correct customer type" in {
-
         ReturnDetails(
           submitReturnRequest.copy(
             subscribedDetails = sample[SubscribedDetails].copy(
@@ -690,7 +664,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
             .getOrElse(nonCalculatedYtdAnswers.taxDue)
             .inPounds()
           result.estimate          shouldBe nonCalculatedYtdAnswers.hasEstimatedDetails
-
         }
       }
 
@@ -714,9 +687,6 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
         result.attachmentID          shouldBe None
         result.entrepreneursRelief   shouldBe None
       }
-
     }
-
   }
-
 }
