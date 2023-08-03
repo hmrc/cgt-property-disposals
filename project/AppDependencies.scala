@@ -2,7 +2,7 @@ import sbt.*
 
 object AppDependencies {
 
-  val akkaVersion  = "2.6.19"
+  val akkaVersion  = "2.6.20"
   val playVersion  = "play-28"
   val mongoVersion = "0.68.0"
 
