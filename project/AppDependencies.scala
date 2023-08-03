@@ -22,8 +22,9 @@ object AppDependencies {
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion" % bootstrapPlay28Version % scope,
     "org.mockito"                %% "mockito-scala"                % "1.17.12"              % scope,
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"    % "1.2.5"                % scope,
-    "org.scalatestplus"          %% "scalatestplus-scalacheck"     % "3.1.0.0-RC2"          % scope,
+    "org.scalatestplus"          %% "scalacheck-1-17"              % "3.2.16.0"             % scope,
     "com.eclipsesource"          %% "play-json-schema-validator"   % "0.9.5"                % scope,
-    "com.typesafe.akka"          %% "akka-testkit"                 % akkaVersion            % scope
+    "com.typesafe.akka"          %% "akka-testkit"                 % akkaVersion            % scope,
+    "com.vladsch.flexmark"        % "flexmark-all"                 % "0.64.6"               % scope
   )
 }
