@@ -14,7 +14,6 @@ object AppDependencies {
     "org.julienrf"                            %% "play-json-derived-codecs"                % "10.0.2",
     "com.github.kxbmap"                       %% "configs"                                 % "0.6.1",
     "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer"               % "20191001.1",
-    "uk.gov.hmrc"                             %% "time"                                    % "3.18.0",
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion
   )
 

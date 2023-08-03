@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import akka.util.ByteString
 import org.bson.types.ObjectId
-import org.joda.time.DateTime
 import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
@@ -114,13 +113,6 @@ sealed trait GenUtils {
       Gen
         .chooseNum(0L, 10000L)
         .map(l => LocalDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.systemDefault()))
-    )
-
-  implicit val jodaDateTime: Arbitrary[DateTime] =
-    Arbitrary(
-      Gen
-        .chooseNum(0L, 10000L)
-        .map(l => new DateTime(l))
     )
 
   implicit val localDateArb: Arbitrary[LocalDate] = Arbitrary(
