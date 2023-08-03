@@ -4,7 +4,7 @@ object AppDependencies {
 
   val akkaVersion  = "2.6.20"
   val playVersion  = "play-28"
-  val mongoVersion = "0.68.0"
+  val mongoVersion = "1.3.0"
 
   private val bootstrapPlay28Version = "5.25.0"
 
@@ -18,12 +18,12 @@ object AppDependencies {
   )
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion" % bootstrapPlay28Version % scope,
-    "org.mockito"                %% "mockito-scala"                % "1.17.12"              % scope,
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"    % "1.2.5"                % scope,
-    "org.scalatestplus"          %% "scalacheck-1-17"              % "3.2.16.0"             % scope,
-    "com.eclipsesource"          %% "play-json-schema-validator"   % "0.9.5"                % scope,
-    "com.typesafe.akka"          %% "akka-testkit"                 % akkaVersion            % scope,
-    "com.vladsch.flexmark"        % "flexmark-all"                 % "0.64.6"               % scope
+    "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapPlay28Version % scope,
+    "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion           % "test",
+    "org.mockito"                %% "mockito-scala"                 % "1.17.12"              % scope,
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"     % "1.2.5"                % scope,
+    "org.scalatestplus"          %% "scalacheck-1-17"               % "3.2.16.0"             % scope,
+    "com.eclipsesource"          %% "play-json-schema-validator"    % "0.9.5"                % scope,
+    "com.typesafe.akka"          %% "akka-testkit"                  % akkaVersion            % scope
   )
 }

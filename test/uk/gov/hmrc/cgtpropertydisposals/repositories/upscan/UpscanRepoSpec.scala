@@ -37,7 +37,7 @@ class UpscanRepoSpec
     with DefaultAwaitTimeout
     with Matchers {
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         | mongodb.upscan.expiry-time = 20seconds
@@ -48,7 +48,7 @@ class UpscanRepoSpec
   override protected def beforeAll(): Unit =
     dropDatabase()
 
-  override protected def repository = new DefaultUpscanRepo(mongoComponent, config)
+  override protected val repository = new DefaultUpscanRepo(mongoComponent, config)
 
   "Upscan Repository" when {
     "inserting" should {
