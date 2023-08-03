@@ -7,7 +7,7 @@ addCommandAlias("fix", "all compile:scalafix test:scalafix")
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(scalaVersion := "2.12.14")
+  .settings(scalaVersion := "2.13.11")
   .settings(
     majorVersion := 2,
     PlayKeys.playDefaultPort := 7021,
@@ -16,8 +16,7 @@ lazy val microservice = Project(appName, file("."))
     ),
     scalafmtOnCompile := true,
     scalacOptions ++= List(
-      "-P:silencer:pathFilters=routes",
-      "-Ypartial-unification"
+      "-P:silencer:pathFilters=routes"
     )
   )
   .settings(CodeCoverageSettings.settings *)
