@@ -12,7 +12,7 @@ lazy val microservice = Project(appName, file("."))
     majorVersion := 2,
     PlayKeys.playDefaultPort := 7021,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test() ++ Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.9" cross CrossVersion.full)
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.13" cross CrossVersion.full)
     ),
     scalafmtOnCompile := true,
     scalacOptions ++= List(
