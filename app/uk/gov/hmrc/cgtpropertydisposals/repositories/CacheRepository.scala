@@ -47,13 +47,13 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
     IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
   )
 
-  val now = LocalDateTime.now()
+  private val now = LocalDateTime.now()
 
   private def withCurrentTime[B](f: LocalDateTime => B) = f(now)
 
   def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
-      result <- super.ensureIndexes
+      result <- super.ensureIndexes()
       _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
     } yield result
 
