@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
 import cats.instances.future._
+import org.mockito.ArgumentMatchersSugar.*
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -38,23 +39,21 @@ import scala.concurrent.Future
 
 class GetReturnsControllerSpec extends ControllerSpec {
 
-  val mockReturnsService = mock[ReturnsService]
+  private val mockReturnsService = mock[ReturnsService]
 
-  def mockListReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
+  private def mockListReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     response: Either[Error, List[ReturnSummary]]
   ) =
-    (mockReturnsService
-      .listReturns(_: CgtReference, _: LocalDate, _: LocalDate)(_: HeaderCarrier))
-      .expects(cgtReference, fromDate, toDate, *)
-      .returning(EitherT.fromEither[Future](response))
+    mockReturnsService
+      .listReturns(cgtReference, fromDate, toDate)(*)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
+  private def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
     response: Either[Error, DisplayReturn]
   ) =
-    (mockReturnsService
-      .displayReturn(_: CgtReference, _: String)(_: HeaderCarrier))
-      .expects(cgtReference, submissionId, *)
-      .returning(EitherT.fromEither[Future](response))
+    mockReturnsService
+      .displayReturn(cgtReference, submissionId)(*)
+      .returns(EitherT.fromEither[Future](response))
 
   val request = new AuthenticatedRequest(
     Fake.user,
@@ -70,9 +69,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
   )
 
   "GetReturnsController" when {
-
     "handling request to list returns" must {
-
       def performAction(cgtReference: CgtReference, fromDate: String, toDate: String): Future[Result] =
         controller.listReturns(cgtReference.value, fromDate, toDate)(request)
 
@@ -80,7 +77,6 @@ class GetReturnsControllerSpec extends ControllerSpec {
       val (fromDate, toDate) = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
 
       "return an error" when {
-
         "the fromDate cannot be parsed" in {
           val result = performAction(cgtReference, "20203101", "2020-11-02")
           status(result) shouldBe BAD_REQUEST
@@ -102,11 +98,9 @@ class GetReturnsControllerSpec extends ControllerSpec {
           val result = performAction(cgtReference, "2020-01-31", "2020-11-02")
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
-
       }
 
       "return a list of returns" when {
-
         "the returns are successfully retrieved" in {
           val response = sample[ListReturnsResponse]
           mockListReturns(cgtReference, fromDate, toDate)(Right(response.returns))
@@ -115,13 +109,10 @@ class GetReturnsControllerSpec extends ControllerSpec {
           status(result)        shouldBe 200
           contentAsJson(result) shouldBe Json.toJson(response)
         }
-
       }
-
     }
 
     "handling requests to display a return" must {
-
       def performAction(cgtReference: CgtReference, submissionId: String): Future[Result] =
         controller.displayReturn(cgtReference.value, submissionId)(request)
 
@@ -129,7 +120,6 @@ class GetReturnsControllerSpec extends ControllerSpec {
       val submissionId = "id"
 
       "return an error" when {
-
         "there is an error getting the return" in {
           mockDisplayReturn(cgtReference, submissionId)(Left(Error("")))
 
@@ -139,7 +129,6 @@ class GetReturnsControllerSpec extends ControllerSpec {
       }
 
       "return the json" when {
-
         "it is successfully retrieved" in {
           val response = sample[DisplayReturn]
           mockDisplayReturn(cgtReference, submissionId)(Right(response))
@@ -148,11 +137,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
           status(result)        shouldBe OK
           contentAsJson(result) shouldBe Json.toJson(response)
         }
-
       }
-
     }
-
   }
-
 }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
@@ -33,41 +33,37 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
+class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
 
-  val draftReturnRepository = mock[DraftReturnsRepository]
-  val draftReturnsService   = new DefaultDraftReturnsService(draftReturnRepository)
+  private val draftReturnRepository = mock[DraftReturnsRepository]
+  val draftReturnsService           = new DefaultDraftReturnsService(draftReturnRepository)
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  def mockStoreDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    (draftReturnRepository
-      .save(_: DraftReturn, _: CgtReference))
-      .expects(draftReturn, cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockStoreDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference)(
+    response: Either[Error, Unit]
+  ) =
+    draftReturnRepository
+      .save(draftReturn, cgtReference)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockGetDraftReturn(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
-    (draftReturnRepository
-      .fetch(_: CgtReference))
-      .expects(cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockGetDraftReturn(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
+    draftReturnRepository
+      .fetch(cgtReference)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockDeleteDraftReturns(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
-    (draftReturnRepository
-      .deleteAll(_: List[UUID]))
-      .expects(draftReturnIds)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockDeleteDraftReturns(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
+    draftReturnRepository
+      .deleteAll(draftReturnIds)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockDeleteADraftReturn(cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    (draftReturnRepository
-      .delete(_: CgtReference))
-      .expects(cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockDeleteADraftReturn(cgtReference: CgtReference)(response: Either[Error, Unit]) =
+    draftReturnRepository
+      .delete(cgtReference)
+      .returns(EitherT.fromEither[Future](response))
 
   "DraftReturnsRepository" when {
-
     "storing draft returns" should {
-
       val cgtReference = sample[CgtReference]
       val draftReturn  = sample[DraftReturn]
 
@@ -76,20 +72,19 @@ class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory
         await(draftReturnsService.saveDraftReturn(draftReturn, cgtReference).value) shouldBe Right(())
       }
 
-      "return an unsuccessful repsonse if the operation was no successful" in {
+      "return an unsuccessful response if the operation was no successful" in {
         mockStoreDraftReturn(draftReturn, cgtReference)(Left(Error("Could not store draft return: $error")))
         await(draftReturnsService.saveDraftReturn(draftReturn, cgtReference).value).isLeft shouldBe true
       }
     }
 
     "getting draft returns" should {
-
       val cgtReference = sample[CgtReference]
       val draftReturn  = sample[DraftReturn]
 
       "return a successful response if operation was successful" in {
         mockGetDraftReturn(cgtReference)(Right(List(draftReturn)))
-        await(draftReturnsService.getDraftReturn(cgtReference).value) shouldBe (Right(List(draftReturn)))
+        await(draftReturnsService.getDraftReturn(cgtReference).value) shouldBe Right(List(draftReturn))
       }
 
       "return an unsuccessful response if operation was not successful" in {
@@ -99,7 +94,6 @@ class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory
     }
 
     "deleting draft returns" should {
-
       val draftReturnIds = List.fill(5)(UUID.randomUUID())
 
       "return a successful response if operation was successful" in {
@@ -111,11 +105,9 @@ class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory
         mockDeleteDraftReturns(draftReturnIds)(Left(Error("")))
         await(draftReturnsService.deleteDraftReturns(draftReturnIds).value).isLeft shouldBe true
       }
-
     }
 
     "deleting a draft return" should {
-
       val cgtReference = CgtReference(UUID.randomUUID.toString)
 
       "return a successful response if operation was successful" in {
@@ -127,8 +119,6 @@ class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory
         mockDeleteADraftReturn(cgtReference)(Left(Error("")))
         await(draftReturnsService.deleteDraftReturn(cgtReference).value).isLeft shouldBe true
       }
-
     }
-
   }
 }

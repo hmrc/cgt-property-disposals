@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -33,11 +33,11 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       s"""
          |microservice {
@@ -63,7 +63,6 @@ class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with MockF
   private val emptyJsonBody = "{}"
 
   "SubscriptionConnectorImpl" when {
-
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
     val expectedSubscriptionUrl    = "http://host:123/subscriptions/create/CGT"
@@ -106,17 +105,14 @@ class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with MockF
       }
 
       "return an error when the future fails" in {
-
         mockPut(expectedSubscriptionDisplayUrl(cgtReference), Json.toJson(request))(
           None
         )
         await(connector.updateSubscription(request, cgtReference).value).isLeft shouldBe true
       }
-
     }
 
     "handling request to get subscription display details" must {
-
       val cgtReference = CgtReference("XFCGT123456789")
 
       val expectedResponse =
@@ -175,15 +171,12 @@ class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with MockF
 
         await(connector.getSubscription(cgtReference).value).isLeft shouldBe true
       }
-
     }
 
     "handling request to subscribe" must {
-
       val request = sample[DesSubscriptionRequest]
 
       "do a post http call and return the result" in {
-
         List(
           HttpResponse(200, "{}"),
           HttpResponse(200, JsString("hi"), Map.empty[String, Seq[String]]),
@@ -204,11 +197,9 @@ class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with MockF
 
         await(connector.subscribe(request).value).isLeft shouldBe true
       }
-
     }
 
     "handling requests to get subscription status" must {
-
       val sapNumber                     = SapNumber("sap")
       val expectedSubscriptionStatusUrl = s"http://host:123/cross-regime/subscription/CGT/${sapNumber.value}/status"
 
@@ -233,8 +224,6 @@ class SubscriptionConnectorImplSpec extends AnyWordSpec with Matchers with MockF
 
         await(connector.getSubscriptionStatus(sapNumber).value).isLeft shouldBe true
       }
-
     }
   }
-
 }

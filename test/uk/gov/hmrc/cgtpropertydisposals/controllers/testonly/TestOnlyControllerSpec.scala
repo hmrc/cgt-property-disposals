@@ -28,9 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -41,17 +39,14 @@ import scala.concurrent.Future
 
 class TestOnlyControllerSpec extends ControllerSpec {
 
-  val draftReturnsService = mock[DraftReturnsService]
+  private val draftReturnsService = mock[DraftReturnsService]
 
-  implicit val headerCarrier = HeaderCarrier()
+  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val draftReturn = sample[DraftReturn]
-
-  def mockDeleteDraftReturnService(cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    (draftReturnsService
-      .deleteDraftReturn(_: CgtReference))
-      .expects(cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockDeleteDraftReturnService(cgtReference: CgtReference)(response: Either[Error, Unit]) =
+    draftReturnsService
+      .deleteDraftReturn(cgtReference)
+      .returns(EitherT.fromEither[Future](response))
 
   implicit lazy val mat: Materializer = fakeApplication.materializer
 
@@ -67,12 +62,11 @@ class TestOnlyControllerSpec extends ControllerSpec {
     cc = Helpers.stubControllerComponents()
   )
 
-  def fakeRequestWithJsonBody(body: JsValue) = request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
+  private def fakeRequestWithJsonBody(body: JsValue) =
+    request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
   "TestOnlyController" when {
-
     "handling requests to delete a draft return" must {
-
       "return a 200 response if the deletion is successful" in {
         val uuid         = UUID.randomUUID()
         val cgtReference = CgtReference(uuid.toString)
@@ -96,9 +90,6 @@ class TestOnlyControllerSpec extends ControllerSpec {
           )
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
-
     }
-
   }
-
 }

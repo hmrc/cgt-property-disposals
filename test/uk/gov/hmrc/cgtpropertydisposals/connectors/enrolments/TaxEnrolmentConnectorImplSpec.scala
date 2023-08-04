@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -36,11 +36,11 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
-  val config = Configuration(
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         |microservice {
@@ -62,25 +62,25 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockF
 
   private val emptyJsonBody = "{}"
 
-  val cgtReference       = CgtReference("XACGTP123456789")
-  val ukTaxEnrolment     =
+  private val cgtReference       = CgtReference("XACGTP123456789")
+  private val ukTaxEnrolment     =
     TaxEnrolmentRequest(
       "user-id",
       cgtReference.value,
       Address.UkAddress("line1", None, None, None, Postcode("OK113KO"))
     )
-  val nonUKTaxEnrolment  = TaxEnrolmentRequest(
+  private val nonUKTaxEnrolment  = TaxEnrolmentRequest(
     "user-id",
     cgtReference.value,
     Address.NonUkAddress("line1", None, None, None, None, Country("NZ"))
   )
-  val ukEnrolmentRequest =
+  private val ukEnrolmentRequest =
     Enrolments(List(KeyValuePair("Postcode", "OK113KO")), List(KeyValuePair("CGTPDRef", cgtReference.value)))
 
-  val nonUkEnrolmentRequest =
+  private val nonUkEnrolmentRequest =
     Enrolments(List(KeyValuePair("CountryCode", "NZ")), List(KeyValuePair("CGTPDRef", cgtReference.value)))
 
-  val updateVerifiersRequest = UpdateVerifiersRequest(
+  private val updateVerifiersRequest = UpdateVerifiersRequest(
     "ggCredId",
     SubscribedUpdateDetails(
       SubscribedDetails(
@@ -90,7 +90,7 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockF
         ContactName("Stephen Wood"),
         cgtReference,
         None,
-        true
+        registeredWithId = true
       ),
       SubscribedDetails(
         Left(TrustName("ABC Corp")),
@@ -99,12 +99,12 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockF
         ContactName("Stephen Wood"),
         cgtReference,
         None,
-        true
+        registeredWithId = true
       )
     )
   )
 
-  val taxEnrolmentUpdateRequest = TaxEnrolmentUpdateRequest(
+  private val taxEnrolmentUpdateRequest = TaxEnrolmentUpdateRequest(
     List(
       KeyValuePair("Postcode", "OK113KO")
     ),
@@ -116,7 +116,6 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockF
   )
 
   "Tax Enrolment Connector" when {
-
     "it receives a request to update the verifiers" must {
       "make a http put call and return a result" in {
         List(
@@ -137,6 +136,7 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockF
           }
         }
       }
+
       "return an error" when {
         "the future fails" in {
           mockPut[TaxEnrolmentUpdateRequest](
@@ -153,7 +153,6 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockF
     }
 
     "it receives a request to enrol a UK user it" must {
-
       "make a http put call and return a result" in {
         List(
           HttpResponse(204, emptyJsonBody),
@@ -173,7 +172,6 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockF
     }
 
     "it receives a request to enrol a non UK user it" must {
-
       "make a http put call and return a result" in {
         List(
           HttpResponse(204, emptyJsonBody),
@@ -191,6 +189,7 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with MockF
         }
       }
     }
+
     "return an error" when {
       "the future fails" in {
         mockPut[Enrolments](

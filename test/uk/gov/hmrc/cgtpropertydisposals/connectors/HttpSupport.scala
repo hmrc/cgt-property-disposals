@@ -16,126 +16,45 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors
 
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
+import org.mockito.stubbing.ScalaOngoingStubbing
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json.Writes
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
+import uk.gov.hmrc.http.{HttpClient, HttpResponse}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 trait HttpSupport {
-  this: MockFactory with Matchers ⇒
+  this: IdiomaticMockito with Matchers ⇒
 
-  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   val mockHttp: HttpClient = mock[HttpClient]
-
-  def mockGet[A](
-    url: String
-  )(
-    response: Option[A]
-  ) =
-    (mockHttp
-      .GET(_: String, _: Seq[(String, String)], _: Seq[(String, String)])(
-        _: HttpReads[A],
-        _: HeaderCarrier,
-        _: ExecutionContext
-      ))
-      .expects(where {
-        (
-          u: String,
-          q: Seq[(String, String)],
-          r: Seq[(String, String)],
-          _: HttpReads[A],
-          h: HeaderCarrier,
-          _: ExecutionContext
-        ) ⇒
-          // use matchers here to get useful error messages when the following predicates
-          // are not satisfied - otherwise it is difficult to tell in the logs what went wrong
-          u              shouldBe url
-          q              shouldBe Seq.empty
-          r              shouldBe Seq.empty
-          h.extraHeaders shouldBe Seq.empty
-          true
-      })
-      .returning(
-        response.fold(
-          Future.failed[A](new Exception("Test exception message"))
-        )(Future.successful)
-      )
 
   def mockGetWithQueryWithHeaders[A](
     url: String,
     queryParams: Seq[(String, String)],
     headers: Seq[(String, String)]
-  )(
-    response: Option[A]
-  ): Any =
-    (mockHttp
-      .GET(_: String, _: Seq[(String, String)], _: Seq[(String, String)])(
-        _: HttpReads[A],
-        _: HeaderCarrier,
-        _: ExecutionContext
-      ))
-      .expects(where {
-        (
-          u: String,
-          q: Seq[(String, String)],
-          hdrs: Seq[(String, String)],
-          _: HttpReads[A],
-          _: HeaderCarrier,
-          _: ExecutionContext
-        ) ⇒
-          // use matchers here to get useful error messages when the following predicates
-          // are not satisfied - otherwise it is difficult to tell in the logs what went wrong
-          u    shouldBe url
-          q    shouldBe queryParams.toSeq
-          hdrs shouldBe headers.toSeq
-          true
-      })
-      .returning(
+  )(response: Option[A]): Any =
+    mockHttp
+      .GET[A](url, queryParams, headers)(*, *, *)
+      .returns(
         response.fold(
           Future.failed[A](new Exception("Test exception message"))
         )(Future.successful)
       )
 
-  def mockPost[A](url: String, headers: Seq[(String, String)], body: A)(result: Option[HttpResponse]): Unit =
-    (mockHttp
-      .POST(_: String, _: A, _: Seq[(String, String)])(
-        _: Writes[A],
-        _: HttpReads[HttpResponse],
-        _: HeaderCarrier,
-        _: ExecutionContext
-      ))
-      .expects(url, body, headers, *, *, *, *)
-      .returning(
-        result.fold[Future[HttpResponse]](Future.failed(new Exception("Test exception message")))(Future.successful)
-      )
-
-  def mockPostForm[A](url: String, body: Map[String, Seq[String]], headers: Map[String, String])(
+  def mockPost[A](url: String, headers: Seq[(String, String)], body: A)(
     result: Option[HttpResponse]
-  ): Unit =
-    (mockHttp
-      .POSTForm(_: String, _: Map[String, Seq[String]], _: Seq[(String, String)])(
-        _: HttpReads[HttpResponse],
-        _: HeaderCarrier,
-        _: ExecutionContext
-      ))
-      .expects(url, body, headers.toSeq, *, *, *)
-      .returning(
+  ): ScalaOngoingStubbing[Future[HttpResponse]] =
+    mockHttp
+      .POST[A, HttpResponse](url, body, headers)(*, *, *, *)
+      .returns(
         result.fold[Future[HttpResponse]](Future.failed(new Exception("Test exception message")))(Future.successful)
       )
 
-  def mockPut[A](url: String, body: A)(result: Option[HttpResponse]): Unit =
-    (mockHttp
-      .PUT(_: String, _: A, _: Seq[(String, String)])(
-        _: Writes[A],
-        _: HttpReads[HttpResponse],
-        _: HeaderCarrier,
-        _: ExecutionContext
-      ))
-      .expects(url, body, *, *, *, *, *)
-      .returning(
+  def mockPut[A](url: String, body: A)(result: Option[HttpResponse]): ScalaOngoingStubbing[Future[HttpResponse]] =
+    mockHttp
+      .PUT[A, HttpResponse](url, body, *)(*, *, *, *)
+      .returns(
         result.fold[Future[HttpResponse]](Future.failed(new Exception("Test exception message")))(Future.successful)
       )
-
 }

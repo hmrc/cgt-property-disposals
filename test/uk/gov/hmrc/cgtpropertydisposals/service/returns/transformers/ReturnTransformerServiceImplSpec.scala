@@ -17,7 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
 import cats.syntax.either._
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
@@ -26,53 +27,32 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postco
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxYear}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
 
 import java.time.LocalDate
 
-class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
+class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
 
-  val mockCalculationService = mock[CgtCalculationService]
+  private val mockCalculationService = mock[CgtCalculationService]
 
-  val mockTaxYearService = mock[TaxYearService]
+  private val mockTaxYearService = mock[TaxYearService]
 
   val transformer = new ReturnTransformerServiceImpl(mockCalculationService, mockTaxYearService)
 
-  def mockCalculateTaxDue()(result: CalculatedTaxDue) =
-    (
-      mockCalculationService
-        .calculateTaxDue(
-          _: CompleteSingleDisposalTriageAnswers,
-          _: UkAddress,
-          _: CompleteDisposalDetailsAnswers,
-          _: CompleteAcquisitionDetailsAnswers,
-          _: CompleteReliefDetailsAnswers,
-          _: CompleteExemptionAndLossesAnswers,
-          _: AmountInPence,
-          _: AmountInPence,
-          _: Option[AmountInPence],
-          _: Boolean
-        )
-      )
-      .expects(*, *, *, *, *, *, *, *, *, *)
-      .returning(result)
+  private def mockCalculateTaxDue()(result: CalculatedTaxDue) =
+    mockCalculationService
+      .calculateTaxDue(*, *, *, *, *, *, *, *, *, *)
+      .returns(result)
 
-  def mockGetTaxYear(date: LocalDate)(result: Option[TaxYear]) =
-    (mockTaxYearService
-      .getTaxYear(_: LocalDate))
-      .expects(date)
-      .returning(result)
+  private def mockGetTaxYear(date: LocalDate)(result: Option[TaxYear]) =
+    mockTaxYearService
+      .getTaxYear(date)
+      .returns(result)
 
   "ReturnTransformerServiceImpl" when {
-
     val ukAddress = sample[UkAddress]
 
     val nonUkAddress = sample[NonUkAddress].copy(country = sample[Country])
@@ -109,7 +89,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
     )
 
     "passed details of a single disposal" must {
-
       val validReliefDetails = sample[ReliefDetails].copy(otherRelief = None, otherReliefAmount = None)
 
       val validSingleDisposalDesReturnDetails = sample[DesReturnDetails].copy(
@@ -134,13 +113,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
         }
 
       def mockGetTaxYearAndCalculatedTaxDue(): Unit =
-        inSequence {
-          mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
-          mockCalculateTaxDue()(calculatedTaxDue)
-        }
+        mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
+      mockCalculateTaxDue()(calculatedTaxDue)
 
       "return an error" when {
-
         "the address is a non uk address" in {
           mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 
@@ -224,11 +200,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           transformer.toCompleteReturn(desReturn).isLeft shouldBe true
         }
-
       }
 
       "find the return type correctly" when {
-
         "given a first return" in {
           mockGetTaxYearAndCalculatedTaxDue()
 
@@ -267,11 +241,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           result.map(_.returnType) shouldBe Right(ReturnType.AmendedReturn)
         }
-
       }
 
       "transform triage answers correctly" when {
-
         "there are no represented personal details" in {
           mockGetTaxYearAndCalculatedTaxDue()
 
@@ -427,7 +399,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             CompletionDate(completionDate)
           )
         }
-
       }
 
       "find the address correctly" in {
@@ -437,13 +408,12 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
         completeSingleDisposalReturnValue(result)(_.propertyAddress) shouldBe Right(
           ukAddress.copy(
-            postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+            postcode = Postcode(ukAddress.postcode.stripAllSpaces())
           )
         )
       }
 
       "transform disposal details answers correctly" when {
-
         "finding the share of the property" in {
           mockGetTaxYearAndCalculatedTaxDue()
 
@@ -497,11 +467,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(12345L)
           )
         }
-
       }
 
       "transform acquisition details answers correctly" when {
-
         "finding the acquisition method" in {
           mockGetTaxYearAndCalculatedTaxDue()
 
@@ -644,11 +612,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(123L)
           )
         }
-
       }
 
       "transform relief answers correctly" when {
-
         "the private residents relief is defined" in {
           mockGetTaxYearAndCalculatedTaxDue()
 
@@ -773,11 +739,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             Some(OtherReliefsOption.OtherReliefs("abc", AmountInPence(1234L)))
           )
         }
-
       }
 
       "transform exemption and losses answers correctly" when {
-
         "the in year losses is defined" in {
           mockGetTaxYearAndCalculatedTaxDue()
 
@@ -857,11 +821,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(1234L)
           )
         }
-
       }
 
       "transform year to date liability answers correctly" when {
-
         val firstReturnDesReturnType = CreateReturnType("self digital")
 
         val furtherReturnDesReturnType = CreateReturnType("self digital 12345")
@@ -869,7 +831,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
         val amendReturnDesReturnType = AmendReturnType("self digital 12345", None)
 
         "the return is a first return and an estimated income is found and" when {
-
           "finding the estimated income" in {
             mockGetTaxYearAndCalculatedTaxDue()
 
@@ -989,11 +950,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
               Right(AmountInPence(1234567L))
             )
           }
-
         }
 
         "the return is a first return and no estimated income is found and" when {
-
           val firstReturnDetailsWithNoEstimatedIncome = validSingleDisposalDesReturnDetails.copy(
             incomeAllowanceDetails = validSingleDisposalDesReturnDetails.incomeAllowanceDetails.copy(
               estimatedIncome = None
@@ -1071,31 +1030,25 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.taxDue)) shouldBe Right(
               Left(AmountInPence(300L))
             )
-
           }
-
         }
 
         "the return is a further return" when {
-
           behave like
             furtherOrAmendReturnBehaviour(
               validSingleDisposalDesReturnDetails.copy(
                 returnType = furtherReturnDesReturnType
               )
             )
-
         }
 
         "the return is a amend return" when {
-
           behave like
             furtherOrAmendReturnBehaviour(
               validSingleDisposalDesReturnDetails.copy(
                 returnType = amendReturnDesReturnType
               )
             )
-
         }
 
         def furtherOrAmendReturnBehaviour(desReturnDetails: DesReturnDetails) = {
@@ -1169,7 +1122,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             completeSingleDisposalReturnValue(result)(_.yearToDateLiabilityAnswers.leftMap(_.taxDue)) shouldBe Right(
               Left(AmountInPence(300L))
             )
-
           }
 
           "finding the estimated income if it is defined" in {
@@ -1245,13 +1197,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
               Left(None)
             )
           }
-
         }
-
       }
 
       "transform initial gain or loss correctly" when {
-
         "given an initial loss" in {
           mockGetTaxYearAndCalculatedTaxDue()
 
@@ -1314,11 +1263,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
           )
           completeSingleDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
-
       }
 
       "transform gain or loss after reliefs correctly" when {
-
         "given an loss after reliefs" in {
           mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 
@@ -1379,13 +1326,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
           completeSingleDisposalReturnValue(result)(_.initialGainOrLoss)      shouldBe Right(None)
           completeSingleDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
-
       }
-
     }
 
     "passed details of a multiple disposal" must {
-
       val validMultipleDisposalsDesReturnDetails = sample[DesReturnDetails].copy(
         disposalDetails = List(validMultipleDisposalDetails),
         returnDetails = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual)
@@ -1405,12 +1349,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
         }
 
       def mockGetTaxYearSuccess(): Unit =
-        inSequence {
-          mockGetTaxYear(validMultipleDisposalDetails.disposalDate)(Some(taxYear))
-        }
+        mockGetTaxYear(validMultipleDisposalDetails.disposalDate)(Some(taxYear))
 
       "return an error" when {
-
         "the address is a non uk address" in {
           mockGetTaxYearSuccess()
 
@@ -1468,11 +1409,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           transformer.toCompleteReturn(desReturn).isLeft shouldBe true
         }
-
       }
 
       "transform triage answers correctly" when {
-
         "there are no represented personal details" in {
           mockGetTaxYearSuccess()
 
@@ -1604,11 +1543,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             CompletionDate(completionDate)
           )
         }
-
       }
 
       "transform example property details answers correctly" when {
-
         "finding the address " in {
           mockGetTaxYearSuccess()
 
@@ -1616,7 +1553,7 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           completeMultipleDisposalsReturnValue(result)(_.examplePropertyDetailsAnswers.address) shouldBe Right(
             ukAddress.copy(
-              postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+              postcode = Postcode(ukAddress.postcode.stripAllSpaces())
             )
           )
         }
@@ -1666,11 +1603,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(1234500L)
           )
         }
-
       }
 
       "transform exemption and losses answers correctly" when {
-
         "the in year losses is defined" in {
           mockGetTaxYearSuccess()
 
@@ -1750,11 +1685,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(1234L)
           )
         }
-
       }
 
       "transform year to date liability answers correctly" when {
-
         "finding the taxableGainOrLoss when a loss has been made" in {
           mockGetTaxYearSuccess()
 
@@ -1819,13 +1752,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
           completeMultipleDisposalsReturnValue(result)(_.yearToDateLiabilityAnswers.taxDue) shouldBe Right(
             AmountInPence(300L)
           )
-
         }
-
       }
 
       "transform gain or loss after reliefs correctly" when {
-
         "given an loss after reliefs" in {
           mockGetTaxYearSuccess()
 
@@ -1883,13 +1813,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           completeMultipleDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
-
       }
-
     }
 
     "passed details of a single indirect disposal" must {
-
       val validSingleIndirectDisposalDesReturnDetails = sample[DesReturnDetails].copy(
         disposalDetails = List(validSingleIndirectDisposalDetails),
         returnDetails = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual),
@@ -1913,7 +1840,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
         mockGetTaxYear(validSingleIndirectDisposalDetails.disposalDate)(Some(taxYear))
 
       "return an error" when {
-
         "a tax year cannot be found for the disposal date" in {
           mockGetTaxYear(validSingleIndirectDisposalDetails.disposalDate)(None)
 
@@ -1943,11 +1869,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
           mockGetValidTaxYear()
           transformer.toCompleteReturn(desReturn).isLeft shouldBe true
         }
-
       }
 
       "transform triage answers correctly" when {
-
         "there are no represented personal details" in {
           mockGetValidTaxYear()
 
@@ -2091,11 +2015,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             CompletionDate(completionDate)
           )
         }
-
       }
 
       "find the address correctly" when {
-
         "the address is a uk address" in {
           mockGetValidTaxYear()
 
@@ -2103,7 +2025,7 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           completeSingleIndirectDisposalReturnValue(result)(_.companyAddress) shouldBe Right(
             ukAddress.copy(
-              postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+              postcode = Postcode(ukAddress.postcode.stripAllSpaces())
             )
           )
         }
@@ -2127,11 +2049,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             nonUkAddress.copy(postcode = expectedPostcode)
           )
         }
-
       }
 
       "transform disposal details answers correctly" when {
-
         "finding the share of the property" in {
           mockGetValidTaxYear()
 
@@ -2185,11 +2105,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(12345L)
           )
         }
-
       }
 
       "transform acquisition details answers correctly" when {
-
         "finding the acquisition method" in {
           mockGetValidTaxYear()
 
@@ -2336,11 +2254,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(123L)
           )
         }
-
       }
 
       "transform exemption and losses answers correctly" when {
-
         "the in year losses is defined" in {
           mockGetValidTaxYear()
 
@@ -2426,11 +2342,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(1234L)
           )
         }
-
       }
 
       "transform year to date liability answers correctly" when {
-
         "finding the taxableGainOrLoss when a loss has been made" in {
           mockGetValidTaxYear()
 
@@ -2503,13 +2417,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
           ) shouldBe Right(
             AmountInPence(300L)
           )
-
         }
-
       }
 
       "transform gain or loss after reliefs correctly" when {
-
         "given an loss after reliefs" in {
           mockGetValidTaxYear()
 
@@ -2567,13 +2478,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           completeSingleIndirectDisposalReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
-
       }
-
     }
 
     "passed details of a multiple indirect disposal" must {
-
       val validMultipleIndirectDisposalsDesReturnDetails = sample[DesReturnDetails].copy(
         disposalDetails = List(validMultipleIndirectDisposalDetails),
         returnDetails = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual)
@@ -2593,12 +2501,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
         }
 
       def mockGetTaxYearSuccess(): Unit =
-        inSequence {
-          mockGetTaxYear(validMultipleIndirectDisposalDetails.disposalDate)(Some(taxYear))
-        }
+        mockGetTaxYear(validMultipleIndirectDisposalDetails.disposalDate)(Some(taxYear))
 
       "return an error" when {
-
         "a tax year cannot be found for the disposal date" in {
           mockGetTaxYear(validMultipleIndirectDisposalDetails.disposalDate)(None)
 
@@ -2630,11 +2535,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           transformer.toCompleteReturn(desReturn).isLeft shouldBe true
         }
-
       }
 
       "transform triage answers correctly" when {
-
         "there are no represented personal details" in {
           mockGetTaxYearSuccess()
 
@@ -2760,11 +2663,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             CompletionDate(completionDate)
           )
         }
-
       }
 
       "transform example property details answers correctly" when {
-
         "finding the address " in {
           mockGetTaxYearSuccess()
 
@@ -2772,7 +2673,7 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           completeMultipleIndirectDisposalsReturnValue(result)(_.exampleCompanyDetailsAnswers.address) shouldBe Right(
             ukAddress.copy(
-              postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+              postcode = Postcode(ukAddress.postcode.stripAllSpaces())
             )
           )
         }
@@ -2816,11 +2717,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(1234500L)
           )
         }
-
       }
 
       "transform exemption and losses answers correctly" when {
-
         "the in year losses is defined" in {
           mockGetTaxYearSuccess()
 
@@ -2910,11 +2809,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(1234L)
           )
         }
-
       }
 
       "transform year to date liability answers correctly" when {
-
         "finding the taxableGainOrLoss when a loss has been made" in {
           mockGetTaxYearSuccess()
 
@@ -2985,13 +2882,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
           completeMultipleIndirectDisposalsReturnValue(result)(_.yearToDateLiabilityAnswers.taxDue) shouldBe Right(
             AmountInPence(300L)
           )
-
         }
-
       }
 
       "transform gain or loss after reliefs correctly" when {
-
         "given an loss after reliefs" in {
           mockGetTaxYearSuccess()
 
@@ -3049,13 +2943,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           completeMultipleIndirectDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
-
       }
-
     }
 
     "passed details of a single mixed use disposal" must {
-
       val validSingleMixedUseDisposalDesReturnDetails = sample[DesReturnDetails].copy(
         disposalDetails = List(validSingleMixedUseDisposalDetails),
         returnDetails = sample[ReturnDetails].copy(isUKResident = true, customerType = CustomerType.Individual)
@@ -3075,12 +2966,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
         }
 
       def mockGetTaxYearSuccess(): Unit =
-        inSequence {
-          mockGetTaxYear(validSingleMixedUseDisposalDetails.disposalDate)(Some(taxYear))
-        }
+        mockGetTaxYear(validSingleMixedUseDisposalDetails.disposalDate)(Some(taxYear))
 
       "return an error" when {
-
         "the address is a non uk address" in {
           mockGetTaxYearSuccess()
 
@@ -3124,11 +3012,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           transformer.toCompleteReturn(desReturn).isLeft shouldBe true
         }
-
       }
 
       "transform triage answers correctly" when {
-
         "there are no represented personal details" in {
           mockGetTaxYearSuccess()
 
@@ -3282,11 +3168,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             CompletionDate(completionDate)
           )
         }
-
       }
 
       "transform example property details answers correctly" when {
-
         "finding the address " in {
           mockGetTaxYearSuccess()
 
@@ -3294,7 +3178,7 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           completeSingleMixedUseDisposalsReturnValue(result)(_.propertyDetailsAnswers.address) shouldBe Right(
             ukAddress.copy(
-              postcode = Postcode(ukAddress.postcode.stripAllSpaces)
+              postcode = Postcode(ukAddress.postcode.stripAllSpaces())
             )
           )
         }
@@ -3334,11 +3218,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(1234500L)
           )
         }
-
       }
 
       "transform exemption and losses answers correctly" when {
-
         "the in year losses is defined" in {
           mockGetTaxYearSuccess()
 
@@ -3424,11 +3306,9 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
             AmountInPence(1234L)
           )
         }
-
       }
 
       "transform year to date liability answers correctly" when {
-
         "finding the taxableGainOrLoss when a loss has been made" in {
           mockGetTaxYearSuccess()
 
@@ -3499,13 +3379,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
           completeSingleMixedUseDisposalsReturnValue(result)(_.yearToDateLiabilityAnswers.taxDue) shouldBe Right(
             AmountInPence(300L)
           )
-
         }
-
       }
 
       "transform gain or loss after reliefs correctly" when {
-
         "given an loss after reliefs" in {
           mockGetTaxYearSuccess()
 
@@ -3563,13 +3440,10 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
 
           completeSingleMixedUseDisposalsReturnValue(result)(_.gainOrLossAfterReliefs) shouldBe Right(None)
         }
-
       }
-
     }
 
     "passed details of more than one disposal" must {
-
       "return an error" in {
         val result = transformer.toCompleteReturn(
           sample[DesReturnDetails].copy(
@@ -3578,11 +3452,7 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Mo
         )
 
         result.isLeft shouldBe true
-
       }
-
     }
-
   }
-
 }

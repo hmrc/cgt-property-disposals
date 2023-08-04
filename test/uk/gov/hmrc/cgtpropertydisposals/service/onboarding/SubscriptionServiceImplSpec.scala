@@ -17,10 +17,11 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsNumber, JsValue, Json, Writes}
+import play.api.libs.json.{JsNumber, JsValue, Json}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -46,11 +47,11 @@ import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
+class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
 
-  val mockSubscriptionConnector = mock[SubscriptionConnector]
+  private val mockSubscriptionConnector = mock[SubscriptionConnector]
 
-  val mockEmailService = mock[EmailService]
+  private val mockEmailService = mock[EmailService]
 
   val mockAuditService: AuditService = mock[AuditService]
 
@@ -61,64 +62,60 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
     MockMetrics.metrics
   )
 
-  def mockAuditSubscriptionResponse(
+  private def mockAuditSubscriptionResponse(
     httpStatus: Int,
     responseBody: Option[JsValue],
     desSubscriptionRequest: DesSubscriptionRequest
   ) =
-    (mockAuditService
-      .sendEvent(_: String, _: SubscriptionResponseEvent, _: String)(
-        _: HeaderCarrier,
-        _: Writes[SubscriptionResponseEvent],
-        _: Request[_]
-      ))
-      .expects(
+    mockAuditService
+      .sendEvent(
         "subscriptionResponse",
         SubscriptionResponseEvent(
           httpStatus,
           responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
           desSubscriptionRequest
         ),
-        "subscription-response",
+        "subscription-response"
+      )(
         *,
         *,
         *
       )
-      .returning(())
+      .doesNothing()
 
-  def mockSubscribe(expectedSubscriptionDetails: DesSubscriptionRequest)(response: Either[Error, HttpResponse]) =
-    (mockSubscriptionConnector
-      .subscribe(_: DesSubscriptionRequest)(_: HeaderCarrier))
-      .expects(expectedSubscriptionDetails, *)
-      .returning(EitherT(Future.successful(response)))
+  private def mockSubscribe(
+    expectedSubscriptionDetails: DesSubscriptionRequest
+  )(response: Either[Error, HttpResponse]) =
+    mockSubscriptionConnector
+      .subscribe(expectedSubscriptionDetails)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
-    (mockSubscriptionConnector
-      .getSubscription(_: CgtReference)(_: HeaderCarrier))
-      .expects(cgtReference, *)
-      .returning(EitherT(Future.successful(response)))
+  private def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
+    mockSubscriptionConnector
+      .getSubscription(cgtReference)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockUpdateSubscriptionDetails(subscribedDetails: DesSubscriptionUpdateRequest, cgtReference: CgtReference)(
+  private def mockUpdateSubscriptionDetails(
+    subscribedDetails: DesSubscriptionUpdateRequest,
+    cgtReference: CgtReference
+  )(
     response: Either[Error, HttpResponse]
   ) =
-    (mockSubscriptionConnector
-      .updateSubscription(_: DesSubscriptionUpdateRequest, _: CgtReference)(_: HeaderCarrier))
-      .expects(subscribedDetails, cgtReference, *)
-      .returning(EitherT(Future.successful(response)))
+    mockSubscriptionConnector
+      .updateSubscription(subscribedDetails, cgtReference)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, HttpResponse]) =
-    (mockSubscriptionConnector
-      .getSubscriptionStatus(_: SapNumber)(_: HeaderCarrier))
-      .expects(sapNumber, *)
-      .returning(EitherT(Future.successful(response)))
+  private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, HttpResponse]) =
+    mockSubscriptionConnector
+      .getSubscriptionStatus(sapNumber)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockSendConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
+  private def mockSendConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     response: Either[Error, Unit]
   ) =
-    (mockEmailService
-      .sendSubscriptionConfirmationEmail(_: CgtReference, _: Email, _: ContactName)(_: HeaderCarrier, _: Request[_]))
-      .expects(cgtReference, email, contactName, *, *)
-      .returning(EitherT(Future.successful(response)))
+    mockEmailService
+      .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(*, *)
+      .returns(EitherT(Future.successful(response)))
 
   private val emptyJsonBody = "{}"
   private val noJsonInBody  = ""
@@ -139,7 +136,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
       ContactName("Stephen Wood"),
       cgtReference,
       Some(TelephoneNumber("(+013)32752856")),
-      true
+      registeredWithId = true
     )
 
     val updatedDetails = SubscribedUpdateDetails(
@@ -432,8 +429,8 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
           mockGetSubscription(cgtReference)(Right(HttpResponse(200, jsonBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value).isLeft shouldBe true
         }
-
       }
+
       "return the subscription display response if the call comes back with a " +
         "200 status and the JSON body can be parsed and the address is a Non-UK address and no post code" in {
           val jsonBody =
@@ -469,7 +466,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
             ContactName("Stephen Wood"),
             cgtReference,
             Some(TelephoneNumber("(+013)32752856")),
-            true
+            registeredWithId = true
           )
           mockGetSubscription(cgtReference)(
             Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
@@ -520,7 +517,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
             ContactName("Stephen Wood"),
             cgtReference,
             Some(TelephoneNumber("(+013)32752856")),
-            true
+            registeredWithId = true
           )
           mockGetSubscription(cgtReference)(
             Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
@@ -567,7 +564,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
             ContactName("Stephen Wood"),
             cgtReference,
             Some(TelephoneNumber("(+013)32752856")),
-            true
+            registeredWithId = true
           )
           mockGetSubscription(cgtReference)(
             Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
@@ -620,7 +617,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
           ContactName("Stephen Wood"),
           cgtReference,
           Some(TelephoneNumber("(+013)32752856")),
-          true
+          registeredWithId = true
         )
         mockGetSubscription(cgtReference)(
           Right(HttpResponse(200, Json.parse(jsonBody), Map.empty[String, Seq[String]]))
@@ -638,13 +635,10 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
           mockGetSubscription(cgtReference)(Right(HttpResponse(404, desResponseBody, Map.empty[String, Seq[String]])))
           await(service.getSubscription(cgtReference).value) shouldBe Right(None)
         }
-
       }
-
     }
 
     "handling requests to subscribe" must {
-
       implicit val hc: HeaderCarrier   = HeaderCarrier()
       implicit val request: Request[_] = FakeRequest()
 
@@ -672,7 +666,6 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
       }
 
       "return the subscription successful response" when {
-
         val subscriptionResponseJsonBody = Json.parse(
           s"""
              |{
@@ -682,15 +675,13 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
         )
 
         "the subscription call comes back with a 200 status and the JSON body can be parsed" in {
-          inSequence {
-            mockSubscribe(subscriptionRequest)(
-              Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
-            )
-            mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
-            mockSendConfirmationEmail(cgtReference, subscriptionDetails.emailAddress, subscriptionDetails.contactName)(
-              Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-          }
+          mockSubscribe(subscriptionRequest)(
+            Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
+          )
+          mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
+          mockSendConfirmationEmail(cgtReference, subscriptionDetails.emailAddress, subscriptionDetails.contactName)(
+            Right(HttpResponse(ACCEPTED, emptyJsonBody))
+          )
 
           await(service.subscribe(subscriptionDetails).value) shouldBe Right(
             SubscriptionSuccessful(cgtReference.value)
@@ -698,15 +689,13 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
         }
 
         "the call to send an email fails" in {
-          inSequence {
-            mockSubscribe(subscriptionRequest)(
-              Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
-            )
-            mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
-            mockSendConfirmationEmail(cgtReference, subscriptionDetails.emailAddress, subscriptionDetails.contactName)(
-              Left(Error(""))
-            )
-          }
+          mockSubscribe(subscriptionRequest)(
+            Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
+          )
+          mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
+          mockSendConfirmationEmail(cgtReference, subscriptionDetails.emailAddress, subscriptionDetails.contactName)(
+            Left(Error(""))
+          )
 
           await(service.subscribe(subscriptionDetails).value) shouldBe Right(
             SubscriptionSuccessful(cgtReference.value)
@@ -715,17 +704,15 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
 
         "the call to send an email comes back with a status other than 202" in {
           List(OK, BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE).foreach { status =>
-            inSequence {
-              mockSubscribe(subscriptionRequest)(
-                Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
-              )
-              mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
-              mockSendConfirmationEmail(
-                cgtReference,
-                subscriptionDetails.emailAddress,
-                subscriptionDetails.contactName
-              )(Right(HttpResponse(status, emptyJsonBody)))
-            }
+            mockSubscribe(subscriptionRequest)(
+              Right(HttpResponse(200, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
+            )
+            mockAuditSubscriptionResponse(200, Some(subscriptionResponseJsonBody), subscriptionRequest)
+            mockSendConfirmationEmail(
+              cgtReference,
+              subscriptionDetails.emailAddress,
+              subscriptionDetails.contactName
+            )(Right(HttpResponse(status, emptyJsonBody)))
             await(service.subscribe(subscriptionDetails).value) shouldBe Right(
               SubscriptionSuccessful(cgtReference.value)
             )
@@ -743,24 +730,19 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
              |""".stripMargin
         )
 
-        inSequence {
-          mockSubscribe(subscriptionRequest)(
-            Right(HttpResponse(403, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
-          )
-          mockAuditSubscriptionResponse(403, Some(subscriptionResponseJsonBody), subscriptionRequest)
-        }
+        mockSubscribe(subscriptionRequest)(
+          Right(HttpResponse(403, subscriptionResponseJsonBody, Map.empty[String, Seq[String]]))
+        )
+        mockAuditSubscriptionResponse(403, Some(subscriptionResponseJsonBody), subscriptionRequest)
 
         await(service.subscribe(subscriptionDetails).value) shouldBe Right(AlreadySubscribed)
       }
-
     }
 
     "handling requests to get subscription status" must {
-
       implicit val hc: HeaderCarrier = HeaderCarrier()
 
       "return an error" when {
-
         def testGetSubscriptionStatusError(
           sapNumber: SapNumber,
           response: => Either[Error, HttpResponse]
@@ -787,7 +769,6 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
             sample[SapNumber],
             Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
           )
-
         }
 
         "the response body to get subscription status does not contain a CGT reference id when " +
@@ -817,13 +798,10 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
               )
             )
           )
-
         }
-
       }
 
       "return a cgt reference number" when {
-
         "the response indicates that a subscription already exists" in {
           val sapNumber    = sample[SapNumber]
           val responseBody = Json.parse(s"""
@@ -837,12 +815,10 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
 
           await(service.getSubscriptionStatus(sapNumber).value) shouldBe Right(Some(cgtReference))
         }
-
       }
 
       "return no cgt reference number" when {
-
-        "the response hasa subscription status which is not 'SUCCESSFUL'" in {
+        "the response has a subscription status which is not 'SUCCESSFUL'" in {
           List(
             "NO_FORM_BUNDLE_FOUND",
             "REG_FORM_RECEIVED",
@@ -868,14 +844,9 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with MockFac
 
               await(service.getSubscriptionStatus(sapNumber).value) shouldBe Right(None)
             }
-
           }
-
         }
-
       }
-
     }
-
   }
 }

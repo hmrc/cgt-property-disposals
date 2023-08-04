@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.dms
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -32,8 +31,8 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport with MockFactory {
-  val config = Configuration(
+class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
+  private val config = Configuration(
     ConfigFactory.parseString(
       """
         |dms {
@@ -69,15 +68,14 @@ class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with CleanMongoCol
 
     "get" should {
       "return some work item if one exists" in {
-
         val dmsSubmissionRequest = sample[DmsSubmissionRequest]
         await(repository.set(dmsSubmissionRequest).value).map(item => item.item) shouldBe Right(dmsSubmissionRequest)
 
         await(repository.get.value).map(maybeWorkItem => maybeWorkItem.map(workItem => workItem.item)) shouldBe Right(
           Some(dmsSubmissionRequest)
         )
-
       }
+
       "return none if no work item exists " in {
         await(
           repository.get.value
@@ -86,14 +84,12 @@ class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with CleanMongoCol
     }
 
     "set processing status" should {
-
       "update the work item status" in {
         val dmsSubmissionRequest                                           = sample[DmsSubmissionRequest]
         val workItem: Either[models.Error, WorkItem[DmsSubmissionRequest]] =
           await(repository.set(dmsSubmissionRequest).value)
         workItem.map(wi => await(repository.setProcessingStatus(wi.id, Failed).value) shouldBe Right(true))
       }
-
     }
 
     "set result status" should {
@@ -107,5 +103,4 @@ class DmsSubmissionRepoSpec extends AnyWordSpec with Matchers with CleanMongoCol
       }
     }
   }
-
 }

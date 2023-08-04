@@ -16,20 +16,17 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteSingleDisposalReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 
-class ReliefDetailsSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class ReliefDetailsSpec extends AnyWordSpec with Matchers {
 
   "ReliefDetails reliefs" must {
-
     "return false for no reliefs" in {
       val zeroReliefDetails = CompleteReliefDetailsAnswers(AmountInPence.zero, AmountInPence.zero, None)
       val completeReturn    = sample[CompleteSingleDisposalReturn].copy(reliefDetails = zeroReliefDetails)
@@ -73,7 +70,6 @@ class ReliefDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
   }
 
   "ReliefDetails lettingsRelief" must {
-
     "return option as letting relief value in pounds" in {
       val amountInPounds = 1000
       val reliefDetails  = CompleteReliefDetailsAnswers(
@@ -95,7 +91,6 @@ class ReliefDetailsSpec extends AnyWordSpec with Matchers with MockFactory with 
   }
 
   "ReliefDetails privateResRelief" must {
-
     "return option as privateResRelief value in pounds" in {
       val amountInPounds = 1000
       val reliefDetails  = CompleteReliefDetailsAnswers(

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
@@ -32,10 +31,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmountInPenceWithSource, Source}
 
-class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory with ScalaCheckDrivenPropertyChecks {
+class DisposalDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   "DisposalDetails" when {
-
     def singleDisposalDetailsValue[A](
       disposalDetails: DisposalDetails
     )(value: SingleDisposalDetails => A): Either[String, A] =
@@ -62,9 +60,7 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
       }
 
     "given a single disposal return" must {
-
       "populate the initial gain or loss correctly" when {
-
         "return no values for either initialGain or initialLoss when calculated" in {
           val calculatedTaxDue = sample[GainCalculatedTaxDue]
             .copy(initialGainOrLoss = AmountInPenceWithSource(AmountInPence(123456), Source.Calculated))
@@ -160,11 +156,9 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
           singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(Some(BigDecimal("0")))
           singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
         }
-
       }
 
       "populate the improvement costs correctly" when {
-
         "the improvementCosts are non zero" in {
           val completeReturn = sample[CompleteSingleDisposalReturn].copy(acquisitionDetails =
             sample[CompleteAcquisitionDetailsAnswers]
@@ -176,7 +170,7 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
           singleDisposalDetailsValue(result)(_.improvementCosts) shouldBe Right(Some(BigDecimal("12.34")))
         }
 
-        "the  improvementCosts are zero" in {
+        "the improvementCosts are zero" in {
           val completeReturn = sample[CompleteSingleDisposalReturn].copy(acquisitionDetails =
             sample[CompleteAcquisitionDetailsAnswers]
               .copy(improvementCosts = AmountInPence.zero)
@@ -234,7 +228,6 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
           singleDisposalDetailsValue(result)(_.rebasedAmount) shouldBe Right(
             acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds())
           )
-
         }
       }
 
@@ -293,11 +286,9 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
           ) shouldBe Right(false)
         }
       }
-
     }
 
     "given a multiple disposals return" must {
-
       "populate the disposal date correctly" in {
         forAll { completeReturn: CompleteMultipleDisposalsReturn =>
           multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
@@ -413,11 +404,9 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
         multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(None)
         multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(None)
       }
-
     }
 
     "given a single indirect disposal return" must {
-
       "populate the improvement costs correctly" in {
         forAll { completeReturn: CompleteSingleIndirectDisposalReturn =>
           val result = DisposalDetails(completeReturn)
@@ -467,7 +456,6 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
           singleDisposalDetailsValue(result)(_.rebasedAmount) shouldBe Right(
             acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds())
           )
-
         }
       }
 
@@ -570,11 +558,9 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
         singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
         singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
       }
-
     }
 
     "given a multiple indirect disposals return" must {
-
       "populate the disposal date correctly" in {
         forAll { completeReturn: CompleteMultipleIndirectDisposalReturn =>
           multipleDisposalsDetailsValue(DisposalDetails(completeReturn))(
@@ -690,11 +676,9 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
         multipleDisposalsDetailsValue(result)(_.initialGain) shouldBe Right(None)
         multipleDisposalsDetailsValue(result)(_.initialLoss) shouldBe Right(None)
       }
-
     }
 
     "given a single mixed use disposals return" must {
-
       "populate the disposal date correctly" in {
         forAll { completeReturn: CompleteSingleMixedUseDisposalReturn =>
           singleMixedUseDisposalDetailsValue(DisposalDetails(completeReturn))(
@@ -818,9 +802,6 @@ class DisposalDetailsSpec extends AnyWordSpec with Matchers with MockFactory wit
         singleDisposalDetailsValue(result)(_.initialGain) shouldBe Right(None)
         singleDisposalDetailsValue(result)(_.initialLoss) shouldBe Right(None)
       }
-
     }
-
   }
-
 }

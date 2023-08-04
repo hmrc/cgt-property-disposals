@@ -18,7 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
@@ -51,25 +52,25 @@ import java.time.{LocalDate, LocalDateTime, LocalTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
+class ReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
 
-  val returnsConnector = mock[ReturnsConnector]
+  private val returnsConnector = mock[ReturnsConnector]
 
-  val mockFinancialDataConnector = mock[FinancialDataConnector]
+  private val mockFinancialDataConnector = mock[FinancialDataConnector]
 
-  val mockReturnTransformerService = mock[ReturnTransformerService]
+  private val mockReturnTransformerService = mock[ReturnTransformerService]
 
-  val mockReturnListSummaryTransformerService = mock[ReturnSummaryListTransformerService]
+  private val mockReturnListSummaryTransformerService = mock[ReturnSummaryListTransformerService]
 
-  val mockAuditService = mock[AuditService]
+  private val mockAuditService = mock[AuditService]
 
-  val mockEmailService = mock[EmailService]
+  private val mockEmailService = mock[EmailService]
 
-  val mockDraftReturnService = mock[DraftReturnsService]
+  private val mockDraftReturnService = mock[DraftReturnsService]
 
-  val mockAmendReturnService = mock[AmendReturnsService]
+  private val mockAmendReturnService = mock[AmendReturnsService]
 
-  val mockTaxYearService = mock[TaxYearService]
+  private val mockTaxYearService = mock[TaxYearService]
 
   val returnsService =
     new DefaultReturnsService(
@@ -89,111 +90,92 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val request: Request[_] = FakeRequest()
 
-  def mockSubmitReturn(cgtReference: CgtReference, returnRequest: DesSubmitReturnRequest)(
+  private def mockSubmitReturn(cgtReference: CgtReference, returnRequest: DesSubmitReturnRequest)(
     response: Either[Error, HttpResponse]
   ) =
-    (returnsConnector
-      .submit(_: CgtReference, _: DesSubmitReturnRequest)(_: HeaderCarrier))
-      .expects(cgtReference, returnRequest, hc)
-      .returning(EitherT.fromEither[Future](response))
+    returnsConnector
+      .submit(cgtReference, returnRequest)(hc)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockListReturn(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
+  private def mockListReturn(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     response: Either[Error, HttpResponse]
   ) =
-    (returnsConnector
-      .listReturns(_: CgtReference, _: LocalDate, _: LocalDate)(_: HeaderCarrier))
-      .expects(cgtReference, fromDate, toDate, *)
-      .returning(EitherT.fromEither[Future](response))
+    returnsConnector
+      .listReturns(cgtReference, fromDate, toDate)(*)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(response: Either[Error, HttpResponse]) =
-    (returnsConnector
-      .displayReturn(_: CgtReference, _: String)(_: HeaderCarrier))
-      .expects(cgtReference, submissionId, *)
-      .returning(EitherT.fromEither[Future](response))
-
-  def mockGetFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
+  private def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
     response: Either[Error, HttpResponse]
   ) =
-    (mockFinancialDataConnector
-      .getFinancialData(_: CgtReference, _: LocalDate, _: LocalDate)(_: HeaderCarrier))
-      .expects(cgtReference, fromDate, toDate, *)
-      .returning(EitherT.fromEither[Future](response))
+    returnsConnector
+      .displayReturn(cgtReference, submissionId)(*)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockGetAvailableTaxYears = mockTaxYearService.getAvailableTaxYears _ expects () returning List(2020, 2021, 2022)
+  private def mockGetFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
+    response: Either[Error, HttpResponse]
+  ) =
+    mockFinancialDataConnector
+      .getFinancialData(cgtReference, fromDate, toDate)(*)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, DisplayReturn]) =
-    (mockReturnTransformerService
-      .toCompleteReturn(_: DesReturnDetails))
-      .expects(desReturn)
-      .returning(result)
+  private def mockGetAvailableTaxYears =
+    mockTaxYearService.getAvailableTaxYears().returns(List(2020, 2021, 2022))
 
-  def mockTransformReturnsList(
+  private def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, DisplayReturn]) =
+    mockReturnTransformerService
+      .toCompleteReturn(desReturn)
+      .returns(result)
+
+  private def mockTransformReturnsList(
     returns: List[DesReturnSummary],
     financialData: List[DesFinancialTransaction],
     submitReturnRequest: List[SubmitReturnRequest]
-  )(
-    result: Either[Error, List[ReturnSummary]]
-  ) =
-    (mockReturnListSummaryTransformerService
-      .toReturnSummaryList(_: List[DesReturnSummary], _: List[DesFinancialTransaction], _: List[SubmitReturnRequest]))
-      .expects(returns, financialData, submitReturnRequest)
-      .returning(result)
+  )(result: Either[Error, List[ReturnSummary]]) =
+    mockReturnListSummaryTransformerService
+      .toReturnSummaryList(returns, financialData, submitReturnRequest)
+      .returns(result)
 
-  def mockGetAmendReturnList(
+  private def mockGetAmendReturnList(
     cgtReference: CgtReference
   )(result: Either[Error, List[SubmitReturnWrapper]]) =
-    (mockAmendReturnService
-      .getAmendedReturn(_: CgtReference))
-      .expects(cgtReference)
-      .returning(EitherT.fromEither[Future](result))
+    mockAmendReturnService
+      .getAmendedReturn(cgtReference)
+      .returns(EitherT.fromEither[Future](result))
 
-  def mockSaveAmendReturnList(
+  private def mockSaveAmendReturnList(
     submitReturnRequest: SubmitReturnRequest
   )(result: Either[Error, Unit]) =
-    (mockAmendReturnService
-      .saveAmendedReturn(_: SubmitReturnRequest))
-      .expects(submitReturnRequest)
-      .returning(EitherT.fromEither[Future](result))
+    mockAmendReturnService
+      .saveAmendedReturn(submitReturnRequest)
+      .returns(EitherT.fromEither[Future](result))
 
-  def mockSendReturnSubmitConfirmationEmail(
+  private def mockSendReturnSubmitConfirmationEmail(
     submitReturnRequest: SubmitReturnRequest,
     submitReturnResponse: SubmitReturnResponse
-  )(
-    response: Either[Error, Unit]
-  ) =
-    (mockEmailService
-      .sendReturnConfirmationEmail(_: SubmitReturnRequest, _: SubmitReturnResponse)(_: HeaderCarrier, _: Request[_]))
-      .expects(submitReturnRequest, submitReturnResponse, *, *)
-      .returning(EitherT(Future.successful(response)))
+  )(response: Either[Error, Unit]) =
+    mockEmailService
+      .sendReturnConfirmationEmail(submitReturnRequest, submitReturnResponse)(*, *)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockAuditSubmitReturnEvent(
+  private def mockAuditSubmitReturnEvent(
     cgtReference: CgtReference,
     submitReturnRequest: DesSubmitReturnRequest,
     agentReferenceNumber: Option[AgentReferenceNumber]
   ) =
-    (mockAuditService
-      .sendEvent(_: String, _: SubmitReturnEvent, _: String)(
-        _: HeaderCarrier,
-        _: Writes[SubmitReturnEvent],
-        _: Request[_]
-      ))
-      .expects(
+    mockAuditService
+      .sendEvent(
         "submitReturn",
         SubmitReturnEvent(submitReturnRequest, cgtReference.value, agentReferenceNumber.map(_.value)),
-        "submit-return",
-        *,
-        *,
-        *
-      )
-      .returning(())
+        "submit-return"
+      )(*, *, *)
+      .doesNothing()
 
-  def mockSaveDraftReturn(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    (mockDraftReturnService
-      .saveDraftReturn(_: DraftReturn, _: CgtReference))
-      .expects(df, cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockSaveDraftReturn(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
+    mockDraftReturnService
+      .saveDraftReturn(df, cgtReference)
+      .returns(EitherT.fromEither[Future](response))
 
-  def mockAuditSubmitReturnResponseEvent(
+  private def mockAuditSubmitReturnResponseEvent(
     httpStatus: Int,
     responseBody: Option[JsValue],
     desSubmitReturnRequest: DesSubmitReturnRequest,
@@ -201,13 +183,8 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
     agentReferenceNumber: Option[AgentReferenceNumber],
     amendReturnData: Option[AmendReturnData]
   ) =
-    (mockAuditService
-      .sendEvent(_: String, _: SubmitReturnResponseEvent, _: String)(
-        _: HeaderCarrier,
-        _: Writes[SubmitReturnResponseEvent],
-        _: Request[_]
-      ))
-      .expects(
+    mockAuditService
+      .sendEvent(
         "submitReturnResponse",
         SubmitReturnResponseEvent(
           httpStatus,
@@ -217,30 +194,22 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           agentReferenceNumber.map(_.value),
           amendReturnData.map(a => Json.toJson(a.originalReturn.completeReturn))
         ),
-        "submit-return-response",
-        *,
-        *,
-        *
-      )
-      .returning(())
+        "submit-return-response"
+      )(*, *, *)
+      .doesNothing()
 
-  def mockGetDraftReturns(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
-    (mockDraftReturnService
-      .getDraftReturn(_: CgtReference))
-      .expects(cgtReference)
-      .returning(EitherT.fromEither[Future](response))
+  private def mockGetDraftReturns(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
+    mockDraftReturnService
+      .getDraftReturn(cgtReference)
+      .returns(EitherT.fromEither[Future](response))
 
   private val emptyJsonBody = "{}"
   private val noJsonInBody  = ""
 
   "CompleteReturnsService" when {
-
     "handling submitting returns" should {
-
       "handle successful submits" when {
-
         "there is a positive charge" in {
-
           val formBundleId    = "804123737752"
           val chargeReference = "XCRG9448959757"
 
@@ -280,29 +249,27 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                  |}
                  |""".stripMargin)
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-              Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-          }
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+            Right(HttpResponse(ACCEPTED, emptyJsonBody))
+          )
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
@@ -335,29 +302,27 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           )
 
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-              Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-          }
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+            Right(HttpResponse(ACCEPTED, emptyJsonBody))
+          )
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
@@ -382,29 +347,27 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           val submitReturnResponse   = SubmitReturnResponse(formBundleId, processingDate, None, None)
           val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-              Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-          }
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+            Right(HttpResponse(ACCEPTED, emptyJsonBody))
+          )
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
@@ -431,29 +394,27 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-              Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-          }
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+            Right(HttpResponse(ACCEPTED, emptyJsonBody))
+          )
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
@@ -490,37 +451,33 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-              Right(HttpResponse(500, emptyJsonBody))
-            )
-          }
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+            Right(HttpResponse(500, emptyJsonBody))
+          )
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
-
       }
 
       "handling submitted amend returns" must {
-
         def testGetAndModifyDraftReturns[D <: DraftReturn](draftReturn: D)(modifyDraftReturn: Option[D => D]): Unit = {
           val formBundleId           = "formBundleId"
           val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData =
@@ -554,37 +511,34 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             None
           )
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-              Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-            mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
-            modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
-          }
+          mockAuditSubmitReturnEvent(
+            cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+            Right(HttpResponse(ACCEPTED, emptyJsonBody))
+          )
+          mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
+          modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
         }
 
         "delete section 3 of any draft returns when any of those questions have been answered in them" when {
-
           "there is a single disposal draft return" in {
             testGetAndModifyDraftReturns(
               sample[DraftSingleDisposalReturn].copy(
@@ -669,11 +623,9 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
               )
             )
           }
-
         }
 
         "not modify any draft returns" when {
-
           "they do not have any of section 3 filled in" in {
             testGetAndModifyDraftReturns(
               sample[DraftSingleDisposalReturn].copy(
@@ -685,39 +637,33 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
               None
             )
           }
-
         }
-
       }
 
       "return an error" when {
-
         "there are charge details for a non zero charge amount and " when {
-
           def test(jsonResponseBody: JsValue): Unit = {
             val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
             val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
-            inSequence {
-              mockAuditSubmitReturnEvent(
-                submitReturnRequest.subscribedDetails.cgtReference,
-                desSubmitReturnRequest,
-                submitReturnRequest.agentReferenceNumber
-              )
-              mockSubmitReturn(
-                submitReturnRequest.subscribedDetails.cgtReference,
-                desSubmitReturnRequest
-              )(Right(HttpResponse(200, jsonResponseBody, Map.empty[String, Seq[String]])))
-              mockAuditSubmitReturnResponseEvent(
-                200,
-                Some(jsonResponseBody),
-                desSubmitReturnRequest,
-                submitReturnRequest.subscribedDetails.name,
-                submitReturnRequest.agentReferenceNumber,
-                submitReturnRequest.amendReturnData
-              )
-              mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            }
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, jsonResponseBody, Map.empty[String, Seq[String]])))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(jsonResponseBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
+            )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
 
             await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
           }
@@ -726,26 +672,24 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             val submitReturnRequest    = sample[SubmitReturnRequest].copy(amendReturnData = None)
             val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
-            inSequence {
-              mockAuditSubmitReturnEvent(
-                submitReturnRequest.subscribedDetails.cgtReference,
-                desSubmitReturnRequest,
-                submitReturnRequest.agentReferenceNumber
-              )
-              mockSubmitReturn(
-                submitReturnRequest.subscribedDetails.cgtReference,
-                desSubmitReturnRequest
-              )(Right(HttpResponse(200, jsonResponseBody, Map.empty[String, Seq[String]])))
-              mockAuditSubmitReturnResponseEvent(
-                200,
-                Some(jsonResponseBody),
-                desSubmitReturnRequest,
-                submitReturnRequest.subscribedDetails.name,
-                submitReturnRequest.agentReferenceNumber,
-                submitReturnRequest.amendReturnData
-              )
-              mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            }
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, jsonResponseBody, Map.empty[String, Seq[String]])))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(jsonResponseBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
+            )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
 
             await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
           }
@@ -803,7 +747,6 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
               )
             )
           }
-
         }
 
         "the call to submit a return fails" in {
@@ -818,20 +761,18 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           )
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(
-              Left(Error("oh no!"))
-            )
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(
+            Left(Error("oh no!"))
+          )
 
-          }
           await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
         }
 
@@ -847,25 +788,23 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           )
           val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(500, noJsonInBody)))
-            mockAuditSubmitReturnResponseEvent(
-              500,
-              None,
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-          }
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(500, noJsonInBody)))
+          mockAuditSubmitReturnResponseEvent(
+            500,
+            None,
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
           await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
         }
 
@@ -909,65 +848,59 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
           val draftReturn3 = sample[DraftSingleDisposalReturn]
             .copy(exemptionAndLossesAnswers = Some(sample[CompleteExemptionAndLossesAnswers]))
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-              Right(HttpResponse(ACCEPTED, emptyJsonBody))
-            )
-            mockGetDraftReturns(cgtReference)(Right(List(draftReturn1, draftReturn2, draftReturn3)))
-            mockSaveDraftReturn(
-              draftReturn3.copy(
-                exemptionAndLossesAnswers = None,
-                yearToDateLiabilityAnswers = None,
-                supportingEvidenceAnswers = None
-              ),
-              cgtReference
-            )(Right(()))
-            mockSaveDraftReturn(
-              draftReturn2.copy(
-                exemptionAndLossesAnswers = None,
-                yearToDateLiabilityAnswers = None,
-                supportingEvidenceAnswers = None
-              ),
-              cgtReference
-            )(Left(Error("")))
-            mockSaveDraftReturn(
-              draftReturn1.copy(
-                exemptionAndLossesAnswers = None,
-                yearToDateLiabilityAnswers = None,
-                supportingEvidenceAnswers = None
-              ),
-              cgtReference
-            )(Right(()))
-          }
+          mockAuditSubmitReturnEvent(
+            cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+            Right(HttpResponse(ACCEPTED, emptyJsonBody))
+          )
+          mockGetDraftReturns(cgtReference)(Right(List(draftReturn1, draftReturn2, draftReturn3)))
+          mockSaveDraftReturn(
+            draftReturn3.copy(
+              exemptionAndLossesAnswers = None,
+              yearToDateLiabilityAnswers = None,
+              supportingEvidenceAnswers = None
+            ),
+            cgtReference
+          )(Right(()))
+          mockSaveDraftReturn(
+            draftReturn2.copy(
+              exemptionAndLossesAnswers = None,
+              yearToDateLiabilityAnswers = None,
+              supportingEvidenceAnswers = None
+            ),
+            cgtReference
+          )(Left(Error("")))
+          mockSaveDraftReturn(
+            draftReturn1.copy(
+              exemptionAndLossesAnswers = None,
+              yearToDateLiabilityAnswers = None,
+              supportingEvidenceAnswers = None
+            ),
+            cgtReference
+          )(Right(()))
 
           await(returnsService.submitReturn(submitReturnRequest, None).value).isLeft shouldBe true
-
         }
-
       }
 
       "return a delta charge error" when {
-
         "there are no DesFinancialTransaction which matches return's charge reference" in {
-
           val formBundleId    = "804123737752"
           val chargeReference = "XCRG9448959757"
 
@@ -1049,29 +982,27 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                  |}
                  |""".stripMargin)
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-          }
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Left(
             Error(
@@ -1081,7 +1012,6 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
         }
 
         "there is more than two DesFinancialTransactions which matches return's charge reference" in {
-
           val formBundleId    = "804123737752"
           val chargeReference = "XCRG9448959757"
 
@@ -1244,29 +1174,27 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                  |}
                  |""".stripMargin)
 
-          inSequence {
-            mockAuditSubmitReturnEvent(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest,
-              submitReturnRequest.agentReferenceNumber
-            )
-            mockSubmitReturn(
-              submitReturnRequest.subscribedDetails.cgtReference,
-              desSubmitReturnRequest
-            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-            mockAuditSubmitReturnResponseEvent(
-              200,
-              Some(responseJsonBody),
-              desSubmitReturnRequest,
-              submitReturnRequest.subscribedDetails.name,
-              submitReturnRequest.agentReferenceNumber,
-              submitReturnRequest.amendReturnData
-            )
-            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-            mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-          }
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Left(
             Error(
@@ -1274,11 +1202,9 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             )
           )
         }
-
       }
 
       "return expected delta charge" when {
-
         "there are only one DesFinancialTransaction which matches return's charge reference" in {
           def test[D <: DraftReturn](draftReturn: D)(modifyDraftReturn: Option[D => D]): Unit = {
 
@@ -1378,37 +1304,34 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                    |}
                    |""".stripMargin)
 
-            inSequence {
-              mockAuditSubmitReturnEvent(
-                submitReturnRequest.subscribedDetails.cgtReference,
-                desSubmitReturnRequest,
-                submitReturnRequest.agentReferenceNumber
-              )
-              mockSubmitReturn(
-                submitReturnRequest.subscribedDetails.cgtReference,
-                desSubmitReturnRequest
-              )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-              mockAuditSubmitReturnResponseEvent(
-                200,
-                Some(responseJsonBody),
-                desSubmitReturnRequest,
-                submitReturnRequest.subscribedDetails.name,
-                submitReturnRequest.agentReferenceNumber,
-                submitReturnRequest.amendReturnData
-              )
-              mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-              mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
-                Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-              )
-              mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-                Right(HttpResponse(ACCEPTED, emptyJsonBody))
-              )
-              mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
-              modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
-            }
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
+            )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+            mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
+            )
+            mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
+            modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
 
             await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
-
           }
 
           test(
@@ -1552,34 +1475,32 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                    |}
                    |""".stripMargin)
 
-            inSequence {
-              mockAuditSubmitReturnEvent(
-                submitReturnRequest.subscribedDetails.cgtReference,
-                desSubmitReturnRequest,
-                submitReturnRequest.agentReferenceNumber
-              )
-              mockSubmitReturn(
-                submitReturnRequest.subscribedDetails.cgtReference,
-                desSubmitReturnRequest
-              )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
-              mockAuditSubmitReturnResponseEvent(
-                200,
-                Some(responseJsonBody),
-                desSubmitReturnRequest,
-                submitReturnRequest.subscribedDetails.name,
-                submitReturnRequest.agentReferenceNumber,
-                submitReturnRequest.amendReturnData
-              )
-              mockSaveAmendReturnList(submitReturnRequest)(Right(()))
-              mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
-                Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-              )
-              mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
-                Right(HttpResponse(ACCEPTED, emptyJsonBody))
-              )
-              mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
-              modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
-            }
+            mockAuditSubmitReturnEvent(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest,
+              submitReturnRequest.agentReferenceNumber
+            )
+            mockSubmitReturn(
+              submitReturnRequest.subscribedDetails.cgtReference,
+              desSubmitReturnRequest
+            )(Right(HttpResponse(200, responseJsonBody, Map.empty[String, Seq[String]])))
+            mockAuditSubmitReturnResponseEvent(
+              200,
+              Some(responseJsonBody),
+              desSubmitReturnRequest,
+              submitReturnRequest.subscribedDetails.name,
+              submitReturnRequest.agentReferenceNumber,
+              submitReturnRequest.amendReturnData
+            )
+            mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+            mockGetFinancialData(submitReturnRequest.subscribedDetails.cgtReference, fromDate, toDate)(
+              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+            )
+            mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+              Right(HttpResponse(ACCEPTED, emptyJsonBody))
+            )
+            mockGetDraftReturns(cgtReference)(Right(List(draftReturn)))
+            modifyDraftReturn.foreach(modify => mockSaveDraftReturn(modify(draftReturn), cgtReference)(Right(())))
 
             await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
           }
@@ -1600,13 +1521,10 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
             )
           )
         }
-
       }
-
     }
 
     "handling requests to list returns" must {
-
       val desListReturnResponseBody = Json.parse(
         s"""
            |{
@@ -1829,8 +1747,8 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
       val (fromDate1, toDate1) = LocalDate.of(2020, 4, 6) -> LocalDate.of(2021, 4, 5)
       val (fromDate2, toDate2) = LocalDate.of(2021, 4, 6) -> LocalDate.of(2022, 4, 5)
       val (fromDate3, toDate3) = LocalDate.of(2022, 4, 6) -> LocalDate.of(2023, 4, 5)
-      "return an error " when {
 
+      "return an error " when {
         "the http call to get the list of returns fails" in {
           mockListReturn(cgtReference, fromDate, toDate)(Left(Error("")))
 
@@ -1852,195 +1770,177 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
         }
 
         "the call to get financial data fails" in {
-          inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate3)(
-              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
-            )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(Left(Error("")))
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(Left(Error("")))
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(Left(Error("")))
-          }
+          mockListReturn(cgtReference, fromDate1, toDate3)(
+            Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(Left(Error("")))
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(Left(Error("")))
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(Left(Error("")))
 
           await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value).isLeft shouldBe true
         }
 
         "the http call to get financial data returns with a status which is not 200" in {
-          inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate3)(
-              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
-            )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(Right(HttpResponse(400, emptyJsonBody)))
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(Right(HttpResponse(400, emptyJsonBody)))
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(Right(HttpResponse(400, emptyJsonBody)))
-          }
+          mockListReturn(cgtReference, fromDate1, toDate3)(
+            Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(Right(HttpResponse(400, emptyJsonBody)))
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(Right(HttpResponse(400, emptyJsonBody)))
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(Right(HttpResponse(400, emptyJsonBody)))
 
           await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value).isLeft shouldBe true
         }
 
         "the response body when getting financial data cannot be parsed" in {
-          inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate3)(
-              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
-            )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
-              Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
-            )
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
-              Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
-            )
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
-              Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
-            )
-          }
+          mockListReturn(cgtReference, fromDate1, toDate3)(
+            Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+            Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+          )
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+            Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+          )
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+            Right(HttpResponse(200, JsNumber(1), Map.empty[String, Seq[String]]))
+          )
 
           await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value).isLeft shouldBe true
         }
 
         "the data cannot be transformed" in {
-          inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate3)(
-              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
-            )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          mockListReturn(cgtReference, fromDate1, toDate3)(
+            Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that no data can be found."
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          )
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that no data can be found."
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetAmendReturnList(cgtReference)(Right(List.empty))
-            mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
-              Left(Error(""))
-            )
-          }
+          )
+          mockGetAmendReturnList(cgtReference)(Right(List.empty))
+          mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
+            Left(Error(""))
+          )
 
           await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value).isLeft shouldBe true
         }
-
       }
 
       "return a list of returns" when {
-
         "the response body can be parsed and converted" in {
           val summaries = List(sample[ReturnSummary])
 
-          inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate3)(
-              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
-            )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          mockListReturn(cgtReference, fromDate1, toDate3)(
+            Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that no data can be found."
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          )
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that no data can be found."
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetAmendReturnList(cgtReference)(Right(List.empty))
-            mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
-              Right(summaries)
-            )
-          }
+          )
+          mockGetAmendReturnList(cgtReference)(Right(List.empty))
+          mockTransformReturnsList(desReturnSummaries.returnList, desFinancialData.financialTransactions, List.empty)(
+            Right(summaries)
+          )
 
           await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value) shouldBe Right(summaries)
         }
-
       }
 
       "return an empty list of returns" when {
-
         "the response to list returns comes back with status 404 and a single error in the body" in {
-          inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          mockListReturn(cgtReference, fromDate, toDate)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-            mockGetAmendReturnList(cgtReference)(Right(List.empty))
-          }
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
+          mockGetAmendReturnList(cgtReference)(Right(List.empty))
 
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
-
         }
 
         "the response to list returns comes back with status 404 and multiple errors in the body" in {
-          inSequence {
-            mockListReturn(cgtReference, fromDate, toDate)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          mockListReturn(cgtReference, fromDate, toDate)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "failures" : [ 
                       |    {
@@ -2050,95 +1950,90 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                       |  ]
                       |}  
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
-              Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
-            )
-            mockGetAmendReturnList(cgtReference)(Right(List.empty))
-          }
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+            Right(HttpResponse(200, desFinancialDataResponse, Map.empty[String, Seq[String]]))
+          )
+          mockGetAmendReturnList(cgtReference)(Right(List.empty))
           await(returnsService.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(List.empty)
         }
 
         "the response to get financial data comes back with status 404 and a single error in the body" in {
-          inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate3)(
-              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
-            )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          mockListReturn(cgtReference, fromDate1, toDate3)(
+            Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that no data can be found."
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          )
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that no data can be found."
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          )
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "code" : "NOT_FOUND",
                       |  "reason" : "The remote endpoint has indicated that no data can be found."
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetAmendReturnList(cgtReference)(Right(List.empty))
+          )
+          mockGetAmendReturnList(cgtReference)(Right(List.empty))
 
-            mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
-              Right(List.empty)
-            )
-          }
+          mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
+            Right(List.empty)
+          )
 
           await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value) shouldBe Right(List.empty)
-
         }
 
         "the response to get financial data comes back with status 404 and multiple errors in the body" in {
-          inSequence {
-            mockListReturn(cgtReference, fromDate1, toDate3)(
-              Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
-            )
-            mockGetAvailableTaxYears
-            mockGetFinancialData(cgtReference, fromDate1, toDate1)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          mockListReturn(cgtReference, fromDate1, toDate3)(
+            Right(HttpResponse(200, desListReturnResponseBody, Map.empty[String, Seq[String]]))
+          )
+          mockGetAvailableTaxYears
+          mockGetFinancialData(cgtReference, fromDate1, toDate1)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "failures" : [
                       |    {
@@ -2148,15 +2043,15 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                       |  ]
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetFinancialData(cgtReference, fromDate2, toDate2)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          )
+          mockGetFinancialData(cgtReference, fromDate2, toDate2)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "failures" : [
                       |    {
@@ -2166,15 +2061,15 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                       |  ]
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetFinancialData(cgtReference, fromDate3, toDate3)(
-              Right(
-                HttpResponse(
-                  404,
-                  Json.parse("""
+          )
+          mockGetFinancialData(cgtReference, fromDate3, toDate3)(
+            Right(
+              HttpResponse(
+                404,
+                Json.parse("""
                       |{
                       |  "failures" : [
                       |    {
@@ -2184,27 +2079,22 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
                       |  ]
                       |}
                       |""".stripMargin),
-                  Map.empty[String, Seq[String]]
-                )
+                Map.empty[String, Seq[String]]
               )
             )
-            mockGetAmendReturnList(cgtReference)(Right(List.empty))
+          )
+          mockGetAmendReturnList(cgtReference)(Right(List.empty))
 
-            mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
-              Right(List.empty)
-            )
-
-          }
+          mockTransformReturnsList(desReturnSummaries.returnList, List.empty, List.empty)(
+            Right(List.empty)
+          )
 
           await(returnsService.listReturns(cgtReference, fromDate1, toDate3).value) shouldBe Right(List.empty)
         }
-
       }
-
     }
 
     "handling requests to display a return" must {
-
       val desResponseBodyString = Json.parse(
         s"""
            |{
@@ -2320,7 +2210,6 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
       val submissionId = "id"
 
       "return an error " when {
-
         "the http call fails" in {
           mockDisplayReturn(cgtReference, submissionId)(Left(Error("")))
 
@@ -2340,38 +2229,28 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory {
         }
 
         "there is an error transforming the des return" in {
-          inSequence {
-            mockDisplayReturn(cgtReference, submissionId)(
-              Right(HttpResponse(200, desResponseBodyString, Map.empty[String, Seq[String]]))
-            )
-            mockTransformReturn(desReturnDetails)(Left(Error("")))
-          }
+          mockDisplayReturn(cgtReference, submissionId)(
+            Right(HttpResponse(200, desResponseBodyString, Map.empty[String, Seq[String]]))
+          )
+          mockTransformReturn(desReturnDetails)(Left(Error("")))
 
           await(returnsService.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
         }
-
       }
 
       "return a list of returns" when {
-
         "the response body can be parsed and converted" in {
           val displayReturn = sample[DisplayReturn]
 
-          inSequence {
-            mockDisplayReturn(cgtReference, submissionId)(
-              Right(HttpResponse(200, desResponseBodyString, Map.empty[String, Seq[String]]))
-            )
-            mockTransformReturn(desReturnDetails)(Right(displayReturn))
-            // mockGetAmendReturnList(cgtReference)(Right(List.empty))
-          }
+          mockDisplayReturn(cgtReference, submissionId)(
+            Right(HttpResponse(200, desResponseBodyString, Map.empty[String, Seq[String]]))
+          )
+          mockTransformReturn(desReturnDetails)(Right(displayReturn))
+          // mockGetAmendReturnList(cgtReference)(Right(List.empty))
 
           await(returnsService.displayReturn(cgtReference, submissionId).value) shouldBe Right(displayReturn)
         }
-
       }
-
     }
-
   }
-
 }

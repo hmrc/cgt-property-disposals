@@ -20,7 +20,7 @@ object AppDependencies {
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion" % bootstrapPlay28Version % scope,
-    "org.scalamock"              %% "scalamock"                    % "5.1.0"                % scope,
+    "org.mockito"                %% "mockito-scala"                % "1.17.12"              % scope,
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"    % "1.2.5"                % scope,
     "org.scalatestplus"          %% "scalatestplus-scalacheck"     % "3.1.0.0-RC2"          % scope,
     "com.eclipsesource"          %% "play-json-schema-validator"   % "0.9.5"                % scope,

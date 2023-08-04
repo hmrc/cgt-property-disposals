@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Request
@@ -36,35 +36,31 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory with MongoSupport {
+class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito with MongoSupport {
 
-  val mockAmendReturnsRepo = mock[AmendReturnsRepository]
+  private val mockAmendReturnsRepo = mock[AmendReturnsRepository]
 
   val returnsService = new DefaultAmendReturnsService(mockAmendReturnsRepo)
 
   implicit val hc: HeaderCarrier   = HeaderCarrier()
   implicit val request: Request[_] = FakeRequest()
 
-  def mockGetAmendReturnList(
+  private def mockGetAmendReturnList(
     cgtReference: CgtReference
   )(result: Either[Error, List[SubmitReturnWrapper]]) =
-    (mockAmendReturnsRepo
-      .fetch(_: CgtReference))
-      .expects(cgtReference)
-      .returning(EitherT.fromEither[Future](result))
+    mockAmendReturnsRepo
+      .fetch(cgtReference)
+      .returns(EitherT.fromEither[Future](result))
 
-  def mockSaveAmendReturnList(
+  private def mockSaveAmendReturnList(
     submitReturnRequest: SubmitReturnRequest
   )(result: Either[Error, Unit]) =
-    (mockAmendReturnsRepo
-      .save(_: SubmitReturnRequest))
-      .expects(submitReturnRequest)
-      .returning(EitherT.fromEither[Future](result))
+    mockAmendReturnsRepo
+      .save(submitReturnRequest)
+      .returns(EitherT.fromEither[Future](result))
 
   "AmendReturnService" when {
-
     "handling saving amend returns" should {
-
       "handle successful saves to the database" in {
         val cgtReference        = sample[CgtReference]
         val subscribedDetails   = sample[SubscribedDetails].copy(cgtReference = cgtReference)
@@ -73,18 +69,15 @@ class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MockFactory
 
         await(returnsService.saveAmendedReturn(submitReturnRequest).value) shouldBe Right(())
       }
-
     }
+
     "handling fetching amend returns" should {
-
       "handle successful gets from the database" in {
-
         val cgtReference = sample[CgtReference]
         mockGetAmendReturnList(cgtReference)(Right(List.empty))
 
         await(returnsService.getAmendedReturn(cgtReference).value) shouldBe Right(List.empty)
       }
-
     }
   }
 }

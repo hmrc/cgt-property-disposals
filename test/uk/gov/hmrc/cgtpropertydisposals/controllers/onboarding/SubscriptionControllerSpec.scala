@@ -18,11 +18,12 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
 import cats.data.EitherT
 import cats.instances.future._
+import org.mockito.ArgumentMatchersSugar.*
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, JsValue, Json}
-import play.api.mvc.{AnyContent, Request, Result}
+import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.Fake
@@ -31,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
@@ -50,13 +51,13 @@ import scala.concurrent.Future
 
 class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
 
-  val mockSubscriptionService      = mock[SubscriptionService]
-  val mockTaxEnrolmentService      = mock[TaxEnrolmentService]
-  val mockRegisterWithoutIdService = mock[RegisterWithoutIdService]
+  private val mockSubscriptionService      = mock[SubscriptionService]
+  private val mockTaxEnrolmentService      = mock[TaxEnrolmentService]
+  private val mockRegisterWithoutIdService = mock[RegisterWithoutIdService]
 
-  val headerCarrier = HeaderCarrier()
+  private val headerCarrier = HeaderCarrier()
 
-  val fixedTimestamp = LocalDateTime.of(2019, 9, 24, 15, 47, 20)
+  private val fixedTimestamp = LocalDateTime.of(2019, 9, 24, 15, 47, 20)
 
   override val overrideBindings: List[GuiceableModule] =
     List(
@@ -66,72 +67,56 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       bind[RegisterWithoutIdService].toInstance(mockRegisterWithoutIdService)
     )
 
-  lazy val controller = instanceOf[SubscriptionController]
+  private lazy val controller = instanceOf[SubscriptionController]
 
-  def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(
+  private def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(
     response: Either[Error, SubscriptionResponse]
   ) =
-    (mockSubscriptionService
-      .subscribe(_: SubscriptionDetails)(_: HeaderCarrier, _: Request[_]))
-      .expects(expectedSubscriptionDetails, *, *)
-      .returning(EitherT(Future.successful(response)))
+    mockSubscriptionService
+      .subscribe(expectedSubscriptionDetails)(*, *)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, Option[SubscribedDetails]]): Unit =
-    (mockSubscriptionService
-      .getSubscription(_: CgtReference)(_: HeaderCarrier))
-      .expects(cgtReference, *)
-      .returning(EitherT.fromEither(response))
+  private def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, Option[SubscribedDetails]]) =
+    mockSubscriptionService
+      .getSubscription(cgtReference)(*)
+      .returns(EitherT.fromEither(response))
 
-  def mockUpdateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
+  private def mockUpdateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     response: Either[Error, SubscriptionUpdateResponse]
-  ): Unit =
-    (mockSubscriptionService
-      .updateSubscription(_: SubscribedUpdateDetails)(_: HeaderCarrier))
-      .expects(subscribedUpdateDetails, *)
-      .returning(EitherT.fromEither(response))
+  ) =
+    mockSubscriptionService
+      .updateSubscription(subscribedUpdateDetails)(*)
+      .returns(EitherT.fromEither(response))
 
-  def mockUpdateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
-    response: Either[Error, Unit]
-  ): Unit =
-    (mockTaxEnrolmentService
-      .updateVerifiers(_: UpdateVerifiersRequest)(_: HeaderCarrier))
-      .expects(updateVerifierDetails, *)
-      .returning(EitherT.fromEither(response))
-
-  def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
+  private def mockUpdateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
     response: Either[Error, Unit]
   ) =
-    (mockTaxEnrolmentService
-      .allocateEnrolmentToGroup(_: TaxEnrolmentRequest)(_: HeaderCarrier))
-      .expects(taxEnrolmentRequest, *)
-      .returning(EitherT(Future.successful(response)))
+    mockTaxEnrolmentService
+      .updateVerifiers(updateVerifierDetails)(*)
+      .returns(EitherT.fromEither(response))
 
-  def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
-    (mockTaxEnrolmentService
-      .hasCgtSubscription(_: String)(_: HeaderCarrier))
-      .expects(ggCredId, *)
-      .returning(EitherT(Future.successful(response)))
+  private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
+    response: Either[Error, Unit]
+  ) =
+    mockTaxEnrolmentService
+      .allocateEnrolmentToGroup(taxEnrolmentRequest)(*)
+      .returns(EitherT(Future.successful(response)))
 
-  def mockRegisterWithoutId(registrationDetails: RegistrationDetails)(response: Either[Error, SapNumber]): Unit =
-    (mockRegisterWithoutIdService
-      .registerWithoutId(_: RegistrationDetails)(_: HeaderCarrier, _: Request[_]))
-      .expects(registrationDetails, *, *)
-      .returning(EitherT.fromEither(response))
+  private def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
+    mockTaxEnrolmentService
+      .hasCgtSubscription(ggCredId)(*)
+      .returns(EitherT(Future.successful(response)))
+
+  private def mockRegisterWithoutId(registrationDetails: RegistrationDetails)(response: Either[Error, SapNumber]) =
+    mockRegisterWithoutIdService
+      .registerWithoutId(registrationDetails)(*, *)
+      .returns(EitherT.fromEither(response))
 
   val (nonUkCountry, nonUkCountryCode) = Country("HK") -> "HK"
 
-  val taxEnrolmentRequestWithNonUkAddress = TaxEnrolmentRequest(
-    "ggCredId",
-    "XACGTP123456789",
-    Address.NonUkAddress("line1", None, None, None, Some(Postcode("OK11KO")), nonUkCountry)
-  )
-
   "The SubscriptionController" when {
-
     "handling request to update subscription details" must {
-
       "return a bad request response if the request body is corrupt" in {
-
         val corruptRequestBody =
           """
             |{
@@ -149,11 +134,9 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
         val result = controller.updateSubscription()(request)
         status(result) shouldBe BAD_REQUEST
-
       }
 
       "return a 500 internal error response if there is a backend error" in {
-
         val subscribedDetails =
           """
             |{
@@ -221,7 +204,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             ContactName("Stefano Bosco"),
             cgtReference,
             None,
-            true
+            registeredWithId = true
           ),
           SubscribedDetails(
             Left(TrustName("ABC Trust")),
@@ -237,7 +220,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             ContactName("Stefano Bosco"),
             cgtReference,
             None,
-            true
+            registeredWithId = true
           )
         )
 
@@ -256,7 +239,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       }
 
       "return a 200 OK response if the subscription is updated" in {
-
         val subscriptionUpdateDetailsRequest =
           """
             |{
@@ -322,7 +304,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             ContactName("Stefano Bosco"),
             CgtReference("XFCGT123456789"),
             None,
-            true
+            registeredWithId = true
           ),
           SubscribedDetails(
             Left(TrustName("ABC Trust")),
@@ -338,7 +320,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             ContactName("Stefano Bosco"),
             CgtReference("XFCGT123456789"),
             None,
-            true
+            registeredWithId = true
           )
         )
 
@@ -367,21 +349,19 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
             FakeRequest().withJsonBody(Json.parse(subscriptionUpdateDetailsRequest))
           )
 
-        inSequence {
-          mockUpdateSubscription(subscribedUpdateDetails)(
-            Right(
-              SubscriptionUpdateResponse(
-                "CGT",
-                LocalDateTime.of(2015, 12, 17, 9, 30, 47),
-                "012345678901",
-                "XXCGTP123456789",
-                "GB",
-                Some("TF34NT")
-              )
+        mockUpdateSubscription(subscribedUpdateDetails)(
+          Right(
+            SubscriptionUpdateResponse(
+              "CGT",
+              LocalDateTime.of(2015, 12, 17, 9, 30, 47),
+              "012345678901",
+              "XXCGTP123456789",
+              "GB",
+              Some("TF34NT")
             )
           )
-          mockUpdateVerifiers(updateVerifiersRequest)(Right(()))
-        }
+        )
+        mockUpdateVerifiers(updateVerifiersRequest)(Right(()))
         val result = controller.updateSubscription()(request)
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.parse(expectedSubscriptionUpdateResponse)
@@ -389,7 +369,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
     }
 
     "handling request to get subscription details" must {
-
       "return a 200 OK response if the a subscription exists" in {
         val request =
           new AuthenticatedRequest(
@@ -409,7 +388,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
                 ContactName("Stephen Wood"),
                 CgtReference("XDCGT123456789"),
                 Some(TelephoneNumber("+44191919191919")),
-                true
+                registeredWithId = true
               )
             )
           )
@@ -481,7 +460,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
     }
 
     "handling requests to check if a user has subscribed already" must {
-
       "return a 200 OK response if the user has subscribed" in {
         val request =
           new AuthenticatedRequest(
@@ -525,11 +503,9 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         val result  = controller.checkSubscriptionStatus()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
-
     }
 
     "handling requests to subscribe" must {
-
       def performAction(requestBody: Option[JsValue]): Future[Result] =
         controller.subscribe()(
           requestBody.fold[FakeRequest[AnyContent]](FakeRequest())(json => FakeRequest().withJsonBody(json))
@@ -546,7 +522,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       )
 
       "return a bad request" when {
-
         "there is no JSON body in the request" in {
           val result = performAction(None)
           status(result) shouldBe BAD_REQUEST
@@ -556,11 +531,9 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           val result = performAction(Some(JsString("Hi")))
           status(result) shouldBe BAD_REQUEST
         }
-
       }
 
       "return an internal server error" when {
-
         "there is a problem while trying to subscribe" in {
           mockSubscribe(subscriptionDetails)(
             Left(Error("oh no!"))
@@ -571,23 +544,19 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
         }
 
         "subscription is not successful if the tax enrolment service returns an error" in {
-          inSequence {
-            mockSubscribe(subscriptionDetails)(
-              Right(subscriptionSuccessfulResponse)
-            )
-            mockAllocateEnrolment(taxEnrolmentRequest)(
-              Left(Error("Failed to allocate tax enrolment"))
-            )
-          }
+          mockSubscribe(subscriptionDetails)(
+            Right(subscriptionSuccessfulResponse)
+          )
+          mockAllocateEnrolment(taxEnrolmentRequest)(
+            Left(Error("Failed to allocate tax enrolment"))
+          )
 
           val result = performAction(Some(subscriptionDetailsJson))
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
-
       }
 
       "return a conflict" when {
-
         "the user has already subscribed to cgt" in {
           mockSubscribe(subscriptionDetails)(
             Right(AlreadySubscribed)
@@ -596,18 +565,14 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           val result = performAction(Some(subscriptionDetailsJson))
           status(result) shouldBe CONFLICT
         }
-
       }
 
       "return the subscription response" when {
-
         "subscription is successful" in {
-          inSequence {
-            mockSubscribe(subscriptionDetails)(
-              Right(subscriptionSuccessfulResponse)
-            )
-            mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
-          }
+          mockSubscribe(subscriptionDetails)(
+            Right(subscriptionSuccessfulResponse)
+          )
+          mockAllocateEnrolment(taxEnrolmentRequest)(Right(()))
 
           val result = performAction(Some(subscriptionDetailsJson))
           status(result)        shouldBe OK
@@ -617,7 +582,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
     }
 
     "handling requests to register without id" must {
-
       def performAction(requestBody: Option[JsValue]): Future[Result] =
         controller.registerWithoutId()(
           requestBody.fold[FakeRequest[AnyContent]](FakeRequest())(json => FakeRequest().withJsonBody(json))
@@ -628,7 +592,6 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
       val sapNumber               = sample[SapNumber]
 
       "return a bad request" when {
-
         "there is no JSON body in the request" in {
           val result = performAction(None)
           status(result) shouldBe BAD_REQUEST
@@ -638,34 +601,26 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
           val result = performAction(Some(JsString("hi")))
           status(result) shouldBe BAD_REQUEST
         }
-
       }
 
       "return an internal server error" when {
-
         "there is a problem while trying to register without id" in {
           mockRegisterWithoutId(registrationDetails)(Left(Error("")))
 
           val result = performAction(Some(registrationDetailsJson))
           status(result) shouldBe INTERNAL_SERVER_ERROR
         }
-
       }
 
       "return the subscription response" when {
-
         "registration is successful" in {
-          inSequence {
-            mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
-          }
+          mockRegisterWithoutId(registrationDetails)(Right(sapNumber))
 
           val result = performAction(Some(registrationDetailsJson))
           status(result)        shouldBe OK
           contentAsJson(result) shouldBe Json.toJson(RegisteredWithoutId(sapNumber))
         }
       }
-
     }
-
   }
 }

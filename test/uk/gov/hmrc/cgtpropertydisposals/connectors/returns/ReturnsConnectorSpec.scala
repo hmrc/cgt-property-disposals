@@ -17,10 +17,11 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.returns
 
 import com.typesafe.config.ConfigFactory
-import org.scalamock.scalatest.MockFactory
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
+import play.api.libs.json.Json
 import play.api.test.Helpers.{await, _}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
@@ -32,7 +33,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ReturnsConnectorSpec extends AnyWordSpec with Matchers with MockFactory with HttpSupport {
+class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -62,17 +63,14 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with MockFactory wi
   private val emptyJsonBody = "{}"
 
   "SubmitReturnsConnectorImpl" when {
-
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     "handling request to submit return" must {
-
       def expectedSubmitReturnUrl(cgtReference: String) =
         s"""http://localhost:7022/capital-gains-tax/cgt-reference/$cgtReference/return"""
 
       "handling request to submit return" must {
-
         "do a post http call and get the result" in {
           val cgtReference        = sample[CgtReference]
           val submitReturnRequest = sample[DesSubmitReturnRequest]
@@ -90,7 +88,7 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with MockFactory wi
               mockPost(
                 expectedSubmitReturnUrl(cgtReference.value),
                 expectedHeaders,
-                *
+                Json.toJson(submitReturnRequest)
               )(
                 Some(httpResponse)
               )
@@ -101,7 +99,6 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with MockFactory wi
         }
 
         "return an error" when {
-
           "the call fails" in {
             val cgtReference        = sample[CgtReference]
             val submitReturnRequest = sample[DesSubmitReturnRequest]
@@ -109,17 +106,15 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with MockFactory wi
             mockPost(
               expectedSubmitReturnUrl(cgtReference.value),
               expectedHeaders,
-              *
+              Json.toJson(submitReturnRequest)
             )(None)
 
             await(connector.submit(cgtReference, submitReturnRequest).value).isLeft shouldBe true
           }
         }
-
       }
 
       "handling requests to list returns" must {
-
         def expectedUrl(cgtReference: CgtReference) =
           s"http://localhost:7022/capital-gains-tax/returns/${cgtReference.value}"
 
@@ -145,22 +140,17 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with MockFactory wi
               await(connector.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(httpResponse)
             }
           }
-
         }
 
         "return an error" when {
-
           "the call fails" in {
             mockGetWithQueryWithHeaders(expectedUrl(cgtReference), expectedQueryParameters, expectedHeaders)(None)
             await(connector.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
           }
-
         }
-
       }
 
       "handling requests to get a returns" must {
-
         def expectedUrl(cgtReference: CgtReference, submissionId: String) =
           s"http://localhost:7022/capital-gains-tax/${cgtReference.value}/$submissionId/return"
 
@@ -184,22 +174,15 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with MockFactory wi
               await(connector.displayReturn(cgtReference, submissionId).value) shouldBe Right(httpResponse)
             }
           }
-
         }
 
         "return an error" when {
-
           "the call fails" in {
             mockGetWithQueryWithHeaders(expectedUrl(cgtReference, submissionId), Seq.empty, expectedHeaders)(None)
             await(connector.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
           }
-
         }
-
       }
-
     }
-
   }
-
 }

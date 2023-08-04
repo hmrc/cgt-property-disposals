@@ -18,10 +18,10 @@ package uk.gov.hmrc.cgtpropertydisposals.service.email
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.Writes
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -41,11 +41,11 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class EmailServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
+class EmailServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
 
   val mockAuditService: AuditService = mock[AuditService]
 
-  val mockEmailConnector = mock[EmailConnector]
+  private val mockEmailConnector = mock[EmailConnector]
 
   val service = new EmailServiceImpl(mockEmailConnector, mockAuditService, MockMetrics.metrics)
 
@@ -53,76 +53,54 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val request: Request[_] = FakeRequest()
 
-  def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
+  private def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     result: Either[Error, HttpResponse]
   ) =
-    (mockEmailConnector
-      .sendSubscriptionConfirmationEmail(_: CgtReference, _: Email, _: ContactName)(_: HeaderCarrier))
-      .expects(cgtReference, email, contactName, *)
-      .returning(EitherT.fromEither[Future](result))
+    mockEmailConnector
+      .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(*)
+      .returns(EitherT.fromEither[Future](result))
 
-  def mockSendReturnConfirmationEmail(submitReturnResponse: SubmitReturnResponse, subscribedDetails: SubscribedDetails)(
+  private def mockSendReturnConfirmationEmail(
+    submitReturnResponse: SubmitReturnResponse,
+    subscribedDetails: SubscribedDetails
+  )(
     result: Either[Error, HttpResponse]
   ) =
-    (mockEmailConnector
-      .sendReturnSubmitConfirmationEmail(_: SubmitReturnResponse, _: SubscribedDetails)(_: HeaderCarrier))
-      .expects(submitReturnResponse, subscribedDetails, *)
-      .returning(EitherT.fromEither[Future](result))
+    mockEmailConnector
+      .sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails)(*)
+      .returns(EitherT.fromEither[Future](result))
 
-  def mockAuditSubscriptionEmailEvent(email: String, cgtReference: String) =
-    (
-      mockAuditService
-        .sendEvent(_: String, _: SubscriptionConfirmationEmailSentEvent, _: String)(
-          _: HeaderCarrier,
-          _: Writes[SubscriptionConfirmationEmailSentEvent],
-          _: Request[_]
-        )
-      )
-      .expects(
+  private def mockAuditSubscriptionEmailEvent(email: String, cgtReference: String) =
+    mockAuditService
+      .sendEvent(
         "subscriptionConfirmationEmailSent",
         SubscriptionConfirmationEmailSentEvent(
           email,
           cgtReference
         ),
-        "subscription-confirmation-email-sent",
-        *,
-        *,
-        *
-      )
-      .returning(())
+        "subscription-confirmation-email-sent"
+      )(*, *, *)
+      .doesNothing()
 
-  def mockAuditReturnConfirmationEmailEvent(email: String, cgtReference: String, submissionId: String) =
-    (
-      mockAuditService
-        .sendEvent(_: String, _: ReturnConfirmationEmailSentEvent, _: String)(
-          _: HeaderCarrier,
-          _: Writes[ReturnConfirmationEmailSentEvent],
-          _: Request[_]
-        )
-      )
-      .expects(
+  private def mockAuditReturnConfirmationEmailEvent(email: String, cgtReference: String, submissionId: String) =
+    mockAuditService
+      .sendEvent(
         "returnConfirmationEmailSent",
         ReturnConfirmationEmailSentEvent(
           email,
           cgtReference,
           submissionId
         ),
-        "return-confirmation-email-sent",
-        *,
-        *,
-        *
-      )
-      .returning(())
+        "return-confirmation-email-sent"
+      )(*, *, *)
+      .doesNothing()
 
   "EmailServiceImpl" when {
-
     "handling requests to send subscription confirmation emails" must {
-
       val (cgtReference, email, contactName) =
         (sample[CgtReference], sample[Email], sample[ContactName])
 
       "return an error" when {
-
         "the http status of the response is not 202 (accepted)" in {
           mockSendSubscriptionConfirmationEmail(cgtReference, email, contactName)(Right(HttpResponse(200, "")))
 
@@ -134,31 +112,23 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
 
           await(service.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value).isLeft shouldBe true
         }
-
       }
 
       "return a successful response" when {
-
         "the http status of the response is 202 (accepted)" in {
-          inSequence {
-            mockSendSubscriptionConfirmationEmail(cgtReference, email, contactName)(Right(HttpResponse(202, "")))
-            mockAuditSubscriptionEmailEvent(email.value, cgtReference.value)
-          }
+          mockSendSubscriptionConfirmationEmail(cgtReference, email, contactName)(Right(HttpResponse(202, "")))
+          mockAuditSubscriptionEmailEvent(email.value, cgtReference.value)
 
           await(service.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value) shouldBe Right(())
         }
-
       }
-
     }
 
     "handling requests to send return submission confirmation emails" must {
-
       val (submitReturnRequest, submitReturnResponse) =
         sample[SubmitReturnRequest] -> sample[SubmitReturnResponse]
 
       "return an error" when {
-
         "the http status of the response is not 202 (accepted)" in {
           mockSendReturnConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
             Right(HttpResponse(200, ""))
@@ -176,33 +146,24 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers with MockFactory {
             service.sendReturnConfirmationEmail(submitReturnRequest, submitReturnResponse).value
           ).isLeft shouldBe true
         }
-
       }
 
       "return a successful response" when {
-
         "the http status of the response is 202 (accepted)" in {
-          inSequence {
-            mockSendReturnConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
-              Right(HttpResponse(202, ""))
-            )
-            mockAuditReturnConfirmationEmailEvent(
-              submitReturnRequest.subscribedDetails.emailAddress.value,
-              submitReturnRequest.subscribedDetails.cgtReference.value,
-              submitReturnResponse.formBundleId
-            )
-          }
+          mockSendReturnConfirmationEmail(submitReturnResponse, submitReturnRequest.subscribedDetails)(
+            Right(HttpResponse(202, ""))
+          )
+          mockAuditReturnConfirmationEmailEvent(
+            submitReturnRequest.subscribedDetails.emailAddress.value,
+            submitReturnRequest.subscribedDetails.cgtReference.value,
+            submitReturnResponse.formBundleId
+          )
 
           await(
             service.sendReturnConfirmationEmail(submitReturnRequest, submitReturnResponse).value
           ) shouldBe Right(())
-
         }
-
       }
-
     }
-
   }
-
 }
