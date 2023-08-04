@@ -20,3 +20,5 @@ lazy val microservice = Project(appName, file("."))
     )
   )
   .settings(CodeCoverageSettings.settings *)
+
+libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
