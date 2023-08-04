@@ -50,7 +50,7 @@ class DmsSubmissionPoller @Inject() (
     servicesConfig.getDuration("dms.submission-poller.initial-delay").toMillis,
     TimeUnit.MILLISECONDS
   ) + FiniteDuration(
-    Random.nextInt((servicesConfig.getDuration("dms.submission-poller.jitter-period").toMillis.toInt + 1)).toLong,
+    Random.nextInt(servicesConfig.getDuration("dms.submission-poller.jitter-period").toMillis.toInt + 1).toLong,
     TimeUnit.MILLISECONDS
   )
 
@@ -61,17 +61,17 @@ class DmsSubmissionPoller @Inject() (
 
   private val failureCountLimit: Int = servicesConfig.getInt("dms.submission-poller.failure-count-limit")
 
-  val _ = actorSystem.scheduler.scheduleWithFixedDelay(jitteredInitialDelay, pollerInterval)(() => poller())(
+  actorSystem.scheduler.scheduleWithFixedDelay(jitteredInitialDelay, pollerInterval)(() => poller())(
     dmsSubmissionPollerContext
   )
 
-  def getLogMessage(workItem: WorkItem[DmsSubmissionRequest], stateIndicator: String): String =
+  private def getLogMessage(workItem: WorkItem[DmsSubmissionRequest], stateIndicator: String) =
     s"DMS Submission poller: $stateIndicator:  work-item-id: ${workItem.id}, work-item-failure-count: ${workItem.failureCount}, " +
       s"work-item-status: ${workItem.status}, work-item-updatedAt : ${workItem.updatedAt}, " +
       s"work-item-cgt-reference: ${workItem.item.cgtReference}, " +
       s"work-item-form-bundle-id: ${workItem.item.formBundleId}"
 
-  def poller(): Unit = {
+  private def poller(): Unit = {
     val result: EitherT[Future, Error, Unit] = dmsSubmissionService.dequeue.semiflatMap {
       case Some(workItem) =>
         if (workItem.failureCount === failureCountLimit) {

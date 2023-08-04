@@ -58,7 +58,7 @@ object Address {
           line2,
           town,
           county,
-          Some(postcode.stripAllSpaces.toUpperCase()),
+          Some(postcode.stripAllSpaces().toUpperCase()),
           u.countryCode
         )
       case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
@@ -67,7 +67,7 @@ object Address {
           line2,
           line3,
           line4,
-          postcode.map(_.stripAllSpaces.toUpperCase()),
+          postcode.map(_.stripAllSpaces().toUpperCase()),
           country.code
         )
     }

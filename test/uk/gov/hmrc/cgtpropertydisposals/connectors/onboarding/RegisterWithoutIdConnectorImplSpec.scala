@@ -88,7 +88,7 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
         s"""
            |{
            |  "regime": "CGT",
-           |  "acknowledgementReference" : "${referenceId.toString.replaceAllLiterally("-", "")}",
+           |  "acknowledgementReference" : "${referenceId.toString.replaceAll("-", "")}",
            |  "isAnAgent": false,
            |  "isAGroup": false,
            |  "individual": {
@@ -152,7 +152,7 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
           s"""
              |{
              |  "regime": "CGT",
-             |  "acknowledgementReference" : "${referenceId.toString.replaceAllLiterally("-", "")}",
+             |  "acknowledgementReference" : "${referenceId.toString.replaceAll("-", "")}",
              |  "isAnAgent": false,
              |  "isAGroup": false,
              |  "individual": {

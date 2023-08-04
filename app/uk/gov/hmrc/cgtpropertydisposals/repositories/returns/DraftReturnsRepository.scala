@@ -69,7 +69,6 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
     with CacheRepository[DraftReturnWithCgtReferenceWrapper] {
 
   val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
-  val maxDraftReturns: Int      = config.underlying.get[Int]("mongodb.draft-returns.max-draft-returns").value
   val cacheTtlIndexName: String = "draft-return-cache-ttl"
   val objName: String           = "return"
   val key: String               = "return.cgtReference.value"
@@ -148,7 +147,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
   private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] =
     collection
       .find(filter = Filters.equal(key, cgtReference.value))
-      .toFuture
+      .toFuture()
       .map { json =>
         Right(json.map(_.`return`).toList)
       }
@@ -167,8 +166,8 @@ object DefaultDraftReturnsRepository {
   )
 
   object DraftReturnWithCgtReferenceWrapper {
-    implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
-    implicit val format               = Json.format[DraftReturnWithCgtReferenceWrapper]
+    implicit val dtf: Format[Instant]                                = MongoJavatimeFormats.instantFormat
+    implicit val format: OFormat[DraftReturnWithCgtReferenceWrapper] = Json.format[DraftReturnWithCgtReferenceWrapper]
   }
 
   case class DraftReturnWithCgtReference(

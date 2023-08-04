@@ -29,11 +29,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   "IncomeAllowanceDetails" must {
-
     "have an apply method" which {
-
       "creates IncomeAllowanceDetails correctly" when {
-
         "the return passed in is for a single disposal calculated journey" in {
           forAll { calculatedYtdAnswers: CompleteCalculatedYTDAnswers =>
             val calculatedReturn = sample[CompleteSingleDisposalReturn].copy(
@@ -48,7 +45,6 @@ class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaChe
               Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
-
         }
 
         "the return passed in is for a single disposal non-calculated journey" in {
@@ -60,8 +56,8 @@ class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaChe
             )
             IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
-              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
               Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
@@ -76,8 +72,8 @@ class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaChe
             )
             IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
-              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
               Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
@@ -92,8 +88,8 @@ class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaChe
             )
             IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
-              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
               Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
@@ -108,8 +104,8 @@ class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaChe
             )
             IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
-              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
               Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
@@ -124,15 +120,13 @@ class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaChe
             )
             IncomeAllowanceDetails(completeReturn) shouldBe IncomeAllowanceDetails(
               BigDecimal("0.01"),
-              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds),
-              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
               Some(completeReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
             )
           }
         }
-
       }
     }
   }
-
 }

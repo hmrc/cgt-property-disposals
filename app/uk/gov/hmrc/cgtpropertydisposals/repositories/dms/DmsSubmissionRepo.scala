@@ -70,7 +70,7 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   override def inProgressRetryAfter: Duration = Duration.ofMillis(configuration.getMillis(inProgressRetryAfterProperty))
 
-  def inProgressRetryAfterProperty: String = "dms.submission-poller.in-progress-retry-after"
+  private def inProgressRetryAfterProperty = "dms.submission-poller.in-progress-retry-after"
 
   private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl")
 
@@ -85,7 +85,7 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
-      result <- super.ensureIndexes
+      result <- super.ensureIndexes()
       _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl, collection, logger)
     } yield result
 

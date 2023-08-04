@@ -31,11 +31,8 @@ import java.time.LocalDate
 class RepresentedPersonDetailsSpec extends AnyWordSpec with Matchers {
 
   "RepresentedPersonDetails" must {
-
     "have an apply method" which {
-
       "converts from RepresenteeDetails" when {
-
         "passed a NINO" in {
           val address    = UkAddress("line1", None, None, None, sample[Postcode])
           val desAddress = AddressDetails("line1", None, None, None, Some(address.postcode.value), "GB")
@@ -59,7 +56,7 @@ class RepresentedPersonDetailsSpec extends AnyWordSpec with Matchers {
             None,
             Some(
               desAddress.copy(
-                postalCode = Some(address.postcode.stripAllSpaces)
+                postalCode = Some(address.postcode.stripAllSpaces())
               )
             ),
             Some(answers.contactDetails.emailAddress.value)
@@ -118,17 +115,13 @@ class RepresentedPersonDetailsSpec extends AnyWordSpec with Matchers {
             None,
             Some(
               desAddress.copy(
-                postalCode = Some(address.postcode.stripAllSpaces)
+                postalCode = Some(address.postcode.stripAllSpaces())
               )
             ),
             Some(answers.contactDetails.emailAddress.value)
           )
         }
-
       }
-
     }
-
   }
-
 }

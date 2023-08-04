@@ -20,7 +20,7 @@ object StringOps {
 
   implicit class StringOps(private val s: String) extends AnyVal {
 
-    def removeAllWhitespaces(): String = s.replaceAllLiterally(" ", "")
+    def removeAllWhitespaces(): String = s.replaceAll(" ", "")
 
   }
 
