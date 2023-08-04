@@ -30,8 +30,8 @@ object EitherFormat {
 
       override def writes(o: Either[A, B]): JsValue =
         o.fold(
-          a ⇒ JsObject(Seq("l" → Json.toJson(a))),
-          b ⇒ JsObject(Seq("r" → Json.toJson(b)))
+          a => JsObject(Seq("l" -> Json.toJson(a))),
+          b => JsObject(Seq("r" -> Json.toJson(b)))
         )
     }
 

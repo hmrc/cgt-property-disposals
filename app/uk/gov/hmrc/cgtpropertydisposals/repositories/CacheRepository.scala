@@ -49,7 +49,7 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
 
   val now = LocalDateTime.now()
 
-  def withCurrentTime[B](f: (LocalDateTime) => B) = f(now)
+  private def withCurrentTime[B](f: LocalDateTime => B) = f(now)
 
   def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
