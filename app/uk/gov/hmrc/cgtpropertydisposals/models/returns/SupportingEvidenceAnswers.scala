@@ -36,7 +36,7 @@ object SupportingEvidenceAnswers {
   )
 
   object SupportingEvidence {
-    implicit val format = Json.format[SupportingEvidence]
+    implicit val format: OFormat[SupportingEvidence] = Json.format[SupportingEvidence]
   }
 
   final case class IncompleteSupportingEvidenceAnswers(

@@ -68,6 +68,6 @@ object UpscanCallBack {
     implicit val format: OFormat[UpscanFailure] = Json.format[UpscanFailure]
   }
 
-  implicit val format: OFormat[UpscanCallBack] = derived.oformat()
+  implicit val format: OFormat[UpscanCallBack] = derived.oformat[UpscanCallBack]()
 
 }
