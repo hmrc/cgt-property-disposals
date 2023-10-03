@@ -65,11 +65,7 @@ class S3ConnectorImpl @Inject() (
           .flatMap { response =>
             response.status match {
               case status if is4xx(status) | is5xx(status) =>
-                logger.warn(
-                  s"could not download file from s3 : ${response.toString}" +
-                    s"http status: ${response.status}" +
-                    s"http body: ${response.body}"
-                )
+                logger.warn(s"could not download file from s3; status: $status")
                 Future.successful(Left(Error("could not download file from s3")))
               case _                                       =>
                 response.bodyAsSource

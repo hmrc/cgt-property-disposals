@@ -72,7 +72,7 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
             response.status match {
               case 200                                      => Right(EnvelopeId(response.body))
               case status if is4xx(status) || is5xx(status) =>
-                logger.warn(s"Bad response status from gform service ${response.body}")
+                logger.warn(s"Bad response status from gform service ${response.status}")
                 Left(Error(response.body))
               case _                                        =>
                 logger.warn("could not send dms payload to GFORM service")
