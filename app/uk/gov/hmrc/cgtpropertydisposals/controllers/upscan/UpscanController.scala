@@ -132,24 +132,18 @@ class UpscanController @Inject() (
       maybeUpscanUpload <- upscanService.readUpscanUpload(uploadReference)
       upscanUploadNew   <- EitherT.fromOption(
                              maybeUpscanUpload,
-                             Error(
-                               s"could not get upscan upload value from db for upload reference $uploadReference"
-                             )
+                             Error(s"could not get upscan upload value from db for upload reference $uploadReference")
                            )
       upscanUpload       = upscanUploadNew.upscan
       newCallBackResult <- if (fileStatus === READY_FOR_DOWNLOAD)
                              EitherT.fromOption(
                                request.body.asOpt[NewUpscanSuccess],
-                               Error(
-                                 s"could not parse upscan call back response body : ${request.body.toString}"
-                               )
+                               Error(s"could not parse upscan call back response body : ${request.body.toString}")
                              )
                            else
                              EitherT.fromOption(
                                request.body.asOpt[UpscanFailure],
-                               Error(
-                                 s"could not parse upscan call back response body : ${request.body.toString}"
-                               )
+                               Error(s"could not parse upscan call back response body : ${request.body.toString}")
                              )
 
       callBackResult = convertNewUpscanSuccessToUpscanSuccess(newCallBackResult)
