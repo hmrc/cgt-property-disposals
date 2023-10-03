@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
+import scala.util.{Failure, Success}
+import scala.util.chaining.scalaUtilChainingOps
 import scala.util.control.NonFatal
 
 trait CacheRepository[A] extends PlayMongoRepository[A] {
@@ -134,27 +136,19 @@ object CacheRepository {
     ttl: Duration,
     collection: MongoCollection[A],
     logger: Logger
-  )(implicit ex: ExecutionContext): Future[String] = {
-    def dropInvalidIndexes(): Future[Unit] =
-      collection.listIndexes().toFuture().flatMap { indexes =>
-        indexes
-          .find(index => index.contains(ttlIndexName) && !index.containsValue(ttl))
-          .map { i =>
-            logger.warn(s"dropping $i as ttl value is incorrect for index")
-            collection.dropIndex(ttlIndexName).toFuture().map(_ => ())
-          }
-          .getOrElse(Future.successful(()))
-      }
-
-    dropInvalidIndexes()
-      .flatMap(_ => collection.createIndex(ttlIndex.getKeys).toFuture())
-      .transform { result =>
-        result.fold(
-          e => logger.warn("Could not ensure ttl index", e),
-          _ => logger.info("Successfully ensured ttl index")
-        )
-        result
-      }
-  }
-
+  )(implicit ex: ExecutionContext): Future[String] =
+    (for {
+      indexes   <- collection.listIndexes().toFuture()
+      maybeIndex = indexes.find(index => index.contains(ttlIndexName) && !index.containsValue(ttl))
+      _         <- maybeIndex match {
+                     case Some(i) =>
+                       logger.warn(s"dropping $i as ttl value is incorrect for index")
+                       collection.dropIndex(ttlIndexName).toFuture().map(_ => ())
+                     case None    => Future.successful(())
+                   }
+      result    <- collection.createIndex(ttlIndex.getKeys).toFuture()
+    } yield result).transform(_.tap {
+      case Success(e) => logger.warn("Could not ensure ttl index", e)
+      case Failure(_) => logger.info("Successfully ensured ttl index")
+    })
 }
