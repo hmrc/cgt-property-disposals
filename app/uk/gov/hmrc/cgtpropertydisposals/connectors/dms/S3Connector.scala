@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
+import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.HeaderNames.USER_AGENT
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
@@ -32,7 +33,6 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.util.UUID
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[S3ConnectorImpl])
 trait S3Connector {
@@ -58,45 +58,25 @@ class S3ConnectorImpl @Inject() (
 
   override def downloadFile(upscanSuccess: UpscanSuccess): Future[Either[Error, FileAttachment]] = {
     logger.info(s"Downloading files from S3")
-    (upscanSuccess.uploadDetails.get("fileName"), upscanSuccess.uploadDetails.get("fileMimeType")) match {
-      case (Some(filename), Some(mimeType)) =>
-        playHttpClient
-          .get(upscanSuccess.downloadUrl, headers, timeout)
-          .flatMap { response =>
-            response.status match {
-              case status if is4xx(status) | is5xx(status) =>
-                logger.warn(
-                  s"could not download file from s3 : ${response.toString}" +
-                    s"http status: ${response.status}" +
-                    s"http body: ${response.body}"
-                )
-                Future.successful(Left(Error("could not download file from s3")))
-              case _                                       =>
-                response.bodyAsSource
-                  .limit(maxFileDownloadSize * limitScaleFactor)
-                  .runWith(Sink.seq)
-                  .map { bytes =>
-                    logger.info("Successfully downloaded files from S3")
-                    Right(
-                      replaceAllInvalidCharsWithHyphen(
-                        FileAttachment(
-                          UUID.randomUUID().toString,
-                          filename,
-                          Some(mimeType),
-                          bytes
-                        )
-                      )
-                    )
-                  }
-            }
-          }
-          .recover { case NonFatal(e) =>
-            Left(Error(e))
-          }
-      case _                                =>
-        logger.warn(s"could not find file name nor mime type : $upscanSuccess")
-        Future.successful(Left(Error("missing file descriptors")))
+    val result = for {
+      filename <-
+        EitherT.fromOption[Future](upscanSuccess.uploadDetails.get("fileName"), Error("missing file descriptors"))
+      mimeType <-
+        EitherT.fromOption[Future](upscanSuccess.uploadDetails.get("fileMimeType"), Error("missing file descriptors"))
+      response <- EitherT.right[Error](playHttpClient.get(upscanSuccess.downloadUrl, headers, timeout))
+      _        <-
+        if (is4xx(response.status) || is5xx(response.status)) {
+          EitherT.leftT[Future, Unit](Error("could not download file from s3"))
+        } else {
+          EitherT.rightT[Future, Error](())
+        }
+      bytes    <-
+        EitherT.right[Error](response.bodyAsSource.limit(maxFileDownloadSize * limitScaleFactor).runWith(Sink.seq))
+    } yield {
+      logger.info("Successfully downloaded files from S3")
+      replaceAllInvalidCharsWithHyphen(FileAttachment(UUID.randomUUID().toString, filename, Some(mimeType), bytes))
     }
+    result.value
   }
 
   // It replaces all invalid characters available in Filename with hyphen(_)
