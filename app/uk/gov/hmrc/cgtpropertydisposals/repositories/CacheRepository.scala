@@ -49,10 +49,6 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
     IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
   )
 
-  private val now = LocalDateTime.now()
-
-  private def withCurrentTime[B](f: LocalDateTime => B) = f(now)
-
   def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
     for {
       result <- super.ensureIndexes()
@@ -65,29 +61,27 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
     overrideLastUpdatedTime: Option[LocalDateTime] = None
   ): Future[Either[Error, Unit]] =
     preservingMdc {
-      withCurrentTime { time =>
-        val lastUpdated: LocalDateTime = overrideLastUpdatedTime.map(toJavaDateTime).getOrElse(time)
-        val selector                   = equal("_id", id)
-        val modifier                   =
-          Updates.combine(Updates.set(objName, Codecs.toBson(value.`return`)), Updates.set("lastUpdated", lastUpdated))
+      val lastUpdated: LocalDateTime = overrideLastUpdatedTime.map(toJavaDateTime).getOrElse(LocalDateTime.now())
+      val selector                   = equal("_id", id)
+      val modifier                   =
+        Updates.combine(Updates.set(objName, Codecs.toBson(value.`return`)), Updates.set("lastUpdated", lastUpdated))
 
-        collection
-          .findOneAndUpdate(
-            filter = selector,
-            update = modifier,
-            options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER).upsert(true)
-          )
-          .toFuture()
-          .map { result =>
-            if (result == result)
-              Right(())
-            else
-              Left(Error(s"Could not store draft return: $result"))
-          }
-          .recover { case NonFatal(e) =>
-            Left(Error(e))
-          }
-      }
+      collection
+        .findOneAndUpdate(
+          filter = selector,
+          update = modifier,
+          options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER).upsert(true)
+        )
+        .toFuture()
+        .map { result =>
+          if (result == result)
+            Right(())
+          else
+            Left(Error(s"Could not store draft return: $result"))
+        }
+        .recover { case NonFatal(e) =>
+          Left(Error(e))
+        }
     }
 
   def findAll[C : ClassTag](ids: List[String]): Future[Either[Error, List[C]]] =
