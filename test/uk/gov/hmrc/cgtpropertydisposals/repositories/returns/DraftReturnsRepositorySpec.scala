@@ -37,7 +37,6 @@ class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMon
     ConfigFactory.parseString(
       """
         | mongodb.draft-returns.expiry-time = 30days
-        | mongodb.draft-returns.max-draft-returns = 10
         |""".stripMargin
     )
   )

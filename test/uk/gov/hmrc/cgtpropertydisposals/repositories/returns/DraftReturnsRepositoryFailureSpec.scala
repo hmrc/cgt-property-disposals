@@ -49,7 +49,6 @@ class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
     ConfigFactory.parseString(
       """
         | mongodb.draft-returns.expiry-time = 30days
-        | mongodb.draft-returns.max-draft-returns = 10
         |""".stripMargin
     )
   )
