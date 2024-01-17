@@ -21,8 +21,10 @@ import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.Filters.{equal, in}
 import org.mongodb.scala.model._
 import org.slf4j.Logger
+import play.api.libs.json.Format
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReferenceWrapper
+import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
@@ -32,28 +34,29 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success}
 import scala.util.chaining.scalaUtilChainingOps
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
-trait CacheRepository[A] extends PlayMongoRepository[A] {
-
-  implicit val ec: ExecutionContext
-
-  val cacheTtl: FiniteDuration
-  val cacheTtlIndexName: String
-  val objName: String
-
-  private lazy val cacheTtlIndex = IndexModel(
-    ascending("lastUpdated"),
-    IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
-  )
-
-  def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
-    for {
-      result <- super.ensureIndexes()
-      _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
-    } yield result
+class CacheRepository[A : ClassTag](
+  mongoComponent: MongoComponent,
+  collectionName: String,
+  domainFormat: Format[A],
+  cacheTtl: FiniteDuration,
+  cacheTtlIndexName: String,
+  objName: String
+)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository[A](
+      mongoComponent,
+      collectionName,
+      domainFormat,
+      indexes = Seq(
+        IndexModel(
+          ascending("lastUpdated"),
+          IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
+        )
+      )
+    ) {
 
   def set(
     id: String,

@@ -27,8 +27,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
@@ -49,20 +49,17 @@ trait AmendReturnsRepository {
 @Singleton
 class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration, clock: CurrentInstant)(
   implicit val ec: ExecutionContext
-) extends PlayMongoRepository[SubmitReturnWrapper](
+) extends CacheRepository[SubmitReturnWrapper](
       mongoComponent = mongo,
       collectionName = "amend-returns",
       domainFormat = SubmitReturnWrapper.format,
-      indexes = Seq()
+      cacheTtl = config.underlying.get[FiniteDuration]("mongodb.amend-returns.expiry-time").value,
+      cacheTtlIndexName = "amend-return-cache-ttl",
+      objName = "return"
     )
-    with AmendReturnsRepository
-    with CacheRepository[SubmitReturnWrapper] {
+    with AmendReturnsRepository {
 
-  val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.amend-returns.expiry-time").value
-  val maxAmendReturns: Int      = Integer.MAX_VALUE
-  val cacheTtlIndexName: String = "amend-return-cache-ttl"
-  val objName: String           = "return"
-  val key: String               = "return.subscribedDetails.cgtReference.value"
+  val key: String = "return.subscribedDetails.cgtReference.value"
 
   override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnWrapper]] =
     EitherT(

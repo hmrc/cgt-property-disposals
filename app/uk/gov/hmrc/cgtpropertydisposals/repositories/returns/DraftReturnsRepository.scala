@@ -31,9 +31,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.{DraftReturnWithCgtReference, DraftReturnWithCgtReferenceWrapper}
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import java.time.Instant
@@ -59,19 +59,17 @@ trait DraftReturnsRepository {
 @Singleton
 class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends PlayMongoRepository[DraftReturnWithCgtReferenceWrapper](
+) extends CacheRepository[DraftReturnWithCgtReferenceWrapper](
       mongoComponent = mongo,
       collectionName = "draft-returns",
       domainFormat = DraftReturnWithCgtReferenceWrapper.format,
-      indexes = Seq()
+      cacheTtl = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value,
+      cacheTtlIndexName = "draft-return-cache-ttl",
+      objName = "return"
     )
-    with DraftReturnsRepository
-    with CacheRepository[DraftReturnWithCgtReferenceWrapper] {
+    with DraftReturnsRepository {
 
-  val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
-  val cacheTtlIndexName: String = "draft-return-cache-ttl"
-  val objName: String           = "return"
-  val key: String               = "return.cgtReference.value"
+  private val key = "return.cgtReference.value"
 
   override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
     EitherT(
