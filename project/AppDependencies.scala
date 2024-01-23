@@ -2,11 +2,11 @@ import sbt.*
 
 object AppDependencies {
 
-  val akkaVersion  = "2.6.20"
+  val akkaVersion  = "2.6.21"
   val playVersion  = "play-28"
   val mongoVersion = "1.3.0"
 
-  private val bootstrapPlay28Version = "5.25.0"
+  private val bootstrapPlay28Version = "7.23.0"
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapPlay28Version,
