@@ -26,7 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
@@ -58,20 +58,15 @@ trait UpscanRepository {
 @Singleton
 class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configuration, clock: CurrentInstant)(implicit
   val ec: ExecutionContext
-) extends PlayMongoRepository[UpscanUploadWrapper](
+) extends CacheRepository[UpscanUploadWrapper](
       mongoComponent = mongo,
       collectionName = "upscan",
       domainFormat = UpscanUploadWrapper.format,
-      indexes = Seq()
+      cacheTtlIndexName = "upscan-cache-ttl",
+      objName = "upscan",
+      cacheTtl = config.underlying.get[FiniteDuration]("mongodb.upscan.expiry-time").value
     )
-    with UpscanRepository
-    with CacheRepository[UpscanUploadWrapper] {
-
-  override val cacheTtlIndexName: String = "upscan-cache-ttl"
-
-  override val objName: String = "upscan"
-
-  val cacheTtl: FiniteDuration = config.underlying.get[FiniteDuration]("mongodb.upscan.expiry-time").value
+    with UpscanRepository {
 
   override def insert(
     upscanUpload: UpscanUpload
