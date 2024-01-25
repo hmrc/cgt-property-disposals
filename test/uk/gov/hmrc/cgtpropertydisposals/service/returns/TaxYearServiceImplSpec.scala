@@ -16,148 +16,98 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 import java.time.LocalDate
 
 class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
-
-  private val taxYear2020 =
-    sample[TaxYear].copy(
-      startDateInclusive = LocalDate.of(2020, 4, 6),
-      endDateExclusive = LocalDate.of(2021, 4, 6)
-    )
+  private val taxYear2020 = TaxYear(
+    startDateInclusive = LocalDate.of(2020, 4, 6),
+    endDateExclusive = LocalDate.of(2021, 4, 6),
+    annualExemptAmountGeneral = AmountInPence.fromPounds(12300),
+    annualExemptAmountNonVulnerableTrust = AmountInPence.fromPounds(6150),
+    personalAllowance = AmountInPence.fromPounds(12500),
+    maxPersonalAllowance = AmountInPence.fromPounds(20000),
+    higherIncomePersonalAllowanceThreshold = AmountInPence.fromPounds(100000),
+    incomeTaxHigherRateThreshold = AmountInPence.fromPounds(37500),
+    cgtRateLowerBandResidential = BigDecimal(18),
+    cgtRateLowerBandNonResidential = BigDecimal(10),
+    cgtRateHigherBandResidential = BigDecimal(28),
+    cgtRateHigherBandNonResidential = BigDecimal(20),
+    maxLettingsReliefAmount = AmountInPence.fromPounds(40000)
+  )
 
   private val taxYear2021 =
-    sample[TaxYear].copy(
+    TaxYear(
       startDateInclusive = LocalDate.of(2021, 4, 6),
-      endDateExclusive = LocalDate.of(2022, 4, 6)
+      endDateExclusive = LocalDate.of(2022, 4, 6),
+      annualExemptAmountGeneral = AmountInPence.fromPounds(12300),
+      annualExemptAmountNonVulnerableTrust = AmountInPence.fromPounds(6150),
+      personalAllowance = AmountInPence.fromPounds(12570),
+      maxPersonalAllowance = AmountInPence.fromPounds(20000),
+      higherIncomePersonalAllowanceThreshold = AmountInPence.fromPounds(100000),
+      incomeTaxHigherRateThreshold = AmountInPence.fromPounds(37700),
+      cgtRateLowerBandResidential = BigDecimal(18),
+      cgtRateLowerBandNonResidential = BigDecimal(10),
+      cgtRateHigherBandResidential = BigDecimal(28),
+      cgtRateHigherBandNonResidential = BigDecimal(20),
+      maxLettingsReliefAmount = AmountInPence.fromPounds(40000)
     )
 
   private val taxYear2022 =
-    sample[TaxYear].copy(
+    TaxYear(
       startDateInclusive = LocalDate.of(2022, 4, 6),
-      endDateExclusive = LocalDate.of(2023, 4, 6)
+      endDateExclusive = LocalDate.of(2023, 4, 6),
+      annualExemptAmountGeneral = AmountInPence.fromPounds(12300),
+      annualExemptAmountNonVulnerableTrust = AmountInPence.fromPounds(6150),
+      personalAllowance = AmountInPence.fromPounds(12570),
+      maxPersonalAllowance = AmountInPence.fromPounds(20000),
+      higherIncomePersonalAllowanceThreshold = AmountInPence.fromPounds(100000),
+      incomeTaxHigherRateThreshold = AmountInPence.fromPounds(37700),
+      cgtRateLowerBandResidential = BigDecimal(18),
+      cgtRateLowerBandNonResidential = BigDecimal(10),
+      cgtRateHigherBandResidential = BigDecimal(28),
+      cgtRateHigherBandNonResidential = BigDecimal(20),
+      maxLettingsReliefAmount = AmountInPence.fromPounds(40000)
     )
 
   private val taxYear2023 =
-    sample[TaxYear].copy(
+    TaxYear(
       startDateInclusive = LocalDate.of(2023, 4, 6),
-      endDateExclusive = LocalDate.of(2024, 4, 6)
+      endDateExclusive = LocalDate.of(2024, 4, 6),
+      annualExemptAmountGeneral = AmountInPence.fromPounds(6000),
+      annualExemptAmountNonVulnerableTrust = AmountInPence.fromPounds(6000),
+      personalAllowance = AmountInPence.fromPounds(12570),
+      maxPersonalAllowance = AmountInPence.fromPounds(20000),
+      higherIncomePersonalAllowanceThreshold = AmountInPence.fromPounds(100000),
+      incomeTaxHigherRateThreshold = AmountInPence.fromPounds(37700),
+      cgtRateLowerBandResidential = BigDecimal(18),
+      cgtRateLowerBandNonResidential = BigDecimal(10),
+      cgtRateHigherBandResidential = BigDecimal(28),
+      cgtRateHigherBandNonResidential = BigDecimal(20),
+      maxLettingsReliefAmount = AmountInPence.fromPounds(40000)
     )
 
   private def config(flag: LocalDate) = Configuration(
-    ConfigFactory.parseString(
-      s"""
-         | latest-tax-year-go-live-date =
-         | {
-         | day = ${flag.getDayOfMonth}
-         | month = ${flag.getMonthValue}
-         | year = ${flag.getYear}
-         | }
-         | tax-years = [
-         | {
-         |    start-year = ${taxYear2023.startDateInclusive.getYear}
-         |    annual-exempt-amount {
-         |      general              = ${taxYear2023.annualExemptAmountGeneral.inPounds()}
-         |      non-vulnerable-trust = ${taxYear2023.annualExemptAmountNonVulnerableTrust.inPounds()}
-         |    }
-         |    personal-allowance = ${taxYear2023.personalAllowance.inPounds()}
-         |    higher-income-personal-allowance-threshold = ${taxYear2023.higherIncomePersonalAllowanceThreshold
-        .inPounds()}
-         |
-         |    max-personal-allowance = ${taxYear2023.maxPersonalAllowance.inPounds()}
-         |    income-tax-higher-rate-threshold = ${taxYear2023.incomeTaxHigherRateThreshold.inPounds()}
-         |    lettings-relief-max-threshold = ${taxYear2023.maxLettingsReliefAmount.inPounds()}
-         |    cgt-rates {
-         |      lower-band-residential      = ${taxYear2023.cgtRateLowerBandResidential}
-         |      lower-band-non-residential  = ${taxYear2023.cgtRateLowerBandNonResidential}
-         |      higher-band-residential     = ${taxYear2023.cgtRateHigherBandResidential}
-         |      higher-band-non-residential = ${taxYear2023.cgtRateHigherBandNonResidential}
-         |    }
-         |  },
-         |   {
-         |    start-year = ${taxYear2022.startDateInclusive.getYear}
-         |    annual-exempt-amount {
-         |      general              = ${taxYear2022.annualExemptAmountGeneral.inPounds()}
-         |      non-vulnerable-trust = ${taxYear2022.annualExemptAmountNonVulnerableTrust.inPounds()}
-         |    }
-         |    personal-allowance = ${taxYear2022.personalAllowance.inPounds()}
-         |    higher-income-personal-allowance-threshold = ${taxYear2022.higherIncomePersonalAllowanceThreshold
-        .inPounds()}
-         |
-         |    max-personal-allowance = ${taxYear2022.maxPersonalAllowance.inPounds()}
-         |    income-tax-higher-rate-threshold = ${taxYear2022.incomeTaxHigherRateThreshold.inPounds()}
-         |    lettings-relief-max-threshold = ${taxYear2022.maxLettingsReliefAmount.inPounds()}
-         |    cgt-rates {
-         |      lower-band-residential      = ${taxYear2022.cgtRateLowerBandResidential}
-         |      lower-band-non-residential  = ${taxYear2022.cgtRateLowerBandNonResidential}
-         |      higher-band-residential     = ${taxYear2022.cgtRateHigherBandResidential}
-         |      higher-band-non-residential = ${taxYear2022.cgtRateHigherBandNonResidential}
-         |    }
-         |  },
-         |  {
-         |    start-year = ${taxYear2021.startDateInclusive.getYear}
-         |    annual-exempt-amount {
-         |      general              = ${taxYear2021.annualExemptAmountGeneral.inPounds()}
-         |      non-vulnerable-trust = ${taxYear2021.annualExemptAmountNonVulnerableTrust.inPounds()}
-         |    }
-         |    personal-allowance = ${taxYear2021.personalAllowance.inPounds()}
-         |    higher-income-personal-allowance-threshold = ${taxYear2021.higherIncomePersonalAllowanceThreshold
-        .inPounds()}
-         |
-         |    max-personal-allowance = ${taxYear2021.maxPersonalAllowance.inPounds()}
-         |    income-tax-higher-rate-threshold = ${taxYear2021.incomeTaxHigherRateThreshold.inPounds()}
-         |    lettings-relief-max-threshold = ${taxYear2021.maxLettingsReliefAmount.inPounds()}
-         |    cgt-rates {
-         |      lower-band-residential      = ${taxYear2021.cgtRateLowerBandResidential}
-         |      lower-band-non-residential  = ${taxYear2021.cgtRateLowerBandNonResidential}
-         |      higher-band-residential     = ${taxYear2021.cgtRateHigherBandResidential}
-         |      higher-band-non-residential = ${taxYear2021.cgtRateHigherBandNonResidential}
-         |    }
-         |  },
-         |    {
-         |    start-year = ${taxYear2020.startDateInclusive.getYear}
-         |    annual-exempt-amount {
-         |      general              = ${taxYear2020.annualExemptAmountGeneral.inPounds()}
-         |      non-vulnerable-trust = ${taxYear2020.annualExemptAmountNonVulnerableTrust.inPounds()}
-         |    }
-         |    personal-allowance = ${taxYear2020.personalAllowance.inPounds()}
-         |    higher-income-personal-allowance-threshold = ${taxYear2020.higherIncomePersonalAllowanceThreshold
-        .inPounds()}
-         |
-         |    max-personal-allowance = ${taxYear2020.maxPersonalAllowance.inPounds()}
-         |    income-tax-higher-rate-threshold = ${taxYear2020.incomeTaxHigherRateThreshold.inPounds()}
-         |    lettings-relief-max-threshold = ${taxYear2020.maxLettingsReliefAmount.inPounds()}
-         |    cgt-rates {
-         |      lower-band-residential      = ${taxYear2020.cgtRateLowerBandResidential}
-         |      lower-band-non-residential  = ${taxYear2020.cgtRateLowerBandNonResidential}
-         |      higher-band-residential     = ${taxYear2020.cgtRateHigherBandResidential}
-         |      higher-band-non-residential = ${taxYear2020.cgtRateHigherBandNonResidential}
-         |    }
-         |  }
-         | ]
-         |""".stripMargin
-    )
+    ConfigFactory
+      .load("tax_years.conf")
+      .withValue("latest-tax-year-go-live-date.day", ConfigValueFactory.fromAnyRef(flag.getDayOfMonth))
+      .withValue("latest-tax-year-go-live-date.month", ConfigValueFactory.fromAnyRef(flag.getMonthValue))
+      .withValue("latest-tax-year-go-live-date.year", ConfigValueFactory.fromAnyRef(flag.getYear))
   )
 
-  private val service = new TaxYearServiceImpl(config(LocalDate.now.minusMonths(1)))
-
+  private val service  = new TaxYearServiceImpl(config(LocalDate.now.minusMonths(1)))
   private val service2 = new TaxYearServiceImpl(config(LocalDate.now))
-
   private val service3 = new TaxYearServiceImpl(config(LocalDate.now.plusMonths(1)))
 
   "TaxYearServiceImpl" when {
-
     "current date is after latestTaxYearGoLiveDate" when {
-
       "handling requests to get the tax year of a date" must {
-
         "return a tax year 2020 if one can be found" in {
           service.getTaxYear(taxYear2020.startDateInclusive)             shouldBe Some(taxYear2020)
           service.getTaxYear(taxYear2020.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear2020)
@@ -182,22 +132,17 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
           service.getTaxYear(taxYear2020.startDateInclusive.minusDays(1L)) shouldBe None
           service.getTaxYear(taxYear2023.endDateExclusive)                 shouldBe None
         }
-
       }
 
       "handling requests to get the available tax years" must {
-
         "return available tax years 2020,2021,2022,2023" in {
-          service.getAvailableTaxYears() shouldBe List(2023, 2022, 2021, 2020)
+          service.getAvailableTaxYears shouldBe List(2023, 2022, 2021, 2020)
         }
-
       }
-
     }
 
     "current date is equal to latestTaxYearGoLiveDate" when {
       "handling requests to get the tax year of a date" must {
-
         "return a tax year 2020 if one can be found" in {
           service2.getTaxYear(taxYear2020.startDateInclusive)             shouldBe Some(taxYear2020)
           service2.getTaxYear(taxYear2020.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear2020)
@@ -222,23 +167,17 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
           service2.getTaxYear(taxYear2020.startDateInclusive.minusDays(1L)) shouldBe None
           service2.getTaxYear(taxYear2023.endDateExclusive)                 shouldBe None
         }
-
       }
 
       "handling requests to get the available tax years" must {
-
         "return available tax years 2020,2021,2022,2023" in {
-          service2.getAvailableTaxYears() shouldBe List(2023, 2022, 2021, 2020)
+          service2.getAvailableTaxYears shouldBe List(2023, 2022, 2021, 2020)
         }
-
       }
-
     }
 
     "current date is before latestTaxYearGoLiveDate" when {
-
       "handling requests to get the tax year of a date" must {
-
         "return a tax year 2020 if one can be found" in {
           service3.getTaxYear(taxYear2020.startDateInclusive)             shouldBe Some(taxYear2020)
           service3.getTaxYear(taxYear2020.endDateExclusive.minusDays(1L)) shouldBe Some(taxYear2020)
@@ -263,19 +202,13 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
           service3.getTaxYear(taxYear2020.startDateInclusive.minusDays(1L)) shouldBe None
           service3.getTaxYear(taxYear2022.endDateExclusive)                 shouldBe None
         }
-
       }
 
       "handling requests to get the available tax years" must {
-
         "return available tax years 2020,2021,2022" in {
-          service3.getAvailableTaxYears() shouldBe List(2022, 2021, 2020)
+          service3.getAvailableTaxYears shouldBe List(2022, 2021, 2020)
         }
-
       }
-
     }
-
   }
-
 }

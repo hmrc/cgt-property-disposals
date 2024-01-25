@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import com.mongodb.client.model.Indexes.ascending
-import configs.syntax._
 import org.mongodb.scala.model._
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -36,11 +35,9 @@ import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultUpscanRepo])
 trait UpscanRepo {
-
   def insert(
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit]
-
 }
 
 @Singleton
@@ -56,7 +53,7 @@ class DefaultUpscanRepo @Inject() (mongo: MongoComponent, config: Configuration)
           IndexOptions()
             .name("upscan-cache-ttl")
             .expireAfter(
-              config.underlying.get[FiniteDuration]("mongodb.upscan.expiry-time").value.toSeconds,
+              config.get[FiniteDuration]("mongodb.upscan.expiry-time").toSeconds,
               TimeUnit.SECONDS
             )
         )
@@ -85,5 +82,4 @@ class DefaultUpscanRepo @Inject() (mongo: MongoComponent, config: Configuration)
         .recover { case NonFatal(e) => Left(Error(e)) }
 
     })
-
 }

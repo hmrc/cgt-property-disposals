@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import play.api.Configuration
@@ -37,13 +36,11 @@ import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultAmendReturnsRepository])
 trait AmendReturnsRepository {
-
   def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[SubmitReturnWrapper]]
 
   def save(
     submitReturnRequest: SubmitReturnRequest
   ): EitherT[Future, Error, Unit]
-
 }
 
 @Singleton
@@ -53,7 +50,7 @@ class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       mongoComponent = mongo,
       collectionName = "amend-returns",
       domainFormat = SubmitReturnWrapper.format,
-      cacheTtl = config.underlying.get[FiniteDuration]("mongodb.amend-returns.expiry-time").value,
+      cacheTtl = config.get[FiniteDuration]("mongodb.amend-returns.expiry-time"),
       cacheTtlIndexName = "amend-return-cache-ttl",
       objName = "return"
     )
@@ -84,7 +81,6 @@ class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Co
         .toFuture()
         .map(_ => Right(()))
         .recover { case NonFatal(e) => Left(Error(e)) }
-
     })
 
   private def get(cgtReference: CgtReference): Future[Either[Error, List[SubmitReturnWrapper]]] =
@@ -98,5 +94,4 @@ class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Co
         logger.warn(s"Not returning draft returns: ${e.getMessage}")
         Left(Error(e))
       }
-
 }

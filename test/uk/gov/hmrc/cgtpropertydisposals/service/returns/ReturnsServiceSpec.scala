@@ -119,7 +119,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito
       .returns(EitherT.fromEither[Future](response))
 
   private def mockGetAvailableTaxYears =
-    mockTaxYearService.getAvailableTaxYears().returns(List(2020, 2021, 2022))
+    mockTaxYearService.getAvailableTaxYears.returns(List(2020, 2021, 2022))
 
   private def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, DisplayReturn]) =
     mockReturnTransformerService
@@ -161,7 +161,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito
     cgtReference: CgtReference,
     submitReturnRequest: DesSubmitReturnRequest,
     agentReferenceNumber: Option[AgentReferenceNumber]
-  ) =
+  ): Unit =
     mockAuditService
       .sendEvent(
         "submitReturn",
@@ -182,7 +182,7 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito
     name: Either[TrustName, IndividualName],
     agentReferenceNumber: Option[AgentReferenceNumber],
     amendReturnData: Option[AmendReturnData]
-  ) =
+  ): Unit =
     mockAuditService
       .sendEvent(
         "submitReturnResponse",

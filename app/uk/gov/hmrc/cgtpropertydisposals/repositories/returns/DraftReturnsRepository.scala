@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 import cats.data.EitherT
 import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
 import org.mongodb.scala.model.Filters
 import org.mongodb.scala.model.Filters.{equal, or}
 import play.api.Configuration
@@ -63,7 +62,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       mongoComponent = mongo,
       collectionName = "draft-returns",
       domainFormat = DraftReturnWithCgtReferenceWrapper.format,
-      cacheTtl = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value,
+      cacheTtl = config.get[FiniteDuration]("mongodb.draft-returns.expiry-time"),
       cacheTtlIndexName = "draft-return-cache-ttl",
       objName = "return"
     )
