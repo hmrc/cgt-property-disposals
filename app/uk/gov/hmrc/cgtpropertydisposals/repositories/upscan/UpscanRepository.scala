@@ -81,7 +81,6 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
         .toFuture()
         .map(_ => Right(()))
         .recover { case NonFatal(e) => Left(Error(e)) }
-
     })
 
   override def select(

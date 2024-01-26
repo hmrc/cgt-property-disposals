@@ -101,14 +101,15 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
           .deleteMany(equal("return.cgtReference.value", cgtReference.value))
           .toFuture()
           .map { result =>
-            if (result.wasAcknowledged())
+            if (result.wasAcknowledged()) {
               Right(())
-            else
+            } else {
               Left(
                 Error(
                   s"WriteResult after trying to delete did not come back ok. Got write errors [$result]"
                 )
               )
+            }
           }
           .recover { case exception =>
             Left(Error(exception.getMessage))
@@ -119,21 +120,21 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
   override def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       preservingMdc {
-
         collection
           .deleteMany(
             or(draftReturnIds.map(id => equal("return.draftId", Codecs.toBson(id))): _*)
           )
           .toFuture()
           .map { result =>
-            if (result.wasAcknowledged())
+            if (result.wasAcknowledged()) {
               Right(())
-            else
+            } else {
               Left(
                 Error(
                   s"WriteResult after trying to delete did not come back ok. Got write errors [$result]"
                 )
               )
+            }
           }
           .recover { case exception =>
             Left(Error(exception.getMessage))
@@ -142,16 +143,18 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
     )
 
   private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] =
-    collection
-      .find(filter = Filters.equal(key, cgtReference.value))
-      .toFuture()
-      .map { json =>
-        Right(json.map(_.`return`).toList)
-      }
-      .recover { case NonFatal(e) =>
-        logger.warn(s"Not returning draft returns: ${e.getMessage}")
-        Left(Error(e))
-      }
+    preservingMdc {
+      collection
+        .find(filter = Filters.equal(key, cgtReference.value))
+        .toFuture()
+        .map { json =>
+          Right(json.map(_.`return`).toList)
+        }
+        .recover { case NonFatal(e) =>
+          logger.warn(s"Not returning draft returns: ${e.getMessage}")
+          Left(Error(e))
+        }
+    }
 }
 
 object DefaultDraftReturnsRepository {

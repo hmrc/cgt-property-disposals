@@ -19,21 +19,15 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.dms
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import org.bson.types.ObjectId
-import org.mongodb.scala.model.Indexes.ascending
-import org.mongodb.scala.model.{IndexModel, IndexOptions}
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.ToDo
 import uk.gov.hmrc.mongo.workitem._
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import java.time.{Duration, Instant}
-import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -54,8 +48,7 @@ trait DmsSubmissionRepo {
 @Singleton
 class DefaultDmsSubmissionRepo @Inject() (
   mongo: MongoComponent,
-  configuration: Configuration,
-  servicesConfig: ServicesConfig
+  configuration: Configuration
 )(implicit ec: ExecutionContext)
     extends WorkItemRepository[DmsSubmissionRequest](
       collectionName = "dms-submission-request-work-item",
@@ -72,22 +65,7 @@ class DefaultDmsSubmissionRepo @Inject() (
 
   private def inProgressRetryAfterProperty = "dms.submission-poller.in-progress-retry-after"
 
-  private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl")
-
   private val retryPeriod = inProgressRetryAfter.getSeconds
-
-  private val ttlIndexName: String = "receivedAtTime"
-
-  private val ttlIndex: IndexModel = IndexModel(
-    ascending("receivedAt"),
-    IndexOptions().name(ttlIndexName).expireAfter(ttl.toSeconds, TimeUnit.SECONDS)
-  )
-
-  def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
-    for {
-      result <- super.ensureIndexes()
-      _      <- CacheRepository.setTtlIndex(ttlIndex, ttlIndexName, ttl, collection, logger)
-    } yield result
 
   override def set(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]] =
     EitherT[Future, Error, WorkItem[DmsSubmissionRequest]](

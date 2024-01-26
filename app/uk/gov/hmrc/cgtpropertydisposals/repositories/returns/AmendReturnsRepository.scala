@@ -84,14 +84,16 @@ class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Co
     })
 
   private def get(cgtReference: CgtReference): Future[Either[Error, List[SubmitReturnWrapper]]] =
-    collection
-      .find(equal(key, cgtReference.value))
-      .toFuture()
-      .map[Either[Error, List[SubmitReturnWrapper]]] { result =>
-        Right(result.toList)
-      }
-      .recover { case NonFatal(e) =>
-        logger.warn(s"Not returning draft returns: ${e.getMessage}")
-        Left(Error(e))
-      }
+    preservingMdc {
+      collection
+        .find(equal(key, cgtReference.value))
+        .toFuture()
+        .map[Either[Error, List[SubmitReturnWrapper]]] { result =>
+          Right(result.toList)
+        }
+        .recover { case NonFatal(e) =>
+          logger.warn(s"Not returning draft returns: ${e.getMessage}")
+          Left(Error(e))
+        }
+    }
 }

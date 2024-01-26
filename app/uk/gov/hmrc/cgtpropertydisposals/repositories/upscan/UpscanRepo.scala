@@ -80,6 +80,5 @@ class DefaultUpscanRepo @Inject() (mongo: MongoComponent, config: Configuration)
         .toFuture()
         .map(_ => Right(()))
         .recover { case NonFatal(e) => Left(Error(e)) }
-
     })
 }
