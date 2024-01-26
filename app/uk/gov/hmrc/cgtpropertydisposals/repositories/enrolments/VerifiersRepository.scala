@@ -69,14 +69,15 @@ class DefaultVerifiersRepository @Inject() (mongo: MongoComponent)(implicit
           .insertOne(updateVerifiersRequest)
           .toFuture()
           .map[Either[Error, Unit]] { result =>
-            if (result.wasAcknowledged())
+            if (result.wasAcknowledged()) {
               Right(())
-            else
+            } else {
               Left(
                 Error(
                   s"Could not insert update verifier request into database: got write errors :$result"
                 )
               )
+            }
           }
           .recover { case exception =>
             Left(Error(exception))
@@ -96,5 +97,4 @@ class DefaultVerifiersRepository @Inject() (mongo: MongoComponent)(implicit
           }
       }
     )
-
 }

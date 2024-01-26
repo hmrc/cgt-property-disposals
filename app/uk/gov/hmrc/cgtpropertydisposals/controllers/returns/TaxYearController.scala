@@ -37,7 +37,6 @@ class TaxYearController @Inject() (
   cc: ControllerComponents
 ) extends BackendController(cc)
     with Logging {
-
   def taxYear(date: String): Action[AnyContent] =
     authenticate { _ =>
       Try(LocalDate.parse(date, DateTimeFormatter.ISO_DATE)).fold(
@@ -54,18 +53,16 @@ class TaxYearController @Inject() (
 
   def availableTaxYears(): Action[AnyContent] =
     authenticate { _ =>
-      val availableTaxYears = taxYearService.getAvailableTaxYears()
+      val availableTaxYears = taxYearService.getAvailableTaxYears
       Ok(Json.toJson(AvailableTaxYearsResponse(availableTaxYears)))
     }
 }
 
 object TaxYearController {
-
   final case class TaxYearResponse(value: Option[TaxYear])
 
   final case class AvailableTaxYearsResponse(value: List[Int])
 
   implicit val taxYearResponseFormat: OFormat[TaxYearResponse]                     = Json.format
   implicit val availableTaxYearsResponseFormat: OFormat[AvailableTaxYearsResponse] = Json.format
-
 }

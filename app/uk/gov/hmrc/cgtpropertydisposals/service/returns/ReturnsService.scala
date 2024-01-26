@@ -56,7 +56,6 @@ import scala.util.Try
 
 @ImplementedBy(classOf[DefaultReturnsService])
 trait ReturnsService {
-
   def submitReturn(returnRequest: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(implicit
     hc: HeaderCarrier,
     request: Request[_]
@@ -69,7 +68,6 @@ trait ReturnsService {
   def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, DisplayReturn]
-
 }
 
 @Singleton
@@ -87,7 +85,6 @@ class DefaultReturnsService @Inject() (
 )(implicit ec: ExecutionContext)
     extends ReturnsService
     with Logging {
-
   override def submitReturn(
     returnRequest: SubmitReturnRequest,
     representeeDetails: Option[RepresenteeDetails]
@@ -139,14 +136,14 @@ class DefaultReturnsService @Inject() (
     response.ppdReturnResponseDetails.chargeReference match {
       case Some(chargeReference) =>
         for {
-          desFinancialData <- getDesFinalcialData(cgtReference, fromDate, toDate)
+          desFinancialData <- getDesFinancialData(cgtReference, fromDate, toDate)
           charge           <- EitherT.fromEither[Future](findDeltaCharge(desFinancialData.financialTransactions, chargeReference))
         } yield charge
 
       case _ => EitherT.pure(None)
     }
 
-  private def getDesFinalcialData(
+  private def getDesFinancialData(
     cgtReference: CgtReference,
     fromDate: LocalDate,
     toDate: LocalDate
@@ -320,9 +317,9 @@ class DefaultReturnsService @Inject() (
     hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]] = {
     //Hardcoded values till we change design of the home page to switch between different tax years
-    lazy val taxYearList                  = taxYearService.getAvailableTaxYears()
+    lazy val taxYearList                  = taxYearService.getAvailableTaxYears
     lazy val listOfFutureDesFinancialData = taxYearList.map { year =>
-      getDesFinalcialData(
+      getDesFinancialData(
         cgtReference = cgtReference,
         fromDate = LocalDate.of(year, 4, 6),
         toDate = LocalDate.of(year + 1, 4, 5)
@@ -370,7 +367,7 @@ class DefaultReturnsService @Inject() (
     } yield returnSummaries
   }
 
-  def isNoFinancialDataResponse(response: HttpResponse): Boolean = {
+  private def isNoFinancialDataResponse(response: HttpResponse) = {
     lazy val hasNoReturnBody = response
       .parseJSON[DesErrorResponse]()
       .bimap(
@@ -485,11 +482,9 @@ class DefaultReturnsService @Inject() (
       "submit-return-response"
     )
   }
-
 }
 
 object DefaultReturnsService {
-
   final case class DesSubmitReturnResponseDetails(
     chargeReference: Option[String],
     amount: Option[BigDecimal],

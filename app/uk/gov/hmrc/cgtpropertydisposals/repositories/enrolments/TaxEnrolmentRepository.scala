@@ -64,12 +64,13 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
           .map[Either[Error, Unit]] { result =>
             if (result.wasAcknowledged()) {
               Right(())
-            } else
+            } else {
               Left(
                 Error(
                   s"Could not insert enrolment request into database: got write errors :$result"
                 )
               )
+            }
           }
           .recover { case exception =>
             Left(Error(exception))
@@ -121,16 +122,13 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
             options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
           )
           .toFutureOption()
-          .map { dbResult =>
-            dbResult match {
-              case Some(_) => Right(dbResult)
-              case None    => Left(Error("was not able to update"))
-            }
+          .map {
+            case dbResult @ Some(_) => Right(dbResult)
+            case None               => Left(Error("was not able to update"))
           }
           .recover { case exception =>
             Left(Error(exception.getMessage))
           }
       }
     )
-
 }
