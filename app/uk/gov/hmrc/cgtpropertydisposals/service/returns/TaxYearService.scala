@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils._
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
@@ -27,35 +26,32 @@ import java.time.LocalDate
 
 @ImplementedBy(classOf[TaxYearServiceImpl])
 trait TaxYearService {
-
   def getTaxYear(date: LocalDate): Option[TaxYear]
 
-  def getAvailableTaxYears(): List[Int]
-
+  def getAvailableTaxYears: List[Int]
 }
 
 @Singleton
 class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearService {
+  private val taxYearLiveDate      = config.underlying.getConfig("latest-tax-year-go-live-date")
+  private val taxYearLiveDateDay   = taxYearLiveDate.getInt("day")
+  private val taxYearLiveDateMonth = taxYearLiveDate.getInt("month")
+  private val taxYearLiveDateYear  = taxYearLiveDate.getInt("year")
 
-  val taxYearLiveDate      = config.underlying.getConfig("latest-tax-year-go-live-date")
-  val taxYearLiveDateDay   = taxYearLiveDate.get[Int]("day").value
-  val taxYearLiveDateMonth = taxYearLiveDate.get[Int]("month").value
-  val taxYearLiveDateYear  = taxYearLiveDate.get[Int]("year").value
+  private val latestTaxYearLiveDate = LocalDate.of(taxYearLiveDateYear, taxYearLiveDateMonth, taxYearLiveDateDay)
 
-  val latestTaxYearLiveDate: LocalDate = LocalDate.of(taxYearLiveDateYear, taxYearLiveDateMonth, taxYearLiveDateDay)
-
-  def taxYears: List[TaxYear] = {
-    val taxYearsList = config.underlying.get[List[TaxYear]]("tax-years").value
-    if (LocalDate.now.isBefore(latestTaxYearLiveDate))
+  private def taxYears = {
+    val taxYearsList = config.get[List[TaxYear]]("tax-years")
+    if (LocalDate.now.isBefore(latestTaxYearLiveDate)) {
       taxYearsList.drop(1)
-    else
+    } else {
       taxYearsList
+    }
   }
 
   override def getTaxYear(date: LocalDate): Option[TaxYear] =
-    taxYears.find(t => date < t.endDateExclusive && date >= (t.startDateInclusive))
+    taxYears.find(t => date < t.endDateExclusive && date >= t.startDateInclusive)
 
-  override def getAvailableTaxYears(): List[Int] =
+  override def getAvailableTaxYears: List[Int] =
     taxYears.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)
-
 }

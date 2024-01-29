@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
 import org.mongodb.scala.model.Filters.in
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import play.api.Configuration
@@ -26,7 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
@@ -35,7 +34,6 @@ import scala.util.control.NonFatal
 
 @ImplementedBy(classOf[DefaultUpscanRepository])
 trait UpscanRepository {
-
   def insert(
     upscanUpload: UpscanUpload
   ): EitherT[Future, Error, Unit]
@@ -52,26 +50,20 @@ trait UpscanRepository {
   def selectAll(
     uploadReference: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUploadWrapper]]
-
 }
 
 @Singleton
 class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configuration, clock: CurrentInstant)(implicit
   val ec: ExecutionContext
-) extends PlayMongoRepository[UpscanUploadWrapper](
+) extends CacheRepository[UpscanUploadWrapper](
       mongoComponent = mongo,
       collectionName = "upscan",
       domainFormat = UpscanUploadWrapper.format,
-      indexes = Seq()
+      cacheTtlIndexName = "upscan-cache-ttl",
+      objName = "upscan",
+      cacheTtl = config.get[FiniteDuration]("mongodb.upscan.expiry-time")
     )
-    with UpscanRepository
-    with CacheRepository[UpscanUploadWrapper] {
-
-  override val cacheTtlIndexName: String = "upscan-cache-ttl"
-
-  override val objName: String = "upscan"
-
-  val cacheTtl: FiniteDuration = config.underlying.get[FiniteDuration]("mongodb.upscan.expiry-time").value
+    with UpscanRepository {
 
   override def insert(
     upscanUpload: UpscanUpload
@@ -89,7 +81,6 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
         .toFuture()
         .map(_ => Right(()))
         .recover { case NonFatal(e) => Left(Error(e)) }
-
     })
 
   override def select(
@@ -114,7 +105,6 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
         .toFuture()
         .map(_ => Right(()))
         .recover { case NonFatal(e) => Left(Error(e)) }
-
     })
 
   override def selectAll(
@@ -126,13 +116,15 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
           .find(in("_id", uploadReference.map(_.value): _*))
           .toFuture()
           .map { a =>
-            if (a.isEmpty) Left(Error(s"Could not get ids value"))
-            else Right(a.toList)
+            if (a.isEmpty) {
+              Left(Error(s"Could not get ids value"))
+            } else {
+              Right(a.toList)
+            }
           }
           .recover { case exception =>
             Left(Error(exception))
           }
       }
     )
-
 }

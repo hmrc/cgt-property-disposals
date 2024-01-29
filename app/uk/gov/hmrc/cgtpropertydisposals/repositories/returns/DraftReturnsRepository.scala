@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 import cats.data.EitherT
 import cats.instances.future._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.syntax._
 import org.mongodb.scala.model.Filters
 import org.mongodb.scala.model.Filters.{equal, or}
 import play.api.Configuration
@@ -31,9 +30,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CacheRepository
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.{DraftReturnWithCgtReference, DraftReturnWithCgtReferenceWrapper}
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import java.time.Instant
@@ -59,19 +58,17 @@ trait DraftReturnsRepository {
 @Singleton
 class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   val ec: ExecutionContext
-) extends PlayMongoRepository[DraftReturnWithCgtReferenceWrapper](
+) extends CacheRepository[DraftReturnWithCgtReferenceWrapper](
       mongoComponent = mongo,
       collectionName = "draft-returns",
       domainFormat = DraftReturnWithCgtReferenceWrapper.format,
-      indexes = Seq()
+      cacheTtl = config.get[FiniteDuration]("mongodb.draft-returns.expiry-time"),
+      cacheTtlIndexName = "draft-return-cache-ttl",
+      objName = "return"
     )
-    with DraftReturnsRepository
-    with CacheRepository[DraftReturnWithCgtReferenceWrapper] {
+    with DraftReturnsRepository {
 
-  val cacheTtl: FiniteDuration  = config.underlying.get[FiniteDuration]("mongodb.draft-returns.expiry-time").value
-  val cacheTtlIndexName: String = "draft-return-cache-ttl"
-  val objName: String           = "return"
-  val key: String               = "return.cgtReference.value"
+  private val key = "return.cgtReference.value"
 
   override def fetch(cgtReference: CgtReference): EitherT[Future, Error, List[DraftReturn]] =
     EitherT(
@@ -104,14 +101,15 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
           .deleteMany(equal("return.cgtReference.value", cgtReference.value))
           .toFuture()
           .map { result =>
-            if (result.wasAcknowledged())
+            if (result.wasAcknowledged()) {
               Right(())
-            else
+            } else {
               Left(
                 Error(
                   s"WriteResult after trying to delete did not come back ok. Got write errors [$result]"
                 )
               )
+            }
           }
           .recover { case exception =>
             Left(Error(exception.getMessage))
@@ -122,21 +120,21 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
   override def deleteAll(draftReturnIds: List[UUID]): EitherT[Future, Error, Unit] =
     EitherT[Future, Error, Unit](
       preservingMdc {
-
         collection
           .deleteMany(
             or(draftReturnIds.map(id => equal("return.draftId", Codecs.toBson(id))): _*)
           )
           .toFuture()
           .map { result =>
-            if (result.wasAcknowledged())
+            if (result.wasAcknowledged()) {
               Right(())
-            else
+            } else {
               Left(
                 Error(
                   s"WriteResult after trying to delete did not come back ok. Got write errors [$result]"
                 )
               )
+            }
           }
           .recover { case exception =>
             Left(Error(exception.getMessage))
@@ -145,16 +143,18 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
     )
 
   private def get(cgtReference: CgtReference): Future[Either[Error, List[DraftReturnWithCgtReference]]] =
-    collection
-      .find(filter = Filters.equal(key, cgtReference.value))
-      .toFuture()
-      .map { json =>
-        Right(json.map(_.`return`).toList)
-      }
-      .recover { case NonFatal(e) =>
-        logger.warn(s"Not returning draft returns: ${e.getMessage}")
-        Left(Error(e))
-      }
+    preservingMdc {
+      collection
+        .find(filter = Filters.equal(key, cgtReference.value))
+        .toFuture()
+        .map { json =>
+          Right(json.map(_.`return`).toList)
+        }
+        .recover { case NonFatal(e) =>
+          logger.warn(s"Not returning draft returns: ${e.getMessage}")
+          Left(Error(e))
+        }
+    }
 }
 
 object DefaultDraftReturnsRepository {

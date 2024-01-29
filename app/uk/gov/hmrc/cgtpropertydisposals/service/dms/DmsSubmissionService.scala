@@ -22,10 +22,8 @@ import cats.instances.future._
 import cats.instances.list._
 import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import configs.ConfigReader
-import configs.syntax._
 import org.bson.types.ObjectId
-import play.api.Configuration
+import play.api.{ConfigLoader, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
@@ -71,17 +69,14 @@ class DefaultDmsSubmissionService @Inject() (
     extends DmsSubmissionService
     with Logging {
 
-  def getDmsMetaConfig[A : ConfigReader](key: String): A =
-    configuration.underlying
-      .get[A](s"dms.$key")
-      .value
+  private def getDmsMetaConfig[A](key: String)(implicit loader: ConfigLoader[A]) =
+    configuration.get[A](s"dms.$key")
 
-  val queue: String            = getDmsMetaConfig[String]("queue-name")
-  val b64businessArea: String  = getDmsMetaConfig[String]("b64-business-area")
-  val businessArea             = new String(Base64.getDecoder.decode(b64businessArea))
-  val backScanEnabled: Boolean = getDmsMetaConfig[Boolean]("backscan.enabled")
+  private val queue           = getDmsMetaConfig[String]("queue-name")
+  private val b64businessArea = getDmsMetaConfig[String]("b64-business-area")
+  private val businessArea    = new String(Base64.getDecoder.decode(b64businessArea))
+  private val backScanEnabled = getDmsMetaConfig[Boolean]("backscan.enabled")
 
-  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def submitToDms(
     html: B64Html,
     formBundleId: String,
@@ -143,5 +138,4 @@ class DefaultDmsSubmissionService @Inject() (
 
   override def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean] =
     dmsSubmissionRepo.setResultStatus(id, status)
-
 }

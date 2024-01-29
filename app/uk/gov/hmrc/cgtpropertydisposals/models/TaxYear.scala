@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import configs.ConfigReader
-import configs.syntax._
+import com.typesafe.config.Config
+import play.api.ConfigLoader
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 import java.time.LocalDate
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 final case class TaxYear(
   startDateInclusive: LocalDate,
@@ -40,43 +41,41 @@ final case class TaxYear(
 )
 
 object TaxYear {
+  implicit val configLoader: ConfigLoader[List[TaxYear]] = (config: Config, key: String) =>
+    config.getConfigList(key).asScala.toList.map { ty =>
+      val startYear                              = ty.getInt("start-year")
+      val annualExemptAmountGeneral              = ty.getInt("annual-exempt-amount.general")
+      val annualExemptAmountNonVulnerableTrust   = ty.getInt(
+        "annual-exempt-amount.non-vulnerable-trust"
+      )
+      val personalAllowance                      = ty.getInt("personal-allowance")
+      val higherIncomePersonalAllowanceThreshold = ty.getInt(
+        "higher-income-personal-allowance-threshold"
+      )
+      val maxPersonalAllowance                   = ty.getInt("max-personal-allowance")
 
-  implicit val configs: ConfigReader[TaxYear] = ConfigReader.from { case (config, key) =>
-    for {
-      startYear                              <- config.get[Int](s"$key.start-year")
-      annualExemptAmountGeneral              <- config.get[BigDecimal](s"$key.annual-exempt-amount.general")
-      annualExemptAmountNonVulnerableTrust   <- config.get[BigDecimal](
-                                                  s"$key.annual-exempt-amount.non-vulnerable-trust"
-                                                )
-      personalAllowance                      <- config.get[BigDecimal](s"$key.personal-allowance")
-      higherIncomePersonalAllowanceThreshold <- config.get[BigDecimal](
-                                                  s"$key.higher-income-personal-allowance-threshold"
-                                                )
-      maxPersonalAllowance                   <- config.get[BigDecimal](s"$key.max-personal-allowance")
-
-      incomeTaxHigherRateThreshold    <- config.get[BigDecimal](s"$key.income-tax-higher-rate-threshold")
-      cgtRateLowerBandResidential     <- config.get[BigDecimal](s"$key.cgt-rates.lower-band-residential")
-      cgtRateLowerBandNonResidential  <- config.get[BigDecimal](s"$key.cgt-rates.lower-band-non-residential")
-      cgtRateHigherBandResidential    <- config.get[BigDecimal](s"$key.cgt-rates.higher-band-residential")
-      cgtRateHigherBandNonResidential <- config.get[BigDecimal](s"$key.cgt-rates.higher-band-non-residential")
-      maxLettingsReliefAmount         <- config.get[BigDecimal](s"$key.lettings-relief-max-threshold")
-    } yield TaxYear(
-      LocalDate.of(startYear, 4, 6),
-      LocalDate.of(startYear + 1, 4, 6),
-      AmountInPence.fromPounds(annualExemptAmountGeneral),
-      AmountInPence.fromPounds(annualExemptAmountNonVulnerableTrust),
-      AmountInPence.fromPounds(personalAllowance),
-      AmountInPence.fromPounds(maxPersonalAllowance),
-      AmountInPence.fromPounds(higherIncomePersonalAllowanceThreshold),
-      AmountInPence.fromPounds(incomeTaxHigherRateThreshold),
-      cgtRateLowerBandResidential,
-      cgtRateLowerBandNonResidential,
-      cgtRateHigherBandResidential,
-      cgtRateHigherBandNonResidential,
-      AmountInPence.fromPounds(maxLettingsReliefAmount)
-    )
-  }
+      val incomeTaxHigherRateThreshold    = ty.getInt("income-tax-higher-rate-threshold")
+      val cgtRateLowerBandResidential     = ty.getInt("cgt-rates.lower-band-residential")
+      val cgtRateLowerBandNonResidential  = ty.getInt("cgt-rates.lower-band-non-residential")
+      val cgtRateHigherBandResidential    = ty.getInt("cgt-rates.higher-band-residential")
+      val cgtRateHigherBandNonResidential = ty.getInt("cgt-rates.higher-band-non-residential")
+      val maxLettingsReliefAmount         = ty.getInt("lettings-relief-max-threshold")
+      TaxYear(
+        LocalDate.of(startYear, 4, 6),
+        LocalDate.of(startYear + 1, 4, 6),
+        AmountInPence.fromPounds(annualExemptAmountGeneral),
+        AmountInPence.fromPounds(annualExemptAmountNonVulnerableTrust),
+        AmountInPence.fromPounds(personalAllowance),
+        AmountInPence.fromPounds(maxPersonalAllowance),
+        AmountInPence.fromPounds(higherIncomePersonalAllowanceThreshold),
+        AmountInPence.fromPounds(incomeTaxHigherRateThreshold),
+        cgtRateLowerBandResidential,
+        cgtRateLowerBandNonResidential,
+        cgtRateHigherBandResidential,
+        cgtRateHigherBandNonResidential,
+        AmountInPence.fromPounds(maxLettingsReliefAmount)
+      )
+    }
 
   implicit val format: OFormat[TaxYear] = Json.format
-
 }

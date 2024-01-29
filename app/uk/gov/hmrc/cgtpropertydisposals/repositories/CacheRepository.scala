@@ -21,9 +21,10 @@ import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.Filters.{equal, in}
 import org.mongodb.scala.model._
 import org.slf4j.Logger
+import play.api.libs.json.Format
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturnsRepository.DraftReturnWithCgtReferenceWrapper
-import uk.gov.hmrc.mongo.play.json.Codecs.logger
+import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
@@ -32,28 +33,29 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success}
 import scala.util.chaining.scalaUtilChainingOps
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
-trait CacheRepository[A] extends PlayMongoRepository[A] {
-
-  implicit val ec: ExecutionContext
-
-  val cacheTtl: FiniteDuration
-  val cacheTtlIndexName: String
-  val objName: String
-
-  private lazy val cacheTtlIndex = IndexModel(
-    ascending("lastUpdated"),
-    IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
-  )
-
-  def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[String]] =
-    for {
-      result <- super.ensureIndexes()
-      _      <- CacheRepository.setTtlIndex(cacheTtlIndex, cacheTtlIndexName, cacheTtl, collection, logger)
-    } yield result
+class CacheRepository[A : ClassTag](
+  mongoComponent: MongoComponent,
+  collectionName: String,
+  domainFormat: Format[A],
+  cacheTtl: FiniteDuration,
+  cacheTtlIndexName: String,
+  objName: String
+)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository[A](
+      mongoComponent,
+      collectionName,
+      domainFormat,
+      indexes = Seq(
+        IndexModel(
+          ascending("lastUpdated"),
+          IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)
+        )
+      )
+    ) {
 
   def set(
     id: String,
@@ -74,10 +76,7 @@ trait CacheRepository[A] extends PlayMongoRepository[A] {
         )
         .toFuture()
         .map { result =>
-          if (result == result)
-            Right(())
-          else
-            Left(Error(s"Could not store draft return: $result"))
+          if (result == result) Right(()) else Left(Error(s"Could not store draft return: $result"))
         }
         .recover { case NonFatal(e) =>
           Left(Error(e))
@@ -131,18 +130,20 @@ object CacheRepository {
     collection: MongoCollection[A],
     logger: Logger
   )(implicit ex: ExecutionContext): Future[String] =
-    (for {
-      indexes   <- collection.listIndexes().toFuture()
-      maybeIndex = indexes.find(index => index.contains(ttlIndexName) && !index.containsValue(ttl))
-      _         <- maybeIndex match {
-                     case Some(i) =>
-                       logger.warn(s"dropping $i as ttl value is incorrect for index")
-                       collection.dropIndex(ttlIndexName).toFuture().map(_ => ())
-                     case None    => Future.successful(())
-                   }
-      result    <- collection.createIndex(ttlIndex.getKeys).toFuture()
-    } yield result).transform(_.tap {
-      case Success(e) => logger.warn("Could not ensure ttl index", e)
-      case Failure(_) => logger.info("Successfully ensured ttl index")
-    })
+    preservingMdc {
+      (for {
+        indexes   <- collection.listIndexes().toFuture()
+        maybeIndex = indexes.find(index => index.contains(ttlIndexName) && !index.containsValue(ttl))
+        _         <- maybeIndex match {
+                       case Some(i) =>
+                         logger.warn(s"dropping $i as ttl value is incorrect for index")
+                         collection.dropIndex(ttlIndexName).toFuture().map(_ => ())
+                       case None    => Future.successful(())
+                     }
+        result    <- collection.createIndex(ttlIndex.getKeys).toFuture()
+      } yield result).transform(_.tap {
+        case Success(e) => logger.warn("Could not ensure ttl index", e)
+        case Failure(_) => logger.info("Successfully ensured ttl index")
+      })
+    }
 }
