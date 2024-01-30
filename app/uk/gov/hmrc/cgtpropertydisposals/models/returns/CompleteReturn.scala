@@ -139,21 +139,21 @@ object CompleteReturn {
     EitherFormat.eitherFormat[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]
 
   implicit val format: OFormat[CompleteReturn] = {
-    singleDisposalTriageFormat
-    multipleDisposalsTriageFormat
-    ukAddressFormat
-    examplePropertyDetailsFormat
-    disposalDetailsFormat
-    disposalDetailsFormat
-    acquisitionDetailsFormat
-    reliefDetailsFormat
-    exemptionAndLossesFormat
-    nonCalculatedYearToDateLiabilityFormat
-    calculatedYearToDateLiabilityFormat
-    supportingDocumentsAnswersFormat
-    representeeAnswersFormat
-    exampleCompanyDetailsAnswersFormat
-    mixedUsePropertyDetailsAnswersFormat
+    val _ = singleDisposalTriageFormat
+    val _ = multipleDisposalsTriageFormat
+    val _ = ukAddressFormat
+    val _ = examplePropertyDetailsFormat
+    val _ = disposalDetailsFormat
+    val _ = disposalDetailsFormat
+    val _ = acquisitionDetailsFormat
+    val _ = reliefDetailsFormat
+    val _ = exemptionAndLossesFormat
+    val _ = nonCalculatedYearToDateLiabilityFormat
+    val _ = calculatedYearToDateLiabilityFormat
+    val _ = supportingDocumentsAnswersFormat
+    val _ = representeeAnswersFormat
+    val _ = exampleCompanyDetailsAnswersFormat
+    val _ = mixedUsePropertyDetailsAnswersFormat
     derived.oformat()
   }
 }
