@@ -36,6 +36,5 @@ object ReliefDetailsAnswers {
     otherReliefs: Option[OtherReliefsOption]
   ) extends ReliefDetailsAnswers
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ReliefDetailsAnswers] = derived.oformat()
 }

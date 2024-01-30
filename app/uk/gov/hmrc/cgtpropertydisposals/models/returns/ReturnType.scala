@@ -29,7 +29,6 @@ object ReturnType {
 
   case object AmendedReturn extends ReturnType
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ReturnType] = derived.oformat()
 
 }

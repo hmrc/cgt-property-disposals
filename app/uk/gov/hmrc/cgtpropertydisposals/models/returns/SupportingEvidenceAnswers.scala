@@ -68,7 +68,6 @@ object SupportingEvidenceAnswers {
 
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[SupportingEvidenceAnswers] = derived.oformat()
 
 }

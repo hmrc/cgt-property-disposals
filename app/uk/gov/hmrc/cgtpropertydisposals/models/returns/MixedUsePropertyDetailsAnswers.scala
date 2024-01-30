@@ -23,7 +23,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 sealed trait MixedUsePropertyDetailsAnswers extends Product with Serializable
 
-@SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
 object MixedUsePropertyDetailsAnswers {
 
   final case class IncompleteMixedUsePropertyDetailsAnswers(

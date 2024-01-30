@@ -36,7 +36,6 @@ object DisposalDetailsAnswers {
     disposalFees: AmountInPence
   ) extends DisposalDetailsAnswers
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[DisposalDetailsAnswers] = derived.oformat[DisposalDetailsAnswers]()
 
 }

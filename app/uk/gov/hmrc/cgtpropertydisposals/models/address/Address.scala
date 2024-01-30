@@ -47,7 +47,6 @@ object Address {
 
   // the format instance using the play-json-derived-codecs library wraps
   // the case class inside a JsObject with case class type name as the key
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[Address] = derived.oformat()
 
   def toAddressDetails(address: Address): AddressDetails =

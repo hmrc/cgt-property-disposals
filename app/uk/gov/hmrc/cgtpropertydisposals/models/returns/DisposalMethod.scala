@@ -37,7 +37,6 @@ object DisposalMethod {
       case DesDisposalType.Other  => Other
     }
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[DisposalMethod] = derived.oformat()
 
 }

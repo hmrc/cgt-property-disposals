@@ -102,7 +102,6 @@ object DraftReturn {
 
   implicit val ukAddressFormat: OFormat[UkAddress] = Json.format[UkAddress]
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[DraftReturn] = derived.oformat()
 
 }
