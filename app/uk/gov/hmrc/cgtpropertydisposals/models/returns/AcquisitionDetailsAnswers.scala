@@ -44,7 +44,6 @@ object AcquisitionDetailsAnswers {
     shouldUseRebase: Boolean
   ) extends AcquisitionDetailsAnswers
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[AcquisitionDetailsAnswers] = derived.oformat()
 
 }

@@ -39,7 +39,6 @@ object OtherReliefsOption {
       }
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[OtherReliefsOption] = derived.oformat()
 
 }

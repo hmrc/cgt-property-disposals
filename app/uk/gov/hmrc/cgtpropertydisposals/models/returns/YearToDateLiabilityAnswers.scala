@@ -90,7 +90,6 @@ object YearToDateLiabilityAnswers {
 
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[YearToDateLiabilityAnswers] = derived.oformat()
 
 }

@@ -42,7 +42,6 @@ object ShareOfProperty {
     else if (percentage === BigDecimal("100")) Full
     else Other(percentage)
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[ShareOfProperty] = derived.oformat()
 
 }

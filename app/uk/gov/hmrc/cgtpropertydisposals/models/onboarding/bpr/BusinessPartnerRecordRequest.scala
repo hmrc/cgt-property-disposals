@@ -43,7 +43,6 @@ object BusinessPartnerRecordRequest {
   implicit val trnSautrFormat: Format[Either[TRN, SAUTR]]   =
     EitherFormat.eitherFormat[TRN, SAUTR]
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[BusinessPartnerRecordRequest] = derived.oformat()
 
   implicit class BusinessPartnerRecordRequestOps(private val r: BusinessPartnerRecordRequest) extends AnyVal {

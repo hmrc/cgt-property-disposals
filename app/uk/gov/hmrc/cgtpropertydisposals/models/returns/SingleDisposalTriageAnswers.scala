@@ -46,7 +46,6 @@ object SingleDisposalTriageAnswers {
     completionDate: CompletionDate
   ) extends SingleDisposalTriageAnswers
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[SingleDisposalTriageAnswers] = derived.oformat()
 
 }

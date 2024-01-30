@@ -31,7 +31,6 @@ object IndividualUserType {
 
   case object PersonalRepresentativeInPeriodOfAdmin extends IndividualUserType
 
-  @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
   implicit val format: OFormat[IndividualUserType] = derived.oformat()
 
 }
