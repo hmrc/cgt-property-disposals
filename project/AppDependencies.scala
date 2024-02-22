@@ -12,11 +12,13 @@ object AppDependencies {
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapPlay28Version,
     "org.typelevel"                           %% "cats-core"                               % "2.9.0",
     "org.julienrf"                            %% "play-json-derived-codecs"                % "10.1.0",
+    "com.github.pureconfig"                   %% "pureconfig"                              % "0.17.5",
     "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer"               % "20191001.1",
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion
   )
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
+    "uk.gov.hmrc"                %% "tax-year"                      % "4.0.0"                % scope,
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapPlay28Version % scope,
     "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion           % scope,
     "org.mockito"                %% "mockito-scala"                 % "1.17.12"              % scope,

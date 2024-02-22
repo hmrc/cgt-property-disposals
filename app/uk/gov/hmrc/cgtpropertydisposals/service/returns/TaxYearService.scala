@@ -19,10 +19,13 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.Configuration
+import pureconfig.ConfigSource
+import pureconfig.generic.auto._
 import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils._
-import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
+import uk.gov.hmrc.cgtpropertydisposals.models.{LatestTaxYearGoLiveDate, TaxYear, TaxYearConfig}
 
 import java.time.LocalDate
+import scala.jdk.CollectionConverters._
 
 @ImplementedBy(classOf[TaxYearServiceImpl])
 trait TaxYearService {
@@ -33,15 +36,21 @@ trait TaxYearService {
 
 @Singleton
 class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearService {
-  private val taxYearLiveDate      = config.underlying.getConfig("latest-tax-year-go-live-date")
-  private val taxYearLiveDateDay   = taxYearLiveDate.getInt("day")
-  private val taxYearLiveDateMonth = taxYearLiveDate.getInt("month")
-  private val taxYearLiveDateYear  = taxYearLiveDate.getInt("year")
+  private val taxYearLiveDate: LatestTaxYearGoLiveDate =
+    ConfigSource
+      .fromConfig(config.underlying.getConfig("latest-tax-year-go-live-date"))
+      .loadOrThrow[LatestTaxYearGoLiveDate]
 
-  private val latestTaxYearLiveDate = LocalDate.of(taxYearLiveDateYear, taxYearLiveDateMonth, taxYearLiveDateDay)
+  private val latestTaxYearLiveDate: LocalDate =
+    LocalDate.of(taxYearLiveDate.year, taxYearLiveDate.month, taxYearLiveDate.day)
 
-  private def taxYears = {
-    val taxYearsList = config.get[List[TaxYear]]("tax-years")
+  private def taxYearsConfig: List[TaxYearConfig] = {
+    val taxYearsList = config.underlying
+      .getConfigList("tax-years")
+      .asScala
+      .map(ConfigSource.fromConfig(_).loadOrThrow[TaxYearConfig])
+      .toList
+
     if (LocalDate.now.isBefore(latestTaxYearLiveDate)) {
       taxYearsList.drop(1)
     } else {
@@ -50,8 +59,8 @@ class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearServic
   }
 
   override def getTaxYear(date: LocalDate): Option[TaxYear] =
-    taxYears.find(t => date < t.endDateExclusive && date >= t.startDateInclusive)
+    taxYearsConfig.find(t => date < t.endDateExclusive && date >= t.startDateInclusive).map(_.as[TaxYear])
 
   override def getAvailableTaxYears: List[Int] =
-    taxYears.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)
+    taxYearsConfig.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)
 }

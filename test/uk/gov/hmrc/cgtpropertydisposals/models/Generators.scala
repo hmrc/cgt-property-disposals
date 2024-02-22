@@ -316,6 +316,8 @@ trait ReturnsGen extends LowerPriorityReturnsGen {
 
   implicit val taxYearGen: Gen[TaxYear] = gen[TaxYear]
 
+  implicit val taxYearConfigGen: Gen[TaxYearConfig] = gen[TaxYearConfig]
+
   implicit val disposalDateGen: Gen[DisposalDate] = gen[DisposalDate]
 
   implicit val calculateCgtTaxDueRequestGen: Gen[CalculateCgtTaxDueRequest] =

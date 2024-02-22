@@ -68,8 +68,7 @@ class DmsSubmissionRepoFailureSpec extends AnyWordSpec with Matchers with MongoS
 
     "getting" should {
       "return an error" in {
-        val dmsSubmissionRequest = sample[DmsSubmissionRequest]
-        await(repository.set(dmsSubmissionRequest).value).isLeft shouldBe true
+        await(repository.get.value).isLeft shouldBe true
       }
     }
 
