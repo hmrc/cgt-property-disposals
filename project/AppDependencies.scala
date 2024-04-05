@@ -20,7 +20,7 @@ object AppDependencies {
     "uk.gov.hmrc"                %% "tax-year"                      % "4.0.0"          % scope,
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion % scope,
     "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion     % scope,
-    "org.mockito"                %% "mockito-scala"                 % "1.17.12"        % scope,
+    "org.mockito"                %% "mockito-scala"                 % "1.17.31"        % scope,
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"     % "1.2.5"          % scope,
     "org.scalatestplus"          %% "scalacheck-1-17"               % "3.2.17.0"       % scope,
     "com.eclipsesource"          %% "play-json-schema-validator"    % "0.9.5"          % scope,
