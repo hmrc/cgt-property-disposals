@@ -1,14 +1,14 @@
 import sbt.*
 
 object AppDependencies {
-  val akkaVersion  = "2.6.21"
-  val playVersion  = "play-28"
-  val mongoVersion = "1.3.0"
+  private val akkaVersion  = "2.6.21"
+  private val playVersion  = "play-28"
+  private val mongoVersion = "1.3.0"
 
-  private val bootstrapPlay28Version = "7.23.0"
+  private val bootstrapVersion = "7.23.0"
 
   val compile: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapPlay28Version,
+    "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapVersion,
     "org.typelevel"                           %% "cats-core"                               % "2.9.0",
     "org.julienrf"                            %% "play-json-derived-codecs"                % "10.1.0",
     "com.github.pureconfig"                   %% "pureconfig"                              % "0.17.5",
@@ -17,13 +17,13 @@ object AppDependencies {
   )
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"                %% "tax-year"                      % "4.0.0"                % scope,
-    "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapPlay28Version % scope,
-    "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion           % scope,
-    "org.mockito"                %% "mockito-scala"                 % "1.17.12"              % scope,
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"     % "1.2.5"                % scope,
-    "org.scalatestplus"          %% "scalacheck-1-17"               % "3.2.16.0"             % scope,
-    "com.eclipsesource"          %% "play-json-schema-validator"    % "0.9.5"                % scope,
-    "com.typesafe.akka"          %% "akka-testkit"                  % akkaVersion            % scope
+    "uk.gov.hmrc"                %% "tax-year"                      % "4.0.0"          % scope,
+    "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion % scope,
+    "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion     % scope,
+    "org.mockito"                %% "mockito-scala"                 % "1.17.12"        % scope,
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"     % "1.2.5"          % scope,
+    "org.scalatestplus"          %% "scalacheck-1-17"               % "3.2.17.0"       % scope,
+    "com.eclipsesource"          %% "play-json-schema-validator"    % "0.9.5"          % scope,
+    "com.typesafe.akka"          %% "akka-testkit"                  % akkaVersion      % scope
   )
 }
