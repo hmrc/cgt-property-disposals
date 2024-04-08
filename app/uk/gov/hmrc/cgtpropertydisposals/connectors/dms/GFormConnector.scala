@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
-import akka.stream.scaladsl.{FileIO, Source}
-import akka.util.ByteString
 import cats.data.EitherT
-import cats.implicits._
+import cats.implicits.toTraverseOps
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import org.apache.pekko.stream.IOResult
+import org.apache.pekko.stream.scaladsl.{FileIO, Source}
+import org.apache.pekko.util.ByteString
 import play.api.http.DefaultWriteables
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.mvc.MultipartFormData
 import play.api.mvc.MultipartFormData.FilePart
-import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector._
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector.{convertToPayload, createFormData, makeTemporaryFiles}
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsSubmissionPayload, EnvelopeId, FileAttachment}
@@ -33,7 +34,7 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.io.File
-import java.nio.file._
+import java.nio.file.{Files, Path}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -50,18 +51,14 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
 ) extends DefaultWriteables
     with GFormConnector
     with Logging {
+  private val gformUrl = s"${servicesConfig.baseUrl("gform")}/gform/dms/submit-with-attachments"
 
-  val gformUrl: String = s"${servicesConfig.baseUrl("gform")}/gform/dms/submit-with-attachments"
-
-  @SuppressWarnings(
-    Array("org.wartremover.warts.Var", "org.wartremover.warts.Any", "org.wartremover.warts.PublicInference")
-  )
   override def submitToDms(
     dmsSubmissionPayload: DmsSubmissionPayload,
     id: UUID
   ): EitherT[Future, Error, EnvelopeId] = {
 
-    def sendFormdata(
+    def sendFormData(
       multipartFormData: Source[MultipartFormData.Part[Source[ByteString, _]], _]
     ): EitherT[Future, Error, EnvelopeId] = {
       logger.info("Sending dms payload to GFORM service...")
@@ -87,28 +84,23 @@ class GFormConnectorImpl @Inject() (playHttpClient: PlayHttpClient, servicesConf
     }
 
     for {
-      fileparts  <- EitherT.fromOption[Future](
+      fileParts  <- EitherT.fromOption[Future](
                       makeTemporaryFiles(dmsSubmissionPayload, id),
                       Error("Could not construct temporary files")
                     )
-      formdata   <- EitherT.pure[Future, Error](createFormData(dmsSubmissionPayload, fileparts))
-      payload    <- EitherT.pure[Future, Error](convertToPayload(formdata))
-      envelopeId <- sendFormdata(payload)
+      formData   <- EitherT.pure[Future, Error](createFormData(dmsSubmissionPayload, fileParts))
+      payload    <- EitherT.pure[Future, Error](convertToPayload(formData))
+      envelopeId <- sendFormData(payload)
     } yield envelopeId
-
   }
 
-  private def is4xx(status: Int): Boolean = status >= 400 && status < 500
+  private def is4xx(status: Int) = status >= 400 && status < 500
 
-  private def is5xx(status: Int): Boolean = status >= 500 && status < 600
+  private def is5xx(status: Int) = status >= 500 && status < 600
 }
 
-@SuppressWarnings(
-  Array("org.wartremover.warts.Var", "org.wartremover.warts.Any", "org.wartremover.warts.PublicInference")
-)
 object GFormConnector {
-
-  private def suffix(contentType: Option[String]): String =
+  private def suffix(contentType: Option[String]) =
     contentType match {
       case Some("application/vnd.ms-excel")                                                => ".xls"
       case Some("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")       => ".xlsx"
@@ -124,13 +116,13 @@ object GFormConnector {
       case None                                                                            => ".txt"
     }
 
-  def createTempFile(prefix: String, suffix: String, data: Array[Byte]): Option[Path] =
+  private def createTempFile(prefix: String, suffix: String, data: Array[Byte]) =
     Try {
       val tmpFile = File.createTempFile(prefix, suffix)
       Files.write(tmpFile.toPath, data)
     }.toOption
 
-  def createFilePart(attachment: FileAttachment, path: Path, id: UUID): FilePart[TemporaryFile] =
+  private def createFilePart(attachment: FileAttachment, path: Path, id: UUID) =
     FilePart(
       key = id.toString,
       filename = attachment.filename,
@@ -138,8 +130,7 @@ object GFormConnector {
       ref = SingletonTemporaryFileCreator.create(path)
     )
 
-  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-  def processAttachment(attachment: FileAttachment, id: UUID): Option[FilePart[TemporaryFile]] = {
+  private def processAttachment(attachment: FileAttachment, id: UUID) = {
     val file         = File.createTempFile("s3-file-tmp-file-prefix", ".tmp", new File("/tmp"))
     file.deleteOnExit()
     val outputStream = java.nio.file.Files.newOutputStream(file.toPath)
@@ -150,8 +141,10 @@ object GFormConnector {
     }
   }
 
-  def filePartToByteString(fileparts: Seq[FilePart[TemporaryFile]]): Seq[FilePart[Source[ByteString, Any]]] =
-    fileparts.map(file => file.copy(ref = FileIO.fromPath(file.ref.path): Source[ByteString, Any]))
+  private def filePartToByteString(
+    fileParts: Seq[FilePart[TemporaryFile]]
+  ): Seq[FilePart[Source[ByteString, Future[IOResult]]]] =
+    fileParts.map(file => file.copy(ref = FileIO.fromPath(file.ref.path), refToBytes = _ => None))
 
   def makeTemporaryFiles(
     dmsSubmissionPayload: DmsSubmissionPayload,
@@ -186,5 +179,4 @@ object GFormConnector {
     Source.apply(formData.dataParts.flatMap { case (key, values) =>
       values.map(value => MultipartFormData.DataPart(key, value): MultipartFormData.Part[Source[ByteString, _]])
     } ++ filePartToByteString(formData.files))
-
 }

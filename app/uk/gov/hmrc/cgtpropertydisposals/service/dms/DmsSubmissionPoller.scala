@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import akka.actor.ActorSystem
 import cats.data.EitherT
 import cats.instances.future._
 import cats.instances.int._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import org.apache.pekko.actor.ActorSystem
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller.OnCompleteHandler
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -109,11 +109,9 @@ class DmsSubmissionPoller @Inject() (
 
     result.value.onComplete(_ => onCompleteHandler.onComplete())
   }
-
 }
 
 object DmsSubmissionPoller {
-
   @ImplementedBy(classOf[DefaultOnCompleteHandler])
   trait OnCompleteHandler {
     def onComplete(): Unit
@@ -123,5 +121,4 @@ object DmsSubmissionPoller {
   class DefaultOnCompleteHandler extends OnCompleteHandler {
     override def onComplete(): Unit = ()
   }
-
 }

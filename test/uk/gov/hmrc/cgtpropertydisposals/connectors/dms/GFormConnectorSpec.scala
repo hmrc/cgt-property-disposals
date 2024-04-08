@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
-import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
+import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchersSugar.*
 import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
@@ -43,7 +43,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
-
   private val config = Configuration(
     ConfigFactory.parseString(
       """

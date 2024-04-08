@@ -20,8 +20,7 @@ import com.codahale.metrics.{Counter, Timer}
 import org.mockito.IdiomaticMockito
 
 object MockMetrics extends IdiomaticMockito {
-
-  val metrics: Metrics = new Metrics(mock[com.kenshoo.play.metrics.Metrics]) {
+  val metrics: Metrics = new Metrics(mock[com.codahale.metrics.MetricRegistry]) {
 
     override def timer(name: String): Timer = new Timer()
 

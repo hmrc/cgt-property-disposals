@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 
-import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
+import org.apache.pekko.util.ByteString
 import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.test.Helpers.await
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.S3Connector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
@@ -32,13 +32,9 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class UpscanServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito with CleanMongoCollectionSupport {
-
-  implicit val timeout: Timeout                           = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   private val mockUpscanRepository                        = mock[UpscanRepository]
   private val mockUpscanConnector                         = mock[S3Connector]

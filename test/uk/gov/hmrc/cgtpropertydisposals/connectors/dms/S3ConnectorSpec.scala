@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
-import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
+import org.apache.pekko.actor.ActorSystem
 import org.mockito.IdiomaticMockito
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -45,7 +45,6 @@ import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport with BeforeAndAfterAll {
-
   private val config = Configuration(
     ConfigFactory.parseString(
       """

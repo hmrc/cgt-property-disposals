@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import akka.actor.ActorSystem
 import com.google.inject.Inject
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.concurrent.CustomExecutionContext
 
 class DmsSubmissionPollerExecutionContext @Inject() (actorSystem: ActorSystem)

@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import akka.stream.Materializer
 import cats.data.EitherT
 import cats.instances.future._
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchersSugar.*
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Headers
@@ -48,7 +48,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class SubmitReturnsControllerSpec extends ControllerSpec {
-
   val draftReturnsService: DraftReturnsService      = mock[DraftReturnsService]
   val returnsService: ReturnsService                = mock[ReturnsService]
   val dmsService: DmsSubmissionService              = mock[DmsSubmissionService]

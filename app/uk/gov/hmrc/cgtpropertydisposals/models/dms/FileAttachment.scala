@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 
 final case class FileAttachment(
   key: String,

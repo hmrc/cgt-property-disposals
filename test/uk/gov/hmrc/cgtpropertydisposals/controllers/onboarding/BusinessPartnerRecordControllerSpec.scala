@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
-import akka.stream.Materializer
 import cats.data.EitherT
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchersSugar.*
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
@@ -41,7 +41,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class BusinessPartnerRecordControllerSpec extends ControllerSpec {
-
   private val bprService = mock[BusinessPartnerRecordService]
 
   override val overrideBindings: List[GuiceableModule] = List(bind[BusinessPartnerRecordService].toInstance(bprService))

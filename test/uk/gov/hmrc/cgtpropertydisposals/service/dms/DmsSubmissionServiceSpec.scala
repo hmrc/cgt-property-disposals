@@ -16,18 +16,18 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import akka.actor.ActorSystem
-import akka.util.{ByteString, Timeout}
 import cats.data.EitherT
 import cats.instances.future._
 import com.typesafe.config.ConfigFactory
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.util.ByteString
 import org.bson.types.ObjectId
 import org.mockito.ArgumentMatchersSugar.*
 import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import play.api.test.Helpers.await
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
@@ -45,14 +45,9 @@ import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed}
 import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with IdiomaticMockito {
-
-  implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
-
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
   private val mockGFormConnector    = mock[GFormConnector]

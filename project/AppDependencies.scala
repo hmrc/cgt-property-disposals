@@ -1,11 +1,10 @@
 import sbt.*
 
 object AppDependencies {
-  private val akkaVersion  = "2.6.21"
-  private val playVersion  = "play-28"
-  private val mongoVersion = "1.3.0"
+  private val playVersion  = "play-30"
+  private val mongoVersion = "1.4.0"
 
-  private val bootstrapVersion = "7.23.0"
+  private val bootstrapVersion = "8.5.0"
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapVersion,
@@ -24,6 +23,6 @@ object AppDependencies {
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"     % "1.2.5"          % scope,
     "org.scalatestplus"          %% "scalacheck-1-17"               % "3.2.17.0"       % scope,
     "com.eclipsesource"          %% "play-json-schema-validator"    % "0.9.5"          % scope,
-    "com.typesafe.akka"          %% "akka-testkit"                  % akkaVersion      % scope
+    "org.apache.pekko"           %% "pekko-testkit"                 % "1.0.2"          % scope
   )
 }
