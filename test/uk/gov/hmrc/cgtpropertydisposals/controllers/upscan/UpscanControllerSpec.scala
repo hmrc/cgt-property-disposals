@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.upscan
 
-import akka.stream.Materializer
 import cats.data.EitherT
+import org.apache.pekko.stream.Materializer
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
@@ -40,7 +40,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
-
   private val mockUpscanService = mock[UpscanService]
   private val fixedTimestamp    = LocalDateTime.of(2019, 9, 24, 15, 47, 20)
 

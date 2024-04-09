@@ -20,19 +20,16 @@ import com.codahale.metrics.{Counter, Timer}
 import com.google.inject.{Inject, Singleton}
 
 @Singleton
-class Metrics @Inject() (metrics: com.kenshoo.play.metrics.Metrics) {
+class Metrics @Inject() (metrics: com.codahale.metrics.MetricRegistry) {
+  protected def timer(name: String): Timer = metrics.timer(s"backend.$name")
 
-  protected def timer(name: String): Timer = metrics.defaultRegistry.timer(s"backend.$name")
-
-  protected def counter(name: String): Counter = metrics.defaultRegistry.counter(s"backend.$name")
+  protected def counter(name: String): Counter = metrics.counter(s"backend.$name")
 
   val registerWithIdTimer: Timer = timer("register-with-id.time")
 
   val registerWithIdErrorCounter: Counter = counter("register-with-id.errors.count")
 
   val registerWithoutIdTimer: Timer = timer("register-without-id.time")
-
-  val registerWithoutIdErrorCounter: Counter = counter("register-without-id.errors.count")
 
   val subscriptionCreateTimer: Timer = timer("subscription-create.time")
 
@@ -81,5 +78,4 @@ class Metrics @Inject() (metrics: com.kenshoo.play.metrics.Metrics) {
   val displayReturnTimer: Timer = timer("display-return.time")
 
   val displayReturnErrorCounter: Counter = counter("display-return.errors.count")
-
 }

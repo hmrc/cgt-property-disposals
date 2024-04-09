@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import org.bson.types.ObjectId
 import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
@@ -80,7 +80,6 @@ object Generators
     with DesReturnsGen
     with B64HtmlGen
     with FurtherReturnCalculationGen {
-
   def sample[A : ClassTag](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
 
@@ -153,7 +152,6 @@ trait IdGen {
   implicit val ninoGen: Gen[NINO] = gen[NINO]
 
   implicit val agentReferenceNumberGen: Gen[AgentReferenceNumber] = gen[AgentReferenceNumber]
-
 }
 
 trait B64HtmlGen {
@@ -170,14 +168,12 @@ trait NameGen {
   implicit val trustNameGen: Gen[TrustName] = gen[TrustName]
 
   implicit val contactNameGen: Gen[ContactName] = gen[ContactName]
-
 }
 
 trait EmailGen {
   this: GenUtils =>
 
   implicit val emailGen: Gen[Email] = gen[Email]
-
 }
 
 trait OnboardingGen {
@@ -194,7 +190,6 @@ trait OnboardingGen {
   implicit val desSubscriptionRequestGen: Gen[DesSubscriptionRequest] = gen[DesSubscriptionRequest]
 
   implicit val desUpdateRequestGen: Gen[DesSubscriptionUpdateRequest] = gen[DesSubscriptionUpdateRequest]
-
 }
 
 trait BusinessPartnerRecordGen {
@@ -206,7 +201,6 @@ trait BusinessPartnerRecordGen {
 
   implicit val individualBprRequestGen: Gen[IndividualBusinessPartnerRecordRequest] =
     gen[IndividualBusinessPartnerRecordRequest]
-
 }
 
 trait TaxEnrolmentGen {
@@ -215,7 +209,6 @@ trait TaxEnrolmentGen {
   implicit val taxEnrolmentRequestGen: Gen[TaxEnrolmentRequest] = gen[TaxEnrolmentRequest]
 
   implicit val updateVerifiersRequestGen: Gen[UpdateVerifiersRequest] = gen[UpdateVerifiersRequest]
-
 }
 
 trait DraftReturnGen extends LowerPriorityDraftReturnGen {
@@ -225,7 +218,6 @@ trait DraftReturnGen extends LowerPriorityDraftReturnGen {
 
   implicit val singleDisposalDraftReturnGen: Gen[DraftSingleDisposalReturn] =
     gen[DraftSingleDisposalReturn]
-
 }
 
 trait LowerPriorityDraftReturnGen {
@@ -241,7 +233,6 @@ trait LowerPriorityDraftReturnGen {
 
   implicit val singleMixedUseDraftReturnGen: Gen[DraftSingleMixedUseDisposalReturn] =
     gen[DraftSingleMixedUseDisposalReturn]
-
 }
 
 trait UpscanGen {
@@ -346,7 +337,6 @@ trait ReturnsGen extends LowerPriorityReturnsGen {
   implicit val amendReturnDataGen: Gen[AmendReturnData] = gen[AmendReturnData]
 
   implicit val completeReturnWithSummaryGen: Gen[CompleteReturnWithSummary] = gen[CompleteReturnWithSummary]
-
 }
 
 trait LowerPriorityReturnsGen {
@@ -368,7 +358,6 @@ trait LowerPriorityReturnsGen {
 
   implicit val completeMixedUsePropertyDetailsGen: Gen[CompleteMixedUsePropertyDetailsAnswers] =
     gen[CompleteMixedUsePropertyDetailsAnswers]
-
 }
 
 trait DesReturnsGen {
@@ -401,7 +390,6 @@ trait DesReturnsGen {
   implicit val createReturnTypeGen: Gen[CreateReturnType] = gen[CreateReturnType]
 
   implicit val amendReturnTypeGen: Gen[AmendReturnType] = gen[AmendReturnType]
-
 }
 
 trait AddressGen extends AddressLowerPriorityGen {
@@ -419,14 +407,12 @@ trait AddressGen extends AddressLowerPriorityGen {
   }
 
   implicit val countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
-
 }
 
 trait AddressLowerPriorityGen {
   this: GenUtils =>
 
   implicit val nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
-
 }
 
 trait MoneyGen {
@@ -435,7 +421,6 @@ trait MoneyGen {
   implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
 
   implicit val amountInPenceWithSourceGen: Gen[AmountInPenceWithSource] = gen[AmountInPenceWithSource]
-
 }
 
 trait FurtherReturnCalculationGen {
@@ -450,5 +435,4 @@ trait FurtherReturnCalculationGen {
     gen[YearToDateLiabilityCalculationRequest]
 
   implicit val ytdLiabilityCalculationGen: Gen[YearToDateLiabilityCalculation] = gen[YearToDateLiabilityCalculation]
-
 }

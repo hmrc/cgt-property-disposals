@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
-import akka.stream.Materializer
-import akka.stream.scaladsl.Sink
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Sink
 import play.api.http.HeaderNames.USER_AGENT
 import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -98,5 +98,4 @@ class S3ConnectorImpl @Inject() (
 
     f.copy(filename = fullUpdatedFilename)
   }
-
 }

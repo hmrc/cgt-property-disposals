@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import akka.stream.Materializer
 import cats.data.EitherT
 import cats.instances.future._
+import org.apache.pekko.stream.Materializer
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.Headers
 import play.api.test.Helpers._
@@ -40,7 +40,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class DraftReturnsControllerSpec extends ControllerSpec {
-
   private val draftReturnsService = mock[DraftReturnsService]
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
