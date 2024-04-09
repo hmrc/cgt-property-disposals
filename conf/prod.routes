@@ -1,5 +1,5 @@
 # Add all the application routes to the app.routes file
-->         /cgt-property-disposals        onboarding.Routes
-->         /                              returns.Routes
-->         /cgt-property-disposals        upscan.Routes
-->         /                              health.Routes
+->        /cgt-property-disposals        onboarding.Routes
+->        /                              returns.Routes
+->        /cgt-property-disposals        upscan.Routes
+->        /                              health.Routes
