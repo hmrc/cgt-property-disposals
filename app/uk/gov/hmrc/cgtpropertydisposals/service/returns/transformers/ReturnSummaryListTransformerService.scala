@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import cats.data.Validated.{Invalid, Valid}
 import cats.data.NonEmptyList
+import cats.data.Validated.{Invalid, Valid}
 import cats.instances.bigDecimal._
 import cats.instances.list._
 import cats.syntax.apply._

@@ -21,9 +21,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.Configuration
+import pureconfig._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
-import pureconfig._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.{LatestTaxYearGoLiveDate, TaxYear, TaxYearConfig}
 import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
