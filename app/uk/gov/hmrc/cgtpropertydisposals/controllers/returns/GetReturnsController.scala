@@ -45,7 +45,7 @@ class GetReturnsController @Inject() (
 
   def listReturns(cgtReference: String, fromDate: String, toDate: String): Action[AnyContent] =
     authenticate.async { implicit request =>
-      withFromAndToDate(fromDate, toDate) { case (from, to) =>
+      withFromAndToDate(fromDate, toDate) { (from, to) =>
         returnsService
           .listReturns(CgtReference(cgtReference), from, to)
           .fold(

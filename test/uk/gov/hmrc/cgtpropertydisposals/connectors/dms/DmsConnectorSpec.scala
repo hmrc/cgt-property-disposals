@@ -36,23 +36,31 @@ import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
+import uk.gov.hmrc.cgtpropertydisposals.service.PdfGeneratorService
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class DmsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
   private val config = Configuration(
     ConfigFactory.parseString(
       """
         |microservice {
         |  services {
-        |          gform {
+        |          dms {
         |            host = localhost
-        |            port = 9196
+        |            port = 8222
+        |        }
+        |        cgt-property-disposals {
+        |         host = localhost
+        |         port = 7021
         |        }
         |  }
+        |}
+        |internal-auth {
+        |  token = "test"
         |}
         |""".stripMargin
     )
@@ -63,7 +71,7 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito
   private def buildWsResponse(status: Int, body: String): WSResponse = {
     val responseBuilder = new Response.ResponseBuilder()
     responseBuilder.accumulate(
-      new CacheableHttpResponseStatus(Uri.create("https://gforms"), status, "status text", "protocols")
+      new CacheableHttpResponseStatus(Uri.create("https://dms"), status, "status text", "protocols")
     )
     responseBuilder.accumulate(new DefaultHttpHeaders().add("my-header", "value"))
     responseBuilder.accumulate(new CacheableHttpResponseBodyPart(body.getBytes(), true))
@@ -76,9 +84,9 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito
   ) =
     mockWsClient.post[A](url, headers, *)(*).returns(response)
 
-  val connector = new GFormConnectorImpl(mockWsClient, new ServicesConfig(config))
+  val connector = new DmsConnector(mockWsClient, new ServicesConfig(config), mock[PdfGeneratorService])
 
-  "GForm Connector" when {
+  "Dms Connector" when {
     "return an error if the http call to download the file fails" in {
       val dms = DmsSubmissionPayload(
         B64Html("html"),
@@ -93,8 +101,8 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito
       ).foreach { httpResponse =>
         withClue(s"For http response [${httpResponse.toString}]") {
           mockPost(
-            "http://localhost:9196/gform/dms/submit-with-attachments",
-            Seq.empty
+            "http://localhost:8222/dms-submission/submit",
+            Seq(AUTHORIZATION -> "test")
           )(Future.successful(httpResponse))
           await(connector.submitToDms(dms, id).value) shouldBe Left(Error("error body"))
         }
@@ -113,8 +121,8 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito
       ).foreach { httpResponse =>
         withClue(s"For http response [${httpResponse.toString}]") {
           mockPost(
-            "http://localhost:9196/gform/dms/submit-with-attachments",
-            Seq.empty
+            "http://localhost:8222/dms-submission/submit",
+            Seq(AUTHORIZATION -> "test")
           )(Future.successful(httpResponse))
           await(
             connector

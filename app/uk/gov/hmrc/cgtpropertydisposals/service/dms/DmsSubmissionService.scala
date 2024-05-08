@@ -24,7 +24,7 @@ import cats.syntax.traverse._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import org.bson.types.ObjectId
 import play.api.{ConfigLoader, Configuration}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.DmsConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSucce
 import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import java.util.{Base64, UUID}
@@ -56,12 +57,11 @@ trait DmsSubmissionService {
     completeReturn: CompleteReturn,
     id: UUID
   ): EitherT[Future, Error, EnvelopeId]
-
 }
 
 @Singleton
 class DefaultDmsSubmissionService @Inject() (
-  gFormConnector: GFormConnector,
+  dmsConnector: DmsConnector,
   upscanService: UpscanService,
   dmsSubmissionRepo: DmsSubmissionRepo,
   configuration: Configuration
@@ -87,7 +87,7 @@ class DefaultDmsSubmissionService @Inject() (
     for {
       attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
-      envId           <- gFormConnector.submitToDms(
+      envId           <- dmsConnector.submitToDms(
                            DmsSubmissionPayload(
                              html,
                              fileAttachments,

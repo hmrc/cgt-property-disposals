@@ -28,7 +28,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.DmsConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
@@ -50,7 +50,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with IdiomaticMockito {
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
-  private val mockGFormConnector    = mock[GFormConnector]
+  private val mockDmsConnector      = mock[DmsConnector]
   private val mockUpscanService     = mock[UpscanService]
   private val mockDmsSubmissionRepo = mock[DmsSubmissionRepo]
 
@@ -92,7 +92,7 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with Idiomati
   private def mockGFormSubmission(dmsSubmissionPayload: DmsSubmissionPayload)(
     response: Either[Error, EnvelopeId]
   ) =
-    mockGFormConnector
+    mockDmsConnector
       .submitToDms(dmsSubmissionPayload, *)
       .returns(EitherT[Future, Error, EnvelopeId](Future.successful(response)))
 
@@ -108,7 +108,7 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with Idiomati
     new DmsSubmissionPollerExecutionContext(actorSystem)
 
   val dmsSubmissionService =
-    new DefaultDmsSubmissionService(mockGFormConnector, mockUpscanService, mockDmsSubmissionRepo, config)
+    new DefaultDmsSubmissionService(mockDmsConnector, mockUpscanService, mockDmsSubmissionRepo, config)
 
   "Dms Submission Service" when {
     "the submission poller requests a work item" must {
@@ -165,7 +165,7 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with Idiomati
       )
 
       "return an error" when {
-        "there is an issue with the gform service" in {
+        "there is an issue with the dms service" in {
           val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
           val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
@@ -207,7 +207,7 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with Idiomati
         }
       }
 
-      "return an envelope id when files have been successfully submitted to the gform service" in {
+      "return an envelope id when files have been successfully submitted to the dms service" in {
         val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
         val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
@@ -244,7 +244,7 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with Idiomati
           )
         )
         val dmsSubmissionService =
-          new DefaultDmsSubmissionService(mockGFormConnector, mockUpscanService, mockDmsSubmissionRepo, config)
+          new DefaultDmsSubmissionService(mockDmsConnector, mockUpscanService, mockDmsSubmissionRepo, config)
         val dmsMetadata          =
           DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "business-area", None)
         val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))

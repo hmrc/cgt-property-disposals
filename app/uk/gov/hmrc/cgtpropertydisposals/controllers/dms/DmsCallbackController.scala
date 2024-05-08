@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.service.dms
+package uk.gov.hmrc.cgtpropertydisposals.controllers.dms
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import play.api.Logging
+import play.api.libs.json.JsValue
+import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-final case class DmsSubmissionRequest(
-  html: B64Html,
-  formBundleId: String,
-  cgtReference: CgtReference,
-  completeReturn: CompleteReturn
-)
+import javax.inject.{Inject, Singleton}
 
-object DmsSubmissionRequest {
-  implicit val dmsSubmissionRequestFormat: OFormat[DmsSubmissionRequest] = Json.format
+@Singleton
+class DmsCallbackController @Inject() (cc: ControllerComponents) extends BackendController(cc) with Logging {
+  def callback: Action[JsValue] = Action(parse.json) { request =>
+    logger.info(request.body.toString)
+    Ok
+  }
 }

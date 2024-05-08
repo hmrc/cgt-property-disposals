@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.module
+package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
-import com.google.inject.AbstractModule
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller
-
-class DmsSubmissionModule extends AbstractModule {
-  override def configure(): Unit =
-    bind(classOf[DmsSubmissionPoller]).asEagerSingleton()
-}
+final case class DmsSubmissionResult(status: String)

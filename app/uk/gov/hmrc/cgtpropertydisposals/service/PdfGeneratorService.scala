@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.service.dms
+package uk.gov.hmrc.cgtpropertydisposals.service
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
+import com.google.inject.Singleton
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder
 
-final case class DmsSubmissionRequest(
-  html: B64Html,
-  formBundleId: String,
-  cgtReference: CgtReference,
-  completeReturn: CompleteReturn
-)
+import java.io.ByteArrayOutputStream
 
-object DmsSubmissionRequest {
-  implicit val dmsSubmissionRequestFormat: OFormat[DmsSubmissionRequest] = Json.format
+@Singleton
+class PdfGeneratorService {
+  def generatePDFBytesLocal(html: String): Array[Byte] = {
+    val byteArrayOutputStream = new ByteArrayOutputStream()
+    val builder               = new PdfRendererBuilder()
+    builder.useFastMode();
+    builder.withHtmlContent(html, null)
+    builder.toStream(byteArrayOutputStream);
+    builder.run()
+    byteArrayOutputStream.toByteArray
+  }
 }

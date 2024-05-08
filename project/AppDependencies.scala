@@ -12,7 +12,8 @@ object AppDependencies {
     "org.julienrf"                            %% "play-json-derived-codecs"                % "10.1.0",
     "com.github.pureconfig"                   %% "pureconfig"                              % "0.17.5",
     "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer"               % "20191001.1",
-    "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion
+    "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion,
+    "com.openhtmltopdf"             % "openhtmltopdf-pdfbox"              % "1.0.10"
   )
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
@@ -23,6 +24,6 @@ object AppDependencies {
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"     % "1.2.5"          % scope,
     "org.scalatestplus"          %% "scalacheck-1-17"               % "3.2.17.0"       % scope,
     "com.eclipsesource"          %% "play-json-schema-validator"    % "0.9.5"          % scope,
-    "org.apache.pekko"           %% "pekko-testkit"                 % "1.0.2"          % scope
+    "org.apache.pekko"           %% "pekko-testkit"                 % "1.0.2"          % scope,
   )
 }
