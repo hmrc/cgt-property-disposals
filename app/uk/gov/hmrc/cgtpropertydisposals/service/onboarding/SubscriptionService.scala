@@ -116,10 +116,10 @@ class SubscriptionServiceImpl @Inject() (
 
     subscriptionConnector.subscribe(desSubscriptionRequest).subflatMap { response =>
       timer.close()
-      auditSubscriptionResponse(response.status, response.body, desSubscriptionRequest)
-      if (response.status === OK)
+      if (response.status === OK) {
+        auditSubscriptionResponse(response.status, response.body, desSubscriptionRequest)
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
-      else if (isAlreadySubscribedResponse(response))
+      } else if (isAlreadySubscribedResponse(response))
         Right(AlreadySubscribed)
       else {
         metrics.subscriptionCreateErrorCounter.inc()
