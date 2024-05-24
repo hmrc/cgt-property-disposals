@@ -278,7 +278,7 @@ class SubscriptionServiceImpl @Inject() (
     desSubscriptionRequest: DesSubscriptionRequest
   )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
     val responseJson =
-      if (responseHttpStatus === OK) {
+      if ((responseHttpStatus === OK && responseBody.nonEmpty) || responseHttpStatus === FORBIDDEN) {
         Json.parse(responseBody)
       } else {
         Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }""")
