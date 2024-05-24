@@ -116,10 +116,10 @@ class SubscriptionServiceImpl @Inject() (
 
     subscriptionConnector.subscribe(desSubscriptionRequest).subflatMap { response =>
       timer.close()
-      if (response.status === OK) {
-        auditSubscriptionResponse(response.status, response.body, desSubscriptionRequest)
+      auditSubscriptionResponse(response.status, response.body, desSubscriptionRequest)
+      if (response.status === OK)
         response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
-      } else if (isAlreadySubscribedResponse(response))
+      else if (isAlreadySubscribedResponse(response))
         Right(AlreadySubscribed)
       else {
         metrics.subscriptionCreateErrorCounter.inc()
@@ -277,8 +277,12 @@ class SubscriptionServiceImpl @Inject() (
     responseBody: String,
     desSubscriptionRequest: DesSubscriptionRequest
   )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
-    val responseJson = Try(Json.parse(responseBody))
-      .getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }"""))
+    val responseJson =
+      if (responseHttpStatus === OK) {
+        Json.parse(responseBody)
+      } else {
+        Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }""")
+      }
 
     auditService.sendEvent(
       "subscriptionResponse",
