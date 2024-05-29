@@ -277,8 +277,12 @@ class SubscriptionServiceImpl @Inject() (
     responseBody: String,
     desSubscriptionRequest: DesSubscriptionRequest
   )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
-    val responseJson = Try(Json.parse(responseBody))
-      .getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }"""))
+    val responseJson =
+      if ((responseHttpStatus === OK && responseBody.nonEmpty) || responseHttpStatus === FORBIDDEN) {
+        Json.parse(responseBody)
+      } else {
+        Json.obj("body : could not parse body as JSON: " -> responseBody)
+      }
 
     auditService.sendEvent(
       "subscriptionResponse",
