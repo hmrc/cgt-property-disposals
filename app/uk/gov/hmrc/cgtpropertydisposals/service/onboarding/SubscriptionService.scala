@@ -49,7 +49,6 @@ import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 @ImplementedBy(classOf[SubscriptionServiceImpl])
 trait SubscriptionService {
