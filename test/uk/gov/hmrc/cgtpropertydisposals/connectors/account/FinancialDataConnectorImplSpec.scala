@@ -80,6 +80,7 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Idio
           HttpResponse(400, emptyJsonBody),
           HttpResponse(401, emptyJsonBody),
           HttpResponse(403, emptyJsonBody),
+          HttpResponse(404, emptyJsonBody),
           HttpResponse(500, emptyJsonBody),
           HttpResponse(502, emptyJsonBody),
           HttpResponse(503, emptyJsonBody)

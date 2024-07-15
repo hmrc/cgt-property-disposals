@@ -4,7 +4,7 @@ object AppDependencies {
   private val playVersion  = "play-30"
   private val mongoVersion = "1.4.0"
 
-  private val bootstrapVersion = "8.5.0"
+  private val bootstrapVersion = "9.0.0"
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapVersion,
@@ -23,6 +23,7 @@ object AppDependencies {
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"     % "1.2.5"          % scope,
     "org.scalatestplus"          %% "scalacheck-1-17"               % "3.2.17.0"       % scope,
     "com.eclipsesource"          %% "play-json-schema-validator"    % "0.9.5"          % scope,
-    "org.apache.pekko"           %% "pekko-testkit"                 % "1.0.2"          % scope
+    "org.apache.pekko"           %% "pekko-testkit"                 % "1.0.2"          % scope,
+    "com.github.tomakehurst"      % "wiremock"                      % "3.0.0-beta-7"   % scope
   )
 }
