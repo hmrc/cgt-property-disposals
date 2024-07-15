@@ -37,7 +37,7 @@ object AuthStub extends WireMockMethods {
 
   private val credentials: JsObject = Json.obj(
     "providerId" -> "someProviderId",
-    "providerType" -> "someProviderType",
+    "providerType" -> "GovernmentGateway",
   )
 
   def authorised(): StubMapping =

@@ -47,8 +47,8 @@ trait IntegrationBaseSpec
   lazy val client: WSClient = app.injector.instanceOf[WSClient]
 
   def servicesConfig: Map[String, Any] = Map(
-    "microservice.services.des.host"  -> mockHost,
-    "microservice.services.des.port"  -> mockPort,
+    "microservice.services.returns.host"  -> mockHost,
+    "microservice.services.returns.port"  -> mockPort,
     "microservice.services.auth.host" -> mockHost,
     "microservice.services.auth.port" -> mockPort
   )

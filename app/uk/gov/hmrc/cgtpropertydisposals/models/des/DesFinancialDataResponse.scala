@@ -21,9 +21,7 @@ import play.api.libs.json.{Format, Json, OFormat}
 
 import java.time.LocalDate
 
-final case class DesFinancialDataResponse(
-  financialTransactions: List[DesFinancialTransaction]
-)
+final case class DesFinancialDataResponse(financialTransactions: List[DesFinancialTransaction])
 
 object DesFinancialDataResponse {
   implicit val desFinancialDataResponseFormat: Format[DesFinancialDataResponse] = Json.format[DesFinancialDataResponse]
