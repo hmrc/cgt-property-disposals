@@ -407,7 +407,7 @@ class DefaultReturnsService @Inject() (
       code = "NOT_FOUND",
       reason = "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
     ),
-    logString = s"CGT reference: $cgtRef is in use, but no returns could be found for the supplied date range"
+    logString = s"CGT reference: $cgtRef is in use, but no returns were found for the date range: $fromDate - $toDate"
   )
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
