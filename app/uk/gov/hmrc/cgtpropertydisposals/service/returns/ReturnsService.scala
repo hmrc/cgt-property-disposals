@@ -333,7 +333,7 @@ class DefaultReturnsService @Inject() (
       returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
         if (response.status === OK) {response.parseJSON[DesListReturnsResponse]().leftMap(Error(_))}
-        else if (isNoReturnsResponse(response, cgtReference.value, fromDate, toDate)) {Right(DesListReturnsResponse(List.empty))}
+        else if (isNoReturnsDataResponse(response, cgtReference.value, fromDate, toDate)) {Right(DesListReturnsResponse(List.empty))}
         else {
           metrics.listReturnsErrorCounter.inc()
           Left(Error(s"call to list returns came back with unexpected status ${response.status}"))
@@ -398,10 +398,10 @@ class DefaultReturnsService @Inject() (
     logString =s"No financial data was found for the CGT reference: $cgtRef, and date range: $fromDate - $toDate"
   )
 
-  private def isNoReturnsResponse(response: HttpResponse,
-                                  cgtRef: String,
-                                  fromDate: LocalDate,
-                                  toDate: LocalDate): Boolean = isNoDataResponse(
+  private def isNoReturnsDataResponse(response: HttpResponse,
+                                      cgtRef: String,
+                                      fromDate: LocalDate,
+                                      toDate: LocalDate): Boolean = isNoDataResponse(
     response = response,
     expectedError = SingleDesErrorResponse(
       code = "NOT_FOUND",

@@ -16,13 +16,21 @@
 
 package endpoints
 
+import cats.data.EitherT
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
 import play.api.libs.ws.{WSRequest, WSResponse}
 import stubs.{AuthStub, DownstreamStub}
 import support.IntegrationBaseSpec
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{desFinancialTransactionGen, desReturnSummaryGen, sample}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialTransaction
+import uk.gov.hmrc.cgtpropertydisposals.models
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{amendReturnDataGen, desFinancialTransactionGen, desReturnSummaryGen, sample, submitReturnRequestGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialDataResponse, DesFinancialTransaction}
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.{AmendReturnsRepository, DefaultAmendReturnsRepository}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
+
+import java.time.LocalDate
+import scala.concurrent.Future
 
 class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
@@ -50,6 +58,11 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
     val taxYearQueryDates: Seq[Map[String, String]] = Seq(
       taxYearDates2020, taxYearDates2021, taxYearDates2022, taxYearDates2023, taxYearDates2024
+    )
+
+    val notFoundFinancialDataErrorBody: JsObject = Json.obj(
+      "code" -> "NOT_FOUND",
+      "reason" -> "The remote endpoint has indicated that no data can be found."
     )
 
     val financialDataResponse: JsValue = Json.obj(
@@ -151,11 +164,6 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
       "return a 500 error response when returns exist but financial data does not" in new Test {
         AuthStub.authorised()
 
-        val notFoundDataErrorBody: JsObject = Json.obj(
-          "code" -> "NOT_FOUND",
-          "reason" -> "The remote endpoint has indicated that no data can be found."
-        )
-
         DownstreamStub.onSuccess(
           method = DownstreamStub.GET,
           uri = listDownstreamUri,
@@ -170,7 +178,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
             uri = getFinancialDataDownstreamUri,
             queryParams = params,
             errorStatus = NOT_FOUND,
-            errorBody = notFoundDataErrorBody.toString()
+            errorBody = notFoundFinancialDataErrorBody.toString()
           )
         )
 
@@ -179,7 +187,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
         result.body shouldBe ""
       }
 
-      "return the expected result when a CGT reference is in use but no returns are found" in new Test {
+      "return a 200 success with empty returns when a CGT reference is in use but no returns are found" in new Test {
         AuthStub.authorised()
 
         val notFoundReturnsErrorBody: JsObject = Json.obj(
@@ -199,11 +207,134 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
         result.status shouldBe OK
         result.json.toString() shouldBe """{"returns":[]}"""
       }
+
+      "return a 500 error response when financial data fails validation" in new Test {
+        AuthStub.authorised()
+
+        val sampleDesReturn: DesReturnSummary = sample[DesReturnSummary]
+
+        DownstreamStub.onSuccess(
+          method = DownstreamStub.GET,
+          uri = listDownstreamUri,
+          queryParams = listDownstreamQueryParams,
+          status = OK,
+          body = Json.obj("returnList" -> JsArray(Seq(Json.toJson(sampleDesReturn))))
+        )
+
+        taxYearQueryDates.foreach(params =>
+          DownstreamStub.onSuccess(
+            method = DownstreamStub.GET,
+            uri = getFinancialDataDownstreamUri,
+            queryParams = params,
+            status = OK,
+            body = Json.toJson(DesFinancialDataResponse(List(sample[DesFinancialTransaction])))
+          )
+        )
+
+        val result: WSResponse = await(listRequest.get())
+        result.status shouldBe INTERNAL_SERVER_ERROR
+        result.body shouldBe ""
+      }
+
+      // Exhaustive testing of business scenarios is the responsibility of validation unit testing/ UI testing
+      // Here I will only be testing a single success scenario to prove that the endpoint functions
+      "return a 200 success for scenario where no charges, or financial data exists" in new Test {
+        AuthStub.authorised()
+
+        val sampleDesReturn: DesReturnSummary = DesReturnSummary(
+          submissionId = "someSubmissionId",
+          submissionDate = LocalDate.of(2024, 1, 10),
+          completionDate = LocalDate.of(2024, 1, 30),
+          lastUpdatedDate = None,
+          taxYear = "2024",
+          propertyAddress = AddressDetails(
+            addressLine1 = "221b Baker Street",
+            addressLine2 = Some("Marylebone"),
+            addressLine3 = Some("London"),
+            addressLine4 = None,
+            postalCode = Some("NW1 6XE"),
+            countryCode = "GB"
+          ),
+          totalCGTLiability = 0,
+          charges = None
+        )
+
+        DownstreamStub.onSuccess(
+          method = DownstreamStub.GET,
+          uri = listDownstreamUri,
+          queryParams = listDownstreamQueryParams,
+          status = OK,
+          body = Json.obj("returnList" -> JsArray(Seq(Json.toJson(sampleDesReturn))))
+        )
+
+        taxYearQueryDates.foreach(params =>
+          DownstreamStub.onError(
+            method = DownstreamStub.GET,
+            uri = getFinancialDataDownstreamUri,
+            queryParams = params,
+            errorStatus = NOT_FOUND,
+            errorBody = notFoundFinancialDataErrorBody.toString()
+          )
+        )
+
+        val amendReturnsRepository: AmendReturnsRepository = app.injector.instanceOf[DefaultAmendReturnsRepository]
+
+        val sampleSubmitReturnRequest: SubmitReturnRequest = sample[SubmitReturnRequest]
+
+        val sampleSubmitReturnRequestWithCgtId: SubmitReturnRequest = sampleSubmitReturnRequest.copy(
+          subscribedDetails = sampleSubmitReturnRequest.subscribedDetails.copy(
+            cgtReference = CgtReference(cgtRef)
+          )
+        )
+
+        val sampleAmendReturnData: AmendReturnData = sample[AmendReturnData]
+
+        val sampleAmendReturnDataWithReturnId: AmendReturnData = sampleAmendReturnData.copy(
+          originalReturn = sampleAmendReturnData.originalReturn.copy(
+            summary = sampleAmendReturnData.originalReturn.summary.copy(
+              submissionId = "someSubmissionId"
+            )
+          )
+        )
+
+        val aa: EitherT[Future, models.Error, Unit] = amendReturnsRepository.save(
+          submitReturnRequest = sampleSubmitReturnRequestWithCgtId.copy(
+            amendReturnData = Some(sampleAmendReturnDataWithReturnId)
+          )
+        )
+
+        val resultJson: JsValue = Json.obj(
+          "returns" -> JsArray(
+            Seq(
+              Json.obj(
+                "submissionId" -> sampleDesReturn.submissionId,
+                "submissionDate" -> sampleDesReturn.submissionDate,
+                "completionDate" -> sampleDesReturn.completionDate,
+                "taxYear" -> sampleDesReturn.taxYear,
+                "mainReturnChargeAmount" -> 0,
+                "propertyAddress" -> Json.obj(
+                  "UkAddress" -> Json.obj(
+                    "line1" -> sampleDesReturn.propertyAddress.addressLine1,
+                    "line2" -> sampleDesReturn.propertyAddress.addressLine2,
+                    "town" -> sampleDesReturn.propertyAddress.addressLine3,
+                    "postcode" -> sampleDesReturn.propertyAddress.postalCode,
+                  )
+                ),
+                "charges" -> JsArray.empty,
+                "isRecentlyAmended" -> true,
+                "expired" -> false
+              )
+            )
+          )
+        )
+
+        await(aa.value).foreach{_ =>
+          val result: WSResponse = await(listRequest.get())
+          result.status shouldBe OK
+          result.json shouldBe resultJson
+        }
+      }
     }
-  }
-
-  "/returns/:cgtReference/:submissionId" when {
-
   }
 
 }
