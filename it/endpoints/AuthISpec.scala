@@ -28,7 +28,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.Future
 
 @Singleton
-class DummyController @Inject()(auth: AuthenticateActions, cc: ControllerComponents) extends BackendController(cc) {
+class DummyController @Inject() (auth: AuthenticateActions, cc: ControllerComponents) extends BackendController(cc) {
   def runAuthTest(): Action[AnyContent] = auth(parse.default).async { _ =>
     Future.successful(Ok(""))
   }
@@ -63,7 +63,7 @@ class AuthISpec extends IntegrationBaseSpec {
         AuthStub.unauthorised()
         val result: Future[Result] = testController.runAuthTest()(fakeGetRequest)
 
-        status(result) shouldBe 403
+        status(result)          shouldBe 403
         contentAsString(result) shouldBe "Forbidden"
       }
     }

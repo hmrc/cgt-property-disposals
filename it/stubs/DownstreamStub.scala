@@ -36,11 +36,13 @@ object DownstreamStub extends WireMockMethods {
     when(method = method, uri = uri, queryParams = queryParams)
       .thenReturn(status = status, body)
 
-  def onError(method: HTTPMethod,
-              uri: String,
-              queryParams: Map[String, String],
-              errorStatus: Int,
-              errorBody: String): StubMapping =
+  def onError(
+    method: HTTPMethod,
+    uri: String,
+    queryParams: Map[String, String],
+    errorStatus: Int,
+    errorBody: String
+  ): StubMapping =
     when(method = method, uri = uri, queryParams = queryParams)
       .thenReturn(status = errorStatus, errorBody)
 

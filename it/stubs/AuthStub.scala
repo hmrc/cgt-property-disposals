@@ -26,31 +26,31 @@ object AuthStub extends WireMockMethods {
   private val authoriseUri: String = "/auth/authorise"
 
   private val enrolment: JsObject = Json.obj(
-    "key" -> "HMRC-TERS-ORG",
+    "key"         -> "HMRC-TERS-ORG",
     "identifiers" -> Json.arr(
       Json.obj(
-        "key" -> "SAUTR",
+        "key"   -> "SAUTR",
         "value" -> "7000040245"
       )
     )
   )
 
   private val credentials: JsObject = Json.obj(
-    "providerId" -> "someProviderId",
-    "providerType" -> "GovernmentGateway",
+    "providerId"   -> "someProviderId",
+    "providerType" -> "GovernmentGateway"
   )
 
   def authorised(): StubMapping =
     when(method = POST, uri = authoriseUri)
       .thenReturn(status = OK, body = successfulAuthResponse)
 
-  def unauthorised(): StubMapping   =
+  def unauthorised(): StubMapping              =
     when(method = POST, uri = authoriseUri)
       .thenReturn(status = UNAUTHORIZED, headers = Map("WWW-Authenticate" -> """MDTP detail="MissingBearerToken""""))
 
   private val successfulAuthResponse: JsObject = Json.obj(
     "authorisedEnrolments" -> enrolment,
-    "affinityGroup" -> "Individual",
-    "optionalCredentials" -> credentials
+    "affinityGroup"        -> "Individual",
+    "optionalCredentials"  -> credentials
   )
 }

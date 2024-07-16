@@ -47,10 +47,10 @@ trait IntegrationBaseSpec
   lazy val client: WSClient = app.injector.instanceOf[WSClient]
 
   def servicesConfig: Map[String, Any] = Map(
-    "microservice.services.returns.host"  -> mockHost,
-    "microservice.services.returns.port"  -> mockPort,
-    "microservice.services.auth.host" -> mockHost,
-    "microservice.services.auth.port" -> mockPort
+    "microservice.services.returns.host" -> mockHost,
+    "microservice.services.returns.port" -> mockPort,
+    "microservice.services.auth.host"    -> mockHost,
+    "microservice.services.auth.port"    -> mockPort
   )
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder()

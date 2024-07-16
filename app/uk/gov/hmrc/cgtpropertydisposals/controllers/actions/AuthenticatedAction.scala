@@ -56,10 +56,9 @@ class AuthenticateActionBuilder @Inject() (
         case Some(credentials) =>
           val user = AuthenticatedUser(credentials.providerId)
           block(new AuthenticatedRequest[A](user, LocalDateTime.now(), carrier, request))
-        case _                 =>
-          Future.successful(forbidden)
+        case _                 => Future.successful(forbidden)
       }(carrier, executionContext)
-      .recover { case err: NoActiveSession =>
+      .recover { case _: NoActiveSession =>
         forbidden
       }(executionContext)
   }

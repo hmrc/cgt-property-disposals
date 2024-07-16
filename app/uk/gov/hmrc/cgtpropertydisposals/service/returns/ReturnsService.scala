@@ -155,11 +155,9 @@ class DefaultReturnsService @Inject() (
 
         if (response.status === OK) {
           response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
-        }
-        else if (isNoFinancialDataResponse(response, cgtReference.value, fromDate, toDate)) {
+        } else if (isNoFinancialDataResponse(response, cgtReference.value, fromDate, toDate)) {
           Right(DesFinancialDataResponse(List.empty))
-        }
-        else {
+        } else {
           metrics.financialDataErrorCounter.inc()
           Left(Error(s"call to get financial data came back with unexpected status ${response.status}"))
         }
@@ -332,9 +330,10 @@ class DefaultReturnsService @Inject() (
       val timer = metrics.listReturnsTimer.time()
       returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
-        if (response.status === OK) {response.parseJSON[DesListReturnsResponse]().leftMap(Error(_))}
-        else if (isNoReturnsDataResponse(response, cgtReference.value, fromDate, toDate)) {Right(DesListReturnsResponse(List.empty))}
-        else {
+        if (response.status === OK) { response.parseJSON[DesListReturnsResponse]().leftMap(Error(_)) }
+        else if (isNoReturnsDataResponse(response, cgtReference.value, fromDate, toDate)) {
+          Right(DesListReturnsResponse(List.empty))
+        } else {
           metrics.listReturnsErrorCounter.inc()
           Left(Error(s"call to list returns came back with unexpected status ${response.status}"))
         }
@@ -346,31 +345,28 @@ class DefaultReturnsService @Inject() (
 
     def listReturnsResult(desReturnList: DesListReturnsResponse): EitherT[Future, Error, List[ReturnSummary]] =
       for {
-        listOfDesFinancialData <- listOfFutureDesFinancialData.traverse(identity)
-        listOfDesFinancialTransactions = listOfDesFinancialData.flatMap(
-          desFinancialData => desFinancialData.financialTransactions
-        )
-        recentlyAmendedReturns <- recentlyAmendedReturnList
-        returnSummaries <- EitherT.fromEither(
-          returnSummaryListTransformerService.toReturnSummaryList(
-            returns = desReturnList.returnList,
-            financialData = listOfDesFinancialTransactions,
-            recentlyAmendedReturns = recentlyAmendedReturns.map(
-              submitReturnWrapper => submitReturnWrapper.submitReturnRequest
-            )
-          )
-        )
+        listOfDesFinancialData        <- listOfFutureDesFinancialData.traverse(identity)
+        listOfDesFinancialTransactions =
+          listOfDesFinancialData.flatMap(desFinancialData => desFinancialData.financialTransactions)
+        recentlyAmendedReturns        <- recentlyAmendedReturnList
+        returnSummaries               <- EitherT.fromEither(
+                                           returnSummaryListTransformerService.toReturnSummaryList(
+                                             returns = desReturnList.returnList,
+                                             financialData = listOfDesFinancialTransactions,
+                                             recentlyAmendedReturns = recentlyAmendedReturns.map(submitReturnWrapper =>
+                                               submitReturnWrapper.submitReturnRequest
+                                             )
+                                           )
+                                         )
       } yield returnSummaries
 
-    desReturnList.flatMap(desReturnListSuccess => {
-      if (desReturnListSuccess.returnList.nonEmpty) {listReturnsResult(desReturnListSuccess)}
-      else {EitherT.fromEither(Right(List.empty[ReturnSummary]))}
-    })
+    desReturnList.flatMap { desReturnListSuccess =>
+      if (desReturnListSuccess.returnList.nonEmpty) { listReturnsResult(desReturnListSuccess) }
+      else { EitherT.fromEither(Right(List.empty[ReturnSummary])) }
+    }
   }
 
-  private def isNoDataResponse(response: HttpResponse,
-                               expectedError: SingleDesErrorResponse,
-                               logString: String) = {
+  private def isNoDataResponse(response: HttpResponse, expectedError: SingleDesErrorResponse, logString: String) = {
     lazy val hasNoReturnBody = response
       .parseJSON[DesErrorResponse]()
       .bimap(
@@ -386,22 +382,26 @@ class DefaultReturnsService @Inject() (
     response.status === NOT_FOUND && hasNoReturnBody
   }
 
-  private def isNoFinancialDataResponse(response: HttpResponse,
-                                        cgtRef: String,
-                                        fromDate: LocalDate,
-                                        toDate: LocalDate) = isNoDataResponse(
+  private def isNoFinancialDataResponse(
+    response: HttpResponse,
+    cgtRef: String,
+    fromDate: LocalDate,
+    toDate: LocalDate
+  ) = isNoDataResponse(
     response = response,
     expectedError = SingleDesErrorResponse(
       code = "NOT_FOUND",
       reason = "The remote endpoint has indicated that no data can be found."
     ),
-    logString =s"No financial data was found for the CGT reference: $cgtRef, and date range: $fromDate - $toDate"
+    logString = s"No financial data was found for the CGT reference: $cgtRef, and date range: $fromDate - $toDate"
   )
 
-  private def isNoReturnsDataResponse(response: HttpResponse,
-                                      cgtRef: String,
-                                      fromDate: LocalDate,
-                                      toDate: LocalDate): Boolean = isNoDataResponse(
+  private def isNoReturnsDataResponse(
+    response: HttpResponse,
+    cgtRef: String,
+    fromDate: LocalDate,
+    toDate: LocalDate
+  ): Boolean = isNoDataResponse(
     response = response,
     expectedError = SingleDesErrorResponse(
       code = "NOT_FOUND",
@@ -497,31 +497,35 @@ class DefaultReturnsService @Inject() (
 }
 
 object DefaultReturnsService {
-  final case class DesSubmitReturnResponseDetails(chargeReference: Option[String],
-                                                  amount: Option[BigDecimal],
-                                                  dueDate: Option[LocalDate],
-                                                  formBundleNumber: String)
+  final case class DesSubmitReturnResponseDetails(
+    chargeReference: Option[String],
+    amount: Option[BigDecimal],
+    dueDate: Option[LocalDate],
+    formBundleNumber: String
+  )
 
-  final case class DesSubmitReturnResponse(processingDate: LocalDateTime,
-                                           ppdReturnResponseDetails: DesSubmitReturnResponseDetails)
+  final case class DesSubmitReturnResponse(
+    processingDate: LocalDateTime,
+    ppdReturnResponseDetails: DesSubmitReturnResponseDetails
+  )
 
   final case class DesListReturnsResponse(returnList: List[DesReturnSummary])
 
-  final case class DesCharge(chargeDescription: String,
-                             dueDate: LocalDate,
-                             chargeReference: String)
+  final case class DesCharge(chargeDescription: String, dueDate: LocalDate, chargeReference: String)
 
-  final case class DesReturnSummary(submissionId: String,
-                                    submissionDate: LocalDate,
-                                    completionDate: LocalDate,
-                                    lastUpdatedDate: Option[LocalDate],
-                                    taxYear: String,
-                                    propertyAddress: AddressDetails,
-                                    totalCGTLiability: BigDecimal,
-                                    charges: Option[List[DesCharge]])
+  final case class DesReturnSummary(
+    submissionId: String,
+    submissionDate: LocalDate,
+    completionDate: LocalDate,
+    lastUpdatedDate: Option[LocalDate],
+    taxYear: String,
+    propertyAddress: AddressDetails,
+    totalCGTLiability: BigDecimal,
+    charges: Option[List[DesCharge]]
+  )
 
-  implicit val chargeFormat: OFormat[DesCharge] = Json.format
-  implicit val returnFormat: OFormat[DesReturnSummary] = Json.format
+  implicit val chargeFormat: OFormat[DesCharge]                             = Json.format
+  implicit val returnFormat: OFormat[DesReturnSummary]                      = Json.format
   implicit val desListReturnResponseFormat: OFormat[DesListReturnsResponse] = Json.format
 
   implicit val ppdReturnResponseDetailsFormat: Format[DesSubmitReturnResponseDetails] =

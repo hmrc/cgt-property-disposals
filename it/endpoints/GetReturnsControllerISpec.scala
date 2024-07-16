@@ -35,19 +35,19 @@ import scala.concurrent.Future
 class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
   trait Test {
-    val cgtRef: String = "dummyCgtRef"
+    val cgtRef: String   = "dummyCgtRef"
     val fromDate: String = "2024-01-01"
-    val toDate: String = "2024-02-01"
+    val toDate: String   = "2024-02-01"
 
-    val listRouteUri: String = s"/returns/$cgtRef/$fromDate/$toDate"
-    val listDownstreamUri: String = s"/capital-gains-tax/returns/$cgtRef"
+    val listRouteUri: String                           = s"/returns/$cgtRef/$fromDate/$toDate"
+    val listDownstreamUri: String                      = s"/capital-gains-tax/returns/$cgtRef"
     val listDownstreamQueryParams: Map[String, String] = Map("fromDate" -> fromDate, "toDate" -> toDate)
 
     val getFinancialDataDownstreamUri: String = s"/enterprise/financial-data/ZCGT/$cgtRef/CGT"
 
     def getTaxYearQueryDates(startYear: Int): Map[String, String] = Map(
       "dateFrom" -> s"$startYear-04-06",
-      "dateTo" -> s"${startYear + 1}-04-05"
+      "dateTo"   -> s"${startYear + 1}-04-05"
     )
 
     val taxYearDates2020: Map[String, String] = getTaxYearQueryDates(2020)
@@ -57,11 +57,15 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
     val taxYearDates2024: Map[String, String] = getTaxYearQueryDates(2024)
 
     val taxYearQueryDates: Seq[Map[String, String]] = Seq(
-      taxYearDates2020, taxYearDates2021, taxYearDates2022, taxYearDates2023, taxYearDates2024
+      taxYearDates2020,
+      taxYearDates2021,
+      taxYearDates2022,
+      taxYearDates2023,
+      taxYearDates2024
     )
 
     val notFoundFinancialDataErrorBody: JsObject = Json.obj(
-      "code" -> "NOT_FOUND",
+      "code"   -> "NOT_FOUND",
       "reason" -> "The remote endpoint has indicated that no data can be found."
     )
 
@@ -84,7 +88,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
         val result: WSResponse = await(listRequest.get())
         result.status shouldBe FORBIDDEN
-        result.body shouldBe "Forbidden"
+        result.body   shouldBe "Forbidden"
       }
     }
 
@@ -95,7 +99,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
         val result: WSResponse = await(listRequest.get())
         result.status shouldBe BAD_REQUEST
-        result.body shouldBe ""
+        result.body   shouldBe ""
       }
 
       "[toDate improperly formatted] return 400 error response with no body" in new Test {
@@ -104,17 +108,17 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
         val result: WSResponse = await(listRequest.get())
         result.status shouldBe BAD_REQUEST
-        result.body shouldBe ""
+        result.body   shouldBe ""
       }
 
       "[fromDate & toDate improperly formatted] return 400 error response with no body" in new Test {
         AuthStub.authorised()
         override val fromDate: String = "wrongFormat"
-        override val toDate: String = "wrongFormat"
+        override val toDate: String   = "wrongFormat"
 
         val result: WSResponse = await(listRequest.get())
         result.status shouldBe BAD_REQUEST
-        result.body shouldBe ""
+        result.body   shouldBe ""
       }
     }
 
@@ -132,7 +136,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
         val result: WSResponse = await(listRequest.get())
         result.status shouldBe INTERNAL_SERVER_ERROR
-        result.body shouldBe ""
+        result.body   shouldBe ""
       }
 
       "return a 500 error response when an unexpected error occurs while retrieving financial data" in new Test {
@@ -158,7 +162,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
         val result: WSResponse = await(listRequest.get())
         result.status shouldBe INTERNAL_SERVER_ERROR
-        result.body shouldBe ""
+        result.body   shouldBe ""
       }
 
       "return a 500 error response when returns exist but financial data does not" in new Test {
@@ -184,14 +188,14 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
         val result: WSResponse = await(listRequest.get())
         result.status shouldBe INTERNAL_SERVER_ERROR
-        result.body shouldBe ""
+        result.body   shouldBe ""
       }
 
       "return a 200 success with empty returns when a CGT reference is in use but no returns are found" in new Test {
         AuthStub.authorised()
 
         val notFoundReturnsErrorBody: JsObject = Json.obj(
-          "code" -> "NOT_FOUND",
+          "code"   -> "NOT_FOUND",
           "reason" -> "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
         )
 
@@ -204,7 +208,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
         )
 
         val result: WSResponse = await(listRequest.get())
-        result.status shouldBe OK
+        result.status          shouldBe OK
         result.json.toString() shouldBe """{"returns":[]}"""
       }
 
@@ -233,7 +237,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
         val result: WSResponse = await(listRequest.get())
         result.status shouldBe INTERNAL_SERVER_ERROR
-        result.body shouldBe ""
+        result.body   shouldBe ""
       }
 
       // Exhaustive testing of business scenarios is the responsibility of validation unit testing/ UI testing
@@ -307,31 +311,31 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
           "returns" -> JsArray(
             Seq(
               Json.obj(
-                "submissionId" -> sampleDesReturn.submissionId,
-                "submissionDate" -> sampleDesReturn.submissionDate,
-                "completionDate" -> sampleDesReturn.completionDate,
-                "taxYear" -> sampleDesReturn.taxYear,
+                "submissionId"           -> sampleDesReturn.submissionId,
+                "submissionDate"         -> sampleDesReturn.submissionDate,
+                "completionDate"         -> sampleDesReturn.completionDate,
+                "taxYear"                -> sampleDesReturn.taxYear,
                 "mainReturnChargeAmount" -> 0,
-                "propertyAddress" -> Json.obj(
+                "propertyAddress"        -> Json.obj(
                   "UkAddress" -> Json.obj(
-                    "line1" -> sampleDesReturn.propertyAddress.addressLine1,
-                    "line2" -> sampleDesReturn.propertyAddress.addressLine2,
-                    "town" -> sampleDesReturn.propertyAddress.addressLine3,
-                    "postcode" -> sampleDesReturn.propertyAddress.postalCode,
+                    "line1"    -> sampleDesReturn.propertyAddress.addressLine1,
+                    "line2"    -> sampleDesReturn.propertyAddress.addressLine2,
+                    "town"     -> sampleDesReturn.propertyAddress.addressLine3,
+                    "postcode" -> sampleDesReturn.propertyAddress.postalCode
                   )
                 ),
-                "charges" -> JsArray.empty,
-                "isRecentlyAmended" -> true,
-                "expired" -> false
+                "charges"                -> JsArray.empty,
+                "isRecentlyAmended"      -> true,
+                "expired"                -> false
               )
             )
           )
         )
 
-        await(aa.value).foreach{_ =>
+        await(aa.value).foreach { _ =>
           val result: WSResponse = await(listRequest.get())
           result.status shouldBe OK
-          result.json shouldBe resultJson
+          result.json   shouldBe resultJson
         }
       }
     }
