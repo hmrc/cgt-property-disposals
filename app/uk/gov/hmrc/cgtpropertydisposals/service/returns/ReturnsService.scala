@@ -360,26 +360,17 @@ class DefaultReturnsService @Inject() (
                                          )
       } yield returnSummaries
 
-    desReturnList.flatMap { desReturnListSuccess =>
-      if (desReturnListSuccess.returnList.nonEmpty) { listReturnsResult(desReturnListSuccess) }
-      else { EitherT.fromEither(Right(List.empty[ReturnSummary])) }
-    }
+    desReturnList.flatMap {
+      case DesListReturnsResponse(Nil) => EitherT.rightT(List.empty)
+      case returnList: DesListReturnsResponse => listReturnsResult(returnList) }
   }
 
   private def isNoDataResponse(response: HttpResponse, expectedError: SingleDesErrorResponse, logString: String) = {
-    lazy val hasNoReturnBody = response
-      .parseJSON[DesErrorResponse]()
-      .bimap(
-        _ => false,
-        err => {
-          val hasErr = err.hasError(expectedError)
-          if (hasErr) logger.info(logString)
-          hasErr
-        }
-      )
-      .merge
+    lazy val hasNoReturnBody = response.parseJSON[DesErrorResponse]().exists(_.hasError(expectedError))
+    val isNoDataResponse = response.status === NOT_FOUND && hasNoReturnBody
 
-    response.status === NOT_FOUND && hasNoReturnBody
+    if (isNoDataResponse) logger.info(logString)
+    isNoDataResponse
   }
 
   private def isNoFinancialDataResponse(

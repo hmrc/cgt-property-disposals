@@ -22,6 +22,9 @@ import com.github.tomakehurst.wiremock.matching.UrlPattern
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.libs.json.Writes
 
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.util.chaining.scalaUtilChainingOps
+
 trait WireMockMethods {
 
   def when(
@@ -40,22 +43,17 @@ trait WireMockMethods {
     body: Option[String]
   ) {
 
-    private val mapping = {
-      val uriMapping = method.wireMockMapping(urlPathMatching(uri))
-
-      val uriMappingWithQueryParams = queryParams.foldLeft(uriMapping) { case (m, (key, value)) =>
-        m.withQueryParam(key, matching(value))
-      }
-
-      val uriMappingWithHeaders = headers.foldLeft(uriMappingWithQueryParams) { case (m, (key, value)) =>
-        m.withHeader(key, equalTo(value))
-      }
-
-      body match {
-        case Some(extractedBody) => uriMappingWithHeaders.withRequestBody(equalTo(extractedBody))
-        case None                => uriMappingWithHeaders
-      }
-    }
+    private val mapping =
+      method
+        .wireMockMapping(urlPathMatching(uri))
+        .withQueryParams(queryParams.view.mapValues(matching).toMap.asJava)
+        .pipe(headers.foldLeft(_) { case (m, (key, value)) => m.withHeader(key, equalTo(value))})
+        .pipe { mapping =>
+          body match {
+            case Some(extractedBody) => mapping.withRequestBody(equalTo(extractedBody))
+            case None => mapping
+          }
+        }
 
     def thenReturn[T](status: Int, body: T)(implicit writes: Writes[T]): StubMapping = {
       val stringBody = writes.writes(body).toString()

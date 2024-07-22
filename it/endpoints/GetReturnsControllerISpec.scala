@@ -23,9 +23,12 @@ import stubs.{AuthStub, DownstreamStub}
 import support.IntegrationBaseSpec
 import uk.gov.hmrc.cgtpropertydisposals.models
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{amendReturnDataGen, desFinancialTransactionGen, desReturnSummaryGen, sample, submitReturnRequestGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
+import uk.gov.hmrc.cgtpropertydisposals.models.address.Postcode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialDataResponse, DesFinancialTransaction}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, ListReturnsResponse, ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.{AmendReturnsRepository, DefaultAmendReturnsRepository}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
 
@@ -301,38 +304,35 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
           )
         )
 
-        val aa: EitherT[Future, models.Error, Unit] = amendReturnsRepository.save(
+        val request: EitherT[Future, models.Error, Unit] = amendReturnsRepository.save(
           submitReturnRequest = sampleSubmitReturnRequestWithCgtId.copy(
             amendReturnData = Some(sampleAmendReturnDataWithReturnId)
           )
         )
 
-        val resultJson: JsValue = Json.obj(
-          "returns" -> JsArray(
-            Seq(
-              Json.obj(
-                "submissionId"           -> sampleDesReturn.submissionId,
-                "submissionDate"         -> sampleDesReturn.submissionDate,
-                "completionDate"         -> sampleDesReturn.completionDate,
-                "taxYear"                -> sampleDesReturn.taxYear,
-                "mainReturnChargeAmount" -> 0,
-                "propertyAddress"        -> Json.obj(
-                  "UkAddress" -> Json.obj(
-                    "line1"    -> sampleDesReturn.propertyAddress.addressLine1,
-                    "line2"    -> sampleDesReturn.propertyAddress.addressLine2,
-                    "town"     -> sampleDesReturn.propertyAddress.addressLine3,
-                    "postcode" -> sampleDesReturn.propertyAddress.postalCode
-                  )
-                ),
-                "charges"                -> JsArray.empty,
-                "isRecentlyAmended"      -> true,
-                "expired"                -> false
-              )
-            )
-          )
+        val returnSummaryModel: ReturnSummary = ReturnSummary(
+          submissionId = sampleDesReturn.submissionId,
+          submissionDate = sampleDesReturn.submissionDate,
+          completionDate = sampleDesReturn.completionDate,
+          lastUpdatedDate = None,
+          taxYear = sampleDesReturn.taxYear,
+          mainReturnChargeAmount = AmountInPence(0),
+          mainReturnChargeReference = None,
+          propertyAddress = UkAddress(
+            sampleDesReturn.propertyAddress.addressLine1,
+            sampleDesReturn.propertyAddress.addressLine2,
+            sampleDesReturn.propertyAddress.addressLine3,
+            sampleDesReturn.propertyAddress.addressLine4,
+            Postcode(sampleDesReturn.propertyAddress.postalCode.get),
+          ),
+          charges = List.empty,
+          isRecentlyAmended = true,
+          expired = false
         )
 
-        await(aa.value).foreach { _ =>
+        val resultJson: JsValue = Json.toJson(ListReturnsResponse(List(returnSummaryModel)))
+
+        await(request.value).foreach { _ =>
           val result: WSResponse = await(listRequest.get())
           result.status shouldBe OK
           result.json   shouldBe resultJson
