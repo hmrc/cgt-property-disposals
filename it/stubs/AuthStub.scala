@@ -20,37 +20,38 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.http.Status._
 import play.api.libs.json.{JsObject, Json}
 import support.WireMockMethods
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 
 object AuthStub extends WireMockMethods {
-
   private val authoriseUri: String = "/auth/authorise"
-
-  private val enrolment: JsObject = Json.obj(
-    "key"         -> "HMRC-TERS-ORG",
-    "identifiers" -> Json.arr(
-      Json.obj(
-        "key"   -> "SAUTR",
-        "value" -> "7000040245"
-      )
-    )
-  )
 
   private val credentials: JsObject = Json.obj(
     "providerId"   -> "someProviderId",
     "providerType" -> "GovernmentGateway"
   )
 
+  val enrolmentModel: Enrolment = Enrolment(
+    key = "HMRC-TERS-ORG",
+    identifiers = Seq(
+      EnrolmentIdentifier(
+        key = "SAUTR",
+        value = "7000040245"
+      )
+    ),
+    state = "Activated"
+  )
+
+  private val successfulAuthResponse: JsObject = Json.obj(
+    "authorisedEnrolments" -> enrolmentModel.toJson,
+    "affinityGroup"        -> "Individual",
+    "optionalCredentials"  -> credentials
+  )
+
   def authorised(): StubMapping =
     when(method = POST, uri = authoriseUri)
       .thenReturn(status = OK, body = successfulAuthResponse)
 
-  def unauthorised(): StubMapping              =
+  def unauthorised(): StubMapping =
     when(method = POST, uri = authoriseUri)
       .thenReturn(status = UNAUTHORIZED, headers = Map("WWW-Authenticate" -> """MDTP detail="MissingBearerToken""""))
-
-  private val successfulAuthResponse: JsObject = Json.obj(
-    "authorisedEnrolments" -> enrolment,
-    "affinityGroup"        -> "Individual",
-    "optionalCredentials"  -> credentials
-  )
 }
