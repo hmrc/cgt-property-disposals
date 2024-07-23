@@ -153,11 +153,11 @@ class DefaultReturnsService @Inject() (
       financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
 
-        if (response.status === OK)
+        if (response.status === OK) {
           response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
-        else if (isNoFinancialDataResponse(response))
+        } else if (isNoFinancialDataResponse(response, cgtReference.value, fromDate, toDate)) {
           Right(DesFinancialDataResponse(List.empty))
-        else {
+        } else {
           metrics.financialDataErrorCounter.inc()
           Left(Error(s"call to get financial data came back with unexpected status ${response.status}"))
         }
@@ -330,11 +330,10 @@ class DefaultReturnsService @Inject() (
       val timer = metrics.listReturnsTimer.time()
       returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
-        if (response.status === OK)
-          response.parseJSON[DesListReturnsResponse]().leftMap(Error(_))
-        else if (isNoReturnsResponse(response))
+        if (response.status === OK) { response.parseJSON[DesListReturnsResponse]().leftMap(Error(_)) }
+        else if (isNoReturnsDataResponse(response, cgtReference.value, fromDate, toDate)) {
           Right(DesListReturnsResponse(List.empty))
-        else {
+        } else {
           metrics.listReturnsErrorCounter.inc()
           Left(Error(s"call to list returns came back with unexpected status ${response.status}"))
         }
@@ -344,57 +343,63 @@ class DefaultReturnsService @Inject() (
     lazy val recentlyAmendedReturnList: EitherT[Future, Error, List[SubmitReturnWrapper]] =
       amendReturnsService.getAmendedReturn(cgtReference)
 
-    for {
-      desReturnList                 <- desReturnList
-      listOfDesFinancialData        <- listOfFutureDesFinancialData.traverse(identity)
-      listOfDesFinancialTransactions = listOfDesFinancialData.flatMap(desFinancialData =>
-                                         if (desReturnList.returnList.nonEmpty) desFinancialData.financialTransactions
-                                         else DesFinancialDataResponse(List.empty).financialTransactions
-                                       )
-      recentlyAmendedReturns        <- recentlyAmendedReturnList
-      returnSummaries               <-
-        EitherT.fromEither(
-          if (desReturnList.returnList.nonEmpty)
-            returnSummaryListTransformerService
-              .toReturnSummaryList(
-                desReturnList.returnList,
-                listOfDesFinancialTransactions,
-                recentlyAmendedReturns.map(submitReturnWrapper => submitReturnWrapper.submitReturnRequest)
-              )
-          else
-            Right(List.empty)
-        )
-    } yield returnSummaries
+    def listReturnsResult(desReturnList: DesListReturnsResponse): EitherT[Future, Error, List[ReturnSummary]] =
+      for {
+        listOfDesFinancialData        <- listOfFutureDesFinancialData.traverse(identity)
+        listOfDesFinancialTransactions =
+          listOfDesFinancialData.flatMap(desFinancialData => desFinancialData.financialTransactions)
+        recentlyAmendedReturns        <- recentlyAmendedReturnList
+        returnSummaries               <- EitherT.fromEither(
+                                           returnSummaryListTransformerService.toReturnSummaryList(
+                                             returns = desReturnList.returnList,
+                                             financialData = listOfDesFinancialTransactions,
+                                             recentlyAmendedReturns = recentlyAmendedReturns.map(submitReturnWrapper =>
+                                               submitReturnWrapper.submitReturnRequest
+                                             )
+                                           )
+                                         )
+      } yield returnSummaries
+
+    desReturnList.flatMap {
+      case DesListReturnsResponse(Nil) => EitherT.rightT(List.empty)
+      case returnList: DesListReturnsResponse => listReturnsResult(returnList) }
   }
 
-  private def isNoFinancialDataResponse(response: HttpResponse) = {
-    lazy val hasNoReturnBody = response
-      .parseJSON[DesErrorResponse]()
-      .bimap(
-        _ => false,
-        _.hasError(SingleDesErrorResponse("NOT_FOUND", "The remote endpoint has indicated that no data can be found."))
-      )
-      .merge
+  private def isNoDataResponse(response: HttpResponse, expectedError: SingleDesErrorResponse, logString: String) = {
+    lazy val hasNoReturnBody = response.parseJSON[DesErrorResponse]().exists(_.hasError(expectedError))
+    val isNoDataResponse = response.status === NOT_FOUND && hasNoReturnBody
 
-    response.status === NOT_FOUND && hasNoReturnBody
+    if (isNoDataResponse) logger.info(logString)
+    isNoDataResponse
   }
 
-  private def isNoReturnsResponse(response: HttpResponse): Boolean = {
-    lazy val hasNoReturnBody = response
-      .parseJSON[DesErrorResponse]()
-      .bimap(
-        _ => false,
-        _.hasError(
-          SingleDesErrorResponse(
-            "NOT_FOUND",
-            "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
-          )
-        )
-      )
-      .merge
+  private def isNoFinancialDataResponse(
+    response: HttpResponse,
+    cgtRef: String,
+    fromDate: LocalDate,
+    toDate: LocalDate
+  ) = isNoDataResponse(
+    response = response,
+    expectedError = SingleDesErrorResponse(
+      code = "NOT_FOUND",
+      reason = "The remote endpoint has indicated that no data can be found."
+    ),
+    logString = s"No financial data was found for the CGT reference: $cgtRef, and date range: $fromDate - $toDate"
+  )
 
-    response.status === NOT_FOUND && hasNoReturnBody
-  }
+  private def isNoReturnsDataResponse(
+    response: HttpResponse,
+    cgtRef: String,
+    fromDate: LocalDate,
+    toDate: LocalDate
+  ): Boolean = isNoDataResponse(
+    response = response,
+    expectedError = SingleDesErrorResponse(
+      code = "NOT_FOUND",
+      reason = "The remote endpoint has indicated that the CGT reference is in use but no returns could be found."
+    ),
+    logString = s"CGT reference: $cgtRef is in use, but no returns were found for the date range: $fromDate - $toDate"
+  )
 
   def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
     hc: HeaderCarrier
@@ -402,14 +407,12 @@ class DefaultReturnsService @Inject() (
     val timer = metrics.displayReturnTimer.time()
     returnsConnector.displayReturn(cgtReference, submissionId).subflatMap { response =>
       timer.close()
-      if (response.status === OK)
+      if (response.status === OK) {
         for {
-          desReturn      <- response
-                              .parseJSON[DesReturnDetails]()
-                              .leftMap(Error(_))
+          desReturn      <- response.parseJSON[DesReturnDetails]().leftMap(Error(_))
           completeReturn <- returnTransformerService.toCompleteReturn(desReturn)
         } yield completeReturn
-      else {
+      } else {
         metrics.displayReturnErrorCounter.inc()
         Left(Error(s"call to list returns came back with status ${response.status}"))
       }
@@ -497,15 +500,9 @@ object DefaultReturnsService {
     ppdReturnResponseDetails: DesSubmitReturnResponseDetails
   )
 
-  final case class DesListReturnsResponse(
-    returnList: List[DesReturnSummary]
-  )
+  final case class DesListReturnsResponse(returnList: List[DesReturnSummary])
 
-  final case class DesCharge(
-    chargeDescription: String,
-    dueDate: LocalDate,
-    chargeReference: String
-  )
+  final case class DesCharge(chargeDescription: String, dueDate: LocalDate, chargeReference: String)
 
   final case class DesReturnSummary(
     submissionId: String,
@@ -524,7 +521,9 @@ object DefaultReturnsService {
 
   implicit val ppdReturnResponseDetailsFormat: Format[DesSubmitReturnResponseDetails] =
     Json.format[DesSubmitReturnResponseDetails]
-  implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse]               = Json.format[DesSubmitReturnResponse]
+
+  implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse] =
+    Json.format[DesSubmitReturnResponse]
 
   val expiredMessage = "Amend deadline has passed"
 }
