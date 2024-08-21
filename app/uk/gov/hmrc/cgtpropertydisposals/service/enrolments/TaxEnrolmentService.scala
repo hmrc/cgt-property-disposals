@@ -32,7 +32,10 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments.{TaxEnrolmentRep
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[TaxEnrolmentServiceImpl])
@@ -57,10 +60,15 @@ class TaxEnrolmentServiceImpl @Inject() (
   taxEnrolmentConnector: TaxEnrolmentConnector,
   taxEnrolmentRepository: TaxEnrolmentRepository,
   verifiersRepository: VerifiersRepository,
-  metrics: Metrics
+  metrics: Metrics,
+  servicesConfig: ServicesConfig,
+  lockrepo: MongoLockRepository
 )(implicit ec: ExecutionContext)
     extends TaxEnrolmentService
     with Logging {
+
+  private val repoLockPeriod: Int = servicesConfig.getInt(s"mongodb.repoLockPeriod")
+  private lazy val lockService    = LockService(lockrepo, lockId = "taxEnrolmentProcessing", ttl = repoLockPeriod.seconds)
 
   private def makeES8call(
     taxEnrolmentRequest: TaxEnrolmentRequest
@@ -107,16 +115,26 @@ class TaxEnrolmentServiceImpl @Inject() (
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
-    for {
-      httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
-      result       <-
-        EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
-          logger.warn(s"Failed to allocate enrolments due to error: $error; will store enrolment details")
-          taxEnrolmentRepository
-            .save(taxEnrolmentRequest)
-            .leftMap(error => Error(s"Could not store enrolment details: $error"))
+    EitherT(
+      lockService
+        .withLock {
+          (for {
+            httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
+            result       <-
+              EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
+                error: Error =>
+                  logger.warn(s"Failed to allocate enrolments due to error: $error; will store enrolment details")
+                  taxEnrolmentRepository
+                    .save(taxEnrolmentRequest)
+                    .leftMap(error => Error(s"Could not store enrolment details: $error"))
+              }
+          } yield result).value
         }
-    } yield result
+        .flatMap {
+          case Some(v) => Future.successful(v)
+          case None    => allocateEnrolmentToGroup(taxEnrolmentRequest).value
+        }
+    )
 
   def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
     httpResponse.status match {

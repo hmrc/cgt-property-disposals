@@ -21,6 +21,7 @@ import org.mockito.ArgumentMatchersSugar.*
 import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
@@ -35,7 +36,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.{Email, Error, TelephoneNumber}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments.{TaxEnrolmentRepository, VerifiersRepository}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -44,14 +47,24 @@ class TaxEnrolmentServiceImplSpec
     extends AnyWordSpec
     with Matchers
     with IdiomaticMockito
-    with CleanMongoCollectionSupport {
+    with CleanMongoCollectionSupport
+    with GuiceOneAppPerSuite {
 
   val mockConnector: TaxEnrolmentConnector            = mock[TaxEnrolmentConnector]
   val mockEnrolmentRepository: TaxEnrolmentRepository = mock[TaxEnrolmentRepository]
   val mockVerifierRepository: VerifiersRepository     = mock[VerifiersRepository]
+  val mockServicesConfig                              = mock[ServicesConfig]
+  val mockLockRepo                                    = app.injector.instanceOf[MongoLockRepository]
 
   val service =
-    new TaxEnrolmentServiceImpl(mockConnector, mockEnrolmentRepository, mockVerifierRepository, MockMetrics.metrics)
+    new TaxEnrolmentServiceImpl(
+      mockConnector,
+      mockEnrolmentRepository,
+      mockVerifierRepository,
+      MockMetrics.metrics,
+      mockServicesConfig,
+      mockLockRepo
+    )
 
   private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, HttpResponse]
