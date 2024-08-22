@@ -47,11 +47,11 @@ trait WireMockMethods {
       method
         .wireMockMapping(urlPathMatching(uri))
         .withQueryParams(queryParams.view.mapValues(matching).toMap.asJava)
-        .pipe(headers.foldLeft(_) { case (m, (key, value)) => m.withHeader(key, equalTo(value))})
+        .pipe(headers.foldLeft(_) { case (m, (key, value)) => m.withHeader(key, equalTo(value)) })
         .pipe { mapping =>
           body match {
             case Some(extractedBody) => mapping.withRequestBody(equalTo(extractedBody))
-            case None => mapping
+            case None                => mapping
           }
         }
 

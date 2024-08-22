@@ -323,7 +323,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
             sampleDesReturn.propertyAddress.addressLine2,
             sampleDesReturn.propertyAddress.addressLine3,
             sampleDesReturn.propertyAddress.addressLine4,
-            Postcode(sampleDesReturn.propertyAddress.postalCode.get),
+            Postcode(sampleDesReturn.propertyAddress.postalCode.get)
           ),
           charges = List.empty,
           isRecentlyAmended = true,

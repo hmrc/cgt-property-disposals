@@ -361,13 +361,14 @@ class DefaultReturnsService @Inject() (
       } yield returnSummaries
 
     desReturnList.flatMap {
-      case DesListReturnsResponse(Nil) => EitherT.rightT(List.empty)
-      case returnList: DesListReturnsResponse => listReturnsResult(returnList) }
+      case DesListReturnsResponse(Nil)        => EitherT.rightT(List.empty)
+      case returnList: DesListReturnsResponse => listReturnsResult(returnList)
+    }
   }
 
   private def isNoDataResponse(response: HttpResponse, expectedError: SingleDesErrorResponse, logString: String) = {
     lazy val hasNoReturnBody = response.parseJSON[DesErrorResponse]().exists(_.hasError(expectedError))
-    val isNoDataResponse = response.status === NOT_FOUND && hasNoReturnBody
+    val isNoDataResponse     = response.status === NOT_FOUND && hasNoReturnBody
 
     if (isNoDataResponse) logger.info(logString)
     isNoDataResponse
