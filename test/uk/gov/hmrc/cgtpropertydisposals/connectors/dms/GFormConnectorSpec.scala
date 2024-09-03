@@ -18,39 +18,43 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.util.ByteString
-import org.mockito.ArgumentMatchersSugar.*
 import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
-import play.api.libs.ws
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSResponse
 import play.api.libs.ws.ahc.AhcWSResponse
 import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseStatus}
 import play.api.test.Helpers.{await, _}
+import play.api.{Application, Configuration}
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
 import play.shaded.ahc.org.asynchttpclient.Response
 import play.shaded.ahc.org.asynchttpclient.uri.Uri
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
-import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
+import uk.gov.hmrc.http.test.WireMockSupport
 
 import java.util.UUID
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
-class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class GFormConnectorSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite {
+
   private val config = Configuration(
     ConfigFactory.parseString(
-      """
+      s"""
         |microservice {
         |  services {
         |          gform {
-        |            host = localhost
-        |            port = 9196
+        |            host = $wireMockHost
+        |            port = $wireMockPort
         |        }
         |  }
         |}
@@ -58,7 +62,9 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito
     )
   )
 
-  private val mockWsClient = mock[PlayHttpClient]
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
+
+  val connector: GFormConnector = app.injector.instanceOf[GFormConnector]
 
   private def buildWsResponse(status: Int, body: String): WSResponse = {
     val responseBuilder = new Response.ResponseBuilder()
@@ -70,13 +76,6 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito
 
     new AhcWSResponse(responseBuilder.build())
   }
-
-  private def mockPost[A](url: String, headers: Seq[(String, String)])(
-    response: Future[ws.WSResponse]
-  ) =
-    mockWsClient.post[A](url, headers, *)(*).returns(response)
-
-  val connector = new GFormConnectorImpl(mockWsClient, new ServicesConfig(config))
 
   "GForm Connector" when {
     "return an error if the http call to download the file fails" in {
@@ -92,10 +91,11 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito
         buildWsResponse(500, "error body")
       ).foreach { httpResponse =>
         withClue(s"For http response [${httpResponse.toString}]") {
-          mockPost(
-            "http://localhost:9196/gform/dms/submit-with-attachments",
-            Seq.empty
-          )(Future.successful(httpResponse))
+          when(
+            POST,
+            "/gform/dms/submit-with-attachments"
+          ).thenReturn(httpResponse.status, httpResponse.body)
+
           await(connector.submitToDms(dms, id).value) shouldBe Left(Error("error body"))
         }
       }
@@ -108,22 +108,14 @@ class GFormConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito
         sample[DmsMetadata]
       )
 
-      List(
-        buildWsResponse(200, "id")
-      ).foreach { httpResponse =>
+      List(buildWsResponse(200, "id")).foreach { httpResponse =>
         withClue(s"For http response [${httpResponse.toString}]") {
-          mockPost(
-            "http://localhost:9196/gform/dms/submit-with-attachments",
-            Seq.empty
-          )(Future.successful(httpResponse))
-          await(
-            connector
-              .submitToDms(
-                dms,
-                UUID.randomUUID()
-              )
-              .value
-          ) shouldBe Right(EnvelopeId("id"))
+          when(
+            POST,
+            "/gform/dms/submit-with-attachments"
+          ).thenReturn(httpResponse.status, httpResponse.body)
+
+          await(connector.submitToDms(dms, UUID.randomUUID()).value) shouldBe Right(EnvelopeId("id"))
         }
       }
     }

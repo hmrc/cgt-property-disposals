@@ -26,6 +26,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits, ResultExtractors}
 import play.api.{Application, Environment, Mode}
+import uk.gov.hmrc.http.test.WireMockSupport
 
 trait IntegrationBaseSpec
     extends AnyWordSpecLike
@@ -33,7 +34,7 @@ trait IntegrationBaseSpec
     with Matchers
     with FutureAwaits
     with DefaultAwaitTimeout
-    with WireMockHelper
+    with WireMockSupport
     with GuiceOneServerPerSuite
     with BeforeAndAfterEach
     with BeforeAndAfterAll
@@ -41,37 +42,19 @@ trait IntegrationBaseSpec
     with HeaderNames
     with ResultExtractors {
 
-  val mockHost: String = WireMockHelper.host
-  val mockPort: String = WireMockHelper.wireMockPort.toString
-
   lazy val client: WSClient = app.injector.instanceOf[WSClient]
 
   def servicesConfig: Map[String, Any] = Map(
-    "microservice.services.returns.host" -> mockHost,
-    "microservice.services.returns.port" -> mockPort,
-    "microservice.services.auth.host"    -> mockHost,
-    "microservice.services.auth.port"    -> mockPort
+    "microservice.services.returns.host" -> wireMockHost,
+    "microservice.services.returns.port" -> wireMockPort,
+    "microservice.services.auth.host"    -> wireMockHost,
+    "microservice.services.auth.port"    -> wireMockPort
   )
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
     .in(Environment.simple(mode = Mode.Dev))
     .configure(servicesConfig)
     .build()
-
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    startWireMock()
-  }
-
-  override def afterAll(): Unit = {
-    stopWireMock()
-    super.afterAll()
-  }
-
-  override def beforeEach(): Unit = {
-    resetWireMock()
-    super.beforeEach()
-  }
 
   def buildRequest(path: String): WSRequest = client.url(s"http://localhost:$port$path").withFollowRedirects(false)
 

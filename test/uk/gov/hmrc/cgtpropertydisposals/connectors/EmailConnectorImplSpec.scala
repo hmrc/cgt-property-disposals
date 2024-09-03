@@ -18,23 +18,32 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 
 import com.typesafe.config.ConfigFactory
 import org.mockito.IdiomaticMockito
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.Helpers._
+import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
+import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class EmailConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class EmailConnectorImplSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite
+    with EitherValues {
 
   val (accountCreatedTemplateId, accountCreatedSignInUrl, returnSubmittedTemplateId) =
     ("template", "sign-in", "template-return-submitted")
@@ -46,8 +55,8 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMoc
          |  services {
          |    email {
          |      protocol = http
-         |      host     = host
-         |      port     = 123
+         |      host     = $wireMockHost
+         |      port     = $wireMockPort
          |    }
          |  }
          |}
@@ -65,10 +74,11 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMoc
     )
   )
 
-  private val emptyJsonBody = "{}"
+  private val emptyJsonBody = ""
 
-  val connector =
-    new EmailConnectorImpl(mockHttp, new ServicesConfig(config))
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
+
+  val connector: EmailConnector = app.injector.instanceOf[EmailConnector]
 
   "EmailConnectorImpl" when {
     "it receives a request to send an account created confirmation email in English" must {
@@ -99,30 +109,29 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMoc
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
 
-            mockPost(
-              s"http://host:123/hmrc/email",
-              Seq.empty,
-              expectedRequestBody
-            )(Some(httpResponse))
+            when(
+              POST,
+              s"/hmrc/email",
+              body = Some(expectedRequestBody.toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            await(connector.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value) shouldBe Right(
-              httpResponse
-            )
+            val response =
+              await(connector.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
 
       "return an error" when {
         "the call fails" in {
-          mockPost(
-            s"http://host:123/hmrc/email",
-            Seq.empty,
-            expectedRequestBody
-          )(None)
+          wireMockServer.stop()
+          when(POST, s"/hmrc/email", body = Some(expectedRequestBody.toString()))
 
           await(
             connector.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value
           ).isLeft shouldBe true
+          wireMockServer.start()
         }
       }
     }
@@ -154,16 +163,16 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMoc
           HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
+            when(
+              POST,
+              s"/hmrc/email",
+              body = Some(expectedRequestBody.toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            mockPost(
-              s"http://host:123/hmrc/email",
-              Seq.empty,
-              expectedRequestBody
-            )(Some(httpResponse))
-
-            await(connector.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value) shouldBe Right(
-              httpResponse
-            )
+            val response =
+              await(connector.sendSubscriptionConfirmationEmail(cgtReference, email, contactName).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
@@ -195,33 +204,29 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMoc
           HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
+            when(
+              POST,
+              s"/hmrc/email",
+              body = Some(expectedRequestBody.toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            mockPost(
-              s"http://host:123/hmrc/email",
-              Seq.empty,
-              expectedRequestBody
-            )(Some(httpResponse))
-
-            await(
-              connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value
-            ) shouldBe Right(
-              httpResponse
-            )
+            val response =
+              await(connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
 
       "return an error" when {
         "the call fails" in {
-          mockPost(
-            s"http://host:123/hmrc/email",
-            Seq.empty,
-            expectedRequestBody
-          )(None)
+          wireMockServer.stop()
+          when(POST, s"/hmrc/email", body = Some(expectedRequestBody.toString()))
 
           await(
             connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value
           ).isLeft shouldBe true
+          wireMockServer.start()
         }
       }
     }
@@ -252,18 +257,16 @@ class EmailConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMoc
           HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
+            when(
+              POST,
+              s"/hmrc/email",
+              body = Some(expectedRequestBody.toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            mockPost(
-              s"http://host:123/hmrc/email",
-              Seq.empty,
-              expectedRequestBody
-            )(Some(httpResponse))
-
-            await(
-              connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value
-            ) shouldBe Right(
-              httpResponse
-            )
+            val response =
+              await(connector.sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
