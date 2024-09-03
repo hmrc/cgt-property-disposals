@@ -19,32 +19,38 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.ActorSystem
 import org.mockito.IdiomaticMockito
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
-import play.api.libs.ws
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSResponse
 import play.api.libs.ws.ahc.AhcWSResponse
 import play.api.libs.ws.ahc.cache.{CacheableHttpResponseBodyPart, CacheableHttpResponseStatus}
 import play.api.test.Helpers._
+import play.api.{Application, Configuration}
 import play.shaded.ahc.io.netty.handler.codec.http.DefaultHttpHeaders
 import play.shaded.ahc.org.asynchttpclient.Response
 import play.shaded.ahc.org.asynchttpclient.uri.Uri
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
-import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPollerExecutionContext
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.http.test.WireMockSupport
 
-import scala.concurrent.duration.{Duration, _}
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport with BeforeAndAfterAll {
+class S3ConnectorSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite {
+
   private val config = Configuration(
     ConfigFactory.parseString(
       """
@@ -57,7 +63,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
     )
   )
 
-  private val mockWsClient = mock[PlayHttpClient]
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
 
   private def buildWsResponse(status: Int): WSResponse = {
     val responseBuilder = new Response.ResponseBuilder()
@@ -75,23 +81,20 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
     new AhcWSResponse(responseBuilder.build())
   }
 
-  private def mockGet(url: String, headers: Seq[(String, String)], timeout: Duration)(
-    response: Future[ws.WSResponse]
-  ) = mockWsClient.get(url, headers, timeout).returns(response)
-
   implicit val hc: HeaderCarrier                                       = HeaderCarrier()
   implicit val actorSystem: ActorSystem                                = ActorSystem()
   implicit val dmsExectionContext: DmsSubmissionPollerExecutionContext = new DmsSubmissionPollerExecutionContext(
     actorSystem
   )
 
-  val connector =
-    new S3ConnectorImpl(mockWsClient, new ServicesConfig(config))
+  val connector: S3Connector = app.injector.instanceOf[S3Connector]
 
   override def afterAll(): Unit = {
     Await.ready(actorSystem.terminate(), 10 seconds)
     super.afterAll()
   }
+
+  val downloadUrl: String => String = (path: String) => s"http://$wireMockHost:$wireMockPort/$path"
 
   "Upscan Connector" when {
     "it receives a request to download a file" must {
@@ -101,18 +104,19 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
           buildWsResponse(500)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockGet(
-              "some-url",
-              Seq("User-Agent" -> "cgt-property-disposals"),
-              2 minutes
-            )(Future.successful(httpResponse))
+            when(
+              GET,
+              "/some-url",
+              headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+            ).thenReturn(httpResponse.status)
+
             await(
               connector
                 .downloadFile(
                   UpscanSuccess(
                     "ref",
                     "status",
-                    "some-url",
+                    downloadUrl("some-url"),
                     Map("fileName" -> "f1.text", "fileMimeType" -> "application/pdf")
                   )
                 )
@@ -140,18 +144,19 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
           buildWsResponse(200)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockGet(
-              "some-url",
-              Seq("User-Agent" -> "cgt-property-disposals"),
-              2 minutes
-            )(Future.successful(httpResponse))
+            when(
+              GET,
+              "/some-url",
+              headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+            ).thenReturn(httpResponse.status)
+
             val result = await(
               connector
                 .downloadFile(
                   UpscanSuccess(
                     "ref",
                     "status",
-                    "some-url",
+                    downloadUrl("some-url"),
                     Map("fileName" -> "f1.text", "fileMimeType" -> "application/pdf")
                   )
                 )
@@ -168,11 +173,11 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
               buildWsResponse(200)
             ).foreach { httpResponse =>
               withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq("User-Agent" -> "cgt-property-disposals"),
-                  2 minutes
-                )(Future.successful(httpResponse))
+                when(
+                  GET,
+                  "/some-url",
+                  headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+                ).thenReturn(httpResponse.status)
 
                 val result = await(
                   connector
@@ -180,7 +185,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
                       UpscanSuccess(
                         "ref",
                         "status",
-                        "some-url",
+                        downloadUrl("some-url"),
                         Map("fileName" -> "sample_test01.edition1.txt", "fileMimeType" -> "text/plain")
                       )
                     )
@@ -188,7 +193,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample_test01.edition1.txt"
-                  case _                                        =>
+                  case _                                        => fail()
                 }
               }
             }
@@ -200,11 +205,11 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
               buildWsResponse(200)
             ).foreach { httpResponse =>
               withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq("User-Agent" -> "cgt-property-disposals"),
-                  2 minutes
-                )(Future.successful(httpResponse))
+                when(
+                  GET,
+                  "/some-url",
+                  headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+                ).thenReturn(httpResponse.status)
 
                 val result = await(
                   connector
@@ -212,7 +217,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
                       UpscanSuccess(
                         "ref",
                         "status",
-                        "some-url",
+                        downloadUrl("some-url"),
                         Map("fileName" -> "31", "fileMimeType" -> "text/plain")
                       )
                     )
@@ -220,7 +225,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "-"
-                  case _                                        =>
+                  case _                                        => fail()
                 }
               }
             }
@@ -232,11 +237,11 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
               buildWsResponse(200)
             ).foreach { httpResponse =>
               withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq("User-Agent" -> "cgt-property-disposals"),
-                  2 minutes
-                )(Future.successful(httpResponse))
+                when(
+                  GET,
+                  "/some-url",
+                  headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+                ).thenReturn(httpResponse.status)
 
                 val result = await(
                   connector
@@ -244,7 +249,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
                       UpscanSuccess(
                         "ref",
                         "status",
-                        "some-url",
+                        downloadUrl("some-url"),
                         Map("fileName" -> "01", "fileMimeType" -> "text/plain")
                       )
                     )
@@ -252,7 +257,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "-"
-                  case _                                        =>
+                  case _                                        => fail()
                 }
               }
             }
@@ -264,11 +269,11 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
               buildWsResponse(200)
             ).foreach { httpResponse =>
               withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq("User-Agent" -> "cgt-property-disposals"),
-                  2 minutes
-                )(Future.successful(httpResponse))
+                when(
+                  GET,
+                  "/some-url",
+                  headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+                ).thenReturn(httpResponse.status)
 
                 val result = await(
                   connector
@@ -276,7 +281,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
                       UpscanSuccess(
                         "ref",
                         "status",
-                        "some-url",
+                        downloadUrl("some-url"),
                         Map("fileName" -> "sample<cgt>file?name/one*.txt", "fileMimeType" -> "text/plain")
                       )
                     )
@@ -284,7 +289,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-cgt-file-name-one-.txt"
-                  case _                                        =>
+                  case _                                        => fail()
                 }
               }
             }
@@ -296,11 +301,11 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
               buildWsResponse(200)
             ).foreach { httpResponse =>
               withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq("User-Agent" -> "cgt-property-disposals"),
-                  2 minutes
-                )(Future.successful(httpResponse))
+                when(
+                  GET,
+                  "/some-url",
+                  headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+                ).thenReturn(httpResponse.status)
 
                 val result = await(
                   connector
@@ -308,7 +313,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
                       UpscanSuccess(
                         "ref",
                         "status",
-                        "some-url",
+                        downloadUrl("some-url"),
                         Map("fileName" -> "sample\"test.txt", "fileMimeType" -> "text/plain")
                       )
                     )
@@ -316,7 +321,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
-                  case _                                        =>
+                  case _                                        => fail()
                 }
               }
             }
@@ -328,11 +333,11 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
               buildWsResponse(200)
             ).foreach { httpResponse =>
               withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq("User-Agent" -> "cgt-property-disposals"),
-                  2 minutes
-                )(Future.successful(httpResponse))
+                when(
+                  GET,
+                  "/some-url",
+                  headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+                ).thenReturn(httpResponse.status)
 
                 val result = await(
                   connector
@@ -340,7 +345,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
                       UpscanSuccess(
                         "ref",
                         "status",
-                        "some-url",
+                        downloadUrl("some-url"),
                         Map("fileName" -> "sample\\test.txt", "fileMimeType" -> "text/plain")
                       )
                     )
@@ -348,7 +353,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
-                  case _                                        =>
+                  case _                                        => fail()
                 }
               }
             }
@@ -360,11 +365,11 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
               buildWsResponse(200)
             ).foreach { httpResponse =>
               withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq("User-Agent" -> "cgt-property-disposals"),
-                  2 minutes
-                )(Future.successful(httpResponse))
+                when(
+                  GET,
+                  "/some-url",
+                  headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+                ).thenReturn(httpResponse.status)
 
                 val result = await(
                   connector
@@ -372,7 +377,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
                       UpscanSuccess(
                         "ref",
                         "status",
-                        "some-url",
+                        downloadUrl("some-url"),
                         Map("fileName" -> "sample%22test.txt", "fileMimeType" -> "text/plain")
                       )
                     )
@@ -380,7 +385,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-22test.txt"
-                  case _                                        =>
+                  case _                                        => fail()
                 }
               }
             }
@@ -392,11 +397,11 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
               buildWsResponse(200)
             ).foreach { httpResponse =>
               withClue(s"For http response [${httpResponse.toString}]") {
-                mockGet(
-                  "some-url",
-                  Seq("User-Agent" -> "cgt-property-disposals"),
-                  2 minutes
-                )(Future.successful(httpResponse))
+                when(
+                  GET,
+                  "/some-url",
+                  headers = Seq("User-Agent" -> "cgt-property-disposals").toMap
+                ).thenReturn(httpResponse.status)
 
                 val result = await(
                   connector
@@ -404,7 +409,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
                       UpscanSuccess(
                         "ref",
                         "status",
-                        "some-url",
+                        downloadUrl("some-url"),
                         Map("fileName" -> "sample:test.txt", "fileMimeType" -> "text/plain")
                       )
                     )
@@ -412,7 +417,7 @@ class S3ConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito wi
 
                 result match {
                   case Right(FileAttachment(_, filename, _, _)) => filename shouldBe "sample-test.txt"
-                  case _                                        =>
+                  case _                                        => fail()
                 }
               }
             }

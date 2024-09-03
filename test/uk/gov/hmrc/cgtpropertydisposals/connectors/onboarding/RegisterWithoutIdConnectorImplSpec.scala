@@ -18,24 +18,33 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import com.typesafe.config.ConfigFactory
 import org.mockito.IdiomaticMockito
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
+import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.IndividualName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
+import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.util.UUID
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class RegisterWithoutIdConnectorImplSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite
+    with EitherValues {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -46,8 +55,8 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
          |  services {
          |      register-without-id {
          |      protocol = http
-         |      host     = host
-         |      port     = 123
+         |      host     = $wireMockHost
+         |      port     = $wireMockPort
          |    }
          |  }
          |}
@@ -60,8 +69,9 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
     )
   )
 
-  val connector =
-    new RegisterWithoutIdConnectorImpl(mockHttp, new ServicesConfig(config))
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
+
+  val connector: RegisterWithoutIdConnector = app.injector.instanceOf[RegisterWithoutIdConnector]
 
   private val emptyJsonBody = "{}"
 
@@ -70,7 +80,7 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
     val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
 
     "handling request to subscribe for individuals" must {
-      val expectedUrl         = "http://host:123/registration/02.00.00/individual"
+      val expectedUrl         = "/registration/02.00.00/individual"
       val registrationDetails = RegistrationDetails(
         IndividualName("name", "surname"),
         Email("email"),
@@ -117,19 +127,31 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
           HttpResponse(500, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPost(expectedUrl, expectedHeaders, expectedRequest)(
-              Some(httpResponse)
-            )
+            when(
+              POST,
+              expectedUrl,
+              headers = expectedHeaders.toMap,
+              body = Some(expectedRequest.toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            await(connector.registerWithoutId(registrationDetails, referenceId).value) shouldBe Right(httpResponse)
+            val response = await(connector.registerWithoutId(registrationDetails, referenceId).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
 
       "return an error when the future fails" in {
-        mockPost(expectedUrl, expectedHeaders, expectedRequest)(None)
+        wireMockServer.stop()
+        when(
+          POST,
+          expectedUrl,
+          headers = expectedHeaders.toMap,
+          body = Some(expectedRequest.toString())
+        )
 
         await(connector.registerWithoutId(registrationDetails, referenceId).value).isLeft shouldBe true
+        wireMockServer.start()
       }
 
       "be able to convert non uk addresses" in {
@@ -174,9 +196,16 @@ class RegisterWithoutIdConnectorImplSpec extends AnyWordSpec with Matchers with 
              |""".stripMargin
         )
 
-        mockPost(expectedUrl, expectedHeaders, expectedRequest)(Some(httpResponse))
+        when(
+          POST,
+          expectedUrl,
+          headers = expectedHeaders.toMap,
+          body = Some(expectedRequest.toString())
+        ).thenReturn(httpResponse.status, httpResponse.body)
 
-        await(connector.registerWithoutId(registrationDetails, referenceId).value) shouldBe Right(httpResponse)
+        val response = await(connector.registerWithoutId(registrationDetails, referenceId).value).value
+        response.status shouldBe httpResponse.status
+        response.body   shouldBe httpResponse.body
       }
     }
   }

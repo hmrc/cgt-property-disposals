@@ -18,21 +18,29 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import com.typesafe.config.ConfigFactory
 import org.mockito.IdiomaticMockito
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
+import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR, TRN}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.{IndividualBusinessPartnerRecordRequest, TrustBusinessPartnerRecordRequest}
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
+import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class BusinessPartnerRecordConnectorImplSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite
+    with EitherValues {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -43,8 +51,8 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
          |  services {
          |      business-partner-record {
          |      protocol = http
-         |      host     = host
-         |      port     = 123
+         |      host     = $wireMockHost
+         |      port     = $wireMockPort
          |    }
          |  }
          |}
@@ -57,8 +65,9 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
     )
   )
 
-  val connector =
-    new BusinessPartnerRecordConnectorImpl(mockHttp, new ServicesConfig(config))
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
+
+  val connector: BusinessPartnerRecordConnector = app.injector.instanceOf[BusinessPartnerRecordConnector]
 
   private val emptyJsonBody = "{}"
 
@@ -72,7 +81,12 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
       val ggCredId = "ggCredId"
 
       def individualBprRequest(id: Either[SAUTR, NINO], requiresNameMatch: Boolean) =
-        IndividualBusinessPartnerRecordRequest(id, if (requiresNameMatch) Some(name) else None, ggCredId, true)
+        IndividualBusinessPartnerRecordRequest(
+          id,
+          if (requiresNameMatch) Some(name) else None,
+          ggCredId,
+          createNewEnrolmentIfMissing = true
+        )
 
       def expectedIndividualBody(requiresNameMatch: Boolean) = {
         val individualJsonString =
@@ -104,42 +118,52 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
             HttpResponse(500, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(
-                s"http://host:123/registration/individual/nino/${nino.value}",
-                expectedHeaders,
-                expectedIndividualBody(true)
-              )(
-                Some(httpResponse)
-              )
+              when(
+                POST,
+                s"/registration/individual/nino/${nino.value}",
+                headers = expectedHeaders.toMap,
+                body = Some(expectedIndividualBody(true).toString())
+              ).thenReturn(httpResponse.status, httpResponse.body)
 
-              await(connector.getBusinessPartnerRecord(individualBprRequest(Right(nino), true)).value) shouldBe Right(
-                httpResponse
-              )
+              val response = await(
+                connector.getBusinessPartnerRecord(individualBprRequest(Right(nino), requiresNameMatch = true)).value
+              ).value
+              response.status shouldBe httpResponse.status
+              response.body   shouldBe httpResponse.body
             }
           }
         }
 
         "return an error when the future fails" in {
-          mockPost(
-            s"http://host:123/registration/individual/nino/${nino.value}",
-            expectedHeaders,
-            expectedIndividualBody(false)
-          )(None)
+          wireMockServer.stop()
+          when(
+            POST,
+            s"/registration/individual/nino/${nino.value}",
+            headers = expectedHeaders.toMap,
+            body = Some(expectedIndividualBody(true).toString())
+          )
 
-          await(connector.getBusinessPartnerRecord(individualBprRequest(Right(nino), false)).value).isLeft shouldBe true
+          await(
+            connector.getBusinessPartnerRecord(individualBprRequest(Right(nino), requiresNameMatch = false)).value
+          ).isLeft shouldBe true
+          wireMockServer.start()
         }
 
         "strip out spaces in NINOs" in {
-          mockPost(
-            s"http://host:123/registration/individual/nino/AA123456C",
-            expectedHeaders,
-            expectedIndividualBody(false)
-          )(None)
+          wireMockServer.stop()
+          when(
+            POST,
+            "/registration/individual/nino/AA123456C",
+            headers = expectedHeaders.toMap,
+            body = Some(expectedIndividualBody(true).toString())
+          )
 
           await(
-            connector.getBusinessPartnerRecord(individualBprRequest(Right(NINO("  AA 123 456C")), false)).value
+            connector
+              .getBusinessPartnerRecord(individualBprRequest(Right(NINO("  AA 123 456C")), requiresNameMatch = false))
+              .value
           ).isLeft shouldBe true
-
+          wireMockServer.start()
         }
       }
 
@@ -153,41 +177,53 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
             HttpResponse(500, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(
-                s"http://host:123/registration/individual/utr/${sautr.value}",
-                expectedHeaders,
-                expectedIndividualBody(true)
-              )(
-                Some(httpResponse)
-              )
+              when(
+                POST,
+                s"/registration/individual/utr/${sautr.value}",
+                headers = expectedHeaders.toMap,
+                body = Some(expectedIndividualBody(true).toString())
+              ).thenReturn(httpResponse.status, httpResponse.body)
 
-              await(connector.getBusinessPartnerRecord(individualBprRequest(Left(sautr), true)).value) shouldBe Right(
-                httpResponse
-              )
+              val response = await(
+                connector.getBusinessPartnerRecord(individualBprRequest(Left(sautr), requiresNameMatch = true)).value
+              ).value
+              response.status shouldBe httpResponse.status
+              response.body   shouldBe httpResponse.body
             }
           }
         }
 
         "return an error when the future fails" in {
-          mockPost(
-            s"http://host:123/registration/individual/utr/${sautr.value}",
-            expectedHeaders,
-            expectedIndividualBody(false)
-          )(None)
+          wireMockServer.stop()
+          when(
+            POST,
+            s"/registration/individual/utr/${sautr.value}",
+            headers = expectedHeaders.toMap,
+            body = Some(expectedIndividualBody(false).toString())
+          )
 
-          await(connector.getBusinessPartnerRecord(individualBprRequest(Left(sautr), false)).value).isLeft shouldBe true
+          await(
+            connector.getBusinessPartnerRecord(individualBprRequest(Left(sautr), requiresNameMatch = false)).value
+          ).isLeft shouldBe true
+
+          wireMockServer.start()
         }
 
         "strip out spaces in SA UTR's" in {
-          mockPost(
-            s"http://host:123/registration/individual/utr/12345",
-            expectedHeaders,
-            expectedIndividualBody(false)
-          )(None)
+          wireMockServer.stop()
+          when(
+            POST,
+            "/registration/individual/utr/12345",
+            headers = expectedHeaders.toMap,
+            body = Some(expectedIndividualBody(false).toString())
+          )
 
           await(
-            connector.getBusinessPartnerRecord(individualBprRequest(Left(SAUTR(" 12 34 5 ")), false)).value
+            connector
+              .getBusinessPartnerRecord(individualBprRequest(Left(SAUTR(" 12 34 5 ")), requiresNameMatch = false))
+              .value
           ).isLeft shouldBe true
+          wireMockServer.start()
         }
       }
 
@@ -196,7 +232,7 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
         val sautr = SAUTR(" sa utr ")
 
         def bprRequest(id: Either[TRN, SAUTR], nameMatch: Option[TrustName]) =
-          TrustBusinessPartnerRecordRequest(id, nameMatch, ggCredId, false)
+          TrustBusinessPartnerRecordRequest(id, nameMatch, ggCredId, createNewEnrolmentIfMissing = false)
 
         def expectedBody(nameMatch: Option[TrustName]): JsValue = {
           val organisationJsonString =
@@ -219,8 +255,8 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
         }
 
         val idsWithExpectedUrlsList = List[(Either[TRN, SAUTR], String)](
-          Left(trn)    -> s"http://host:123/registration/organisation/trn/trn",
-          Right(sautr) -> s"http://host:123/registration/organisation/utr/sautr"
+          Left(trn)    -> "/registration/organisation/trn/trn",
+          Right(sautr) -> "/registration/organisation/utr/sautr"
         )
 
         "do a post http call and return the result" in {
@@ -232,13 +268,17 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
                                    )
             idsWithExpectedUrls <- idsWithExpectedUrlsList
           } withClue(s"For http response [${httpResponse.toString}] and id ${idsWithExpectedUrls._1}") {
-            mockPost(idsWithExpectedUrls._2, expectedHeaders, expectedBody(None))(
-              Some(httpResponse)
-            )
+            when(
+              POST,
+              idsWithExpectedUrls._2,
+              headers = expectedHeaders.toMap,
+              body = Some(expectedBody(None).toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            await(connector.getBusinessPartnerRecord(bprRequest(idsWithExpectedUrls._1, None)).value) shouldBe Right(
-              httpResponse
-            )
+            val response =
+              await(connector.getBusinessPartnerRecord(bprRequest(idsWithExpectedUrls._1, None)).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
 
@@ -248,24 +288,29 @@ class BusinessPartnerRecordConnectorImplSpec extends AnyWordSpec with Matchers w
 
           idsWithExpectedUrlsList.foreach { case (id, expectedUrl) =>
             withClue(s"For id $id: ") {
-              mockPost(expectedUrl, expectedHeaders, expectedBody(Some(trustName)))(
-                Some(httpResponse)
-              )
+              when(
+                POST,
+                expectedUrl,
+                headers = expectedHeaders.toMap,
+                body = Some(expectedBody(Some(trustName)).toString())
+              ).thenReturn(httpResponse.status, httpResponse.body)
 
-              await(connector.getBusinessPartnerRecord(bprRequest(id, Some(trustName))).value) shouldBe Right(
-                httpResponse
-              )
+              val response =
+                await(connector.getBusinessPartnerRecord(bprRequest(id, Some(trustName))).value).value
+              response.status shouldBe httpResponse.status
+              response.body   shouldBe httpResponse.body
             }
           }
         }
 
         "return an error when the future fails" in {
           idsWithExpectedUrlsList.foreach { case (id, expectedUrl) =>
+            wireMockServer.stop()
             withClue(s"For id $id: ") {
-              mockPost(expectedUrl, expectedHeaders, expectedBody(None))(None)
-
+              when(POST, expectedUrl, headers = expectedHeaders.toMap, body = Some(expectedBody(None).toString()))
               await(connector.getBusinessPartnerRecord(bprRequest(id, None)).value).isLeft shouldBe true
             }
+            wireMockServer.start()
           }
         }
       }

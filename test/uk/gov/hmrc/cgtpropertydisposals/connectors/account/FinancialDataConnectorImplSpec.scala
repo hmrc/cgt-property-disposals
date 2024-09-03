@@ -18,20 +18,29 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.account
 
 import com.typesafe.config.ConfigFactory
 import org.mockito.IdiomaticMockito
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
+import play.api.{Application, Configuration}
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class FinancialDataConnectorImplSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite
+    with EitherValues {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -42,8 +51,8 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Idio
          |  services {
          |      returns {
          |        protocol = http
-         |        host     = localhost
-         |        port     = 7022
+         |        host     = $wireMockHost
+         |        port     = $wireMockPort
          |    }
          |  }
          |}
@@ -56,7 +65,9 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Idio
     )
   )
 
-  val connector = new FinancialDataConnectorImpl(mockHttp, new ServicesConfig(config))
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
+
+  val connector: FinancialDataConnector = app.injector.instanceOf[FinancialDataConnector]
 
   def queryParams(fromDate: LocalDate, toDate: LocalDate): Seq[(String, String)] =
     Seq("dateFrom" -> fromDate.toString, "dateTo" -> toDate.toString)
@@ -69,9 +80,6 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Idio
   "FinancialDataConnectorImpl" when {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val expectedHeaders            = Seq("Authorization" -> s"Bearer $desBearerToken", "Environment" -> desEnvironment)
-
-    def expectedFinancialDataUrl(cgtReference: CgtReference): String =
-      s"http://localhost:7022/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT"
 
     "handling request to get financial data" must {
       "do a GET http call and get the result" in {
@@ -86,15 +94,16 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Idio
           HttpResponse(503, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockGetWithQueryWithHeaders(
-              expectedFinancialDataUrl(cgtReference),
-              queryParams(fromDate, toDate),
-              expectedHeaders
-            )(
-              Some(httpResponse)
-            )
+            when(
+              GET,
+              s"/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT",
+              queryParams(fromDate, toDate).toMap,
+              expectedHeaders.toMap
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            await(connector.getFinancialData(cgtReference, fromDate, toDate).value) shouldBe Right(httpResponse)
+            val response = await(connector.getFinancialData(cgtReference, fromDate, toDate).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
@@ -102,13 +111,17 @@ class FinancialDataConnectorImplSpec extends AnyWordSpec with Matchers with Idio
 
     "return an error" when {
       "the call fails" in {
-        mockGetWithQueryWithHeaders(
-          expectedFinancialDataUrl(cgtReference),
-          queryParams(fromDate, toDate),
-          expectedHeaders
-        )(None)
+        wireMockServer.stop()
+
+        when(
+          GET,
+          s"/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT",
+          queryParams(fromDate, toDate).toMap,
+          expectedHeaders.toMap
+        )
 
         await(connector.getFinancialData(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+        wireMockServer.start()
       }
     }
   }

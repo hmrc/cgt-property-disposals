@@ -18,11 +18,14 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 
 import com.typesafe.config.ConfigFactory
 import org.mockito.IdiomaticMockito
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.{Application, Configuration}
+import play.api.libs.json.Json
 import play.api.test.Helpers.{await, _}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
@@ -31,24 +34,30 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
+import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class TaxEnrolmentConnectorImplSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite
+    with EitherValues {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
   private val config = Configuration(
     ConfigFactory.parseString(
-      """
+      s"""
         |microservice {
         |  services {
         |    tax-enrolments {
         |      protocol = http
-        |      host     = host
-        |      port     = 123
+        |      host     = $wireMockHost
+        |      port     = $wireMockPort
         |    }
         |  }
         |}
@@ -58,7 +67,9 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with Idiom
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val connector = new TaxEnrolmentConnectorImpl(mockHttp, new ServicesConfig(config))
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
+
+  val connector: TaxEnrolmentConnector = app.injector.instanceOf[TaxEnrolmentConnector]
 
   private val emptyJsonBody = "{}"
 
@@ -119,35 +130,35 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with Idiom
     "it receives a request to update the verifiers" must {
       "make a http put call and return a result" in {
         List(
-          HttpResponse(204, emptyJsonBody),
+          HttpResponse(204),
           HttpResponse(401, emptyJsonBody),
           HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPut[TaxEnrolmentUpdateRequest](
-              s"http://host:123/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}",
-              taxEnrolmentUpdateRequest
-            )(Some(httpResponse))
-            await(
-              connector
-                .updateVerifiers(updateVerifiersRequest)
-                .value
-            ) shouldBe Right(httpResponse)
+            when(
+              PUT,
+              s"/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}",
+              body = Some(Json.toJson(taxEnrolmentUpdateRequest).toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
+
+            val response = await(connector.updateVerifiers(updateVerifiersRequest).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
 
       "return an error" when {
         "the future fails" in {
-          mockPut[TaxEnrolmentUpdateRequest](
-            s"http://host:123/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}",
-            taxEnrolmentUpdateRequest
-          )(None)
-          await(
-            connector
-              .updateVerifiers(updateVerifiersRequest)
-              .value
-          ).isLeft shouldBe true
+          wireMockServer.stop()
+          when(
+            PUT,
+            s"/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}",
+            body = Some(Json.toJson(taxEnrolmentUpdateRequest).toString())
+          )
+
+          await(connector.updateVerifiers(updateVerifiersRequest).value).isLeft shouldBe true
+          wireMockServer.start()
         }
       }
     }
@@ -155,17 +166,20 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with Idiom
     "it receives a request to enrol a UK user it" must {
       "make a http put call and return a result" in {
         List(
-          HttpResponse(204, emptyJsonBody),
+          HttpResponse(204),
           HttpResponse(401, emptyJsonBody),
           HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPut[Enrolments](
-              s"http://host:123/tax-enrolments/service/HMRC-CGT-PD/enrolment",
-              ukEnrolmentRequest
-            )(Some(httpResponse))
+            when(
+              PUT,
+              "/tax-enrolments/service/HMRC-CGT-PD/enrolment",
+              body = Some(Json.toJson(ukEnrolmentRequest).toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            await(connector.allocateEnrolmentToGroup(ukTaxEnrolment).value) shouldBe Right(httpResponse)
+            val response = await(connector.allocateEnrolmentToGroup(ukTaxEnrolment).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
@@ -174,17 +188,20 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with Idiom
     "it receives a request to enrol a non UK user it" must {
       "make a http put call and return a result" in {
         List(
-          HttpResponse(204, emptyJsonBody),
+          HttpResponse(204),
           HttpResponse(401, emptyJsonBody),
           HttpResponse(400, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockPut[Enrolments](
-              s"http://host:123/tax-enrolments/service/HMRC-CGT-PD/enrolment",
-              nonUkEnrolmentRequest
-            )(Some(httpResponse))
+            when(
+              PUT,
+              "/tax-enrolments/service/HMRC-CGT-PD/enrolment",
+              body = Some(Json.toJson(nonUkEnrolmentRequest).toString())
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            await(connector.allocateEnrolmentToGroup(nonUKTaxEnrolment).value) shouldBe Right(httpResponse)
+            val response = await(connector.allocateEnrolmentToGroup(nonUKTaxEnrolment).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }
@@ -192,11 +209,15 @@ class TaxEnrolmentConnectorImplSpec extends AnyWordSpec with Matchers with Idiom
 
     "return an error" when {
       "the future fails" in {
-        mockPut[Enrolments](
-          s"http://host:123/tax-enrolments/service/HMRC-CGT-PD/enrolment",
-          ukEnrolmentRequest
-        )(None)
+        wireMockServer.stop()
+        when(
+          PUT,
+          "/tax-enrolments/service/HMRC-CGT-PD/enrolment",
+          body = Some(Json.toJson(ukEnrolmentRequest).toString())
+        )
+
         await(connector.allocateEnrolmentToGroup(ukTaxEnrolment).value).isLeft shouldBe true
+        wireMockServer.start()
       }
     }
   }

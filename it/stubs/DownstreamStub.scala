@@ -16,9 +16,9 @@
 
 package stubs
 
-import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.libs.json.JsValue
-import support.WireMockMethods
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
 
 object DownstreamStub extends WireMockMethods {
 
