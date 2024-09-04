@@ -33,6 +33,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -43,8 +44,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
+class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with BeforeAndAfterAll {
   private val config = Configuration(
     ConfigFactory.parseString(
       """
@@ -58,8 +60,12 @@ class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
   private val draftReturn  = sample[DraftReturn]
   private val cgtReference = sample[CgtReference]
 
-  "DraftReturnsRepository" when {
+  val clientClosed: Future[Unit] =
     repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
+
+  override protected def beforeAll(): Unit = await(clientClosed)
+
+  "DraftReturnsRepository" when {
 
     "inserting" should {
       "create a new draft return successfully" in {
