@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -28,8 +29,9 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.DefaultCurrentInstant
 import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
+class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with BeforeAndAfterAll {
   private val config = Configuration(
     ConfigFactory.parseString(
       """
@@ -45,8 +47,12 @@ class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
   private val submitReturnRequest = sample[SubmitReturnRequest]
   private val cgtReference        = sample[CgtReference]
 
-  "AmendReturnsRepository" when {
+  val clientClosed: Future[Unit] =
     repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
+
+  override protected def beforeAll(): Unit = await(clientClosed)
+
+  "AmendReturnsRepository" when {
 
     "inserting" should {
       "insert an amend return request successfully" in {

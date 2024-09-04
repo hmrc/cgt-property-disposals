@@ -17,28 +17,34 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
 import org.scalacheck.Arbitrary
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.mongo.test.MongoSupport
+import uk.gov.hmrc.mongo.workitem.ProcessingStatus.Succeeded
 
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
+class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with BeforeAndAfterAll {
 
   val repository = new DefaultVerifiersRepository(mongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary((LocalDateTime.now()))
 
-  val updateVerifierDetails = sample[UpdateVerifiersRequest]
+  val updateVerifierDetails: UpdateVerifiersRequest = sample[UpdateVerifiersRequest]
+
+  val clientClosed: Future[Unit] =
+    repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
+
+  override protected def beforeAll(): Unit = await(clientClosed)
 
   "The Update Verifiers repository" when {
-
-    repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
 
     "inserting into a broken repository" should {
       "fail the insert" in {

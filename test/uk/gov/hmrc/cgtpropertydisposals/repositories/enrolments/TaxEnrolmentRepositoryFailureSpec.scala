@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
 import org.scalacheck.Arbitrary
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
@@ -26,19 +27,23 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class TaxEnrolmentRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
+class TaxEnrolmentRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with BeforeAndAfterAll {
 
   val repository = new DefaultTaxEnrolmentRepository(mongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary((LocalDateTime.now()))
 
-  val taxEnrolmentRequest = sample[TaxEnrolmentRequest]
+  val taxEnrolmentRequest: TaxEnrolmentRequest = sample[TaxEnrolmentRequest]
+
+  val clientClosed: Future[Unit] =
+    repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
+
+  override protected def beforeAll(): Unit = await(clientClosed)
 
   "The Tax Enrolment Retry repository" when {
-
-    repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
 
     "inserting into a broken repository" should {
       "fail the insert" in {

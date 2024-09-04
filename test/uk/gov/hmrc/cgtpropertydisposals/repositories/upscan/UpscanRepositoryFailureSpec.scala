@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import com.typesafe.config.ConfigFactory
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -27,9 +28,10 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.DefaultCurrentInstant
 import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
-  val config = Configuration(
+class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with BeforeAndAfterAll {
+  val config: Configuration = Configuration(
     ConfigFactory.parseString(
       """
         | mongodb.upscan.expiry-time = 7days
@@ -41,7 +43,10 @@ class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSu
 
   val repository = new DefaultUpscanRepository(mongoComponent, config, defaultCurrentInstant)
 
-  repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
+  val clientClosed: Future[Unit] =
+    repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
+
+  override protected def beforeAll(): Unit = await(clientClosed)
 
   "Upscan Repository" when {
     "inserting" should {
