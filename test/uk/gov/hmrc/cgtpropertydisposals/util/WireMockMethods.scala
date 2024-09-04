@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package support
+package uk.gov.hmrc.cgtpropertydisposals.util
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -31,9 +31,10 @@ trait WireMockMethods {
     method: HTTPMethod,
     uri: String,
     queryParams: Map[String, String] = Map.empty,
-    headers: Map[String, String] = Map.empty
+    headers: Map[String, String] = Map.empty,
+    body: Option[String] = None
   ): Mapping =
-    new Mapping(method, uri, queryParams, headers, None)
+    new Mapping(method, uri, queryParams, headers, body)
 
   class Mapping(
     method: HTTPMethod,
@@ -42,7 +43,6 @@ trait WireMockMethods {
     headers: Map[String, String],
     body: Option[String]
   ) {
-
     private val mapping =
       method
         .wireMockMapping(urlPathMatching(uri))
@@ -88,6 +88,10 @@ trait WireMockMethods {
 
   case object POST extends HTTPMethod {
     override def wireMockMapping(pattern: UrlPattern): MappingBuilder = post(pattern)
+  }
+
+  case object PUT extends HTTPMethod {
+    override def wireMockMapping(pattern: UrlPattern): MappingBuilder = put(pattern)
   }
 
   case object GET extends HTTPMethod {

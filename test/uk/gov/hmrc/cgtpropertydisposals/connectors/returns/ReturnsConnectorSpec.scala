@@ -18,22 +18,31 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.returns
 
 import com.typesafe.config.ConfigFactory
 import org.mockito.IdiomaticMockito
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.Helpers.{await, _}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
+import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesSubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
+import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class ReturnsConnectorSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite
+    with EitherValues {
 
   val (desBearerToken, desEnvironment) = "token" -> "environment"
 
@@ -44,8 +53,8 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMocki
          |  services {
          |      returns {
          |        protocol = http
-         |        host     = localhost
-         |        port     = 7022
+         |        host     = $wireMockHost
+         |        port     = $wireMockPort
          |    }
          |  }
          |}
@@ -58,7 +67,9 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMocki
     )
   )
 
-  val connector = new ReturnsConnectorImpl(mockHttp, new ServicesConfig(config))
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
+
+  val connector: ReturnsConnector = app.injector.instanceOf[ReturnsConnector]
 
   private val emptyJsonBody = "{}"
 
@@ -68,7 +79,7 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMocki
 
     "handling request to submit return" must {
       def expectedSubmitReturnUrl(cgtReference: String) =
-        s"""http://localhost:7022/capital-gains-tax/cgt-reference/$cgtReference/return"""
+        s"""/capital-gains-tax/cgt-reference/$cgtReference/return"""
 
       "handling request to submit return" must {
         "do a post http call and get the result" in {
@@ -85,15 +96,16 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMocki
             HttpResponse(503, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockPost(
+              when(
+                POST,
                 expectedSubmitReturnUrl(cgtReference.value),
-                expectedHeaders,
-                Json.toJson(submitReturnRequest)
-              )(
-                Some(httpResponse)
-              )
+                headers = expectedHeaders.toMap,
+                body = Some(Json.toJson(submitReturnRequest).toString())
+              ).thenReturn(httpResponse.status, httpResponse.body)
 
-              await(connector.submit(cgtReference, submitReturnRequest).value) shouldBe Right(httpResponse)
+              val response = await(connector.submit(cgtReference, submitReturnRequest).value).value
+              response.status shouldBe httpResponse.status
+              response.body   shouldBe httpResponse.body
             }
           }
         }
@@ -103,20 +115,23 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMocki
             val cgtReference        = sample[CgtReference]
             val submitReturnRequest = sample[DesSubmitReturnRequest]
 
-            mockPost(
+            wireMockServer.stop()
+            when(
+              POST,
               expectedSubmitReturnUrl(cgtReference.value),
-              expectedHeaders,
-              Json.toJson(submitReturnRequest)
-            )(None)
+              headers = expectedHeaders.toMap,
+              body = Some(Json.toJson(submitReturnRequest).toString())
+            )
 
             await(connector.submit(cgtReference, submitReturnRequest).value).isLeft shouldBe true
+            wireMockServer.start()
           }
         }
       }
 
       "handling requests to list returns" must {
         def expectedUrl(cgtReference: CgtReference) =
-          s"http://localhost:7022/capital-gains-tax/returns/${cgtReference.value}"
+          s"/capital-gains-tax/returns/${cgtReference.value}"
 
         val cgtReference            = sample[CgtReference]
         val (fromDate, toDate)      = LocalDate.of(2000, 1, 2) -> LocalDate.of(2000, 2, 2)
@@ -134,25 +149,29 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMocki
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
 
-              mockGetWithQueryWithHeaders(expectedUrl(cgtReference), expectedQueryParameters, expectedHeaders)(
-                Some(httpResponse)
-              )
-              await(connector.listReturns(cgtReference, fromDate, toDate).value) shouldBe Right(httpResponse)
+              when(GET, expectedUrl(cgtReference), expectedQueryParameters.toMap, expectedHeaders.toMap)
+                .thenReturn(httpResponse.status, httpResponse.body)
+
+              val response = await(connector.listReturns(cgtReference, fromDate, toDate).value).value
+              response.status shouldBe httpResponse.status
+              response.body   shouldBe httpResponse.body
             }
           }
         }
 
         "return an error" when {
           "the call fails" in {
-            mockGetWithQueryWithHeaders(expectedUrl(cgtReference), expectedQueryParameters, expectedHeaders)(None)
+            wireMockServer.stop()
+            when(GET, expectedUrl(cgtReference), expectedQueryParameters.toMap, expectedHeaders.toMap)
             await(connector.listReturns(cgtReference, fromDate, toDate).value).isLeft shouldBe true
+            wireMockServer.start()
           }
         }
       }
 
       "handling requests to get a returns" must {
         def expectedUrl(cgtReference: CgtReference, submissionId: String) =
-          s"http://localhost:7022/capital-gains-tax/${cgtReference.value}/$submissionId/return"
+          s"/capital-gains-tax/${cgtReference.value}/$submissionId/return"
 
         val cgtReference = sample[CgtReference]
         val submissionId = "id"
@@ -168,18 +187,23 @@ class ReturnsConnectorSpec extends AnyWordSpec with Matchers with IdiomaticMocki
             HttpResponse(503, emptyJsonBody)
           ).foreach { httpResponse =>
             withClue(s"For http response [${httpResponse.toString}]") {
-              mockGetWithQueryWithHeaders(expectedUrl(cgtReference, submissionId), Seq.empty, expectedHeaders)(
-                Some(httpResponse)
-              )
-              await(connector.displayReturn(cgtReference, submissionId).value) shouldBe Right(httpResponse)
+
+              when(GET, expectedUrl(cgtReference, submissionId), Map.empty, expectedHeaders.toMap)
+                .thenReturn(httpResponse.status, httpResponse.body)
+
+              val response = await(connector.displayReturn(cgtReference, submissionId).value).value
+              response.status shouldBe httpResponse.status
+              response.body   shouldBe httpResponse.body
             }
           }
         }
 
         "return an error" when {
           "the call fails" in {
-            mockGetWithQueryWithHeaders(expectedUrl(cgtReference, submissionId), Seq.empty, expectedHeaders)(None)
+            wireMockServer.stop()
+            when(GET, expectedUrl(cgtReference, submissionId), Map.empty, expectedHeaders.toMap)
             await(connector.displayReturn(cgtReference, submissionId).value).isLeft shouldBe true
+            wireMockServer.start()
           }
         }
       }

@@ -18,29 +18,37 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 
 import com.typesafe.config.ConfigFactory
 import org.mockito.IdiomaticMockito
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
+import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
+import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class EnrolmentStoreProxyConnectorImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class EnrolmentStoreProxyConnectorImplSpec
+    extends AnyWordSpec
+    with Matchers
+    with IdiomaticMockito
+    with WireMockSupport
+    with WireMockMethods
+    with GuiceOneAppPerSuite
+    with EitherValues {
 
   private val config = Configuration(
     ConfigFactory.parseString(
-      """
+      s"""
         |microservice {
         |  services {
         |    enrolment-store-proxy {
         |      protocol = http
-        |      host     = host
-        |      port     = 123
+        |      host     = $wireMockHost
+        |      port     = $wireMockPort
         |    }
         |  }
         |}
@@ -48,16 +56,14 @@ class EnrolmentStoreProxyConnectorImplSpec extends AnyWordSpec with Matchers wit
     )
   )
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val hc: HeaderCarrier              = HeaderCarrier()
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(config).build()
 
-  val connector = new EnrolmentStoreProxyConnectorImpl(mockHttp, new ServicesConfig(config))
+  val connector: EnrolmentStoreProxyConnector = app.injector.instanceOf[EnrolmentStoreProxyConnector]
 
   "EnrolmentStoreProxyConnectorImpl" when {
     "handling requests to get all principal enrolments for a cgt reference" must {
       val emptyJsonBody = "{}"
-
-      def expectedUrl(cgtReference: CgtReference) =
-        s"http://host:123/enrolment-store-proxy/enrolment-store/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}/users"
 
       val expectedQueryParameters = List("type" -> "principal")
 
@@ -74,15 +80,16 @@ class EnrolmentStoreProxyConnectorImplSpec extends AnyWordSpec with Matchers wit
           HttpResponse(503, emptyJsonBody)
         ).foreach { httpResponse =>
           withClue(s"For http response [${httpResponse.toString}]") {
-            mockGetWithQueryWithHeaders(
-              expectedUrl(cgtReference),
-              expectedQueryParameters,
-              Seq.empty
-            )(
-              Some(httpResponse)
-            )
+            when(
+              GET,
+              s"/enrolment-store-proxy/enrolment-store/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}/users",
+              expectedQueryParameters.toMap,
+              Map.empty
+            ).thenReturn(httpResponse.status, httpResponse.body)
 
-            await(connector.getPrincipalEnrolments(cgtReference).value) shouldBe Right(httpResponse)
+            val response = await(connector.getPrincipalEnrolments(cgtReference).value).value
+            response.status shouldBe httpResponse.status
+            response.body   shouldBe httpResponse.body
           }
         }
       }

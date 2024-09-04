@@ -19,7 +19,7 @@ package stubs
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.http.Status._
 import play.api.libs.json.{JsObject, Json}
-import support.WireMockMethods
+import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 
 object AuthStub extends WireMockMethods {

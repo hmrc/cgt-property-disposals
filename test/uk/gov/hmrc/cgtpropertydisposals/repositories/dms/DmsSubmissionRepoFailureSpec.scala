@@ -17,6 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.dms
 
 import com.typesafe.config.ConfigFactory
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -28,8 +30,14 @@ import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed, S
 import uk.gov.hmrc.mongo.workitem.WorkItem
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class DmsSubmissionRepoFailureSpec extends AnyWordSpec with Matchers with MongoSupport {
+class DmsSubmissionRepoFailureSpec
+    extends AnyWordSpec
+    with Matchers
+    with MongoSupport
+    with BeforeAndAfterAll
+    with Eventually {
 
   private val config = Configuration(
     ConfigFactory.parseString(
@@ -56,7 +64,9 @@ class DmsSubmissionRepoFailureSpec extends AnyWordSpec with Matchers with MongoS
     config
   )
 
-  repository.count(Succeeded).map(_ => mongoComponent.client.close())
+  val clientClosed: Future[Unit] = repository.count(Succeeded).map(_ => mongoComponent.client.close())
+
+  override protected def beforeAll(): Unit = await(clientClosed)
 
   "A broken DmsSubmission Repo" when {
     "inserting" should {

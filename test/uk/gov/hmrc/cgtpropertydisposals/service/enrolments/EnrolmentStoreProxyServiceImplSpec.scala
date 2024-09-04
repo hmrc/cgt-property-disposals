@@ -23,7 +23,6 @@ import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.connectors.HttpSupport
 import uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments.EnrolmentStoreProxyConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
@@ -33,7 +32,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito with HttpSupport {
+class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
 
   private val mockEnrolmentProxyConnector = mock[EnrolmentStoreProxyConnector]
 
