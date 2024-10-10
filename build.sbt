@@ -16,7 +16,7 @@ lazy val microservice = Project(appName, file("."))
     scalafmtOnCompile := true,
     scalacOptions ++= Seq("-Wconf:src=routes/.*:s", "-Xlint:-byname-implicit")
   )
-  .settings(CodeCoverageSettings.settings :_*)
+  .settings(CodeCoverageSettings.settings *)
   // Disable default sbt Test options (might change with new versions of bootstrap)
   .settings(
     Test / testOptions -= Tests.Argument("-o", "-u", "target/test-reports", "-h", "target/test-reports/html-report")
@@ -35,19 +35,12 @@ lazy val microservice = Project(appName, file("."))
   )
   //Integration test settings
   .configs(ItTest)
-  .settings(inConfig(ItTest)(
-    Defaults.testSettings ++
-      headerSettings(ItTest) ++
-      automateHeaderSettings(ItTest) ++
-      ScalafmtPlugin.scalafmtConfigSettings
-  ): _*)
+  .settings(inConfig(ItTest)(Defaults.testSettings) *)
   .settings(
-    ItTest / fork := true,
     ItTest / unmanagedSourceDirectories := Seq((ItTest / baseDirectory).value / "it"),
     ItTest / unmanagedClasspath += baseDirectory.value / "resources",
     Runtime / unmanagedClasspath += baseDirectory.value / "resources",
     ItTest / javaOptions += "-Dlogger.resource=logback-test.xml",
-    ItTest / parallelExecution := false,
     addTestReportOption(ItTest, directory = "int-test-reports")
   )
 
