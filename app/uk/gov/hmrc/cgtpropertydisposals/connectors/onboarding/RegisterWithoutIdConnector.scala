@@ -20,14 +20,16 @@ import cats.data.EitherT
 import cats.instances.char._
 import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnectorImpl.{RegistrationAddress, RegistrationContactDetails, RegistrationIndividual, RegistrationRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.util.UUID
@@ -35,26 +37,21 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[RegisterWithoutIdConnectorImpl])
 trait RegisterWithoutIdConnector {
-
   def registerWithoutId(registrationDetails: RegistrationDetails, acknowledgementReferenceId: UUID)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
-
 }
 
 @Singleton
-class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: ServicesConfig)(implicit
+class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClientV2, val config: ServicesConfig)(implicit
   ec: ExecutionContext
 ) extends RegisterWithoutIdConnector
     with DesConnector {
+  private val baseUrl = config.baseUrl("register-without-id")
 
-  import RegisterWithoutIdConnectorImpl._
+  private val url = s"$baseUrl/registration/02.00.00/individual"
 
-  val baseUrl: String = config.baseUrl("register-without-id")
-
-  val url: String = s"$baseUrl/registration/02.00.00/individual"
-
-  override def registerWithoutId(
+  def registerWithoutId(
     registrationDetails: RegistrationDetails,
     acknowledgementReferenceId: UUID
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
@@ -70,31 +67,26 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClient, val config: Se
 
     EitherT[Future, Error, HttpResponse](
       http
-        .POST[JsValue, HttpResponse](url, Json.toJson(registerWithoutIdRequest), headers)(
-          implicitly[Writes[JsValue]],
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .post(url"$url")
+        .withBody(Json.toJson(registerWithoutIdRequest))
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
   }
 
-  private def toRegistrationAddress(address: Address): RegistrationAddress =
+  private def toRegistrationAddress(address: Address) =
     address match {
       case ukAddress @ UkAddress(line1, line2, town, county, postcode) =>
         RegistrationAddress(line1, line2, town, county, Some(postcode.value), ukAddress.countryCode)
 
       case NonUkAddress(line1, line2, line3, line4, postcode, country) =>
         RegistrationAddress(line1, line2, line3, line4, postcode.map(_.value), country.code)
-
     }
-
 }
 
 object RegisterWithoutIdConnectorImpl {
-
   final case class RegistrationRequest(
     regime: String,
     acknowledgementReference: String,
@@ -122,5 +114,4 @@ object RegisterWithoutIdConnectorImpl {
   implicit val addressWrites: Writes[RegistrationAddress]               = Json.writes[RegistrationAddress]
   implicit val contactDetailsWrites: Writes[RegistrationContactDetails] = Json.writes[RegistrationContactDetails]
   implicit val requestWrites: Writes[RegistrationRequest]               = Json.writes[RegistrationRequest]
-
 }

@@ -18,39 +18,36 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsValue, Json, OFormat, Writes}
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnectorImpl.{RegisterDetails, RegisterIndividual, RegisterOrganisation}
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.StringOps._
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[BusinessPartnerRecordConnectorImpl])
 trait BusinessPartnerRecordConnector {
-
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
-
 }
 
 @Singleton
 class BusinessPartnerRecordConnectorImpl @Inject() (
-  http: HttpClient,
+  http: HttpClientV2,
   val config: ServicesConfig
 )(implicit ec: ExecutionContext)
     extends BusinessPartnerRecordConnector
     with DesConnector {
+  private val baseUrl = config.baseUrl("business-partner-record")
 
-  import BusinessPartnerRecordConnectorImpl._
-
-  val baseUrl: String = config.baseUrl("business-partner-record")
-
-  def url(bprRequest: BusinessPartnerRecordRequest): String = {
+  private def url(bprRequest: BusinessPartnerRecordRequest) = {
     val entityType = bprRequest.fold(_ => "organisation", _ => "individual")
     val suffix     = bprRequest.foldOnId(
       t => s"trn/${t.value.removeAllWhitespaces()}",
@@ -79,12 +76,10 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
 
     EitherT[Future, Error, HttpResponse](
       http
-        .POST[JsValue, HttpResponse](url(bprRequest), Json.toJson(registerDetails), headers)(
-          implicitly[Writes[JsValue]],
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .post(url"${url(bprRequest)}")
+        .withBody(Json.toJson(registerDetails))
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
           Left(Error(e, "id" -> bprRequest.foldOnId(_.value, _.value, _.value)))
@@ -94,7 +89,6 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
 }
 
 object BusinessPartnerRecordConnectorImpl {
-
   final case class RegisterDetails(
     regime: String,
     requiresNameMatch: Boolean,
@@ -112,5 +106,4 @@ object BusinessPartnerRecordConnectorImpl {
   implicit val desOrganisationFormat: OFormat[RegisterOrganisation] = Json.format[RegisterOrganisation]
 
   implicit val registerDetailsFormat: OFormat[RegisterDetails] = Json.format[RegisterDetails]
-
 }

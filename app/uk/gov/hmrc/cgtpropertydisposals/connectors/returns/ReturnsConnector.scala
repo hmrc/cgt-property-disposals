@@ -25,6 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.LocalDate
@@ -33,7 +34,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[ReturnsConnectorImpl])
 trait ReturnsConnector {
-
   def submit(cgtReference: CgtReference, submitReturnRequest: DesSubmitReturnRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
@@ -45,17 +45,15 @@ trait ReturnsConnector {
   def displayReturn(cgtReference: CgtReference, submissionId: String)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
-
 }
 
 @Singleton
-class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConfig)(implicit ec: ExecutionContext)
+class ReturnsConnectorImpl @Inject() (http: HttpClientV2, val config: ServicesConfig)(implicit ec: ExecutionContext)
     extends ReturnsConnector
     with DesConnector {
+  private val baseUrl = config.baseUrl("returns")
 
-  val baseUrl: String = config.baseUrl("returns")
-
-  override def submit(
+  def submit(
     cgtReference: CgtReference,
     submitReturnRequest: DesSubmitReturnRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
@@ -63,12 +61,10 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
 
     EitherT[Future, Error, HttpResponse](
       http
-        .POST[JsValue, HttpResponse](returnUrl, Json.toJson(submitReturnRequest), headers)(
-          implicitly[Writes[JsValue]],
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .post(url"$returnUrl")
+        .withBody(Json.toJson(submitReturnRequest))
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
@@ -77,19 +73,13 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
-    val url: String     = s"$baseUrl/capital-gains-tax/returns/${cgtReference.value}"
-    val queryParameters = Seq(
-      "fromDate" -> fromDate.format(dateFormatter),
-      "toDate"   -> toDate.format(dateFormatter)
-    )
+    val url: String = s"$baseUrl/capital-gains-tax/returns/${cgtReference.value}"
 
     EitherT[Future, Error, HttpResponse](
       http
-        .GET(url, queryParameters, headers)(
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .get(url"$url?fromDate=${fromDate.format(dateFormatter)}&toDate=${toDate.format(dateFormatter)}")
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
@@ -102,16 +92,13 @@ class ReturnsConnectorImpl @Inject() (http: HttpClient, val config: ServicesConf
 
     EitherT[Future, Error, HttpResponse](
       http
-        .GET(url, Seq.empty, headers)(
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .get(url"$url")
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
   }
 
-  private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE
-
+  private val dateFormatter = DateTimeFormatter.ISO_DATE
 }
