@@ -22,7 +22,8 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.LocalDate
@@ -31,21 +32,19 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[FinancialDataConnectorImpl])
 trait FinancialDataConnector {
-
   def getFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
-
 }
 
 @Singleton
-class FinancialDataConnectorImpl @Inject() (http: HttpClient, val config: ServicesConfig)(implicit ec: ExecutionContext)
-    extends FinancialDataConnector
+class FinancialDataConnectorImpl @Inject() (http: HttpClientV2, val config: ServicesConfig)(implicit
+  ec: ExecutionContext
+) extends FinancialDataConnector
     with DesConnector {
+  private val baseUrl = config.baseUrl("returns")
 
-  val baseUrl: String = config.baseUrl("returns")
-
-  def financialDataUrl(cgtReference: CgtReference): String =
+  private def financialDataUrl(cgtReference: CgtReference) =
     s"$baseUrl/enterprise/financial-data/ZCGT/${cgtReference.value}/CGT"
 
   override def getFinancialData(
@@ -53,24 +52,18 @@ class FinancialDataConnectorImpl @Inject() (http: HttpClient, val config: Servic
     fromDate: LocalDate,
     toDate: LocalDate
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
-
     val from = fromDate.format(DateTimeFormatter.ISO_DATE)
     val to   = toDate.format(DateTimeFormatter.ISO_DATE)
 
-    val fdUrl       = financialDataUrl(cgtReference)
-    val queryParams = Seq("dateFrom" -> from, "dateTo" -> to)
+    val fdUrl = financialDataUrl(cgtReference)
 
     EitherT[Future, Error, HttpResponse](
       http
-        .GET[HttpResponse](fdUrl, queryParams, headers)(
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .get(url"$fdUrl?dateFrom=$from&dateTo=$to")
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
-
   }
-
 }

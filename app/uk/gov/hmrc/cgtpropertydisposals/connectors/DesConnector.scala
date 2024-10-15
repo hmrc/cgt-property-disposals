@@ -19,16 +19,14 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 trait DesConnector {
-
   val config: ServicesConfig
 
-  val bearerToken: String = config.getString("des.bearer-token")
+  private val bearerToken = config.getString("des.bearer-token")
 
-  val environment: String = config.getString("des.environment")
+  private val environment = config.getString("des.environment")
 
   val headers: Seq[(String, String)] = Seq(
     "Authorization" -> s"Bearer $bearerToken",
     "Environment"   -> environment
   )
-
 }

@@ -22,7 +22,6 @@ object AppDependencies {
     "org.mockito"                %% "mockito-scala"                 % "1.17.31"        % scope,
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14"     % "1.2.5"          % scope,
     "org.scalatestplus"          %% "scalacheck-1-17"               % "3.2.17.0"       % scope,
-    "org.apache.pekko"           %% "pekko-testkit"                 % "1.0.2"          % scope,
-    "com.github.tomakehurst"      % "wiremock"                      % "3.0.0-beta-7"   % scope
+    "org.apache.pekko"           %% "pekko-testkit"                 % "1.0.2"          % scope
   )
 }

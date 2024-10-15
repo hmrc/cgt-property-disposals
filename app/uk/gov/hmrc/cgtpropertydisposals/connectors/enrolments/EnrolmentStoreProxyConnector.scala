@@ -22,47 +22,39 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[EnrolmentStoreProxyConnectorImpl])
 trait EnrolmentStoreProxyConnector {
-
   def getPrincipalEnrolments(cgtReference: CgtReference)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
-
 }
 
 @Singleton
-class EnrolmentStoreProxyConnectorImpl @Inject() (http: HttpClient, servicesConfig: ServicesConfig)(implicit
+class EnrolmentStoreProxyConnectorImpl @Inject() (http: HttpClientV2, servicesConfig: ServicesConfig)(implicit
   ec: ExecutionContext
 ) extends EnrolmentStoreProxyConnector
     with Logging {
+  private val serviceUrl = servicesConfig.baseUrl("enrolment-store-proxy")
 
-  private val serviceUrl: String = servicesConfig.baseUrl("enrolment-store-proxy")
-
-  private def getPrincipalEnrolmentsUrl(cgtReference: CgtReference): String =
+  private def getPrincipalEnrolmentsUrl(cgtReference: CgtReference) =
     s"$serviceUrl/enrolment-store-proxy/enrolment-store/enrolments/HMRC-CGT-PD~CGTPDRef~${cgtReference.value}/users"
-
-  private val principalEnrolmentsQueryParameters = List("type" -> "principal")
 
   def getPrincipalEnrolments(
     cgtReference: CgtReference
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .GET[HttpResponse](
-          getPrincipalEnrolmentsUrl(cgtReference),
-          principalEnrolmentsQueryParameters,
-          Seq.empty
-        )
+        .get(url"${getPrincipalEnrolmentsUrl(cgtReference)}?type=principal")
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
           Left(Error(e))
         }
     )
-
 }

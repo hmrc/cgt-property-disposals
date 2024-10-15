@@ -18,13 +18,15 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.api.libs.json.Json
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,17 +43,15 @@ trait TaxEnrolmentConnector {
 }
 
 @Singleton
-class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: ServicesConfig)(implicit
+class TaxEnrolmentConnectorImpl @Inject() (http: HttpClientV2, servicesConfig: ServicesConfig)(implicit
   ec: ExecutionContext
 ) extends TaxEnrolmentConnector
     with Logging {
+  private val serviceUrl = servicesConfig.baseUrl("tax-enrolments")
 
-  val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
-
-  override def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(implicit
+  def updateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
-
     val updateVerifiersUrl: String =
       s"$serviceUrl/tax-enrolments/enrolments/HMRC-CGT-PD~CGTPDRef~${updateVerifierDetails.subscribedUpdateDetails.newDetails.cgtReference.value}"
 
@@ -59,17 +59,18 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
       s"Updating verifiers for cgt account ${updateVerifierDetails.subscribedUpdateDetails.newDetails.cgtReference}"
     )
 
+    val body = TaxEnrolmentUpdateRequest(
+      List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.newDetails.address)),
+      Legacy(
+        List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.previousDetails.address))
+      )
+    )
+
     EitherT[Future, Error, HttpResponse](
       http
-        .PUT[TaxEnrolmentUpdateRequest, HttpResponse](
-          updateVerifiersUrl,
-          TaxEnrolmentUpdateRequest(
-            List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.newDetails.address)),
-            Legacy(
-              List(Address.toVerifierFormat(updateVerifierDetails.subscribedUpdateDetails.previousDetails.address))
-            )
-          )
-        )
+        .put(url"$updateVerifiersUrl")
+        .withBody(Json.toJson(body))
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
           Left(Error(e))
@@ -77,10 +78,9 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
     )
   }
 
-  override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
+  def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] = {
-
     val serviceName: String  = "HMRC-CGT-PD"
     val enrolmentUrl: String = s"$serviceUrl/tax-enrolments/service/$serviceName/enrolment"
 
@@ -99,10 +99,11 @@ class TaxEnrolmentConnectorImpl @Inject() (http: HttpClient, servicesConfig: Ser
 
     EitherT[Future, Error, HttpResponse](
       http
-        .PUT[Enrolments, HttpResponse](enrolmentUrl, enrolmentRequest)
+        .put(url"$enrolmentUrl")
+        .withBody(Json.toJson(enrolmentRequest))
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
   }
-
 }

@@ -18,21 +18,21 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.Json
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[SubscriptionConnectorImpl])
 trait SubscriptionConnector {
-
   def subscribe(subscriptionDetails: DesSubscriptionRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse]
@@ -46,92 +46,74 @@ trait SubscriptionConnector {
   ): EitherT[Future, Error, HttpResponse]
 
   def getSubscriptionStatus(sapNumber: SapNumber)(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse]
-
 }
 
 @Singleton
-class SubscriptionConnectorImpl @Inject() (http: HttpClient, val config: ServicesConfig)(implicit ec: ExecutionContext)
-    extends SubscriptionConnector
+class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: ServicesConfig)(implicit
+  ec: ExecutionContext
+) extends SubscriptionConnector
     with DesConnector {
+  private val baseUrl = config.baseUrl("subscription")
 
-  val baseUrl: String = config.baseUrl("subscription")
+  private val subscribeUrl = s"$baseUrl/subscriptions/create/CGT"
 
-  val subscribeUrl: String = s"$baseUrl/subscriptions/create/CGT"
-
-  def subscriptionUrl(cgtReference: CgtReference): String =
+  private def subscriptionUrl(cgtReference: CgtReference) =
     s"$baseUrl/subscriptions/CGT/ZCGT/${cgtReference.value}"
 
-  def subscriptionStatusUrl(sapNumber: SapNumber): String =
+  private def subscriptionStatusUrl(sapNumber: SapNumber) =
     s"$baseUrl/cross-regime/subscription/CGT/${sapNumber.value}/status"
 
-  override def subscribe(
+  def subscribe(
     subscriptionRequest: DesSubscriptionRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .POST[JsValue, HttpResponse](subscribeUrl, Json.toJson(subscriptionRequest), headers)(
-          implicitly[Writes[JsValue]],
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .post(url"$subscribeUrl")
+        .withBody(Json.toJson(subscriptionRequest))
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
 
-  override def getSubscription(cgtReference: CgtReference)(implicit
+  def getSubscription(cgtReference: CgtReference)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .GET[HttpResponse](subscriptionUrl(cgtReference), Seq.empty, headers)(
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .get(url"${subscriptionUrl(cgtReference)}")
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
           Left(Error(e))
         }
     )
 
-  override def updateSubscription(subscriptionRequest: DesSubscriptionUpdateRequest, cgtReference: CgtReference)(
-    implicit hc: HeaderCarrier
+  def updateSubscription(subscriptionRequest: DesSubscriptionUpdateRequest, cgtReference: CgtReference)(implicit
+    hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .PUT[JsValue, HttpResponse](
-          subscriptionUrl(cgtReference),
-          Json.toJson(subscriptionRequest),
-          headers
-        )(
-          implicitly[Writes[JsValue]],
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .put(url"${subscriptionUrl(cgtReference)}")
+        .withBody(Json.toJson(subscriptionRequest))
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
           Left(Error(e))
         }
     )
 
-  override def getSubscriptionStatus(sapNumber: SapNumber)(implicit
+  def getSubscriptionStatus(sapNumber: SapNumber)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
     EitherT[Future, Error, HttpResponse](
       http
-        .GET[HttpResponse](
-          subscriptionStatusUrl(sapNumber),
-          Seq.empty,
-          headers
-        )(
-          HttpReads[HttpResponse],
-          hc.copy(authorization = None),
-          ec
-        )
+        .get(url"${subscriptionStatusUrl(sapNumber)}")
+        .setHeader(headers: _*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
     )
-
 }
