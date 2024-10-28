@@ -17,10 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
 import cats.data.EitherT
-import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchersSugar.*
-import play.api.inject.bind
-import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.Headers
 import play.api.test.Helpers._
@@ -43,8 +40,7 @@ import scala.concurrent.Future
 class BusinessPartnerRecordControllerSpec extends ControllerSpec {
   private val bprService = mock[BusinessPartnerRecordService]
 
-  override val overrideBindings: List[GuiceableModule] = List(bind[BusinessPartnerRecordService].toInstance(bprService))
-  private val headerCarrier                            = HeaderCarrier()
+  private val headerCarrier = HeaderCarrier()
 
   private def mockBprService(expectedBprRequest: BusinessPartnerRecordRequest)(
     result: Either[Error, BusinessPartnerRecordResponse]
@@ -52,8 +48,6 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
     bprService
       .getBusinessPartnerRecord(expectedBprRequest)(*, *)
       .returns(EitherT(Future.successful(result)))
-
-  implicit lazy val mat: Materializer = fakeApplication.materializer
 
   val request =
     new AuthenticatedRequest(

@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchersSugar.*
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Headers
@@ -55,7 +54,6 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   val registrationService: RegisterWithoutIdService = mock[RegisterWithoutIdService]
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
-  implicit lazy val mat: Materializer       = fakeApplication.materializer
   private val dmsSubmissionRequestWorkItem  = sample[WorkItem[DmsSubmissionRequest]]
 
   val request = new AuthenticatedRequest(

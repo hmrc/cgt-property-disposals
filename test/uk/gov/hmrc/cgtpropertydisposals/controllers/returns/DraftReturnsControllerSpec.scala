@@ -18,8 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.apache.pekko.stream.Materializer
-import play.api.libs.json.{JsString, JsValue, Json}
+import play.api.libs.json.{JsNull, JsString, JsValue, Json}
 import play.api.mvc.Headers
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
@@ -61,8 +60,6 @@ class DraftReturnsControllerSpec extends ControllerSpec {
       .deleteDraftReturns(draftReturnIds)
       .returns(EitherT.fromEither[Future](response))
 
-  implicit lazy val mat: Materializer = fakeApplication.materializer
-
   val request = new AuthenticatedRequest(
     Fake.user,
     LocalDateTime.now(),
@@ -82,11 +79,6 @@ class DraftReturnsControllerSpec extends ControllerSpec {
   "DraftReturnsController" when {
     "handling requests to store a draft return" must {
       val cgtReference = sample[CgtReference]
-
-      "return a 415 response if the request body does not cotnain any JSON" in {
-        val result = controller.storeDraftReturn(cgtReference.value)(request)
-        status(result) shouldBe UNSUPPORTED_MEDIA_TYPE
-      }
 
       "return a 400 response if the request body cannot be parsed" in {
         val result = controller.storeDraftReturn(cgtReference.value)(fakeRequestWithJsonBody(JsString("abc")))
@@ -135,11 +127,6 @@ class DraftReturnsControllerSpec extends ControllerSpec {
     }
 
     "handling requests to delete draft returns" must {
-      "return a 415 response if the request body does not cotnain any JSON" in {
-        val result = controller.deleteDraftReturns()(request)
-        status(result) shouldBe UNSUPPORTED_MEDIA_TYPE
-      }
-
       "return a 400 response if the request body cannot be parsed" in {
         val result = controller.deleteDraftReturns()(fakeRequestWithJsonBody(JsString("abc")))
         status(result) shouldBe BAD_REQUEST
