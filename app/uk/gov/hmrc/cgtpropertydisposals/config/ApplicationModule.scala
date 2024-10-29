@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.module
+package uk.gov.hmrc.cgtpropertydisposals.config
 
 import com.google.inject.AbstractModule
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller
+import play.api.{Configuration, Environment}
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionPoller, DmsSubmissionPollerImpl}
 
-class DmsSubmissionModule extends AbstractModule {
-  override def configure(): Unit =
-    bind(classOf[DmsSubmissionPoller]).asEagerSingleton()
+class ApplicationModule(environment: Environment, config: Configuration) extends AbstractModule {
+  override def configure(): Unit = {
+    bind(classOf[DmsSubmissionPoller]).to(classOf[DmsSubmissionPollerImpl]).asEagerSingleton()
+  }
 }

@@ -33,7 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, EnvelopeId}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller.OnCompleteHandler
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPollerImpl.OnCompleteHandler
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed, Succeeded, ToDo}
 import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
@@ -141,7 +141,7 @@ class DmsSubmissionPollerSpec
         mockSetResultStatus(workItem.id, Succeeded)(Right(true))
 
         val _ =
-          new DmsSubmissionPoller(
+          new DmsSubmissionPollerImpl(
             system,
             mockDmsSubmissionService,
             dmsSubmissionPollerExecutionContext,
@@ -172,7 +172,7 @@ class DmsSubmissionPollerSpec
       mockSetProcessingStatus(workItem.id, Failed)(Right(true))
 
       val _ =
-        new DmsSubmissionPoller(
+        new DmsSubmissionPollerImpl(
           system,
           mockDmsSubmissionService,
           dmsSubmissionPollerExecutionContext,
@@ -192,7 +192,7 @@ class DmsSubmissionPollerSpec
       mockSetResultStatus(workItem.id, PermanentlyFailed)(Right(true))
 
       val _ =
-        new DmsSubmissionPoller(
+        new DmsSubmissionPollerImpl(
           system,
           mockDmsSubmissionService,
           dmsSubmissionPollerExecutionContext,
@@ -210,7 +210,7 @@ class DmsSubmissionPollerSpec
 
         mockDmsSubmissionRequestDequeue()(Right(None))
         val _ =
-          new DmsSubmissionPoller(
+          new DmsSubmissionPollerImpl(
             system,
             mockDmsSubmissionService,
             dmsSubmissionPollerExecutionContext,

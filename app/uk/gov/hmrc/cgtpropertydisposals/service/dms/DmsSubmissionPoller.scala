@@ -17,25 +17,27 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
 import cats.data.EitherT
-import cats.instances.future._
-import cats.instances.int._
-import cats.syntax.eq._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import org.apache.pekko.actor.ActorSystem
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, UUIDGenerator}
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller.OnCompleteHandler
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPollerImpl.OnCompleteHandler
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed, Succeeded}
 import uk.gov.hmrc.mongo.workitem.WorkItem
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import cats.instances.future._
+import cats.instances.int._
+import cats.syntax.eq._
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 
+trait DmsSubmissionPoller
+
 @Singleton
-class DmsSubmissionPoller @Inject() (
+class DmsSubmissionPollerImpl @Inject() (
   actorSystem: ActorSystem,
   dmsSubmissionService: DmsSubmissionService,
   dmsSubmissionPollerContext: DmsSubmissionPollerExecutionContext,
@@ -44,7 +46,8 @@ class DmsSubmissionPoller @Inject() (
   uuidGenerator: UUIDGenerator
 )(implicit
   executionContext: DmsSubmissionPollerExecutionContext
-) extends Logging {
+) extends DmsSubmissionPoller
+    with Logging {
 
   private val jitteredInitialDelay: FiniteDuration = FiniteDuration(
     servicesConfig.getDuration("dms.submission-poller.initial-delay").toMillis,
@@ -111,7 +114,7 @@ class DmsSubmissionPoller @Inject() (
   }
 }
 
-object DmsSubmissionPoller {
+object DmsSubmissionPollerImpl {
   @ImplementedBy(classOf[DefaultOnCompleteHandler])
   trait OnCompleteHandler {
     def onComplete(): Unit
