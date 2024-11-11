@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import play.api.libs.json.{JsNull, JsString, JsValue, Json}
+import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.Headers
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}

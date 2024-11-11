@@ -53,11 +53,11 @@ class GFormConnectorSpec
         |microservice {
         |  services {
         |          gform {
-        |            host = $wireMockHost
         |            port = $wireMockPort
         |        }
         |  }
         |}
+        |create-internal-auth-token-on-start = false
         |""".stripMargin
     )
   )

@@ -54,11 +54,12 @@ class S3ConnectorSpec
   private val config = Configuration(
     ConfigFactory.parseString(
       """
-        | s3 {
+        |s3 {
         |   file-download-timeout = 2 minutes
         |   upstream-element-limit-scale-factor = 200
         |   max-file-download-size-in-mb = 5
-        | }
+        |}
+        |create-internal-auth-token-on-start = false
         |""".stripMargin
     )
   )

@@ -51,9 +51,7 @@ class SubscriptionConnectorImplSpec
          |microservice {
          |  services {
          |      subscription {
-         |      protocol = http
-         |      host     = $wireMockHost
-         |      port     = $wireMockPort
+         |        port     = $wireMockPort
          |    }
          |  }
          |}
@@ -62,6 +60,7 @@ class SubscriptionConnectorImplSpec
          |  bearer-token = $desBearerToken
          |  environment  = $desEnvironment
          |}
+         |create-internal-auth-token-on-start = false
          |""".stripMargin
     )
   )

@@ -22,6 +22,11 @@ import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionPoller, DmsSub
 
 class ApplicationModule(environment: Environment, config: Configuration) extends AbstractModule {
   override def configure(): Unit = {
+    if (config.get[Boolean]("create-internal-auth-token-on-start")) {
+      bind(classOf[InternalAuthTokenInitialiser]).to(classOf[InternalAuthTokenInitialiserImpl]).asEagerSingleton()
+    } else {
+      bind(classOf[InternalAuthTokenInitialiser]).to(classOf[NoOpInternalAuthTokenInitialiser]).asEagerSingleton()
+    }
     bind(classOf[DmsSubmissionPoller]).to(classOf[DmsSubmissionPollerImpl]).asEagerSingleton()
   }
 }

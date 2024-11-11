@@ -27,8 +27,9 @@ import scala.concurrent.Future
 class RetryServiceSpec extends AnyWordSpec with Matchers with ScalaFutures {
   private val app = GuiceApplicationBuilder()
     .configure(
-      "retry.delay"        -> "10 milliseconds",
-      "retry.max-attempts" -> 3
+      "retry.delay"                         -> "10 milliseconds",
+      "retry.max-attempts"                  -> 3,
+      "create-internal-auth-token-on-start" -> false
     )
     .build()
 
