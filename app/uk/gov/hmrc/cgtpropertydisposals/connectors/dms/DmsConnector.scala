@@ -24,7 +24,7 @@ import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.mvc.MultipartFormData
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsEnvelopeId, DmsSubmissionPayload}
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.PdfGenerationService
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging
+import uk.gov.hmrc.cgtpropertydisposals.util.{FileIOExecutionContext, Logging}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
@@ -33,7 +33,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import java.time.format.DateTimeFormatter
 import java.time.{Clock, LocalDateTime}
 import java.util.Base64
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @Singleton
 class DmsConnector @Inject() (
@@ -42,7 +42,7 @@ class DmsConnector @Inject() (
   pdfGeneratorService: PdfGenerationService,
   clock: Clock
 )(implicit
-  ex: ExecutionContext
+  ex: FileIOExecutionContext
 ) extends Logging {
   private val cgtPropertyDisposalsUrl = servicesConfig.baseUrl("cgt-property-disposals")
   private val url                     = s"${servicesConfig.baseUrl("dms")}/dms-submission/submit"
