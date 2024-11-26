@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.config
 
 import org.apache.pekko.Done
 import play.api.Logging
-import play.api.http.Status.{NOT_FOUND, OK}
+import play.api.http.Status.{CREATED, NOT_FOUND, OK}
 import play.api.libs.json.Json
 import uk.gov.hmrc.cgtpropertydisposals.service.RetryService
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
@@ -87,7 +87,7 @@ class InternalAuthTokenInitialiserImpl @Inject() (
       )
       .execute
       .flatMap { response =>
-        if (response.status == 201) {
+        if (response.status == CREATED) {
           logger.info("Auth token initialised")
           Future.successful(Done)
         } else {
