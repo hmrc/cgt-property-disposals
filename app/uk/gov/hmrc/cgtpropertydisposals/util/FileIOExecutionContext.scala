@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.models.dms
+package uk.gov.hmrc.cgtpropertydisposals.util
 
-import play.api.libs.json.{Format, Json}
+import com.google.inject.Inject
+import org.apache.pekko.actor.ActorSystem
+import play.api.libs.concurrent.CustomExecutionContext
 
-final case class DmsMetadata(
-  dmsFormId: String,
-  customerId: String,
-  classificationType: String,
-  businessArea: String,
-  backscan: Option[Boolean]
-)
-
-object DmsMetadata {
-  implicit val format: Format[DmsMetadata] = Json.format[DmsMetadata]
-}
+class FileIOExecutionContext @Inject() (actorSystem: ActorSystem)
+    extends CustomExecutionContext(actorSystem, "file-io-dispatcher")

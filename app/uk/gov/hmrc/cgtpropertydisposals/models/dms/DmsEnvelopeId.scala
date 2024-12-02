@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.module
+package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
-import com.google.inject.AbstractModule
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller
+import play.api.libs.json.{Json, OFormat}
 
-class DmsSubmissionModule extends AbstractModule {
-  override def configure(): Unit =
-    bind(classOf[DmsSubmissionPoller]).asEagerSingleton()
+final case class DmsEnvelopeId(id: String) extends AnyVal
+
+object DmsEnvelopeId {
+  implicit val format: OFormat[DmsEnvelopeId] = Json.format[DmsEnvelopeId]
 }

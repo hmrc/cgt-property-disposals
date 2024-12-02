@@ -25,6 +25,47 @@ sm2 --start CGTPD_ALL
 sm2 --stop CGTPD
 ```   
 
+## How to test Dms submission
+
+In order to verify successful submission of envelopes to Dms, run the following services:
+
+```
+sm2 --start INTERNAL_AUTH_FRONTEND
+sm2 --start DMS_SUBMISSION_ADMIN_FRONTEND
+```
+
+Then, navigate to http://localhost:8471/test-only/sign-in and complete the login form:
+
+| Field              | Value                                                                                  |
+|--------------------|----------------------------------------------------------------------------------------|
+| Principal          | Any string                                                                             |
+| Redirect Url       | http://localhost:8224/dms-submission-admin-frontend/cgt-property-disposals/submissions |
+| Resource Type      | dms-submission                                                                         |
+| Resource Locations | cgt-property-disposals                                                                 |
+| Action             | READ                                                                                   |
+
+You should now see a list of submissions, click on each link to view the submission metadata.
+
+In order to view the contents of the envelope, the form.pdf and any attachments, run the following service:
+
+```
+sm2 --start INTERNAL_AUTH_FRONTEND
+sm2 --start OBJECT_STORE_ADMIN_FRONTEND
+```
+
+Then, navigate to http://localhost:8471/test-only/sign-in and complete the login form:
+
+| Field              | Value                                                                    |
+|--------------------|--------------------------------------------------------------------------|
+| Principal          | Any string                                                               |
+| Redirect Url       | http://localhost:8467/object-store-admin-frontend/objects/dms-submission |
+| Resource Type      | object-store-admin-frontend                                              |
+| Resource Locations | *                                                                        |
+| Action             | READ                                                                     |
+
+You should now see a folder titled `sdes/cgt-property-disposals`, click on it. You will now see a list of zip files,
+each of which can be downloaded.
+
 ### License
 
 This code is open source software licensed under

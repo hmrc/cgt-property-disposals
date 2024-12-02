@@ -16,10 +16,15 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, Json}
 
-final case class EnvelopeId(value: String) extends AnyVal
+final case class DmsMetadata(
+  dmsFormId: String,
+  customerId: String,
+  classificationType: String,
+  businessArea: String
+)
 
-object EnvelopeId {
-  implicit val format: OFormat[EnvelopeId] = Json.format[EnvelopeId]
+object DmsMetadata {
+  implicit val format: Format[DmsMetadata] = Json.format[DmsMetadata]
 }
