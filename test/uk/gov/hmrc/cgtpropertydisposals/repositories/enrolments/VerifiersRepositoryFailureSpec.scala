@@ -24,7 +24,6 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.mongo.test.MongoSupport
-import uk.gov.hmrc.mongo.workitem.ProcessingStatus.Succeeded
 
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
