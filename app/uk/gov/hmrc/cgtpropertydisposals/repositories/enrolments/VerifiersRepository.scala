@@ -21,12 +21,15 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.{IndexModel, IndexOptions}
+import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultVerifiersRepository])
@@ -39,13 +42,24 @@ trait VerifiersRepository {
 }
 
 @Singleton
-class DefaultVerifiersRepository @Inject() (mongo: MongoComponent)(implicit
+class DefaultVerifiersRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
   ec: ExecutionContext
 ) extends PlayMongoRepository[UpdateVerifiersRequest](
       mongoComponent = mongo,
       collectionName = "update-verifiers-requests",
       domainFormat = UpdateVerifiersRequest.format,
-      indexes = Seq(IndexModel(ascending("ggCredId"), IndexOptions().name("ggCredIdIndex")))
+      indexes = Seq(
+        IndexModel(
+          ascending("ggCredId"),
+          IndexOptions()
+            .name("ggCredIdIndex")
+            .expireAfter(
+              config.get[FiniteDuration]("mongodb.verifiers-cache-ttl.expiry-time").toSeconds,
+              TimeUnit.SECONDS
+            )
+        )
+      ),
+      replaceIndexes = true
     )
     with VerifiersRepository {
 
