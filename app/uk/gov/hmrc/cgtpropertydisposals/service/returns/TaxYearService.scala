@@ -19,12 +19,14 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.Configuration
-import pureconfig.ConfigSource
+import pureconfig.configurable.localDateConfigConvert
 import pureconfig.generic.auto._
+import pureconfig.{ConfigConvert, ConfigSource}
 import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils._
 import uk.gov.hmrc.cgtpropertydisposals.models.{LatestTaxYearGoLiveDate, TaxYear, TaxYearConfig}
 
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import scala.jdk.CollectionConverters._
 
 @ImplementedBy(classOf[TaxYearServiceImpl])
@@ -36,6 +38,8 @@ trait TaxYearService {
 
 @Singleton
 class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearService {
+  implicit val localDateConvert: ConfigConvert[LocalDate] = localDateConfigConvert(DateTimeFormatter.ISO_DATE)
+
   private val taxYearLiveDate: LatestTaxYearGoLiveDate =
     ConfigSource
       .fromConfig(config.underlying.getConfig("latest-tax-year-go-live-date"))
@@ -58,8 +62,14 @@ class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearServic
     }
   }
 
-  override def getTaxYear(date: LocalDate): Option[TaxYear] =
-    taxYearsConfig.find(t => date < t.endDateExclusive && date >= t.startDateInclusive).map(_.as[TaxYear])
+  override def getTaxYear(date: LocalDate): Option[TaxYear] = {
+    val taxYears =
+      taxYearsConfig.filter(t => date < t.endDateExclusive && date >= t.startDateInclusive).map(_.as[TaxYear])
+    taxYears match {
+      case head :: Nil => Some(head)
+      case _           => None
+    }
+  }
 
   override def getAvailableTaxYears: List[Int] =
     taxYearsConfig.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)
