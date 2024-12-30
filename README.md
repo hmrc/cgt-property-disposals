@@ -15,7 +15,7 @@ This service performs the following main functions:
 
 ## How to run
 
-Use `sbt run` in a terminal to run this service. This service runs on port `7021` by default.
+Use `sbt run -Dapplication.router=testOnlyDoNotUseInAppConf.Routes` in a terminal to run this service. This service runs on port `7021` by default.
 
 The other services this service relies on can be run using the `CGTPD_ALL` service manager profile and stopping the
 `CGTPD` service if you want to run this service from source, e.g.:
