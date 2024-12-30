@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
-import com.typesafe.config.ConfigFactory
 import org.scalacheck.Arbitrary
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
@@ -30,13 +28,11 @@ import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class VerifiersRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
-  private val config = Configuration(ConfigFactory.parseString("""
-                                                                 |mongodb.verifiers-cache-ttl.expiry-time = 2hours
-                                                                 |""".stripMargin))
-  val repository     = new DefaultVerifiersRepository(mongoComponent, config)
+
+  val repository = new DefaultVerifiersRepository(mongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
-    Arbitrary(LocalDateTime.now())
+    Arbitrary((LocalDateTime.now()))
 
   val verifierDetails = sample[UpdateVerifiersRequest]
 

@@ -21,15 +21,12 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import com.mongodb.client.model.Indexes.ascending
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model._
-import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models._
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[DefaultTaxEnrolmentRepository])
@@ -47,24 +44,13 @@ trait TaxEnrolmentRepository {
 }
 
 @Singleton
-class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent, config: Configuration)(implicit
+class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
   ec: ExecutionContext
 ) extends PlayMongoRepository[TaxEnrolmentRequest](
       mongoComponent = mongo,
       collectionName = "tax-enrolment-requests",
       domainFormat = TaxEnrolmentRequest.format,
-      indexes = Seq(
-        IndexModel(
-          ascending("ggCredId"),
-          IndexOptions()
-            .name("ggCredIdIndex")
-            .expireAfter(
-              config.get[FiniteDuration]("mongodb.tax-enrolment-cache-ttl.expiry-time").toSeconds,
-              TimeUnit.SECONDS
-            )
-        )
-      ),
-      replaceIndexes = true,
+      indexes = Seq(IndexModel(ascending("ggCredId"), IndexOptions().name("ggCredIdIndex"))),
       extraCodecs = Seq(Codecs.playFormatCodec[TaxEnrolmentRequest](TaxEnrolmentRequest.format))
     )
     with TaxEnrolmentRepository {
