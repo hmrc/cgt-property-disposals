@@ -45,7 +45,8 @@ class DefaultVerifiersRepository @Inject() (mongo: MongoComponent)(implicit
       mongoComponent = mongo,
       collectionName = "update-verifiers-requests",
       domainFormat = UpdateVerifiersRequest.format,
-      indexes = Seq(IndexModel(ascending("ggCredId"), IndexOptions().name("ggCredIdIndex")))
+      indexes = Seq(IndexModel(ascending("ggCredId"), IndexOptions().name("ggCredIdIndex"))),
+      replaceIndexes = true
     )
     with VerifiersRepository {
 

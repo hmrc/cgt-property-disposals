@@ -51,7 +51,8 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
       collectionName = "tax-enrolment-requests",
       domainFormat = TaxEnrolmentRequest.format,
       indexes = Seq(IndexModel(ascending("ggCredId"), IndexOptions().name("ggCredIdIndex"))),
-      extraCodecs = Seq(Codecs.playFormatCodec[TaxEnrolmentRequest](TaxEnrolmentRequest.format))
+      extraCodecs = Seq(Codecs.playFormatCodec[TaxEnrolmentRequest](TaxEnrolmentRequest.format)),
+      replaceIndexes = true
     )
     with TaxEnrolmentRepository {
 
