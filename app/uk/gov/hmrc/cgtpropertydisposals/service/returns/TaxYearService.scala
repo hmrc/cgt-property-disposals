@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.Configuration
+import play.api.{Configuration, Logging}
 import pureconfig.configurable.localDateConfigConvert
 import pureconfig.generic.auto._
 import pureconfig.{ConfigConvert, ConfigSource}
@@ -37,7 +37,7 @@ trait TaxYearService {
 }
 
 @Singleton
-class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearService {
+class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearService with Logging {
   implicit val localDateConvert: ConfigConvert[LocalDate] = localDateConfigConvert(DateTimeFormatter.ISO_DATE)
 
   private val taxYearLiveDate: LatestTaxYearGoLiveDate =
@@ -56,21 +56,34 @@ class TaxYearServiceImpl @Inject() (config: Configuration) extends TaxYearServic
       .toList
 
     if (LocalDate.now.isBefore(latestTaxYearLiveDate)) {
-      taxYearsList.drop(1)
+      taxYearsList.drop(2)
     } else {
       taxYearsList
     }
   }
 
   override def getTaxYear(date: LocalDate): Option[TaxYear] = {
+    logger.error("getting tax year")
     val taxYears =
       taxYearsConfig.filter(t => date < t.endDateExclusive && date >= t.startDateInclusive).map(_.as[TaxYear])
     taxYears match {
-      case head :: Nil => Some(head)
-      case _           => None
+      case head :: Nil  => Some(head)
+      case head :: tail => getMidYearTaxYear(head :: tail, date)
+      case _            => None
+    }
+  }
+
+  private def getMidYearTaxYear(taxYears: List[TaxYear], date: LocalDate) = {
+    taxYears.filter(_.effectiveDate.isDefined) match {
+      case head :: Nil if head.effectiveDate.get.isBefore(date.plusDays(1)) => Some(head)
+      case ::                                                    =>
+        throw new RuntimeException(
+          "Invalid tax band configuration. No support for multiple effective tax bands in a tax year"
+        )
+      case _                                                                => Some(taxYears.head)
     }
   }
 
   override def getAvailableTaxYears: List[Int] =
-    taxYearsConfig.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse)
+    taxYearsConfig.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse).distinct
 }

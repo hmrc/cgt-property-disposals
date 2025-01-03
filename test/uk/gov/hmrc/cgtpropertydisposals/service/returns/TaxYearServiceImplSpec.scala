@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 import com.typesafe.config.ConfigFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.Configuration
 import pureconfig._
 import pureconfig.configurable.localDateConfigConvert
@@ -31,11 +30,15 @@ import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckPropertyChecks {
-  private val currentTaxYear = HmrcTaxYear.current.startYear
-  private val taxYearConfigs = (currentTaxYear to 2020 by -1).map { year =>
-    sample[TaxYearConfig].copy(startYear = year)
-  }
+class TaxYearServiceImplSpec extends AnyWordSpec with Matchers {
+  private val currentTaxYear                     = HmrcTaxYear.current.startYear
+  private val currentTaxYearMidYearConfig        =
+    sample[TaxYearConfig].copy(startYear = currentTaxYear, effectiveDate = Some(LocalDate.of(currentTaxYear, 10, 31)))
+  private val taxYearConfigs: Seq[TaxYearConfig] = (currentTaxYear to 2020 by -1)
+    .map { year =>
+      sample[TaxYearConfig].copy(startYear = year, effectiveDate = None)
+    }
+    .+:(currentTaxYearMidYearConfig)
 
   implicit val localDateConvert: ConfigConvert[LocalDate] = localDateConfigConvert(DateTimeFormatter.ISO_DATE)
 
@@ -66,8 +69,14 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckPr
       "handling requests to get the tax year of a date" must {
         "return a tax year if config available for the year" in {
           taxYearConfigs.foreach { taxYearConfig =>
-            service.getTaxYear(taxYearConfig.startDateInclusive)             shouldBe Some(taxYearConfig.as[TaxYear])
-            service.getTaxYear(taxYearConfig.endDateExclusive.minusDays(1L)) shouldBe Some(taxYearConfig.as[TaxYear])
+            service.getTaxYear(taxYearConfig.startDateInclusive) shouldBe Some(taxYearConfig.as[TaxYear])
+            if (currentTaxYear != taxYearConfig.startYear) {
+              service.getTaxYear(taxYearConfig.endDateExclusive.minusDays(1L)) shouldBe Some(taxYearConfig.as[TaxYear])
+            } else {
+              service.getTaxYear(taxYearConfig.endDateExclusive.minusDays(1L)) shouldBe Some(
+                currentTaxYearMidYearConfig.as[TaxYear]
+              )
+            }
           }
         }
 
@@ -79,7 +88,7 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckPr
 
       "handling requests to get the available tax years" must {
         "return all available tax years" in {
-          service.getAvailableTaxYears shouldBe taxYearConfigs.map(_.startYear)
+          service.getAvailableTaxYears shouldBe taxYearConfigs.map(_.startYear).distinct
         }
       }
     }
@@ -89,7 +98,11 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckPr
         "return a tax year if config available for the year" in {
           taxYearConfigs.foreach { taxYearConfig =>
             service2.getTaxYear(taxYearConfig.startDateInclusive)             shouldBe Some(taxYearConfig.as[TaxYear])
-            service2.getTaxYear(taxYearConfig.endDateExclusive.minusDays(1L)) shouldBe Some(taxYearConfig.as[TaxYear])
+            if (currentTaxYear != taxYearConfig.startYear) {
+              service2.getTaxYear(taxYearConfig.endDateExclusive.minusDays(1L)) shouldBe Some(taxYearConfig.as[TaxYear])
+            } else {
+              service2.getTaxYear(taxYearConfig.endDateExclusive.minusDays(1L)) shouldBe Some(currentTaxYearMidYearConfig.as[TaxYear])
+            }
           }
         }
 
@@ -101,7 +114,7 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckPr
 
       "handling requests to get the available tax years" must {
         "return all available tax years" in {
-          service.getAvailableTaxYears shouldBe taxYearConfigs.map(_.startYear)
+          service.getAvailableTaxYears shouldBe taxYearConfigs.map(_.startYear).distinct
         }
       }
     }
@@ -110,13 +123,13 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckPr
       "handling requests to get the tax year of a date" must {
         "return a tax year if config available for the year" in {
           taxYearConfigs.foreach { taxYearConfig =>
-            if (taxYearConfig.startYear == HmrcTaxYear.current.startYear) {
+            if (taxYearConfig.startYear == currentTaxYear) {
               service3.getTaxYear(taxYearConfig.startDateInclusive)             shouldBe None
               service3.getTaxYear(taxYearConfig.endDateExclusive.minusDays(1L)) shouldBe None
             } else {
               service3.getTaxYear(taxYearConfig.startDateInclusive)             shouldBe Some(taxYearConfig.as[TaxYear])
               service3.getTaxYear(taxYearConfig.endDateExclusive.minusDays(1L)) shouldBe Some(
-                taxYearConfig.as[TaxYear]
+                currentTaxYearMidYearConfig.as[TaxYear]
               )
             }
           }
@@ -130,7 +143,7 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckPr
 
       "handling requests to get the available tax years" must {
         "return available previous tax years" in {
-          service3.getAvailableTaxYears shouldBe taxYearConfigs.tail.map(_.startYear)
+          service3.getAvailableTaxYears shouldBe taxYearConfigs.drop(2).map(_.startYear).distinct
         }
       }
     }
