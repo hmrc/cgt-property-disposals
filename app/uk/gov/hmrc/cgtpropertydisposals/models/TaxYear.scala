@@ -29,7 +29,8 @@ case class TaxYearConfig(
   higherIncomePersonalAllowanceThreshold: Int,
   incomeTaxHigherRateThreshold: Int,
   cgtRates: CGTRates,
-  lettingsReliefMaxThreshold: Int
+  lettingsReliefMaxThreshold: Int,
+  effectiveDate: Option[LocalDate]
 ) {
   def as[T](implicit f: TaxYearConfig => T): T = f(this)
 
@@ -46,8 +47,6 @@ case class CGTRates(
   higherBandNonResidential: BigDecimal
 )
 
-case class LatestTaxYearGoLiveDate(day: Int, month: Int, year: Int)
-
 final case class TaxYear(
   startDateInclusive: LocalDate,
   endDateExclusive: LocalDate,
@@ -61,7 +60,8 @@ final case class TaxYear(
   cgtRateLowerBandNonResidential: BigDecimal,
   cgtRateHigherBandResidential: BigDecimal,
   cgtRateHigherBandNonResidential: BigDecimal,
-  maxLettingsReliefAmount: AmountInPence
+  maxLettingsReliefAmount: AmountInPence,
+  effectiveDate: Option[LocalDate]
 )
 
 object TaxYear {
@@ -79,7 +79,8 @@ object TaxYear {
       taxYearConfig.cgtRates.lowerBandNonResidential,
       taxYearConfig.cgtRates.higherBandResidential,
       taxYearConfig.cgtRates.higherBandNonResidential,
-      AmountInPence.fromPounds(taxYearConfig.lettingsReliefMaxThreshold)
+      AmountInPence.fromPounds(taxYearConfig.lettingsReliefMaxThreshold),
+      taxYearConfig.effectiveDate
     )
 
   implicit val format: OFormat[TaxYear] = Json.format
