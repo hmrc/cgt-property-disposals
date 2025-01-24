@@ -50,6 +50,8 @@ class FinancialDataConnectorImplSpec
          |microservice {
          |  services {
          |      returns {
+         |        protocol = http
+         |        host     = $wireMockHost
          |        port     = $wireMockPort
          |    }
          |  }
@@ -59,7 +61,6 @@ class FinancialDataConnectorImplSpec
          |  bearer-token = $desBearerToken
          |  environment  = $desEnvironment
          |}
-         |create-internal-auth-token-on-start = false
          |""".stripMargin
     )
   )

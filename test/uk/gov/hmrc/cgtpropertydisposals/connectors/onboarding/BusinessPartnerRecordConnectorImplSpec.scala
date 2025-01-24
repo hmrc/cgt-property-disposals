@@ -50,7 +50,9 @@ class BusinessPartnerRecordConnectorImplSpec
          |microservice {
          |  services {
          |      business-partner-record {
-         |        port     = $wireMockPort
+         |      protocol = http
+         |      host     = $wireMockHost
+         |      port     = $wireMockPort
          |    }
          |  }
          |}
@@ -59,7 +61,6 @@ class BusinessPartnerRecordConnectorImplSpec
          |  bearer-token = $desBearerToken
          |  environment  = $desEnvironment
          |}
-         |create-internal-auth-token-on-start = false
          |""".stripMargin
     )
   )

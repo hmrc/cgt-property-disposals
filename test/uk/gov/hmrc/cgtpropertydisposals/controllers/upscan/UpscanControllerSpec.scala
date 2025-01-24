@@ -17,14 +17,17 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.upscan
 
 import cats.data.EitherT
+import org.apache.pekko.stream.Materializer
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import play.api.inject.bind
+import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Headers, WrappedRequest}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
-import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
+import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
@@ -38,6 +41,15 @@ import scala.concurrent.Future
 
 class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
   private val mockUpscanService = mock[UpscanService]
+  private val fixedTimestamp    = LocalDateTime.of(2019, 9, 24, 15, 47, 20)
+
+  override val overrideBindings: List[GuiceableModule] =
+    List(
+      bind[AuthenticateActions].toInstance(Fake.login(Fake.user, fixedTimestamp)),
+      bind[UpscanService].toInstance(mockUpscanService)
+    )
+
+  implicit lazy val mat: Materializer = fakeApplication.materializer
 
   private val headerCarrier = HeaderCarrier()
 
