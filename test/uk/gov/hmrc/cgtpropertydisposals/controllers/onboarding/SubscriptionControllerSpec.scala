@@ -20,15 +20,13 @@ import cats.data.EitherT
 import cats.instances.future._
 import org.mockito.ArgumentMatchersSugar.*
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import play.api.inject.bind
-import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
-import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
+import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
@@ -50,7 +48,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
-
   private val mockSubscriptionService      = mock[SubscriptionService]
   private val mockTaxEnrolmentService      = mock[TaxEnrolmentService]
   private val mockRegisterWithoutIdService = mock[RegisterWithoutIdService]
@@ -59,15 +56,13 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
 
   private val fixedTimestamp = LocalDateTime.of(2019, 9, 24, 15, 47, 20)
 
-  override val overrideBindings: List[GuiceableModule] =
-    List(
-      bind[AuthenticateActions].toInstance(Fake.login(Fake.user, fixedTimestamp)),
-      bind[SubscriptionService].toInstance(mockSubscriptionService),
-      bind[TaxEnrolmentService].toInstance(mockTaxEnrolmentService),
-      bind[RegisterWithoutIdService].toInstance(mockRegisterWithoutIdService)
-    )
-
-  private lazy val controller = instanceOf[SubscriptionController]
+  private lazy val controller = new SubscriptionController(
+    Fake.login(Fake.user, LocalDateTime.of(2019, 9, 24, 15, 47, 20)),
+    mockSubscriptionService,
+    mockTaxEnrolmentService,
+    mockRegisterWithoutIdService,
+    stubMessagesControllerComponents()
+  )
 
   private def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(
     response: Either[Error, SubscriptionResponse]

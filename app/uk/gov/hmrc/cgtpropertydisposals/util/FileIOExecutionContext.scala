@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.cgtpropertydisposals.module
+package uk.gov.hmrc.cgtpropertydisposals.util
 
-import com.google.inject.AbstractModule
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller
+import com.google.inject.Inject
+import org.apache.pekko.actor.ActorSystem
+import play.api.libs.concurrent.CustomExecutionContext
 
-import java.time.Clock
-
-class DmsSubmissionModule extends AbstractModule {
-  override def configure(): Unit = {
-    bind(classOf[DmsSubmissionPoller]).asEagerSingleton()
-    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone())
-  }
-}
+class FileIOExecutionContext @Inject() (actorSystem: ActorSystem)
+    extends CustomExecutionContext(actorSystem, "file-io-dispatcher")
