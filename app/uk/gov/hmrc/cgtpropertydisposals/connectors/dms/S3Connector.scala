@@ -25,7 +25,8 @@ import uk.gov.hmrc.cgtpropertydisposals.http.PlayHttpClient
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.util.{FileIOExecutionContext, Logging}
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPollerExecutionContext
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.HttpErrorFunctions
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
@@ -43,7 +44,7 @@ class S3ConnectorImpl @Inject() (
   playHttpClient: PlayHttpClient,
   config: ServicesConfig
 )(implicit
-  executionContext: FileIOExecutionContext,
+  executionContext: DmsSubmissionPollerExecutionContext,
   materializer: Materializer
 ) extends S3Connector
     with Logging

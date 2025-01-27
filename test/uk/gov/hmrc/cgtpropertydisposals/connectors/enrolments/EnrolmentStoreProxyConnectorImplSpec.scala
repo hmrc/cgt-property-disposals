@@ -46,11 +46,12 @@ class EnrolmentStoreProxyConnectorImplSpec
         |microservice {
         |  services {
         |    enrolment-store-proxy {
+        |      protocol = http
+        |      host     = $wireMockHost
         |      port     = $wireMockPort
         |    }
         |  }
         |}
-        |create-internal-auth-token-on-start = false
         |""".stripMargin
     )
   )

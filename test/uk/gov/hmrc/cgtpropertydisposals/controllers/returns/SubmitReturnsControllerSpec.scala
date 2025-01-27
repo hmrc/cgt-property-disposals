@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
 import cats.instances.future._
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentMatchersSugar.*
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Headers
@@ -28,17 +29,18 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsEnvelopeId}
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId.{NoReferenceId, RepresenteeCgtReference, RepresenteeNino, RepresenteeSautr}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest, SubmitReturnResponse}
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionService
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionRequest, DmsSubmissionService}
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdService, SubscriptionService}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HtmlSanitizer
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.workitem.WorkItem
 
 import java.time.LocalDateTime
 import java.util.{Base64, UUID}
@@ -46,13 +48,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class SubmitReturnsControllerSpec extends ControllerSpec {
-  val draftReturnsService: DraftReturnsService       = mock[DraftReturnsService]
-  val returnsService: ReturnsService                 = mock[ReturnsService]
-  val mockDmsSubmissionService: DmsSubmissionService = mock[DmsSubmissionService]
-  val subscriptionService: SubscriptionService       = mock[SubscriptionService]
-  val registrationService: RegisterWithoutIdService  = mock[RegisterWithoutIdService]
+  val draftReturnsService: DraftReturnsService      = mock[DraftReturnsService]
+  val returnsService: ReturnsService                = mock[ReturnsService]
+  val dmsService: DmsSubmissionService              = mock[DmsSubmissionService]
+  val subscriptionService: SubscriptionService      = mock[SubscriptionService]
+  val registrationService: RegisterWithoutIdService = mock[RegisterWithoutIdService]
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+  implicit lazy val mat: Materializer       = fakeApplication.materializer
+  private val dmsSubmissionRequestWorkItem  = sample[WorkItem[DmsSubmissionRequest]]
 
   val request = new AuthenticatedRequest(
     Fake.user,
@@ -68,55 +72,42 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     draftReturnsService = draftReturnsService,
     returnsService = returnsService,
-    dmsSubmissionService = mockDmsSubmissionService,
+    dmsSubmissionService = dmsService,
     cc = Helpers.stubControllerComponents()
   )
-
-  private val b64Html = B64Html(Base64.getEncoder.encodeToString("some test html".getBytes))
 
   private def mockSubmitReturnService(request: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
     response: Either[Error, SubmitReturnResponse]
   ) =
     returnsService
       .submitReturn(request, representeeDetails)(*, *)
-      .returns(EitherT.fromEither(response))
+      .returns(EitherT.fromEither[Future](response))
 
   private def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Unit]) =
     draftReturnsService
       .deleteDraftReturns(List(id))
-      .returns(EitherT.fromEither(response))
+      .returns(EitherT.fromEither[Future](response))
 
-  private def mockDmsSubmissionRequest(
-    html: B64Html,
-    submitReturnResponse: SubmitReturnResponse,
-    submitReturnRequest: SubmitReturnRequest
-  ) = {
-    val res: EitherT[Future, Error, DmsEnvelopeId] = EitherT.fromEither(Right(DmsEnvelopeId("test envelope id")))
-    mockDmsSubmissionService
-      .submitToDms(
-        sanitise(html),
-        submitReturnResponse.formBundleId,
-        submitReturnRequest.subscribedDetails.cgtReference,
-        submitReturnRequest.completeReturn
-      )(*)
-      .returns(res)
-  }
+  private def mockDmsRequestEnqueue() =
+    dmsService
+      .enqueue(*)
+      .returns(EitherT.pure(dmsSubmissionRequestWorkItem))
 
   "SubmitReturnsController" when {
     "handling requests to submit returns" must {
       "return 200 for successful submission" in {
-        val submitReturnResponse = sample[SubmitReturnResponse]
-        val submitReturnRequest  = sample[SubmitReturnRequest].copy(
-          checkYourAnswerPageHtml = b64Html,
+        val expectedResponseBody = sample[SubmitReturnResponse]
+        val requestBody          = sample[SubmitReturnRequest].copy(
+          checkYourAnswerPageHtml = sample[B64Html],
           completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None)
         )
-        mockSubmitReturnService(submitReturnRequest, None)(Right(submitReturnResponse))
-        mockDmsSubmissionRequest(b64Html, submitReturnResponse, submitReturnRequest)
-        mockDeleteDraftReturnService(submitReturnRequest.id)(Right(()))
+        mockSubmitReturnService(requestBody, None)(Right(expectedResponseBody))
+        mockDmsRequestEnqueue()
+        mockDeleteDraftReturnService(requestBody.id)(Right(()))
 
-        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(submitReturnRequest)))
+        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(submitReturnResponse)
+        contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
       }
 
       "pass on the correct representee details if there are representee detail in the request" in {
@@ -136,21 +127,21 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           sampleDetails(Right(Right(sample[CgtReference])))
         ).foreach { representeeDetails =>
           withClue(s"For $representeeDetails: ") {
-            val submitReturnResponse = sample[SubmitReturnResponse]
+            val expectedResponseBody = sample[SubmitReturnResponse]
             val representeeAnswers   = representeeDetails.answers
-            val submitReturnRequest  = sample[SubmitReturnRequest].copy(
-              checkYourAnswerPageHtml = b64Html,
+            val requestBody          = sample[SubmitReturnRequest].copy(
+              checkYourAnswerPageHtml = sample[B64Html],
               completeReturn = sample[CompleteSingleDisposalReturn].copy(
                 representeeAnswers = Some(representeeAnswers)
               )
             )
-            mockSubmitReturnService(submitReturnRequest, Some(representeeDetails))(Right(submitReturnResponse))
-            mockDmsSubmissionRequest(b64Html, submitReturnResponse, submitReturnRequest)
-            mockDeleteDraftReturnService(submitReturnRequest.id)(Right(()))
+            mockSubmitReturnService(requestBody, Some(representeeDetails))(Right(expectedResponseBody))
+            mockDmsRequestEnqueue()
+            mockDeleteDraftReturnService(requestBody.id)(Right(()))
 
-            val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(submitReturnRequest)))
+            val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
             status(result)        shouldBe OK
-            contentAsJson(result) shouldBe Json.toJson(submitReturnResponse)
+            contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
           }
         }
       }
@@ -169,27 +160,22 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
                  |</html>
                  |""".stripMargin
 
-            val encodedHtml = B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes())))
+            val expectedResponseBody = sample[SubmitReturnResponse]
 
-            val submitReturnResponse = sample[SubmitReturnResponse]
-
-            val submitReturnRequest = sample[SubmitReturnRequest].copy(
+            val requestBodyWithForbiddenElements = sample[SubmitReturnRequest].copy(
               completeReturn = sample[CompleteMultipleDisposalsReturn].copy(representeeAnswers = None),
-              checkYourAnswerPageHtml = encodedHtml
+              checkYourAnswerPageHtml =
+                B64Html(new String(Base64.getEncoder.encode(htmlWithForbiddenElements.getBytes())))
             )
 
-            mockSubmitReturnService(submitReturnRequest, None)(Right(submitReturnResponse))
-            mockDmsSubmissionRequest(
-              encodedHtml,
-              submitReturnResponse,
-              submitReturnRequest
-            )
-            mockDeleteDraftReturnService(submitReturnRequest.id)(Right(()))
+            mockSubmitReturnService(requestBodyWithForbiddenElements, None)(Right(expectedResponseBody))
+            mockDmsRequestEnqueue()
+            mockDeleteDraftReturnService(requestBodyWithForbiddenElements.id)(Right(()))
 
             val result =
-              controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(submitReturnRequest)))
+              controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBodyWithForbiddenElements)))
             status(result)        shouldBe OK
-            contentAsJson(result) shouldBe Json.toJson(submitReturnResponse)
+            contentAsJson(result) shouldBe Json.toJson(expectedResponseBody)
           }
         }
       }
@@ -197,7 +183,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       "return 500 when des call fails" in {
         val requestBody = sample[SubmitReturnRequest].copy(
           completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None),
-          checkYourAnswerPageHtml = b64Html
+          checkYourAnswerPageHtml = sample[B64Html]
         )
 
         mockSubmitReturnService(requestBody, None)(Left(Error.apply("error while submitting return to DES")))
@@ -207,16 +193,15 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
       }
 
       "return 500 when deleting draft return fails" in {
-        val submitReturnRequest  = sample[SubmitReturnRequest].copy(
+        val requestBody = sample[SubmitReturnRequest].copy(
           completeReturn = sample[CompleteMultipleDisposalsReturn].copy(representeeAnswers = None),
-          checkYourAnswerPageHtml = b64Html
+          checkYourAnswerPageHtml = sample[B64Html]
         )
-        val submitReturnResponse = sample[SubmitReturnResponse]
-        mockSubmitReturnService(submitReturnRequest, None)(Right(submitReturnResponse))
-        mockDmsSubmissionRequest(b64Html, submitReturnResponse, submitReturnRequest)
-        mockDeleteDraftReturnService(submitReturnRequest.id)(Left(Error.apply("error while deleting draft return")))
+        mockSubmitReturnService(requestBody, None)(Right(sample[SubmitReturnResponse]))
+        mockDmsRequestEnqueue()
+        mockDeleteDraftReturnService(requestBody.id)(Left(Error.apply("error while deleting draft return")))
 
-        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(submitReturnRequest)))
+        val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
 
@@ -235,11 +220,5 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         }
       }
     }
-  }
-
-  private def sanitise(b64Html: B64Html) = {
-    val decoded   = new String(Base64.getDecoder.decode(b64Html.value))
-    val sanitised = HtmlSanitizer.sanitize(decoded)
-    sanitised.map(s => B64Html(new String(Base64.getEncoder.encode(s.getBytes())))).get
   }
 }

@@ -19,7 +19,6 @@ object AppDependencies {
     "org.apache.pekko"                        %% "pekko-stream"                            % pekkoVersion,
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion,
     "com.openhtmltopdf"                        % "openhtmltopdf-pdfbox"                    % "1.0.10"
-
   )
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(

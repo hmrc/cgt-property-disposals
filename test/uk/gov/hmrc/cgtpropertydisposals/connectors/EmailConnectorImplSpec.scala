@@ -54,6 +54,8 @@ class EmailConnectorImplSpec
          |microservice {
          |  services {
          |    email {
+         |      protocol = http
+         |      host     = $wireMockHost
          |      port     = $wireMockPort
          |    }
          |  }
@@ -68,7 +70,6 @@ class EmailConnectorImplSpec
          |        template-id = "$returnSubmittedTemplateId"
          |    }
          |}
-         |create-internal-auth-token-on-start = false
          |""".stripMargin
     )
   )
