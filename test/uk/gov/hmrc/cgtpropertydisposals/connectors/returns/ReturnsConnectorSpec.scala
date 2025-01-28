@@ -52,8 +52,6 @@ class ReturnsConnectorSpec
          |microservice {
          |  services {
          |      returns {
-         |        protocol = http
-         |        host     = $wireMockHost
          |        port     = $wireMockPort
          |    }
          |  }
@@ -63,6 +61,7 @@ class ReturnsConnectorSpec
          |  bearer-token = $desBearerToken
          |  environment  = $desEnvironment
          |}
+         |create-internal-auth-token-on-start = false
          |""".stripMargin
     )
   )
