@@ -51,13 +51,24 @@ class TaxYearServiceImpl @Inject() (config: Configuration, clock: Clock) extends
   }
 
   override def getTaxYear(date: LocalDate): Option[TaxYear] = {
-    val taxYears =
-      taxYearsConfig.filter(t => date < t.endDateExclusive && date >= t.startDateInclusive).map(_.as[TaxYear])
 
-    taxYears match {
+    val taxYears =
+      taxYearsConfig.filter(t => t.endDateExclusive > date && t.startDateInclusive <= date).map(_.as[TaxYear])
+
+    val result = taxYears match {
+      case Nil =>
+        val maxTaxYear = getAvailableTaxYears.head
+        maxTaxYear match {
+          case _ if date.getYear > maxTaxYear => taxYearsConfig.filter(_.startYear == maxTaxYear).map(_.as[TaxYear])
+          case _                              => taxYears
+        }
+      case _   => taxYears
+    }
+
+    result match {
       case head :: Nil => Some(head)
       case Nil         => None
-      case _           => getMidYearTaxYear(taxYears, date)
+      case _           => getMidYearTaxYear(result, date)
     }
   }
 
