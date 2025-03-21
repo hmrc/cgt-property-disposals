@@ -2,14 +2,14 @@ import sbt.*
 
 object AppDependencies {
   private val playVersion  = "play-30"
-  private val mongoVersion = "2.3.0"
-  private val pekkoVersion = "1.1.1"
+  private val mongoVersion = "2.5.0"
+  private val pekkoVersion = "1.1.3"
 
-  private val bootstrapVersion = "9.5.0"
+  private val bootstrapVersion = "9.10.0"
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapVersion,
-    "org.typelevel"                           %% "cats-core"                               % "2.12.0",
+    "org.typelevel"                           %% "cats-core"                               % "2.13.0",
     "org.julienrf"                            %% "play-json-derived-codecs"                % "11.0.0",
     "com.github.pureconfig"                   %% "pureconfig"                              % "0.17.8",
     "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer"               % "20240325.1",
