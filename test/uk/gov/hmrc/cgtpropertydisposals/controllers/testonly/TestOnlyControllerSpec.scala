@@ -18,11 +18,15 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.testonly
 
 import cats.data.EitherT
 import cats.instances.future._
-import play.api.test.Helpers.{status, _}
+import org.apache.pekko.stream.Materializer
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.Headers
+import play.api.test.Helpers.{CONTENT_TYPE, status, _}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
+import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
@@ -43,6 +47,8 @@ class TestOnlyControllerSpec extends ControllerSpec {
       .deleteDraftReturn(cgtReference)
       .returns(EitherT.fromEither[Future](response))
 
+  implicit lazy val mat: Materializer = fakeApplication.materializer
+
   val request = new AuthenticatedRequest(
     Fake.user,
     LocalDateTime.now(),
@@ -55,6 +61,9 @@ class TestOnlyControllerSpec extends ControllerSpec {
     cc = Helpers.stubControllerComponents()
   )
 
+  private def fakeRequestWithJsonBody(body: JsValue) =
+    request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
+
   "TestOnlyController" when {
     "handling requests to delete a draft return" must {
       "return a 200 response if the deletion is successful" in {
@@ -64,7 +73,7 @@ class TestOnlyControllerSpec extends ControllerSpec {
 
         val result =
           controller.deleteDraftReturn(cgtReference.value)(
-            request
+            fakeRequestWithJsonBody(Json.toJson(DeleteDraftReturnsRequest(List(uuid))))
           )
         status(result) shouldBe OK
       }
@@ -76,7 +85,7 @@ class TestOnlyControllerSpec extends ControllerSpec {
 
         val result =
           controller.deleteDraftReturn(cgtReference.value)(
-            request
+            fakeRequestWithJsonBody(Json.toJson(DeleteDraftReturnsRequest(List(uuid))))
           )
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }

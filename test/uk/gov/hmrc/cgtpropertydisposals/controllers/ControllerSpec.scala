@@ -16,9 +16,53 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
+import com.typesafe.config.ConfigFactory
 import org.mockito.IdiomaticMockito
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import play.api.inject.bind
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import play.api.{Application, Configuration, Play}
+import uk.gov.hmrc.cgtpropertydisposals.metrics.{Metrics, MockMetrics}
+import uk.gov.hmrc.cgtpropertydisposals.module.DmsSubmissionModule
 
-trait ControllerSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with IdiomaticMockito
+import scala.reflect.ClassTag
+
+trait ControllerSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with IdiomaticMockito {
+
+  val overrideBindings: List[GuiceableModule] = List.empty[GuiceableModule]
+
+  def buildFakeApplication(): Application = {
+    val metricsBinding: GuiceableModule = bind[Metrics].toInstance(MockMetrics.metrics)
+
+    new GuiceApplicationBuilder()
+      .configure(
+        Configuration(
+          ConfigFactory.parseString(
+            """
+              | metrics.jvm = false
+              | metrics.logback = false
+          """.stripMargin
+          )
+        )
+      )
+      .bindings(new DmsSubmissionModule)
+      .overrides(metricsBinding :: overrideBindings: _*)
+      .build()
+  }
+
+  lazy val fakeApplication: Application = buildFakeApplication()
+
+  def instanceOf[A : ClassTag]: A = fakeApplication.injector.instanceOf[A]
+
+  abstract override def beforeAll(): Unit = {
+    Play.start(fakeApplication)
+    super.beforeAll()
+  }
+
+  override def afterAll(): Unit = {
+    Play.stop(fakeApplication)
+    super.afterAll()
+  }
+}
