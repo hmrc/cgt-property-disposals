@@ -2,7 +2,7 @@ import sbt.*
 
 object AppDependencies {
   private val playVersion  = "play-30"
-  private val mongoVersion = "2.5.0"
+  private val mongoVersion = "2.6.0"
   private val pekkoVersion = "1.1.3"
 
   private val bootstrapVersion = "9.11.0"
