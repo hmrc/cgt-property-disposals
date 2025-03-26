@@ -7,7 +7,7 @@ lazy val ItTest = config("it") extend Test
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(scalaVersion := "2.13.12")
+  .settings(scalaVersion := "2.13.16")
   .settings(
     majorVersion := 2,
     PlayKeys.playDefaultPort := 7021,
