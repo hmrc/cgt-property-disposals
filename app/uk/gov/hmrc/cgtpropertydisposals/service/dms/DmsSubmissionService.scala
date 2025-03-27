@@ -17,89 +17,69 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
 import cats.data.EitherT
-import cats.instances.either._
-import cats.instances.future._
-import cats.instances.list._
-import cats.syntax.traverse._
+import cats.implicits.toTraverseOps
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import org.bson.types.ObjectId
 import play.api.{ConfigLoader, Configuration}
-import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.GFormConnector
+import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.DmsConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
+import uk.gov.hmrc.cgtpropertydisposals.util.{FileIOExecutionContext, Logging}
+import uk.gov.hmrc.http.HeaderCarrier
 
-import java.util.{Base64, UUID}
+import java.util.Base64
 import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultDmsSubmissionService])
 trait DmsSubmissionService {
-
-  def enqueue(dmsSubmissionRequest: DmsSubmissionRequest): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]]
-
-  def dequeue: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]]
-
-  def setProcessingStatus(id: ObjectId, status: ProcessingStatus): EitherT[Future, Error, Boolean]
-
-  def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean]
-
   def submitToDms(
     html: B64Html,
     formBundleId: String,
     cgtReference: CgtReference,
-    completeReturn: CompleteReturn,
-    id: UUID
-  ): EitherT[Future, Error, EnvelopeId]
-
+    completeReturn: CompleteReturn
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, DmsEnvelopeId]
 }
 
 @Singleton
 class DefaultDmsSubmissionService @Inject() (
-  gFormConnector: GFormConnector,
+  dmsConnector: DmsConnector,
   upscanService: UpscanService,
-  dmsSubmissionRepo: DmsSubmissionRepo,
   configuration: Configuration
-)(implicit ec: DmsSubmissionPollerExecutionContext)
+)(implicit ec: FileIOExecutionContext)
     extends DmsSubmissionService
     with Logging {
-
   private def getDmsMetaConfig[A](key: String)(implicit loader: ConfigLoader[A]) =
     configuration.get[A](s"dms.$key")
 
-  private val queue           = getDmsMetaConfig[String]("queue-name")
-  private val b64businessArea = getDmsMetaConfig[String]("b64-business-area")
-  private val businessArea    = new String(Base64.getDecoder.decode(b64businessArea))
-  private val backScanEnabled = getDmsMetaConfig[Boolean]("backscan.enabled")
+  private val classificationType = getDmsMetaConfig[String]("queue-name")
+  private val b64businessArea    = getDmsMetaConfig[String]("b64-business-area")
+  private val businessArea       = new String(Base64.getDecoder.decode(b64businessArea))
 
   override def submitToDms(
     html: B64Html,
     formBundleId: String,
     cgtReference: CgtReference,
-    completeReturn: CompleteReturn,
-    id: UUID
-  ): EitherT[Future, Error, EnvelopeId] =
+    completeReturn: CompleteReturn
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, DmsEnvelopeId] =
     for {
       attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
-      envId           <- gFormConnector.submitToDms(
-                           DmsSubmissionPayload(
-                             html,
-                             fileAttachments,
-                             DmsMetadata(
-                               formBundleId,
-                               cgtReference.value,
-                               queue,
-                               businessArea,
-                               if (backScanEnabled) Some(true) else None
+      envId           <- EitherT.liftF(
+                           dmsConnector.submitToDms(
+                             DmsSubmissionPayload(
+                               html,
+                               fileAttachments,
+                               DmsMetadata(
+                                 formBundleId,
+                                 cgtReference.value,
+                                 classificationType,
+                                 businessArea
+                               )
                              )
-                           ),
-                           id
+                           )
                          )
     } yield envId
 
@@ -124,18 +104,4 @@ class DefaultDmsSubmissionService @Inject() (
 
     mandatoryEvidence.toList.map(_.upscanSuccess) ::: supportingEvidences
   }
-
-  override def enqueue(
-    dmsSubmissionRequest: DmsSubmissionRequest
-  ): EitherT[Future, Error, WorkItem[DmsSubmissionRequest]] =
-    dmsSubmissionRepo.set(dmsSubmissionRequest)
-
-  override def dequeue: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]] =
-    dmsSubmissionRepo.get
-
-  override def setProcessingStatus(id: ObjectId, status: ProcessingStatus): EitherT[Future, Error, Boolean] =
-    dmsSubmissionRepo.setProcessingStatus(id, status)
-
-  override def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean] =
-    dmsSubmissionRepo.setResultStatus(id, status)
 }
