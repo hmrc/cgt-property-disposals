@@ -23,9 +23,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.{Application, Configuration}
 import play.api.libs.json.Json
 import play.api.test.Helpers.{await, _}
-import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
@@ -55,11 +55,12 @@ class TaxEnrolmentConnectorImplSpec
         |microservice {
         |  services {
         |    tax-enrolments {
-        |      port = $wireMockPort
+        |      protocol = http
+        |      host     = $wireMockHost
+        |      port     = $wireMockPort
         |    }
         |  }
         |}
-        |create-internal-auth-token-on-start = false
         |""".stripMargin
     )
   )

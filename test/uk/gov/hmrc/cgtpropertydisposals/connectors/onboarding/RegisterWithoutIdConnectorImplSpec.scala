@@ -54,7 +54,9 @@ class RegisterWithoutIdConnectorImplSpec
          |microservice {
          |  services {
          |      register-without-id {
-         |        port     = $wireMockPort
+         |      protocol = http
+         |      host     = $wireMockHost
+         |      port     = $wireMockPort
          |    }
          |  }
          |}
@@ -63,7 +65,6 @@ class RegisterWithoutIdConnectorImplSpec
          |  bearer-token = $desBearerToken
          |  environment  = $desEnvironment
          |}
-         |create-internal-auth-token-on-start = false
          |""".stripMargin
     )
   )

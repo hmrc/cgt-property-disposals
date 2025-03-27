@@ -28,7 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionService
+import uk.gov.hmrc.cgtpropertydisposals.service.dms.{DmsSubmissionRequest, DmsSubmissionService}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DefaultReturnsService, DraftReturnsService, ReturnsService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
 import uk.gov.hmrc.cgtpropertydisposals.util.{HtmlSanitizer, Logging}
@@ -48,22 +48,25 @@ class SubmitReturnsController @Inject() (
   ec: ExecutionContext
 ) extends BackendController(cc)
     with Logging {
+
   def submitReturn: Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
       withJsonBody[SubmitReturnRequest] { returnRequest =>
         val result =
           for {
-            sanitisedHtml      <- EitherT.fromEither(sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
+            sanitisedHtml      <- EitherT.fromEither[Future](sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
             representeeDetails <- extractRepresenteeAnswersWithValidId(returnRequest)
             submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
-            _                  <- dmsSubmissionService.submitToDms(
-                                    sanitisedHtml,
-                                    submissionResult.formBundleId,
-                                    returnRequest.subscribedDetails.cgtReference,
-                                    returnRequest.completeReturn
+            _                  <- dmsSubmissionService.enqueue(
+                                    DmsSubmissionRequest(
+                                      sanitisedHtml,
+                                      submissionResult.formBundleId,
+                                      returnRequest.subscribedDetails.cgtReference,
+                                      returnRequest.completeReturn
+                                    )
                                   )
             _                   = logger.info(
-                                    s"Submitted documents to dms with details 'formBundleId' :CGTSUBMITDOC" +
+                                    s"Enqueued documents to be submitted with details 'formBundleId' :CGTSUBMITDOC" +
                                       s"'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
                                   )
             _                  <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
@@ -113,5 +116,7 @@ class SubmitReturnsController @Inject() (
           case RepresenteeCgtReference(cgtRef) => EitherT.pure(Some(RepresenteeDetails(c, Right(Right(cgtRef)))))
           case NoReferenceId                   => EitherT.leftT(Error("No reference id provided for representee"))
         }
+
     }
+
 }

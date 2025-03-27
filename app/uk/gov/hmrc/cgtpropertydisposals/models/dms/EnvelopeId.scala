@@ -18,8 +18,8 @@ package uk.gov.hmrc.cgtpropertydisposals.models.dms
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class DmsEnvelopeId(id: String) extends AnyVal
+final case class EnvelopeId(value: String) extends AnyVal
 
-object DmsEnvelopeId {
-  implicit val format: OFormat[DmsEnvelopeId] = Json.format[DmsEnvelopeId]
+object EnvelopeId {
+  implicit val format: OFormat[EnvelopeId] = Json.format[EnvelopeId]
 }
