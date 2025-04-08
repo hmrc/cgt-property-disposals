@@ -18,11 +18,11 @@ object AppDependencies {
     "org.apache.pekko"                        %% "pekko-serialization-jackson"             % pekkoVersion,
     "org.apache.pekko"                        %% "pekko-stream"                            % pekkoVersion,
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion,
-    "com.openhtmltopdf"                        % "openhtmltopdf-pdfbox"                    % "1.0.10"
+    "com.openhtmltopdf"                        % "openhtmltopdf-pdfbox"                    % "1.0.10",
+    "uk.gov.hmrc"                             %% "tax-year"                                % "5.0.0"
   )
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"                %% "tax-year"                      % "5.0.0"          % scope,
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion % scope,
     "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion     % scope,
     "org.mockito"                %% "mockito-scala"                 % "1.17.37"        % scope,

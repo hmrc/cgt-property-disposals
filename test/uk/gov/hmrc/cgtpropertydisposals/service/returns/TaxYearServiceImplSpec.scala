@@ -35,7 +35,6 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
   private val currentTaxYear = HmrcTaxYear.current.startYear
 
   private val nextTaxYear                 = sample[TaxYearConfig].copy(startYear = currentTaxYear + 1, effectiveDate = None)
-  private val nextTaxYear2                = sample[TaxYearConfig].copy(startYear = currentTaxYear + 2, effectiveDate = None)
   private val currentTaxYearMidYearConfig =
     sample[TaxYearConfig].copy(startYear = currentTaxYear, effectiveDate = Some(LocalDate.of(currentTaxYear, 10, 31)))
   private val currentTaxYearConfig        = currentTaxYearMidYearConfig.copy(effectiveDate = None)
@@ -49,8 +48,6 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
     sample[TaxYearConfig].copy(startYear = currentTaxYear - 4, effectiveDate = None)
   private val currentTaxYearMinus5Config  =
     sample[TaxYearConfig].copy(startYear = currentTaxYear - 5, effectiveDate = None)
-  private val currentTaxYearMinus6Config  =
-    sample[TaxYearConfig].copy(startYear = currentTaxYear - 6, effectiveDate = None)
 
   private val taxYearConfigs = List(
     nextTaxYear,
@@ -60,8 +57,7 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
     currentTaxYearMinus2Config,
     currentTaxYearMinus3Config,
     currentTaxYearMinus4Config,
-    currentTaxYearMinus5Config,
-    currentTaxYearMinus6Config
+    currentTaxYearMinus5Config
   )
 
   private val testData =
@@ -69,8 +65,6 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
       ("date", "expectedTaxYearConfig"),
       (nextTaxYear.startDateInclusive, nextTaxYear),
       (nextTaxYear.endDateExclusive.minusDays(1L), nextTaxYear),
-      (nextTaxYear2.startDateInclusive, nextTaxYear),
-      (nextTaxYear2.endDateExclusive.minusDays(1L), nextTaxYear),
       (currentTaxYearConfig.startDateInclusive, currentTaxYearConfig),
       (currentTaxYearConfig.endDateExclusive.minusDays(1L), currentTaxYearMidYearConfig),
       (currentTaxYearMinus1Config.startDateInclusive, currentTaxYearMinus1Config),
@@ -82,9 +76,7 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
       (currentTaxYearMinus4Config.startDateInclusive, currentTaxYearMinus4Config),
       (currentTaxYearMinus4Config.endDateExclusive.minusDays(1L), currentTaxYearMinus4Config),
       (currentTaxYearMinus5Config.startDateInclusive, currentTaxYearMinus5Config),
-      (currentTaxYearMinus5Config.endDateExclusive.minusDays(1L), currentTaxYearMinus5Config),
-      (currentTaxYearMinus6Config.startDateInclusive, currentTaxYearMinus6Config),
-      (currentTaxYearMinus6Config.endDateExclusive.minusDays(1L), currentTaxYearMinus6Config)
+      (currentTaxYearMinus5Config.endDateExclusive.minusDays(1L), currentTaxYearMinus5Config)
     )
 
   implicit val localDateConvert: ConfigConvert[LocalDate] = localDateConfigConvert(DateTimeFormatter.ISO_DATE)
@@ -113,18 +105,23 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
       "handling requests to get the tax year of a date" must {
         "return a tax year if config available for the year" in {
           forAll(testData) { (date: LocalDate, expectedTaxYearConfig: TaxYearConfig) =>
-            service.getTaxYear(date) shouldBe Some(expectedTaxYearConfig.as[TaxYear])
+            if (expectedTaxYearConfig.startYear < currentTaxYear - 4) {
+              service.getTaxYear(date) shouldBe None
+            } else {
+              Some(expectedTaxYearConfig.as[TaxYear])
+            }
           }
         }
+
         "return nothing if a tax year not available in config" in {
           service.getTaxYear(taxYearConfigs.last.startDateInclusive.minusDays(1L)) shouldBe None
+          service.getTaxYear(taxYearConfigs.head.endDateExclusive)                 shouldBe None
         }
-
       }
 
       "handling requests to get the available tax years" must {
         "return all available tax years" in {
-          service.getAvailableTaxYears shouldBe taxYearConfigs.map(_.startYear).distinct
+          service.getAvailableTaxYears shouldBe taxYearConfigs.dropRight(1).map(_.startYear).distinct
         }
       }
     }
@@ -133,9 +130,10 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
       "handling requests to get the tax year of a date" must {
         "return a tax year if config available for the year" in {
           forAll(testData) { (date: LocalDate, expectedTaxYearConfig: TaxYearConfig) =>
-            if (expectedTaxYearConfig.startYear > currentTaxYear) {
-              service2
-                .getTaxYear(date) shouldBe taxYearConfigs.find(t => t.startYear == currentTaxYear).map(_.as[TaxYear])
+            if (
+              expectedTaxYearConfig.startYear == currentTaxYear + 1 || expectedTaxYearConfig.startYear < currentTaxYear - 4
+            ) {
+              service2.getTaxYear(date) shouldBe None
             } else {
               service2.getTaxYear(date) shouldBe Some(expectedTaxYearConfig.as[TaxYear])
             }
@@ -144,12 +142,13 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
 
         "return nothing if a tax year not available in config" in {
           service2.getTaxYear(taxYearConfigs.last.startDateInclusive.minusDays(1L)) shouldBe None
+          service2.getTaxYear(taxYearConfigs.head.endDateExclusive)                 shouldBe None
         }
       }
 
       "handling requests to get the available tax years" must {
         "return all available tax years" in {
-          service2.getAvailableTaxYears shouldBe taxYearConfigs.drop(2).map(_.startYear).distinct
+          service2.getAvailableTaxYears shouldBe taxYearConfigs.drop(1).dropRight(1).map(_.startYear).distinct
         }
       }
     }
