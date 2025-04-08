@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,15 +32,19 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, ListRet
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.{AmendReturnsRepository, DefaultAmendReturnsRepository}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
 
+import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
+
 import java.time.LocalDate
 import scala.concurrent.Future
 
 class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
   trait Test {
+    val currentTaxYear: Int = HmrcTaxYear.current.startYear
+
     val cgtRef: String   = "dummyCgtRef"
-    val fromDate: String = "2024-01-01"
-    val toDate: String   = "2024-02-01"
+    val fromDate: String = s"$currentTaxYear-01-01"
+    val toDate: String   = s"$currentTaxYear-02-01"
 
     val listRouteUri: String                           = s"/returns/$cgtRef/$fromDate/$toDate"
     val listDownstreamUri: String                      = s"/capital-gains-tax/returns/$cgtRef"
@@ -53,19 +57,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
       "dateTo"   -> s"${startYear + 1}-04-05"
     )
 
-    val taxYearDates2020: Map[String, String] = getTaxYearQueryDates(2020)
-    val taxYearDates2021: Map[String, String] = getTaxYearQueryDates(2021)
-    val taxYearDates2022: Map[String, String] = getTaxYearQueryDates(2022)
-    val taxYearDates2023: Map[String, String] = getTaxYearQueryDates(2023)
-    val taxYearDates2024: Map[String, String] = getTaxYearQueryDates(2024)
-
-    val taxYearQueryDates: Seq[Map[String, String]] = Seq(
-      taxYearDates2020,
-      taxYearDates2021,
-      taxYearDates2022,
-      taxYearDates2023,
-      taxYearDates2024
-    )
+    val taxYearQueryDates: Seq[Map[String, String]] = (currentTaxYear - 4 to currentTaxYear).map(getTaxYearQueryDates)
 
     val notFoundFinancialDataErrorBody: JsObject = Json.obj(
       "code"   -> "NOT_FOUND",
@@ -250,10 +242,10 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
 
         val sampleDesReturn: DesReturnSummary = DesReturnSummary(
           submissionId = "someSubmissionId",
-          submissionDate = LocalDate.of(2024, 1, 10),
-          completionDate = LocalDate.of(2024, 1, 30),
+          submissionDate = LocalDate.of(currentTaxYear, 1, 10),
+          completionDate = LocalDate.of(currentTaxYear, 1, 30),
           lastUpdatedDate = None,
-          taxYear = "2024",
+          taxYear = s"$currentTaxYear",
           propertyAddress = AddressDetails(
             addressLine1 = "221b Baker Street",
             addressLine2 = Some("Marylebone"),

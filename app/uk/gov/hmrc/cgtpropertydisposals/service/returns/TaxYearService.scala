@@ -29,6 +29,8 @@ import java.time.format.DateTimeFormatter
 import java.time.{Clock, LocalDate}
 import scala.jdk.CollectionConverters._
 
+import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
+
 @ImplementedBy(classOf[TaxYearServiceImpl])
 trait TaxYearService {
   def getTaxYear(date: LocalDate): Option[TaxYear]
@@ -40,7 +42,7 @@ trait TaxYearService {
 class TaxYearServiceImpl @Inject() (config: Configuration, clock: Clock) extends TaxYearService {
   implicit val localDateConvert: ConfigConvert[LocalDate] = localDateConfigConvert(DateTimeFormatter.ISO_LOCAL_DATE)
 
-  private def taxYearsConfig = {
+  private def taxYearsConfig: List[TaxYearConfig] = {
     val taxYearsList = config.underlying
       .getConfigList("tax-years")
       .asScala
@@ -52,23 +54,25 @@ class TaxYearServiceImpl @Inject() (config: Configuration, clock: Clock) extends
 
   override def getTaxYear(date: LocalDate): Option[TaxYear] = {
 
+    val taxYearConfigsToAppend = getAvailableTaxYears
+      .filter(year => !taxYearsConfig.exists(_.startYear == year))
+      .map { year =>
+        taxYearsConfig
+          .filter(_.startYear < year)
+          .head
+          .copy(startYear = year, effectiveDate = None)
+      }
+
+    val supportedTaxYearsConfig =
+      (taxYearConfigsToAppend ++ taxYearsConfig).filterNot(_.startYear < HmrcTaxYear.current.startYear - 4)
+
     val taxYears =
-      taxYearsConfig.filter(t => t.endDateExclusive > date && t.startDateInclusive <= date).map(_.as[TaxYear])
+      supportedTaxYearsConfig.filter(t => date < t.endDateExclusive && date >= t.startDateInclusive).map(_.as[TaxYear])
 
-    val result = taxYears match {
-      case Nil =>
-        val maxTaxYear = getAvailableTaxYears.head
-        maxTaxYear match {
-          case _ if date.getYear > maxTaxYear => taxYearsConfig.filter(_.startYear == maxTaxYear).map(_.as[TaxYear])
-          case _                              => taxYears
-        }
-      case _   => taxYears
-    }
-
-    result match {
+    taxYears match {
       case head :: Nil => Some(head)
       case Nil         => None
-      case _           => getMidYearTaxYear(result, date)
+      case _           => getMidYearTaxYear(taxYears, date)
     }
   }
 
@@ -82,6 +86,13 @@ class TaxYearServiceImpl @Inject() (config: Configuration, clock: Clock) extends
       case _                                                                => Some(taxYears.tail.head)
     }
 
-  override def getAvailableTaxYears: List[Int] =
-    taxYearsConfig.map(_.startDateInclusive.getYear).sorted(Ordering.Int.reverse).distinct
+  override def getAvailableTaxYears: List[Int] = {
+    val currentTaxYear    = HmrcTaxYear.current.startYear
+    val supportedTaxYears = (currentTaxYear to currentTaxYear - 4) by -1
+    val configYears       = taxYearsConfig.map(_.startDateInclusive.getYear)
+
+    (supportedTaxYears.toList ++ configYears).distinct
+      .filterNot(_ < HmrcTaxYear.current.startYear - 4)
+      .sorted(Ordering.Int.reverse)
+  }
 }
