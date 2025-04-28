@@ -34,8 +34,7 @@ import play.shaded.ahc.org.asynchttpclient.uri.Uri
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPollerExecutionContext
-import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
+import uk.gov.hmrc.cgtpropertydisposals.util.{FileIOExecutionContext, WireMockMethods}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.WireMockSupport
 
@@ -54,11 +53,12 @@ class S3ConnectorSpec
   private val config = Configuration(
     ConfigFactory.parseString(
       """
-        | s3 {
+        |s3 {
         |   file-download-timeout = 2 minutes
         |   upstream-element-limit-scale-factor = 200
         |   max-file-download-size-in-mb = 5
-        | }
+        |}
+        |create-internal-auth-token-on-start = false
         |""".stripMargin
     )
   )
@@ -81,9 +81,9 @@ class S3ConnectorSpec
     new AhcWSResponse(responseBuilder.build())
   }
 
-  implicit val hc: HeaderCarrier                                       = HeaderCarrier()
-  implicit val actorSystem: ActorSystem                                = ActorSystem()
-  implicit val dmsExectionContext: DmsSubmissionPollerExecutionContext = new DmsSubmissionPollerExecutionContext(
+  implicit val hc: HeaderCarrier                          = HeaderCarrier()
+  implicit val actorSystem: ActorSystem                   = ActorSystem()
+  implicit val dmsExectionContext: FileIOExecutionContext = new FileIOExecutionContext(
     actorSystem
   )
 
