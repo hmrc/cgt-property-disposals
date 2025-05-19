@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import cats.kernel.Eq
+import play.api.libs.json.{JsError, JsObject, JsResult, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 sealed trait ExemptionAndLossesAnswers extends Product with Serializable
@@ -36,6 +36,35 @@ object ExemptionAndLossesAnswers {
     annualExemptAmount: AmountInPence
   ) extends ExemptionAndLossesAnswers
 
-  implicit val format: OFormat[ExemptionAndLossesAnswers] = derived.oformat()
+  implicit val eq: Eq[ExemptionAndLossesAnswers] = Eq.fromUniversalEquals
+
+  implicit val completeFormat: OFormat[CompleteExemptionAndLossesAnswers]     =
+    Json.format[CompleteExemptionAndLossesAnswers]
+  implicit val inCompleteFormat: OFormat[IncompleteExemptionAndLossesAnswers] =
+    Json.format[IncompleteExemptionAndLossesAnswers]
+
+  implicit val format: OFormat[ExemptionAndLossesAnswers] = new OFormat[ExemptionAndLossesAnswers] {
+    override def reads(json: JsValue): JsResult[ExemptionAndLossesAnswers] =
+      json match {
+        case JsObject(fields) if fields.size == 1 =>
+          fields.head match {
+            case ("IncompleteExemptionAndLossesAnswers", value) =>
+              value.validate[IncompleteExemptionAndLossesAnswers]
+            case ("CompleteExemptionAndLossesAnswers", value)   =>
+              value.validate[CompleteExemptionAndLossesAnswers]
+            case (other, _)                                     =>
+              JsError(s"Unrecognized ExemptionAndLossesAnswers type: $other")
+          }
+        case _                                    =>
+          JsError("Expected ExemptionAndLossesAnswers wrapper object with a single entry")
+      }
+
+    override def writes(e: ExemptionAndLossesAnswers): JsObject = e match {
+      case i: IncompleteExemptionAndLossesAnswers =>
+        Json.obj("IncompleteExemptionAndLossesAnswers" -> Json.toJson(i))
+      case c: CompleteExemptionAndLossesAnswers   =>
+        Json.obj("CompleteExemptionAndLossesAnswers" -> Json.toJson(c))
+    }
+  }
 
 }

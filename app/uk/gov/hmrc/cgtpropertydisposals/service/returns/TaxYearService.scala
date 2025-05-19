@@ -20,7 +20,7 @@ import cats.syntax.order._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.Configuration
 import pureconfig.configurable.localDateConfigConvert
-import pureconfig.generic.auto._
+import pureconfig.*
 import pureconfig.{ConfigConvert, ConfigSource}
 import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils._
 import uk.gov.hmrc.cgtpropertydisposals.models.{TaxYear, TaxYearConfig}
@@ -31,6 +31,9 @@ import scala.jdk.CollectionConverters._
 
 import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
 
+import pureconfig.ConfigReader
+import pureconfig.generic.semiauto._
+
 @ImplementedBy(classOf[TaxYearServiceImpl])
 trait TaxYearService {
   def getTaxYear(date: LocalDate): Option[TaxYear]
@@ -40,7 +43,8 @@ trait TaxYearService {
 
 @Singleton
 class TaxYearServiceImpl @Inject() (config: Configuration, clock: Clock) extends TaxYearService {
-  implicit val localDateConvert: ConfigConvert[LocalDate] = localDateConfigConvert(DateTimeFormatter.ISO_LOCAL_DATE)
+  implicit val localDateConvert: ConfigConvert[LocalDate]       = localDateConfigConvert(DateTimeFormatter.ISO_LOCAL_DATE)
+  implicit val taxYearConfigReader: ConfigReader[TaxYearConfig] = deriveReader
 
   private def taxYearsConfig: List[TaxYearConfig] = {
     val taxYearsList = config.underlying
@@ -79,7 +83,7 @@ class TaxYearServiceImpl @Inject() (config: Configuration, clock: Clock) extends
   private def getMidYearTaxYear(taxYears: List[TaxYear], date: LocalDate) =
     taxYears.filter(_.effectiveDate.isDefined) match {
       case head :: Nil if head.effectiveDate.get.isBefore(date.plusDays(1)) => Some(head)
-      case Nil | ::                                                         =>
+      case Nil | _ :: _ :: _                                                =>
         throw new RuntimeException(
           "Invalid tax band configuration. No support for multiple effective tax bands in a tax year"
         )

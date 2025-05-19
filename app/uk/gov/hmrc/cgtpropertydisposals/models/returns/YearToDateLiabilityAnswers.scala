@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{JsError, JsObject, JsResult, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.{CompleteCalculatedYTDAnswers, IncompleteCalculatedYTDAnswers}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.{CompleteNonCalculatedYTDAnswers, IncompleteNonCalculatedYTDAnswers}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanUpload
 
 sealed trait YearToDateLiabilityAnswers extends Product with Serializable
@@ -90,6 +91,38 @@ object YearToDateLiabilityAnswers {
 
   }
 
-  implicit val format: OFormat[YearToDateLiabilityAnswers] = derived.oformat()
+  implicit val completeCalculatedFormat: OFormat[CompleteCalculatedYTDAnswers]     =
+    Json.format[CompleteCalculatedYTDAnswers]
+  implicit val inCompleteCalculatedFormat: OFormat[IncompleteCalculatedYTDAnswers] =
+    Json.format[IncompleteCalculatedYTDAnswers]
+  implicit val calculatedFormat: OFormat[CalculatedYTDAnswers]                     = Json.format[CalculatedYTDAnswers]
+
+  implicit val completeNonCalculatedFormat: OFormat[CompleteNonCalculatedYTDAnswers]     =
+    Json.format[CompleteNonCalculatedYTDAnswers]
+  implicit val inCompleteNonCalculatedFormat: OFormat[IncompleteNonCalculatedYTDAnswers] =
+    Json.format[IncompleteNonCalculatedYTDAnswers]
+  implicit val nonCalculatedFormat: OFormat[NonCalculatedYTDAnswers]                     = Json.format[NonCalculatedYTDAnswers]
+
+  implicit val format: OFormat[YearToDateLiabilityAnswers] = new OFormat[YearToDateLiabilityAnswers] {
+    override def reads(json: JsValue): JsResult[YearToDateLiabilityAnswers] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("CompleteCalculatedYTDAnswers", value)      => value.validate[CompleteCalculatedYTDAnswers]
+          case ("IncompleteCalculatedYTDAnswers", value)    => value.validate[IncompleteCalculatedYTDAnswers]
+          case ("CompleteNonCalculatedYTDAnswers", value)   => value.validate[CompleteNonCalculatedYTDAnswers]
+          case ("IncompleteNonCalculatedYTDAnswers", value) => value.validate[IncompleteNonCalculatedYTDAnswers]
+          case (other, _)                                   => JsError(s"Unknown YearToDateLiabilityAnswers subtype: $other")
+        }
+      case _                                    =>
+        JsError("Expected wrapper object with one YearToDateLiabilityAnswers subtype key")
+    }
+
+    override def writes(o: YearToDateLiabilityAnswers): JsObject = o match {
+      case c: CompleteCalculatedYTDAnswers      => Json.obj("CompleteCalculatedYTDAnswers" -> Json.toJson(c))
+      case i: IncompleteCalculatedYTDAnswers    => Json.obj("IncompleteCalculatedYTDAnswers" -> Json.toJson(i))
+      case c: CompleteNonCalculatedYTDAnswers   => Json.obj("CompleteNonCalculatedYTDAnswers" -> Json.toJson(c))
+      case i: IncompleteNonCalculatedYTDAnswers => Json.obj("IncompleteNonCalculatedYTDAnswers" -> Json.toJson(i))
+    }
+  }
 
 }

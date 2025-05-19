@@ -30,14 +30,15 @@ class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDri
   "DesAssetTypeValue" must {
 
     "have a method which can convert asset types in single disposals and convert them back" in {
-      forAll { assetType: AssetType =>
-        val completeReturn = sample[CompleteSingleDisposalReturn].copy(
-          triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
-            assetType = assetType
+      forAll {
+        assetType: AssetType =>
+          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+            triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+              assetType = assetType
+            )
           )
-        )
 
-        DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
+          DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
       }
     }
 
@@ -57,14 +58,15 @@ class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDri
     }
 
     "have a method which can convert asset types in single mixed use disposals and convert them back" in {
-      forAll { assetType: AssetType =>
-        val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
-          triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
-            assetType = assetType
+      forAll {
+        assetType: AssetType =>
+          val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
+            triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+              assetType = assetType
+            )
           )
-        )
 
-        DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
+          DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
       }
 
     }

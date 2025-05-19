@@ -32,7 +32,7 @@ class TaxEnrolmentRepositorySpec extends AnyWordSpec with Matchers with MongoSup
   val repository = new DefaultTaxEnrolmentRepository(mongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
-    Arbitrary((LocalDateTime.now()))
+    Arbitrary(LocalDateTime.now())
 
   val taxEnrolmentRequest = sample[TaxEnrolmentRequest]
 

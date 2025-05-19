@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr
 
-import julienrf.json.derived
-import play.api.libs.json.{Format, OFormat}
+import play.api.libs.json.{Format, JsDefined, JsError, JsObject, JsResult, JsString, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR, TRN}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
@@ -43,7 +42,24 @@ object BusinessPartnerRecordRequest {
   implicit val trnSautrFormat: Format[Either[TRN, SAUTR]]   =
     EitherFormat.eitherFormat[TRN, SAUTR]
 
-  implicit val format: OFormat[BusinessPartnerRecordRequest] = derived.oformat()
+  implicit val trustFormat: OFormat[TrustBusinessPartnerRecordRequest]           = Json.format[TrustBusinessPartnerRecordRequest]
+  implicit val individualFormat: OFormat[IndividualBusinessPartnerRecordRequest] =
+    Json.format[IndividualBusinessPartnerRecordRequest]
+  implicit val format: OFormat[BusinessPartnerRecordRequest]                     = new OFormat[BusinessPartnerRecordRequest] {
+    override def reads(json: JsValue): JsResult[BusinessPartnerRecordRequest] =
+      (json \ "IndividualBusinessPartnerRecordRequest", json \ "TrustBusinessPartnerRecordRequest") match {
+        case (JsDefined(individualJson), _) => individualJson.validate[IndividualBusinessPartnerRecordRequest]
+        case (_, JsDefined(trustJson))      => trustJson.validate[TrustBusinessPartnerRecordRequest]
+        case _                              => JsError("Could not determine BusinessPartnerRecordRequest subtype from JSON")
+      }
+
+    override def writes(bpr: BusinessPartnerRecordRequest): JsObject = bpr match {
+      case i: IndividualBusinessPartnerRecordRequest =>
+        Json.obj("IndividualBusinessPartnerRecordRequest" -> Json.toJson(i)(individualFormat))
+      case t: TrustBusinessPartnerRecordRequest      =>
+        Json.obj("TrustBusinessPartnerRecordRequest" -> Json.toJson(t)(trustFormat))
+    }
+  }
 
   implicit class BusinessPartnerRecordRequestOps(private val r: BusinessPartnerRecordRequest) extends AnyVal {
 

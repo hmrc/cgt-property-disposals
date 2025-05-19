@@ -43,7 +43,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -53,6 +53,9 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
+
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialDataResponse
 
 @ImplementedBy(classOf[DefaultReturnsService])
 trait ReturnsService {
@@ -93,7 +96,7 @@ class DefaultReturnsService @Inject() (
     if (isAmendReturn) {
       if (returnRequest.amendReturnData.get.originalReturn.summary.expired) {
         logger.warn("Amend deadline has passed, cannot amend return")
-        return EitherT.leftT(Error(DefaultReturnsService.expiredMessage))
+        return EitherT.leftT(Error(DesReturnSummary.expiredMessage))
       }
     }
     val cgtReference                                   = returnRequest.subscribedDetails.cgtReference
@@ -316,7 +319,7 @@ class DefaultReturnsService @Inject() (
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]] = {
-    //Hardcoded values till we change design of the home page to switch between different tax years
+    // Hardcoded values till we change design of the home page to switch between different tax years
     lazy val taxYearList                  = taxYearService.getAvailableTaxYears
     lazy val listOfFutureDesFinancialData = taxYearList.map { year =>
       getDesFinancialData(
@@ -486,45 +489,4 @@ class DefaultReturnsService @Inject() (
       "submit-return-response"
     )
   }
-}
-
-object DefaultReturnsService {
-  final case class DesSubmitReturnResponseDetails(
-    chargeReference: Option[String],
-    amount: Option[BigDecimal],
-    dueDate: Option[LocalDate],
-    formBundleNumber: String
-  )
-
-  final case class DesSubmitReturnResponse(
-    processingDate: LocalDateTime,
-    ppdReturnResponseDetails: DesSubmitReturnResponseDetails
-  )
-
-  final case class DesListReturnsResponse(returnList: List[DesReturnSummary])
-
-  final case class DesCharge(chargeDescription: String, dueDate: LocalDate, chargeReference: String)
-
-  final case class DesReturnSummary(
-    submissionId: String,
-    submissionDate: LocalDate,
-    completionDate: LocalDate,
-    lastUpdatedDate: Option[LocalDate],
-    taxYear: String,
-    propertyAddress: AddressDetails,
-    totalCGTLiability: BigDecimal,
-    charges: Option[List[DesCharge]]
-  )
-
-  implicit val chargeFormat: OFormat[DesCharge]                             = Json.format
-  implicit val returnFormat: OFormat[DesReturnSummary]                      = Json.format
-  implicit val desListReturnResponseFormat: OFormat[DesListReturnsResponse] = Json.format
-
-  implicit val ppdReturnResponseDetailsFormat: Format[DesSubmitReturnResponseDetails] =
-    Json.format[DesSubmitReturnResponseDetails]
-
-  implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse] =
-    Json.format[DesSubmitReturnResponse]
-
-  val expiredMessage = "Amend deadline has passed"
 }

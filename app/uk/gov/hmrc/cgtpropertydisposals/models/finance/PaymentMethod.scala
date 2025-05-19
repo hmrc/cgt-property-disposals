@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.*
 
 sealed trait PaymentMethod extends Product with Serializable
 
@@ -103,6 +102,13 @@ object PaymentMethod {
       case other                            => Left(s"Payment method not recognised: $other")
     }
 
-  implicit val format: OFormat[PaymentMethod] = derived.oformat()
+  implicit val format: OFormat[PaymentMethod] = new OFormat[PaymentMethod] {
+    override def writes(o: PaymentMethod): JsValue = JsString(o.toString)
+
+    override def reads(json: JsValue): JsResult[PaymentMethod] = fromString(json.toString) match {
+      case Right(r) => JsSuccess(r)
+      case Left(_)  => JsError("Invalid Payment Method")
+    }
+  }
 
 }

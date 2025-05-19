@@ -17,10 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
 import cats.data.EitherT
-import cats.instances.future._
-import cats.syntax.either._
+import cats.instances.future.*
+import cats.syntax.either.*
 import com.google.inject.Inject
-import play.api.libs.json.{JsString, Json, OWrites, Reads}
+import play.api.libs.json.{JsString, Json, OFormat, OWrites, Reads}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.{AuthenticateActions, AuthenticatedRequest}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding.SubscriptionController.SubscriptionError.{BackendError, RequestValidationError}
@@ -36,7 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersReques
 import uk.gov.hmrc.cgtpropertydisposals.service.enrolments.TaxEnrolmentService
 import uk.gov.hmrc.cgtpropertydisposals.service.onboarding.{RegisterWithoutIdService, SubscriptionService}
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging.*
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -58,7 +58,7 @@ class SubscriptionController @Inject() (
         for {
           subscriptionDetails  <- EitherT.fromEither[Future](extractRequest[SubscriptionDetails](request))
           subscriptionResponse <- subscribeAndEnrol(subscriptionDetails)
-                                    .leftMap[SubscriptionError](BackendError)
+                                    .leftMap[SubscriptionError](BackendError.apply)
         } yield subscriptionResponse
 
       result.fold(
@@ -83,7 +83,7 @@ class SubscriptionController @Inject() (
         registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))
         sapNumber           <- registerWithoutIdService
                                  .registerWithoutId(registrationDetails)
-                                 .leftMap[SubscriptionError](BackendError)
+                                 .leftMap[SubscriptionError](BackendError.apply)
       } yield sapNumber
 
       result.fold(
@@ -124,17 +124,17 @@ class SubscriptionController @Inject() (
       }
     }
 
-  def updateSubscription: Action[AnyContent] =
+  def updateSubscription(): Action[AnyContent] =
     authenticate.async { implicit request =>
       val result: EitherT[Future, SubscriptionError, SubscriptionUpdateResponse] =
         for {
           subscribedUpdateDetails <- EitherT.fromEither[Future](extractRequest[SubscribedUpdateDetails](request))
           subscriptionResponse    <- subscriptionService
                                        .updateSubscription(subscribedUpdateDetails)
-                                       .leftMap[SubscriptionError](BackendError)
+                                       .leftMap[SubscriptionError](BackendError.apply)
           _                       <- taxEnrolmentService
                                        .updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
-                                       .leftMap[SubscriptionError](BackendError)
+                                       .leftMap[SubscriptionError](BackendError.apply)
         } yield subscriptionResponse
 
       result.fold(
@@ -192,6 +192,9 @@ object SubscriptionController {
     final case class BackendError(e: Error) extends SubscriptionError
 
     final case class RequestValidationError(msg: String) extends SubscriptionError
+
+    implicit val backendErrorFormat: OFormat[BackendError]           = Json.format[BackendError]
+    implicit val nonUkAddressFormat: OFormat[RequestValidationError] = Json.format[RequestValidationError]
   }
 
   final case class GetSubscriptionResponse(subscribedDetails: Option[SubscribedDetails])

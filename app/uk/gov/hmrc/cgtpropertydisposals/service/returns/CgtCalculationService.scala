@@ -93,9 +93,8 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         )
     }
 
-    val totalReliefs: AmountInPence = {
+    val totalReliefs: AmountInPence =
       reliefDetails.privateResidentsRelief ++ reliefDetails.lettingsRelief
-    }
 
     val gainOrLossAfterReliefs: AmountInPence =
       if (initialGainOrLossWithSource.amount > AmountInPence.zero)

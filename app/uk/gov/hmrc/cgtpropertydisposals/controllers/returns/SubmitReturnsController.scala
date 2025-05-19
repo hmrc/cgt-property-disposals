@@ -17,8 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
-import cats.instances.future._
-import cats.syntax.either._
+import cats.instances.future.*
+import cats.syntax.either.*
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
@@ -26,11 +26,11 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{RepresenteeDetails, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeReferenceId.{NoReferenceId, RepresenteeCgtReference, RepresenteeNino, RepresenteeSautr, format}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DesReturnSummary, RepresenteeDetails, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{DefaultReturnsService, DraftReturnsService, ReturnsService}
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging.*
 import uk.gov.hmrc.cgtpropertydisposals.util.{HtmlSanitizer, Logging}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -72,13 +72,13 @@ class SubmitReturnsController @Inject() (
         result.fold(
           error =>
             error.value match {
-              case Left(value) if value == DefaultReturnsService.expiredMessage =>
+              case Left(value) if value == DesReturnSummary.expiredMessage =>
                 logger.warn(value)
                 BadRequest(value)
-              case Left(_)                                                      =>
+              case Left(_)                                                 =>
                 logger.warn("Could not submit return", error)
                 InternalServerError
-              case Right(_)                                                     =>
+              case Right(_)                                                =>
                 logger.warn("Could not submit return", error)
                 InternalServerError
             },

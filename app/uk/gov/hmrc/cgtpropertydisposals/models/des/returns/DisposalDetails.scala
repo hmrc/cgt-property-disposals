@@ -23,6 +23,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import play.api.libs.json._
 
 import java.time.LocalDate
 
@@ -210,20 +211,17 @@ object DisposalDetails {
   implicit val multipleDisposalsDetailsFormat: OFormat[MultipleDisposalDetails]            = Json.format
   implicit val singleMixedUseDisposalDetailsFormat: OFormat[SingleMixedUseDisposalDetails] = Json.format
 
-  implicit val disposalDetailsFormat: OFormat[DisposalDetails] = OFormat(
-    { json: JsValue =>
-      singleDisposalDetailsFormat
-        .reads(json)
-        .orElse(singleMixedUseDisposalDetailsFormat.reads(json))
-        .orElse(multipleDisposalsDetailsFormat.reads(json))
-    },
-    { d: DisposalDetails =>
-      d match {
-        case s: SingleDisposalDetails         => singleDisposalDetailsFormat.writes(s)
-        case m: MultipleDisposalDetails       => multipleDisposalsDetailsFormat.writes(m)
-        case s: SingleMixedUseDisposalDetails => singleMixedUseDisposalDetailsFormat.writes(s)
-      }
+  implicit val disposalDetailsFormat: OFormat[DisposalDetails] = new OFormat[DisposalDetails] {
+    override def writes(o: DisposalDetails): JsObject = o match {
+      case s: SingleDisposalDetails         => singleDisposalDetailsFormat.writes(s)
+      case m: MultipleDisposalDetails       => multipleDisposalsDetailsFormat.writes(m)
+      case s: SingleMixedUseDisposalDetails => singleMixedUseDisposalDetailsFormat.writes(s)
     }
-  )
+
+    override def reads(json: JsValue): JsResult[DisposalDetails] = singleDisposalDetailsFormat
+      .reads(json)
+      .orElse(singleMixedUseDisposalDetailsFormat.reads(json))
+      .orElse(multipleDisposalsDetailsFormat.reads(json))
+  }
 
 }

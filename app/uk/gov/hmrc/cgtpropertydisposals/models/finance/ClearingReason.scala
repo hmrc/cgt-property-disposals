@@ -17,8 +17,9 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
 import cats.Eq
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.*
+
+import scala.CanEqual.derived
 
 sealed trait ClearingReason
 
@@ -49,5 +50,9 @@ object ClearingReason {
     }
 
   implicit val eq: Eq[ClearingReason]          = Eq.fromUniversalEquals
-  implicit val format: OFormat[ClearingReason] = derived.oformat()
+  implicit val format: OFormat[ClearingReason] = new OFormat[ClearingReason] {
+    override def writes(o: ClearingReason): JsValue = JsString(o.toString)
+
+    override def reads(json: JsValue): JsResult[ClearingReason] = JsSuccess(fromString(json.toString))
+  }
 }

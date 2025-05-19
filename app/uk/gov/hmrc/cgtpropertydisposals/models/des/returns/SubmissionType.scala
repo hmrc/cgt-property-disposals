@@ -22,9 +22,9 @@ sealed trait SubmissionType extends Product with Serializable
 
 object SubmissionType {
 
-  final case object New extends SubmissionType
+  case object New extends SubmissionType
 
-  final case object Amend extends SubmissionType
+  case object Amend extends SubmissionType
 
   implicit val format: Format[SubmissionType] = new Format[SubmissionType] {
     override def reads(json: JsValue): JsResult[SubmissionType] =

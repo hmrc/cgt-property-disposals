@@ -399,12 +399,11 @@ trait AddressGen extends AddressLowerPriorityGen {
 
   implicit val postcodeGen: Gen[Postcode] = Gen.oneOf(List(Postcode("BN11 3QY"), Postcode("BN11 4QY")))
 
-  implicit val ukAddressGen: Gen[UkAddress] = {
+  implicit val ukAddressGen: Gen[UkAddress] =
     for {
       a <- gen[UkAddress]
       p <- postcodeGen
     } yield a.copy(postcode = p)
-  }
 
   implicit val countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
 }

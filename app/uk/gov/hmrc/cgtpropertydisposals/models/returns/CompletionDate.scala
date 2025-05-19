@@ -20,7 +20,7 @@ import play.api.libs.json.{Json, OFormat}
 
 import java.time.LocalDate
 
-final case class CompletionDate(value: LocalDate) extends AnyVal
+final case class CompletionDate(value: LocalDate)
 
 object CompletionDate {
 

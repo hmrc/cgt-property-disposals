@@ -21,7 +21,7 @@ import cats.data.Validated.{Invalid, Valid}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Format
 
-final case class Email(value: String) extends AnyVal
+final case class Email(value: String)
 
 object Email {
 

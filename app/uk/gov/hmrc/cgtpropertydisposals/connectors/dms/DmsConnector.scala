@@ -35,6 +35,8 @@ import java.time.{Clock, LocalDateTime}
 import java.util.Base64
 import scala.concurrent.Future
 
+import play.api.libs.ws.WSBodyWritables.bodyWritableOf_Multipart
+
 @Singleton
 class DmsConnector @Inject() (
   httpClient: HttpClientV2,

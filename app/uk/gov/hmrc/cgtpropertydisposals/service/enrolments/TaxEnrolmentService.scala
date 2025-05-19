@@ -17,8 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.enrolments
 
 import cats.data.EitherT
-import cats.instances.future._
-import cats.syntax.eq._
+import cats.instances.future.*
+import cats.syntax.eq.*
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.NO_CONTENT
 import play.api.libs.json.JsString
@@ -32,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments.{TaxEnrolmentRep
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import views.html.defaultpages.error
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -110,7 +111,7 @@ class TaxEnrolmentServiceImpl @Inject() (
     for {
       httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
       result       <-
-        EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
+        EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] { error =>
           logger.warn(s"Failed to allocate enrolments due to error: $error; will store enrolment details")
           taxEnrolmentRepository
             .save(taxEnrolmentRequest)
@@ -118,13 +119,13 @@ class TaxEnrolmentServiceImpl @Inject() (
         }
     } yield result
 
-  def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
+  private def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
     httpResponse.status match {
       case NO_CONTENT => Right(())
       case other      => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
 
-  def handleEnrolmentState(
+  private def handleEnrolmentState(
     enrolmentState: (Option[TaxEnrolmentRequest], Option[UpdateVerifiersRequest])
   )(implicit hc: HeaderCarrier): Future[Unit] =
     enrolmentState match {

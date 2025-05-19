@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import cats.instances.bigDecimal._
-import cats.syntax.eq._
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import cats.instances.bigDecimal.*
+import cats.syntax.eq.*
+import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsSuccess, JsValue, Json, OFormat}
 
 sealed trait ShareOfProperty extends Product with Serializable {
   val percentageValue: BigDecimal
@@ -42,6 +41,23 @@ object ShareOfProperty {
     else if (percentage === BigDecimal("100")) Full
     else Other(percentage)
 
-  implicit val format: OFormat[ShareOfProperty] = derived.oformat()
+  implicit val format: Format[ShareOfProperty] = new Format[ShareOfProperty] {
+    override def reads(json: JsValue): JsResult[ShareOfProperty] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("Full", _)  => JsSuccess(Full)
+          case ("Half", _)  => JsSuccess(Half)
+          case ("Other", v) => (v \ "percentageValue").validate[BigDecimal].map(Other(_))
+          case (other, _)   => JsError(s"Unrecognized ShareOfProperty type: $other")
+        }
+      case _                                    => JsError("Expected ShareOfProperty JSON object with one key")
+    }
+
+    override def writes(o: ShareOfProperty): JsValue = o match {
+      case Full         => Json.obj("Full" -> Json.obj())
+      case Half         => Json.obj("Half" -> Json.obj())
+      case Other(value) => Json.obj("Other" -> Json.obj("percentageValue" -> value))
+    }
+  }
 
 }

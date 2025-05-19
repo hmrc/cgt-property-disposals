@@ -22,8 +22,8 @@ final case class Error(value: Either[String, Throwable], identifiers: Map[IdKey,
 
 object Error {
 
-  type IdKey   = String
-  type IdValue = String
+  private type IdKey   = String
+  private type IdValue = String
 
   def apply(message: String, identifiers: (IdKey, IdValue)*): Error = Error(Left(message), identifiers.toMap)
 

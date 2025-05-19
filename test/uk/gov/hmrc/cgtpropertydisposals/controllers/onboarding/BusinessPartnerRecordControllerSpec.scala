@@ -60,7 +60,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
   private def fakeRequestWithJsonBody(body: JsValue) =
     request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
-  val controller                                     = new BusinessPartnerRecordController(
+  val controller = new BusinessPartnerRecordController(
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2019, 9, 24, 15, 47, 20)),
     bprService = bprService,
     cc = Helpers.stubControllerComponents()
