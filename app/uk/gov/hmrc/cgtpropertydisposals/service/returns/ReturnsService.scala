@@ -54,6 +54,9 @@ import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialDataResponse
+
 @ImplementedBy(classOf[DefaultReturnsService])
 trait ReturnsService {
   def submitReturn(returnRequest: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(implicit
@@ -316,7 +319,7 @@ class DefaultReturnsService @Inject() (
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, List[ReturnSummary]] = {
-    //Hardcoded values till we change design of the home page to switch between different tax years
+    // Hardcoded values till we change design of the home page to switch between different tax years
     lazy val taxYearList                  = taxYearService.getAvailableTaxYears
     lazy val listOfFutureDesFinancialData = taxYearList.map { year =>
       getDesFinancialData(

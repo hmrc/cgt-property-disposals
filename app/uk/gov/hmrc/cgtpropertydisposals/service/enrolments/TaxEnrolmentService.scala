@@ -17,8 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.enrolments
 
 import cats.data.EitherT
-import cats.instances.future._
-import cats.syntax.eq._
+import cats.instances.future.*
+import cats.syntax.eq.*
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.NO_CONTENT
 import play.api.libs.json.JsString
@@ -32,6 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments.{TaxEnrolmentRep
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import views.html.defaultpages.error
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -110,11 +111,12 @@ class TaxEnrolmentServiceImpl @Inject() (
     for {
       httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
       result       <-
-        EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] { error: Error =>
-          logger.warn(s"Failed to allocate enrolments due to error: $error; will store enrolment details")
-          taxEnrolmentRepository
-            .save(taxEnrolmentRequest)
-            .leftMap(error => Error(s"Could not store enrolment details: $error"))
+        EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
+          error: Error =>
+            logger.warn(s"Failed to allocate enrolments due to error: $error; will store enrolment details")
+            taxEnrolmentRepository
+              .save(taxEnrolmentRequest)
+              .leftMap(error => Error(s"Could not store enrolment details: $error"))
         }
     } yield result
 

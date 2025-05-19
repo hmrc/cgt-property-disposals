@@ -34,7 +34,7 @@ class TaxEnrolmentRepositoryFailureSpec extends AnyWordSpec with Matchers with M
   val repository = new DefaultTaxEnrolmentRepository(mongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
-    Arbitrary((LocalDateTime.now()))
+    Arbitrary(LocalDateTime.now())
 
   val taxEnrolmentRequest: TaxEnrolmentRequest = sample[TaxEnrolmentRequest]
 

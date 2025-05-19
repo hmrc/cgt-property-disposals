@@ -82,7 +82,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   def fakeRequestWithJsonBody(body: JsValue): WrappedRequest[JsValue] =
     request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
-  val controller                                                      = new UpscanController(
+  val controller = new UpscanController(
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     upscanService = mockUpscanService,
     cc = Helpers.stubControllerComponents()

@@ -66,7 +66,7 @@ object DesReturnType {
                               case SubmissionType.Amend => JsSuccess(AmendReturnType(source, None))
                             }
         } yield result,
-      { r: DesReturnType =>
+      r: DesReturnType =>
         r match {
           case c: CreateReturnType =>
             JsObject(Map("source" -> JsString(c.source), "submissionType" -> Json.toJson(c.submissionType)))
@@ -79,6 +79,5 @@ object DesReturnType {
               )
             )
         }
-      }
     )
 }

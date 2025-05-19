@@ -131,15 +131,15 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
         Json.parse(s"""
              |{
              |  ${individualName
-          .map(n => s""""individual":{"firstName":"${n.firstName}","lastName":"${n.lastName}"},""")
-          .getOrElse("")}
+                       .map(n => s""""individual":{"firstName":"${n.firstName}","lastName":"${n.lastName}"},""")
+                       .getOrElse("")}
              |  "contactDetails" : {
              |    "emailAddress" : "email"
              |  },
              |  "sapNumber" : "${sapNumber.value}",
              |  ${organisationName
-          .map(trustName => s""""organisation":{"organisationName":"${trustName.value}"},""")
-          .getOrElse("")}
+                       .map(trustName => s""""organisation":{"organisationName":"${trustName.value}"},""")
+                       .getOrElse("")}
              |  $addressBody
              |}
              |""".stripMargin)

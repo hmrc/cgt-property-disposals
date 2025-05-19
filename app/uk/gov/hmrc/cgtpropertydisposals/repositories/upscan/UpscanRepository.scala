@@ -27,6 +27,8 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentIn
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
+import org.mongodb.scala.SingleObservableFuture
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}

@@ -1000,18 +1000,19 @@ class CgtCalculationServiceImplSpec extends AnyWordSpec with Matchers with Scala
       }
 
       "calculate gain or loss after in year losses correctly" in {
-        forAll { exemptionsAndLosses: CompleteExemptionAndLossesAnswers =>
-          val currentGlar = AmountInPence(1L)
-          service
-            .calculateTaxableGainOrLoss(
-              TaxableGainOrLossCalculationRequest(
-                List.empty,
-                currentGlar,
-                exemptionsAndLosses,
-                sample[UkAddress]
+        forAll {
+          exemptionsAndLosses: CompleteExemptionAndLossesAnswers =>
+            val currentGlar = AmountInPence(1L)
+            service
+              .calculateTaxableGainOrLoss(
+                TaxableGainOrLossCalculationRequest(
+                  List.empty,
+                  currentGlar,
+                  exemptionsAndLosses,
+                  sample[UkAddress]
+                )
               )
-            )
-            .gainOrLossAfterInYearLosses shouldBe (currentGlar -- exemptionsAndLosses.inYearLosses)
+              .gainOrLossAfterInYearLosses shouldBe (currentGlar -- exemptionsAndLosses.inYearLosses)
         }
       }
 

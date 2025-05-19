@@ -31,20 +31,17 @@ object CustomerType {
     subscribedDetails.name.fold(_ => Trust, _ => Individual)
 
   implicit val format: Format[CustomerType] = Format(
-    { json: JsValue =>
-      json match {
-        case JsString("trust")      => JsSuccess(Trust)
-        case JsString("individual") => JsSuccess(Individual)
-        case JsString(other)        => JsError(s"Could not parse customer type: $other")
-        case other                  => JsError(s"Expected string for customer type but got $other")
-      }
+    {
+      case JsString("trust")      => JsSuccess(Trust)
+      case JsString("individual") => JsSuccess(Individual)
+      case JsString(other)        => JsError(s"Could not parse customer type: $other")
+      case other                  => JsError(s"Expected string for customer type but got $other")
     },
-    { customerType: CustomerType =>
+    customerType: CustomerType =>
       customerType match {
         case Trust      => JsString("trust")
         case Individual => JsString("individual")
       }
-    }
   )
 
 }

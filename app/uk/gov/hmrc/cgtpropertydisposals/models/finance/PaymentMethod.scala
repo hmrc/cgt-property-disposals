@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
-import julienrf.json.derived
 import play.api.libs.json.OFormat
+import play.api.libs.json._
+import play.api.libs.json.*
 
 sealed trait PaymentMethod extends Product with Serializable
 

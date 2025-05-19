@@ -71,8 +71,8 @@ class FinancialDataConnectorImplSpec
   def queryParams(fromDate: LocalDate, toDate: LocalDate): Seq[(String, String)] =
     Seq("dateFrom" -> fromDate.toString, "dateTo" -> toDate.toString)
 
-  private val cgtReference                                                       = sample[CgtReference]
-  val (fromDate, toDate)                                                         = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
+  private val cgtReference = sample[CgtReference]
+  val (fromDate, toDate)   = LocalDate.of(2020, 1, 31) -> LocalDate.of(2020, 11, 2)
 
   private val emptyJsonBody = "{}"
 

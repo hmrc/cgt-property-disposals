@@ -162,7 +162,7 @@ class ReturnSummaryListTransformerServiceImpl @Inject() (
               .toValidatedNel
               .andThen(t => validatePayments(t).map(t -> _))
 
-          val secondaryChargeValidation                                                     = validateSecondaryCharge(
+          val secondaryChargeValidation = validateSecondaryCharge(
             returnSummaryCharge,
             chargeTypeValidation,
             financialDataValidation,

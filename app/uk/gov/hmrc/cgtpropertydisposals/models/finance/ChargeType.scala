@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
 import cats.Eq
-import julienrf.json.derived
+import play.api.libs.json.*
 import play.api.libs.json.OFormat
 
 sealed trait ChargeType extends Product with Serializable

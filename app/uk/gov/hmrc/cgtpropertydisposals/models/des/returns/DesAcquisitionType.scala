@@ -41,16 +41,15 @@ object DesAcquisitionType {
 
   implicit val format: Format[DesAcquisitionType] =
     Format(
-      { json: JsValue =>
+      json: JsValue =>
         json match {
           case JsString("bought")    => JsSuccess(Bought)
           case JsString("inherited") => JsSuccess(Inherited)
           case JsString("gifted")    => JsSuccess(Gifted)
           case JsString(other)       => JsSuccess(Other(other))
           case other                 => JsError(s"Expected string for acquisition type but got $other")
-        }
-      },
-      { acquisitionMethod: DesAcquisitionType =>
+        },
+      acquisitionMethod: DesAcquisitionType =>
         acquisitionMethod match {
           case Bought       => JsString("bought")
           case Inherited    => JsString("inherited")
@@ -58,7 +57,6 @@ object DesAcquisitionType {
           case Other(other) => JsString(other)
 
         }
-      }
     )
 
 }

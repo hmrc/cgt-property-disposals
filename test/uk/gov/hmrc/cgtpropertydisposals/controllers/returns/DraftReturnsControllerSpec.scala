@@ -70,7 +70,7 @@ class DraftReturnsControllerSpec extends ControllerSpec {
   private def fakeRequestWithJsonBody(body: JsValue) =
     request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
-  val controller                                     = new DraftReturnsController(
+  val controller = new DraftReturnsController(
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     draftReturnsService = draftReturnsService,
     cc = Helpers.stubControllerComponents()

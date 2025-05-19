@@ -39,22 +39,19 @@ object DesDisposalType {
 
   implicit val format: Format[DesDisposalType] =
     Format(
-      { json: JsValue =>
-        json match {
-          case JsString("sold")   => JsSuccess(Sold)
-          case JsString("gifted") => JsSuccess(Gifted)
-          case JsString("other")  => JsSuccess(Other)
-          case JsString(other)    => JsError(s"Could not parse disposal type $other")
-          case other              => JsError(s"Expected string for acquisition type but got $other")
-        }
+      {
+        case JsString("sold")   => JsSuccess(Sold)
+        case JsString("gifted") => JsSuccess(Gifted)
+        case JsString("other")  => JsSuccess(Other)
+        case JsString(other)    => JsError(s"Could not parse disposal type $other")
+        case other              => JsError(s"Expected string for acquisition type but got $other")
       },
-      { disposalType: DesDisposalType =>
+      disposalType: DesDisposalType =>
         disposalType match {
           case Sold   => JsString("sold")
           case Gifted => JsString("gifted")
           case Other  => JsString("other")
         }
-      }
     )
 
 }

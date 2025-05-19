@@ -28,6 +28,10 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.{ExecutionContext, Future}
+import org.mongodb.scala.gridfs.ObservableFuture
+import org.mongodb.scala.gridfs.SingleObservableFuture
+import org.mongodb.scala.SingleObservableFuture
+import org.mongodb.scala.ObservableFuture
 
 @ImplementedBy(classOf[DefaultTaxEnrolmentRepository])
 trait TaxEnrolmentRepository {

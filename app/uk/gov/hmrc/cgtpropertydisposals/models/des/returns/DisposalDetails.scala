@@ -23,6 +23,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import play.api.libs.json._
 
 import java.time.LocalDate
 
@@ -211,19 +212,17 @@ object DisposalDetails {
   implicit val singleMixedUseDisposalDetailsFormat: OFormat[SingleMixedUseDisposalDetails] = Json.format
 
   implicit val disposalDetailsFormat: OFormat[DisposalDetails] = OFormat(
-    { json: JsValue =>
+    json: JsValue =>
       singleDisposalDetailsFormat
         .reads(json)
         .orElse(singleMixedUseDisposalDetailsFormat.reads(json))
-        .orElse(multipleDisposalsDetailsFormat.reads(json))
-    },
-    { d: DisposalDetails =>
+        .orElse(multipleDisposalsDetailsFormat.reads(json)),
+    d: DisposalDetails =>
       d match {
         case s: SingleDisposalDetails         => singleDisposalDetailsFormat.writes(s)
         case m: MultipleDisposalDetails       => multipleDisposalsDetailsFormat.writes(m)
         case s: SingleMixedUseDisposalDetails => singleMixedUseDisposalDetailsFormat.writes(s)
       }
-    }
   )
 
 }

@@ -17,10 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.address
 
 import cats.Eq
-import julienrf.json.derived
 import play.api.libs.json.OFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.KeyValuePair
+import play.api.libs.json._
 
 sealed trait Address
 
@@ -47,7 +47,9 @@ object Address {
 
   // the format instance using the play-json-derived-codecs library wraps
   // the case class inside a JsObject with case class type name as the key
-  implicit val format: OFormat[Address] = derived.oformat()
+  // implicit val format: OFormat[Address] = derived.oformat()
+  implicit val ukAddressFormat: OFormat[UkAddress]       = Json.format[UkAddress]
+  implicit val nonUkAddressFormat: OFormat[NonUkAddress] = Json.format[NonUkAddress]
 
   def toAddressDetails(address: Address): AddressDetails =
     address match {

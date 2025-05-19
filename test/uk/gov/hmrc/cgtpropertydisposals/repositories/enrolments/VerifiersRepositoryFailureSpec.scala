@@ -34,7 +34,7 @@ class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with Mong
   val repository = new DefaultVerifiersRepository(mongoComponent)
 
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
-    Arbitrary((LocalDateTime.now()))
+    Arbitrary(LocalDateTime.now())
 
   val updateVerifierDetails: UpdateVerifiersRequest = sample[UpdateVerifiersRequest]
 
