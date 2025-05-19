@@ -63,6 +63,13 @@ object ChargeType {
 
   implicit val eq: Eq[ChargeType] = Eq.fromUniversalEquals
 
-  implicit val format: OFormat[ChargeType] = derived.oformat()
+  implicit val format: OFormat[ChargeType] = new OFormat[ChargeType] {
+    override def writes(o: ChargeType): JsValue = JsString(o.toString)
+
+    override def reads(json: JsValue): JsResult[ChargeType] = fromString(json.toString) match {
+      case Right(r) => JsSuccess(r)
+      case Left(_)  => JsError("Invalid Charge type")
+    }
+  }
 
 }
