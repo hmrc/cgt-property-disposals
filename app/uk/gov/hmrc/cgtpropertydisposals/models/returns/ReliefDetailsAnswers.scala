@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 sealed trait ReliefDetailsAnswers extends Product with Serializable
@@ -36,5 +35,30 @@ object ReliefDetailsAnswers {
     otherReliefs: Option[OtherReliefsOption]
   ) extends ReliefDetailsAnswers
 
-  implicit val format: OFormat[ReliefDetailsAnswers] = derived.oformat()
+  implicit val completeFormat: OFormat[CompleteReliefDetailsAnswers]     = Json.format[CompleteReliefDetailsAnswers]
+  implicit val inCompleteFormat: OFormat[IncompleteReliefDetailsAnswers] = Json.format[IncompleteReliefDetailsAnswers]
+
+  implicit val format: OFormat[ReliefDetailsAnswers] = new OFormat[ReliefDetailsAnswers] {
+    import play.api.libs.json._
+    override def reads(json: JsValue): JsResult[ReliefDetailsAnswers] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("IncompleteReliefDetailsAnswers", value) =>
+            value.validate[IncompleteReliefDetailsAnswers]
+          case ("CompleteReliefDetailsAnswers", value)   =>
+            value.validate[CompleteReliefDetailsAnswers]
+          case (other, _)                                =>
+            JsError(s"Unrecognized ReliefDetailsAnswers type: $other")
+        }
+      case _                                    =>
+        JsError("Expected ReliefDetailsAnswers wrapper object with a single entry")
+    }
+
+    override def writes(a: ReliefDetailsAnswers): JsObject = a match {
+      case i: IncompleteReliefDetailsAnswers =>
+        Json.obj("IncompleteReliefDetailsAnswers" -> Json.toJson(i))
+      case c: CompleteReliefDetailsAnswers   =>
+        Json.obj("CompleteReliefDetailsAnswers" -> Json.toJson(c))
+    }
+  }
 }

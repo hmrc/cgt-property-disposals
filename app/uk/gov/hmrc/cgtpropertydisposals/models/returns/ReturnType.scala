@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.*
 
 sealed trait ReturnType extends Product with Serializable
 
@@ -29,6 +28,38 @@ object ReturnType {
 
   case object AmendedReturn extends ReturnType
 
-  implicit val format: OFormat[ReturnType] = derived.oformat()
+  implicit class ReturnTypeOps(private val r: ReturnType) extends AnyVal {
+    def isFurtherOrAmendReturn: Boolean = r match {
+      case FirstReturn => false
+      case _           => true
+    }
+
+    def isAmendReturn: Boolean = r match {
+      case AmendedReturn => true
+      case _             => false
+    }
+
+    def isFirstReturn: Boolean = !isFurtherOrAmendReturn
+
+  }
+
+  implicit val format: Format[ReturnType] = new Format[ReturnType] {
+    override def reads(json: JsValue): JsResult[ReturnType] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head._1 match {
+          case "FirstReturn"   => JsSuccess(FirstReturn)
+          case "FurtherReturn" => JsSuccess(FurtherReturn)
+          case "AmendedReturn" => JsSuccess(AmendedReturn)
+          case other           => JsError(s"Invalid return type: $other")
+        }
+      case _                                    => JsError("Expected JSON object with one ReturnType key")
+    }
+
+    override def writes(o: ReturnType): JsValue = o match {
+      case FirstReturn   => Json.obj("FirstReturn" -> Json.obj())
+      case FurtherReturn => Json.obj("FurtherReturn" -> Json.obj())
+      case AmendedReturn => Json.obj("AmendedReturn" -> Json.obj())
+    }
+  }
 
 }

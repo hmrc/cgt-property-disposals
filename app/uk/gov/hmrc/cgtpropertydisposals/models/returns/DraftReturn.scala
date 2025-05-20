@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json._
+import cats.Eq
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -100,8 +100,52 @@ final case class DraftSingleMixedUseDisposalReturn(
 
 object DraftReturn {
 
+  implicit val eq: Eq[DraftReturn] = Eq.fromUniversalEquals
+
   implicit val ukAddressFormat: OFormat[UkAddress] = Json.format[UkAddress]
 
-  implicit val format: OFormat[DraftReturn] = derived.oformat()
+  implicit val singleReturnFormat: OFormat[DraftSingleDisposalReturn]                      = Json.format[DraftSingleDisposalReturn]
+  implicit val singleIndirectReturnFormat: OFormat[DraftSingleIndirectDisposalReturn]      =
+    Json.format[DraftSingleIndirectDisposalReturn]
+  implicit val singleMixedReturnFormat: OFormat[DraftSingleMixedUseDisposalReturn]         =
+    Json.format[DraftSingleMixedUseDisposalReturn]
+  implicit val multipleReturnFormat: OFormat[DraftMultipleDisposalsReturn]                 = Json.format[DraftMultipleDisposalsReturn]
+  implicit val multipleIndirectReturnFormat: OFormat[DraftMultipleIndirectDisposalsReturn] =
+    Json.format[DraftMultipleIndirectDisposalsReturn]
+
+  implicit val format: OFormat[DraftReturn] = new OFormat[DraftReturn] {
+    override def reads(json: JsValue): JsResult[DraftReturn] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("DraftSingleDisposalReturn", value)            =>
+            value.validate[DraftSingleDisposalReturn]
+          case ("DraftMultipleDisposalsReturn", value)         =>
+            value.validate[DraftMultipleDisposalsReturn]
+          case ("DraftSingleIndirectDisposalReturn", value)    =>
+            value.validate[DraftSingleIndirectDisposalReturn]
+          case ("DraftMultipleIndirectDisposalsReturn", value) =>
+            value.validate[DraftMultipleIndirectDisposalsReturn]
+          case ("DraftSingleMixedUseDisposalReturn", value)    =>
+            value.validate[DraftSingleMixedUseDisposalReturn]
+          case (other, _)                                      =>
+            JsError(s"Unrecognized DraftReturn type: $other")
+        }
+      case _                                    =>
+        JsError("Expected a DraftReturn wrapper object with a single entry")
+    }
+
+    override def writes(d: DraftReturn): JsObject = d match {
+      case s: DraftSingleDisposalReturn            =>
+        Json.obj("DraftSingleDisposalReturn" -> Json.toJson(s))
+      case m: DraftMultipleDisposalsReturn         =>
+        Json.obj("DraftMultipleDisposalsReturn" -> Json.toJson(m))
+      case s: DraftSingleIndirectDisposalReturn    =>
+        Json.obj("DraftSingleIndirectDisposalReturn" -> Json.toJson(s))
+      case m: DraftMultipleIndirectDisposalsReturn =>
+        Json.obj("DraftMultipleIndirectDisposalsReturn" -> Json.toJson(m))
+      case s: DraftSingleMixedUseDisposalReturn    =>
+        Json.obj("DraftSingleMixedUseDisposalReturn" -> Json.toJson(s))
+    }
+  }
 
 }
