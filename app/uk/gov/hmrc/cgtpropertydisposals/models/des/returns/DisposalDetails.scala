@@ -211,18 +211,17 @@ object DisposalDetails {
   implicit val multipleDisposalsDetailsFormat: OFormat[MultipleDisposalDetails]            = Json.format
   implicit val singleMixedUseDisposalDetailsFormat: OFormat[SingleMixedUseDisposalDetails] = Json.format
 
-  implicit val disposalDetailsFormat: OFormat[DisposalDetails] = OFormat(
-    json: JsValue =>
-      singleDisposalDetailsFormat
-        .reads(json)
-        .orElse(singleMixedUseDisposalDetailsFormat.reads(json))
-        .orElse(multipleDisposalsDetailsFormat.reads(json)),
-    d: DisposalDetails =>
-      d match {
-        case s: SingleDisposalDetails         => singleDisposalDetailsFormat.writes(s)
-        case m: MultipleDisposalDetails       => multipleDisposalsDetailsFormat.writes(m)
-        case s: SingleMixedUseDisposalDetails => singleMixedUseDisposalDetailsFormat.writes(s)
-      }
-  )
+  implicit val disposalDetailsFormat: OFormat[DisposalDetails] = new OFormat[DisposalDetails] {
+    override def writes(o: DisposalDetails): JsObject = o match {
+      case s: SingleDisposalDetails         => singleDisposalDetailsFormat.writes(s)
+      case m: MultipleDisposalDetails       => multipleDisposalsDetailsFormat.writes(m)
+      case s: SingleMixedUseDisposalDetails => singleMixedUseDisposalDetailsFormat.writes(s)
+    }
+
+    override def reads(json: JsValue): JsResult[DisposalDetails] = singleDisposalDetailsFormat
+      .reads(json)
+      .orElse(singleMixedUseDisposalDetailsFormat.reads(json))
+      .orElse(multipleDisposalsDetailsFormat.reads(json))
+  }
 
 }
