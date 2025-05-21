@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr
 
-
 import play.api.libs.json.{Format, JsDefined, JsError, JsObject, JsResult, JsString, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{NINO, SAUTR, TRN}
@@ -43,10 +42,10 @@ object BusinessPartnerRecordRequest {
   implicit val trnSautrFormat: Format[Either[TRN, SAUTR]]   =
     EitherFormat.eitherFormat[TRN, SAUTR]
 
-  implicit val trustFormat: OFormat[TrustBusinessPartnerRecordRequest] = Json.format[TrustBusinessPartnerRecordRequest]
+  implicit val trustFormat: OFormat[TrustBusinessPartnerRecordRequest]           = Json.format[TrustBusinessPartnerRecordRequest]
   implicit val individualFormat: OFormat[IndividualBusinessPartnerRecordRequest] =
     Json.format[IndividualBusinessPartnerRecordRequest]
-  implicit val format: OFormat[BusinessPartnerRecordRequest] = new OFormat[BusinessPartnerRecordRequest] {
+  implicit val format: OFormat[BusinessPartnerRecordRequest]                     = new OFormat[BusinessPartnerRecordRequest] {
     override def reads(json: JsValue): JsResult[BusinessPartnerRecordRequest] =
       (json \ "IndividualBusinessPartnerRecordRequest", json \ "TrustBusinessPartnerRecordRequest") match {
         case (JsDefined(individualJson), _) => individualJson.validate[IndividualBusinessPartnerRecordRequest]

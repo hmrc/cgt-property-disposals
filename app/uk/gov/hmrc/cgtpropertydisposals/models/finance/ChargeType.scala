@@ -24,27 +24,27 @@ sealed trait ChargeType extends Product with Serializable
 
 object ChargeType {
 
-  final case object UkResidentReturn extends ChargeType
+  case object UkResidentReturn extends ChargeType
 
-  final case object NonUkResidentReturn extends ChargeType
+  case object NonUkResidentReturn extends ChargeType
 
-  final case object DeltaCharge extends ChargeType
+  case object DeltaCharge extends ChargeType
 
-  final case object Interest extends ChargeType
+  case object Interest extends ChargeType
 
-  final case object LateFilingPenalty extends ChargeType
+  case object LateFilingPenalty extends ChargeType
 
-  final case object SixMonthLateFilingPenalty extends ChargeType
+  case object SixMonthLateFilingPenalty extends ChargeType
 
-  final case object TwelveMonthLateFilingPenalty extends ChargeType
+  case object TwelveMonthLateFilingPenalty extends ChargeType
 
-  final case object LatePaymentPenalty extends ChargeType
+  case object LatePaymentPenalty extends ChargeType
 
-  final case object SixMonthLatePaymentPenalty extends ChargeType
+  case object SixMonthLatePaymentPenalty extends ChargeType
 
-  final case object TwelveMonthLatePaymentPenalty extends ChargeType
+  case object TwelveMonthLatePaymentPenalty extends ChargeType
 
-  final case object PenaltyInterest extends ChargeType
+  case object PenaltyInterest extends ChargeType
 
   def fromString(s: String): Either[String, ChargeType] =
     s match {

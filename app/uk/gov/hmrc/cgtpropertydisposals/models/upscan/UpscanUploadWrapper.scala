@@ -33,6 +33,6 @@ object UpscanUploadWrapper {
     implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
     ((__ \ "_id").format[String]
       ~ (__ \ "upscan").format[UpscanUpload]
-      ~ (__ \ "lastUpdated").format[Instant])(UpscanUploadWrapper.apply, unlift(UpscanUploadWrapper.unapply))
+      ~ (__ \ "lastUpdated").format[Instant])(UpscanUploadWrapper.apply, o => Tuple.fromProductTyped(o))
   }
 }

@@ -35,12 +35,12 @@ object CustomerType {
       case JsString("trust")      => JsSuccess(Trust)
       case JsString("individual") => JsSuccess(Individual)
       case JsString(other)        => JsError(s"Could not parse customer type: $other")
-      case other                  => JsError(s"Expected string for customer type but got $other") 
+      case other                  => JsError(s"Expected string for customer type but got $other")
     }
 
     override def writes(o: CustomerType): JsValue = o match {
       case Trust      => JsString("trust")
-      case Individual => JsString("individual") 
+      case Individual => JsString("individual")
     }
   }
 

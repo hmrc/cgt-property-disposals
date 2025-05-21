@@ -111,22 +111,21 @@ class TaxEnrolmentServiceImpl @Inject() (
     for {
       httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
       result       <-
-        EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] {
-          error: Error =>
-            logger.warn(s"Failed to allocate enrolments due to error: $error; will store enrolment details")
-            taxEnrolmentRepository
-              .save(taxEnrolmentRequest)
-              .leftMap(error => Error(s"Could not store enrolment details: $error"))
+        EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] { error =>
+          logger.warn(s"Failed to allocate enrolments due to error: $error; will store enrolment details")
+          taxEnrolmentRepository
+            .save(taxEnrolmentRequest)
+            .leftMap(error => Error(s"Could not store enrolment details: $error"))
         }
     } yield result
 
-  def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
+  private def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
     httpResponse.status match {
       case NO_CONTENT => Right(())
       case other      => Left(Error(s"Received error response from tax enrolment service with http status: $other"))
     }
 
-  def handleEnrolmentState(
+  private def handleEnrolmentState(
     enrolmentState: (Option[TaxEnrolmentRequest], Option[UpdateVerifiersRequest])
   )(implicit hc: HeaderCarrier): Future[Unit] =
     enrolmentState match {

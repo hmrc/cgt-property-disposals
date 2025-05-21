@@ -45,14 +45,14 @@ object DesAcquisitionType {
       case JsString("inherited") => JsSuccess(Inherited)
       case JsString("gifted")    => JsSuccess(Gifted)
       case JsString(other)       => JsSuccess(Other(other))
-      case other                 => JsError(s"Expected string for acquisition type but got $other") 
+      case other                 => JsError(s"Expected string for acquisition type but got $other")
     }
 
     override def writes(o: DesAcquisitionType): JsValue = o match {
       case Bought       => JsString("bought")
       case Inherited    => JsString("inherited")
       case Gifted       => JsString("gifted")
-      case Other(other) => JsString(other) 
+      case Other(other) => JsString(other)
     }
   }
 

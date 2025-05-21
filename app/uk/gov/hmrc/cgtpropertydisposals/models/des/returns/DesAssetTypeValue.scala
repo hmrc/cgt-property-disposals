@@ -44,11 +44,13 @@ object DesAssetTypeValue {
         s => List(s.triageAnswers.assetType)
       )
       .distinct
-    val assetTypeStrings = assetTypes.map {
-      case AssetType.Residential => Values.residential
-      case AssetType.NonResidential => Values.nonResidential
-      case AssetType.MixedUse => Values.mixedUse
-      case AssetType.IndirectDisposal => Values.indirectDisposal
+    val assetTypeStrings = assetTypes.map { a =>
+      a match {
+        case AssetType.Residential      => Values.residential
+        case AssetType.NonResidential   => Values.nonResidential
+        case AssetType.MixedUse         => Values.mixedUse
+        case AssetType.IndirectDisposal => Values.indirectDisposal
+      }
     }
 
     DesAssetTypeValue(assetTypeStrings.mkString(" "))
@@ -56,7 +58,7 @@ object DesAssetTypeValue {
 
   implicit class DesAssetTypeValueOps(private val a: DesAssetTypeValue) extends AnyVal {
 
-    def toAssetTypes: Either[String, List[AssetType]] = {
+    def toAssetTypes(): Either[String, List[AssetType]] = {
       val result                 = a.value.split(' ').toList.map {
         case Values.residential      => Right(AssetType.Residential)
         case Values.nonResidential   => Right(AssetType.NonResidential)
@@ -71,7 +73,7 @@ object DesAssetTypeValue {
         Right(assetTypes)
     }
 
-    def isIndirectDisposal: Boolean = a.value === Values.indirectDisposal
+    def isIndirectDisposal(): Boolean = a.value === Values.indirectDisposal
 
   }
 

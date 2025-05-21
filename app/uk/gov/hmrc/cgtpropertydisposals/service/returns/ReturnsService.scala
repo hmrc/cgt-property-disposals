@@ -273,7 +273,7 @@ class DefaultReturnsService @Inject() (
   private def auditReturnBeforeSubmit(
     returnRequest: SubmitReturnRequest,
     desSubmitReturnRequest: DesSubmitReturnRequest
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Unit] =
     EitherT.pure[Future, Error](
       auditService.sendEvent(
         "submitReturn",

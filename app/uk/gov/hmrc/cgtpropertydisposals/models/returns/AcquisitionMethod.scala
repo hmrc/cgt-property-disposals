@@ -24,11 +24,11 @@ sealed trait AcquisitionMethod extends Product with Serializable
 
 object AcquisitionMethod {
 
-  final case object Bought extends AcquisitionMethod
+  case object Bought extends AcquisitionMethod
 
-  final case object Inherited extends AcquisitionMethod
+  case object Inherited extends AcquisitionMethod
 
-  final case object Gifted extends AcquisitionMethod
+  case object Gifted extends AcquisitionMethod
 
   final case class Other(value: String) extends AcquisitionMethod
 

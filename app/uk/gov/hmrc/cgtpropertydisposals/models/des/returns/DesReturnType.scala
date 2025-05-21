@@ -66,17 +66,17 @@ object DesReturnType {
             "submissionType" -> Json.toJson(a.submissionType),
             "submissionID"   -> a.submissionID.fold[JsValue](JsNull)(JsString)
           )
-        ) 
+        )
     }
 
-    override def reads(json: JsValue): JsResult[DesReturnType] = 
+    override def reads(json: JsValue): JsResult[DesReturnType] =
       for {
         source         <- (json \ "source").validate[String]
         submissionType <- (json \ "submissionType").validate[SubmissionType]
         result         <- submissionType match {
-          case SubmissionType.New   => JsSuccess(CreateReturnType(source))
-          case SubmissionType.Amend => JsSuccess(AmendReturnType(source, None))
-        }
+                            case SubmissionType.New   => JsSuccess(CreateReturnType(source))
+                            case SubmissionType.Amend => JsSuccess(AmendReturnType(source, None))
+                          }
       } yield result
   }
 }
