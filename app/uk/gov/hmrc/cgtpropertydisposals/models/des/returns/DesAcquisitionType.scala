@@ -23,11 +23,11 @@ sealed trait DesAcquisitionType extends Product with Serializable
 
 object DesAcquisitionType {
 
-  final case object Bought extends DesAcquisitionType
+  case object Bought extends DesAcquisitionType
 
-  final case object Inherited extends DesAcquisitionType
+  case object Inherited extends DesAcquisitionType
 
-  final case object Gifted extends DesAcquisitionType
+  case object Gifted extends DesAcquisitionType
 
   final case class Other(value: String) extends DesAcquisitionType
 
