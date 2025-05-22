@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.util
 
-import play.api.libs.json.*
+import play.api.libs.json.{JsDefined, JsError, JsLookupResult, Reads}
 import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
 import uk.gov.hmrc.http.HttpResponse
 

@@ -64,7 +64,7 @@ object DesReturnType {
           Map(
             "source"         -> JsString(a.source),
             "submissionType" -> Json.toJson(a.submissionType),
-            "submissionID"   -> a.submissionID.fold[JsValue](JsNull)(JsString)
+            "submissionID"   -> a.submissionID.fold[JsValue](JsNull)(JsString.apply)
           )
         )
     }

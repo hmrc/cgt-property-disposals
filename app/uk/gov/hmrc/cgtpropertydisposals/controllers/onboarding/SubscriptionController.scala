@@ -58,7 +58,7 @@ class SubscriptionController @Inject() (
         for {
           subscriptionDetails  <- EitherT.fromEither[Future](extractRequest[SubscriptionDetails](request))
           subscriptionResponse <- subscribeAndEnrol(subscriptionDetails)
-                                    .leftMap[SubscriptionError](BackendError)
+                                    .leftMap[SubscriptionError](BackendError.apply)
         } yield subscriptionResponse
 
       result.fold(
@@ -83,7 +83,7 @@ class SubscriptionController @Inject() (
         registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))
         sapNumber           <- registerWithoutIdService
                                  .registerWithoutId(registrationDetails)
-                                 .leftMap[SubscriptionError](BackendError)
+                                 .leftMap[SubscriptionError](BackendError.apply)
       } yield sapNumber
 
       result.fold(
@@ -131,10 +131,10 @@ class SubscriptionController @Inject() (
           subscribedUpdateDetails <- EitherT.fromEither[Future](extractRequest[SubscribedUpdateDetails](request))
           subscriptionResponse    <- subscriptionService
                                        .updateSubscription(subscribedUpdateDetails)
-                                       .leftMap[SubscriptionError](BackendError)
+                                       .leftMap[SubscriptionError](BackendError.apply)
           _                       <- taxEnrolmentService
                                        .updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
-                                       .leftMap[SubscriptionError](BackendError)
+                                       .leftMap[SubscriptionError](BackendError.apply)
         } yield subscriptionResponse
 
       result.fold(
