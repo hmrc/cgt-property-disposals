@@ -115,7 +115,7 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
     EitherT(
       preservingMdc {
         collection
-          .find(in("_id", uploadReference.map(_.value): _*))
+          .find(in("_id", uploadReference.map(_.value)*))
           .toFuture()
           .map { a =>
             if (a.isEmpty) {

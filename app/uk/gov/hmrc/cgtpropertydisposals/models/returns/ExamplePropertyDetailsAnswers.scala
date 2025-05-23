@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.*
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
@@ -44,8 +44,6 @@ object ExamplePropertyDetailsAnswers {
     Json.format[CompleteExamplePropertyDetailsAnswers]
   implicit val incompleteExamplePropertyDetailsAnswersFormat: OFormat[IncompleteExamplePropertyDetailsAnswers] =
     Json.format[IncompleteExamplePropertyDetailsAnswers]
-
-  import play.api.libs.json._
 
   implicit val format: OFormat[ExamplePropertyDetailsAnswers] = new OFormat[ExamplePropertyDetailsAnswers] {
     override def reads(json: JsValue): JsResult[ExamplePropertyDetailsAnswers] = json match {

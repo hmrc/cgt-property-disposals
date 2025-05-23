@@ -44,12 +44,12 @@ trait EmailService {
     cgtReference: CgtReference,
     email: Email,
     contactName: ContactName
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit]
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, Unit]
 
   def sendReturnConfirmationEmail(
     returnRequest: SubmitReturnRequest,
     submitReturnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit]
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, Unit]
 
 }
 
@@ -63,7 +63,7 @@ class EmailServiceImpl @Inject() (connector: EmailConnector, auditService: Audit
     cgtReference: CgtReference,
     email: Email,
     contactName: ContactName
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] = {
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, Unit] = {
     val timer = metrics.subscriptionConfirmationEmailTimer.time()
 
     connector
@@ -87,7 +87,7 @@ class EmailServiceImpl @Inject() (connector: EmailConnector, auditService: Audit
   def sendReturnConfirmationEmail(
     returnRequest: SubmitReturnRequest,
     submitReturnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] = {
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, Unit] = {
     val timer = metrics.submitReturnConfirmationEmailTimer.time()
 
     connector
@@ -109,7 +109,7 @@ class EmailServiceImpl @Inject() (connector: EmailConnector, auditService: Audit
   private def auditSubscriptionConfirmationEmailSent(
     emailAddress: String,
     cgtReference: String
-  )(implicit hc: HeaderCarrier, request: Request[_]): Unit =
+  )(implicit hc: HeaderCarrier, request: Request[?]): Unit =
     auditService.sendEvent(
       "subscriptionConfirmationEmailSent",
       SubscriptionConfirmationEmailSentEvent(
@@ -122,7 +122,7 @@ class EmailServiceImpl @Inject() (connector: EmailConnector, auditService: Audit
   private def auditSubscriptionConfirmationEmailSent(
     returnRequest: SubmitReturnRequest,
     submitReturnResponse: SubmitReturnResponse
-  )(implicit hc: HeaderCarrier, request: Request[_]): Unit =
+  )(implicit hc: HeaderCarrier, request: Request[?]): Unit =
     auditService.sendEvent(
       "returnConfirmationEmailSent",
       ReturnConfirmationEmailSentEvent(

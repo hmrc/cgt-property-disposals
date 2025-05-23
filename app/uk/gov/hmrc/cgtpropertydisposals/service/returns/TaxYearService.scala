@@ -16,23 +16,19 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
-import cats.syntax.order._
+import cats.syntax.order.*
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.Configuration
-import pureconfig.configurable.localDateConfigConvert
 import pureconfig.*
-import pureconfig.{ConfigConvert, ConfigSource}
-import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils._
+import pureconfig.configurable.localDateConfigConvert
+import pureconfig.generic.semiauto.*
+import uk.gov.hmrc.cgtpropertydisposals.models.LocalDateUtils.*
 import uk.gov.hmrc.cgtpropertydisposals.models.{TaxYear, TaxYearConfig}
+import uk.gov.hmrc.time.TaxYear as HmrcTaxYear
 
 import java.time.format.DateTimeFormatter
 import java.time.{Clock, LocalDate}
-import scala.jdk.CollectionConverters._
-
-import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
-
-import pureconfig.ConfigReader
-import pureconfig.generic.semiauto._
+import scala.jdk.CollectionConverters.*
 
 @ImplementedBy(classOf[TaxYearServiceImpl])
 trait TaxYearService {

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json.{JsError, JsObject, JsResult, JsValue, Json, OFormat}
+import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.{CompleteCalculatedYTDAnswers, IncompleteCalculatedYTDAnswers}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.{CompleteNonCalculatedYTDAnswers, IncompleteNonCalculatedYTDAnswers}
@@ -124,5 +124,27 @@ object YearToDateLiabilityAnswers {
       case i: IncompleteNonCalculatedYTDAnswers => Json.obj("IncompleteNonCalculatedYTDAnswers" -> Json.toJson(i))
     }
   }
+
+  implicit val eitherYTDFormat: Format[Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]] =
+    new Format[Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]] {
+      def writes(e: Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]): JsValue = e match {
+        case Left(nonCalc) => Json.toJson(nonCalc)
+        case Right(calc)   => Json.toJson(calc)
+      }
+
+      def reads(json: JsValue): JsResult[Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]] =
+        json match {
+          case JsObject(fields) if fields.size == 1 =>
+            fields.head match {
+              case ("CompleteNonCalculatedYTDAnswers", value) =>
+                value.validate[CompleteNonCalculatedYTDAnswers].map(Left(_))
+              case ("CompleteCalculatedYTDAnswers", value)    =>
+                value.validate[CompleteCalculatedYTDAnswers].map(Right(_))
+              case (other, _)                                 => JsError(s"Unknown YearToDateLiabilityAnswers subtype: $other")
+            }
+          case _                                    =>
+            JsError("Expected wrapper object with one YearToDateLiabilityAnswers subtype key")
+        }
+    }
 
 }

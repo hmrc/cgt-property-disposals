@@ -19,19 +19,16 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import com.mongodb.client.model.Indexes.ascending
+import org.mongodb.scala.gridfs.{ObservableFuture, SingleObservableFuture}
+import org.mongodb.scala.model.*
 import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.model._
-import uk.gov.hmrc.cgtpropertydisposals.models._
+import uk.gov.hmrc.cgtpropertydisposals.models.*
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
 
 import scala.concurrent.{ExecutionContext, Future}
-import org.mongodb.scala.gridfs.ObservableFuture
-import org.mongodb.scala.gridfs.SingleObservableFuture
-import org.mongodb.scala.SingleObservableFuture
-import org.mongodb.scala.ObservableFuture
 
 @ImplementedBy(classOf[DefaultTaxEnrolmentRepository])
 trait TaxEnrolmentRepository {

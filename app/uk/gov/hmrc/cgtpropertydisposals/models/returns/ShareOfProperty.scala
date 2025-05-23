@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import cats.instances.bigDecimal.*
 import cats.syntax.eq.*
-import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsSuccess, JsValue, Json, OFormat}
+import play.api.libs.json.*
 
 sealed trait ShareOfProperty extends Product with Serializable {
   val percentageValue: BigDecimal

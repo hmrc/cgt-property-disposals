@@ -80,7 +80,7 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
       http
         .post(url"${url(bprRequest)}")
         .withBody(Json.toJson(registerDetails))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>

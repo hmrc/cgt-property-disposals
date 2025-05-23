@@ -89,8 +89,8 @@ object HtmlSanitizer {
   )
 
   private val policyFactory = new HtmlPolicyBuilder()
-    .disallowElements(blockedElements: _*)
-    .allowElements(allowedElements: _*)
+    .disallowElements(blockedElements*)
+    .allowElements(allowedElements*)
     .toFactory
 
   def sanitize(html: String): Option[String] =

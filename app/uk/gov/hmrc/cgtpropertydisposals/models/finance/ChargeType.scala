@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.finance
 
 import cats.Eq
 import play.api.libs.json.*
-import play.api.libs.json.OFormat
 
 sealed trait ChargeType extends Product with Serializable
 
@@ -63,13 +62,13 @@ object ChargeType {
 
   implicit val eq: Eq[ChargeType] = Eq.fromUniversalEquals
 
-  implicit val format: OFormat[ChargeType] = new OFormat[ChargeType] {
-    override def writes(o: ChargeType): JsValue = JsString(o.toString)
-
+  implicit val format: Format[ChargeType] = new Format[ChargeType] {
     override def reads(json: JsValue): JsResult[ChargeType] = fromString(json.toString) match {
       case Right(r) => JsSuccess(r)
       case Left(_)  => JsError("Invalid Charge type")
     }
+
+    override def writes(o: ChargeType): JsValue = JsString(o.toString)
   }
 
 }

@@ -54,7 +54,7 @@ trait BusinessPartnerRecordService {
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, BusinessPartnerRecordResponse]
 
 }
@@ -78,7 +78,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, BusinessPartnerRecordResponse] =
     for {
       maybeBpr                             <- getBpr(bprRequest)
@@ -94,7 +94,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
   private def getNewEnrolmentSubscriptionDetails(cgtReference: CgtReference, bprRequest: BusinessPartnerRecordRequest)(
     implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, Option[SubscribedDetails]] =
     if (!bprRequest.createNewEnrolmentIfMissing) EitherT.pure(None)
     else
@@ -106,7 +106,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
 
   private def getSubscribedDetailsAndEnrol(cgtReference: CgtReference, ggCredId: String)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, SubscribedDetails] =
     for {
       subscriptionDetails <-
@@ -156,13 +156,13 @@ class BusinessPartnerRecordServiceImpl @Inject() (
           .map(Some(_))
           .leftMap { e =>
             metrics.registerWithIdErrorCounter.inc()
-            Error(e, identifiers: _*)
+            Error(e, identifiers*)
           }
       else if (isNotFoundResponse(response))
         Right(None)
       else {
         metrics.registerWithIdErrorCounter.inc()
-        Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
+        Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers*))
       }
     }
   }

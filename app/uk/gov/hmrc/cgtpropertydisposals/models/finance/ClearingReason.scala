@@ -19,8 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.finance
 import cats.Eq
 import play.api.libs.json.*
 
-import scala.CanEqual.derived
-
 sealed trait ClearingReason
 
 object ClearingReason {
@@ -49,8 +47,8 @@ object ClearingReason {
       case _                    => SomeOtherClearingReason
     }
 
-  implicit val eq: Eq[ClearingReason]          = Eq.fromUniversalEquals
-  implicit val format: OFormat[ClearingReason] = new OFormat[ClearingReason] {
+  implicit val eq: Eq[ClearingReason]         = Eq.fromUniversalEquals
+  implicit val format: Format[ClearingReason] = new Format[ClearingReason] {
     override def writes(o: ClearingReason): JsValue = JsString(o.toString)
 
     override def reads(json: JsValue): JsResult[ClearingReason] = JsSuccess(fromString(json.toString))

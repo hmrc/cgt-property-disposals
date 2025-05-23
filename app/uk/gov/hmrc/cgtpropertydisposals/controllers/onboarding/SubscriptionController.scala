@@ -164,7 +164,7 @@ class SubscriptionController @Inject() (
 
   private def subscribeAndEnrol(
     subscriptionDetails: SubscriptionDetails
-  )(implicit request: AuthenticatedRequest[_]): EitherT[Future, Error, SubscriptionResponse] =
+  )(implicit request: AuthenticatedRequest[?]): EitherT[Future, Error, SubscriptionResponse] =
     for {
       subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails)
       _                    <- subscriptionResponse match {

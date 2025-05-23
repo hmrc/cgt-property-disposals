@@ -60,7 +60,7 @@ class FinancialDataConnectorImpl @Inject() (http: HttpClientV2, val config: Serv
     EitherT[Future, Error, HttpResponse](
       http
         .get(url"$fdUrl?dateFrom=$from&dateTo=$to")
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }

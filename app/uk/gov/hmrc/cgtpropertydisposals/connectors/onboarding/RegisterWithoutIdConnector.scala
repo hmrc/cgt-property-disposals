@@ -70,7 +70,7 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClientV2, val config: 
       http
         .post(url"$url")
         .withBody(Json.toJson(registerWithoutIdRequest))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
