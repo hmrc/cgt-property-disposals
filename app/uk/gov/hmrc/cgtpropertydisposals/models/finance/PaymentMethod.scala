@@ -102,7 +102,7 @@ object PaymentMethod {
       case other                            => Left(s"Payment method not recognised: $other")
     }
 
-  implicit val format: OFormat[PaymentMethod] = new OFormat[PaymentMethod] {
+  implicit val format: Format[PaymentMethod] = new Format[PaymentMethod] {
     override def writes(o: PaymentMethod): JsValue = JsString(o.toString)
 
     override def reads(json: JsValue): JsResult[PaymentMethod] = fromString(json.toString) match {

@@ -123,7 +123,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       preservingMdc {
         collection
           .deleteMany(
-            or(draftReturnIds.map(id => equal("return.draftId", Codecs.toBson(id))): _*)
+            or(draftReturnIds.map(id => equal("return.draftId", Codecs.toBson(id)))*)
           )
           .toFuture()
           .map { result =>

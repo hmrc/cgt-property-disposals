@@ -64,7 +64,7 @@ class ReturnsConnectorImpl @Inject() (http: HttpClientV2, val config: ServicesCo
       http
         .post(url"$returnUrl")
         .withBody(Json.toJson(submitReturnRequest))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
@@ -79,7 +79,7 @@ class ReturnsConnectorImpl @Inject() (http: HttpClientV2, val config: ServicesCo
     EitherT[Future, Error, HttpResponse](
       http
         .get(url"$url?fromDate=${fromDate.format(dateFormatter)}&toDate=${toDate.format(dateFormatter)}")
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
@@ -94,7 +94,7 @@ class ReturnsConnectorImpl @Inject() (http: HttpClientV2, val config: ServicesCo
     EitherT[Future, Error, HttpResponse](
       http
         .get(url"$url")
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }

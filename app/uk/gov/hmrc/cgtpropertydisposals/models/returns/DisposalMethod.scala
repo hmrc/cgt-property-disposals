@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsSuccess, JsValue, Json, OFormat}
+import play.api.libs.json.*
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesDisposalType
 
 sealed trait DisposalMethod extends Product with Serializable

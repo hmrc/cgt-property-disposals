@@ -71,7 +71,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: Servi
       http
         .post(url"$subscribeUrl")
         .withBody(Json.toJson(subscriptionRequest))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
@@ -83,7 +83,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: Servi
     EitherT[Future, Error, HttpResponse](
       http
         .get(url"${subscriptionUrl(cgtReference)}")
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
@@ -98,7 +98,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: Servi
       http
         .put(url"${subscriptionUrl(cgtReference)}")
         .withBody(Json.toJson(subscriptionRequest))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
@@ -112,7 +112,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: Servi
     EitherT[Future, Error, HttpResponse](
       http
         .get(url"${subscriptionStatusUrl(sapNumber)}")
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }

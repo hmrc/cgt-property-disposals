@@ -15,7 +15,10 @@ lazy val microservice = Project(appName, file("."))
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test(),
     onLoadMessage := "",
     scalafmtOnCompile := true,
-    scalacOptions ++= Seq("-Wconf:src=routes/.*:s", "-Xlint:-byname-implicit", "-explain-cyclic", "-Ydebug-cyclic")
+    scalacOptions += "-Wconf:src=routes/.*:s,src=txt/.*:s",
+    scalacOptions ~= { options =>
+      options.distinct
+    }
   )
   .settings(CodeCoverageSettings.settings *)
   // Disable default sbt Test options (might change with new versions of bootstrap)

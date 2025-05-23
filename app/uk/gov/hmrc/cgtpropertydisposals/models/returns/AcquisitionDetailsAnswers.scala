@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
+import play.api.libs.json
 import play.api.libs.json.*
-import scala.CanEqual.derived
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 sealed trait AcquisitionDetailsAnswers extends Product with Serializable

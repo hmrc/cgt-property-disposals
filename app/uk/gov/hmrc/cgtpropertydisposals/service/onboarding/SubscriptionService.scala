@@ -55,7 +55,7 @@ trait SubscriptionService {
 
   def subscribe(subscriptionDetails: SubscriptionDetails)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, SubscriptionResponse]
 
   def getSubscription(cgtReference: CgtReference)(implicit
@@ -84,7 +84,7 @@ class SubscriptionServiceImpl @Inject() (
 
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubscriptionResponse] =
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, SubscriptionResponse] =
     for {
       subscriptionResponse <- sendSubscriptionRequest(subscriptionDetails)
       _                    <- subscriptionResponse match {
@@ -104,7 +104,7 @@ class SubscriptionServiceImpl @Inject() (
 
   private def sendSubscriptionRequest(
     subscriptionDetails: SubscriptionDetails
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubscriptionResponse] = {
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, SubscriptionResponse] = {
     def isAlreadySubscribedResponse(response: HttpResponse): Boolean =
       response.status === FORBIDDEN && response
         .parseJSON[DesErrorResponse]()
@@ -158,7 +158,7 @@ class SubscriptionServiceImpl @Inject() (
           .bimap(
             { e =>
               metrics.subscriptionGetErrorCounter.inc()
-              Error(e, identifiers: _*)
+              Error(e, identifiers*)
             },
             Some(_)
           )
@@ -193,7 +193,7 @@ class SubscriptionServiceImpl @Inject() (
             .parseJSON[SubscriptionUpdateResponse]()
             .leftMap { e =>
               metrics.subscriptionUpdateErrorCounter.inc()
-              Error(e, identifiers: _*)
+              Error(e, identifiers*)
             }
         else {
           metrics.subscriptionUpdateErrorCounter.inc()
@@ -275,7 +275,7 @@ class SubscriptionServiceImpl @Inject() (
     responseHttpStatus: Int,
     responseBody: String,
     desSubscriptionRequest: DesSubscriptionRequest
-  )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
+  )(implicit hc: HeaderCarrier, request: Request[?]): Unit = {
     val responseJson =
       if ((responseHttpStatus === OK && responseBody.nonEmpty) || responseHttpStatus === FORBIDDEN) {
         Json.parse(responseBody)

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
 import play.api.libs.json.*
-import scala.CanEqual.derived
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesAcquisitionType
 
 sealed trait AcquisitionMethod extends Product with Serializable

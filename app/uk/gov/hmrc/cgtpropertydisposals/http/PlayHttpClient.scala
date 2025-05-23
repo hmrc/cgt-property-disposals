@@ -41,7 +41,7 @@ class PlayHttpClientImpl @Inject() (wsClient: WSClient) extends PlayHttpClient {
     wsClient
       .url(url)
       .withMethod(GET)
-      .withHttpHeaders(headers: _*)
+      .withHttpHeaders(headers*)
       .withRequestTimeout(timeout)
       .stream()
 
@@ -50,6 +50,6 @@ class PlayHttpClientImpl @Inject() (wsClient: WSClient) extends PlayHttpClient {
   ): Future[ws.WSResponse] =
     wsClient
       .url(url)
-      .withHttpHeaders(headers: _*)
+      .withHttpHeaders(headers*)
       .post(body)
 }

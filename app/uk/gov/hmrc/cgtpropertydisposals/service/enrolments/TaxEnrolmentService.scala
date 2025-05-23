@@ -32,7 +32,6 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments.{TaxEnrolmentRep
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import views.html.defaultpages.error
 
 import scala.concurrent.{ExecutionContext, Future}
 

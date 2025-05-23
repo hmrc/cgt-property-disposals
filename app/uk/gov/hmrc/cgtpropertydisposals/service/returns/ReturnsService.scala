@@ -18,50 +18,47 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
 import cats.implicits.catsKernelStdOrderForString
-import cats.instances.future._
-import cats.instances.int._
-import cats.syntax.either._
-import cats.syntax.eq._
-import cats.syntax.traverse._
+import cats.instances.future.*
+import cats.instances.int.*
+import cats.syntax.either.*
+import cats.syntax.eq.*
+import cats.syntax.traverse.*
 import com.codahale.metrics.Timer.Context
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import play.api.http.Status.{NOT_FOUND, OK}
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Request
 import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.Metrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesErrorResponse.SingleDesErrorResponse
-import uk.gov.hmrc.cgtpropertydisposals.models.des._
+import uk.gov.hmrc.cgtpropertydisposals.models.des.*
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.{DeltaCharge, ReturnCharge}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
-import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
+import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps.*
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging.*
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-
-import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialDataResponse
 
 @ImplementedBy(classOf[DefaultReturnsService])
 trait ReturnsService {
   def submitReturn(returnRequest: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, SubmitReturnResponse]
 
   def listReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(implicit
@@ -91,7 +88,7 @@ class DefaultReturnsService @Inject() (
   override def submitReturn(
     returnRequest: SubmitReturnRequest,
     representeeDetails: Option[RepresenteeDetails]
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, SubmitReturnResponse] = {
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, SubmitReturnResponse] = {
     val isAmendReturn                                  = returnRequest.amendReturnData.isDefined
     if (isAmendReturn) {
       if (returnRequest.amendReturnData.get.originalReturn.summary.expired) {
@@ -256,7 +253,7 @@ class DefaultReturnsService @Inject() (
     if (submitReturnRequest.amendReturnData.isEmpty)
       EitherT.pure(())
     else {
-      import cats.instances.list._
+      import cats.instances.list.*
 
       for {
         draftReturns        <- draftReturnsService.getDraftReturn(cgtReference)
@@ -273,7 +270,7 @@ class DefaultReturnsService @Inject() (
   private def auditReturnBeforeSubmit(
     returnRequest: SubmitReturnRequest,
     desSubmitReturnRequest: DesSubmitReturnRequest
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] =
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, Unit] =
     EitherT.pure[Future, Error](
       auditService.sendEvent(
         "submitReturn",
@@ -289,7 +286,7 @@ class DefaultReturnsService @Inject() (
   private def submitReturnAndAudit(
     returnRequest: SubmitReturnRequest,
     desSubmitReturnRequest: DesSubmitReturnRequest
-  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, HttpResponse] = {
+  )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, HttpResponse] = {
     val timer: Context = metrics.submitReturnTimer.time()
     returnsConnector
       .submit(
@@ -470,7 +467,7 @@ class DefaultReturnsService @Inject() (
     subscribedDetails: SubscribedDetails,
     agentReferenceNumber: Option[AgentReferenceNumber],
     amendReturnData: Option[AmendReturnData]
-  )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
+  )(implicit hc: HeaderCarrier, request: Request[?]): Unit = {
     val responseJson =
       Try(Json.parse(responseBody))
         .getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }"""))
