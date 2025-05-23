@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.ids
 
 import play.api.libs.json.{Format, Json}
 
-final case class SAUTR(value: String) extends AnyVal
+final case class SAUTR(value: String)
 
 object SAUTR {
 

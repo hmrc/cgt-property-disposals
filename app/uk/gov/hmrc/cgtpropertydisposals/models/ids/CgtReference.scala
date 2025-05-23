@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.ids
 import play.api.libs.json.{Json, OFormat}
 import play.api.mvc.PathBindable
 
-final case class CgtReference(value: String) extends AnyVal
+final case class CgtReference(value: String)
 
 object CgtReference {
 

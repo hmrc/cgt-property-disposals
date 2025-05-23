@@ -43,7 +43,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary._
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
@@ -96,7 +96,7 @@ class DefaultReturnsService @Inject() (
     if (isAmendReturn) {
       if (returnRequest.amendReturnData.get.originalReturn.summary.expired) {
         logger.warn("Amend deadline has passed, cannot amend return")
-        return EitherT.leftT(Error(DefaultReturnsService.expiredMessage))
+        return EitherT.leftT(Error(DesReturnSummary.expiredMessage))
       }
     }
     val cgtReference                                   = returnRequest.subscribedDetails.cgtReference
@@ -273,7 +273,7 @@ class DefaultReturnsService @Inject() (
   private def auditReturnBeforeSubmit(
     returnRequest: SubmitReturnRequest,
     desSubmitReturnRequest: DesSubmitReturnRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, Error, Unit] =
+  )(implicit hc: HeaderCarrier, request: Request[_]): EitherT[Future, Error, Unit] =
     EitherT.pure[Future, Error](
       auditService.sendEvent(
         "submitReturn",
@@ -489,45 +489,4 @@ class DefaultReturnsService @Inject() (
       "submit-return-response"
     )
   }
-}
-
-object DefaultReturnsService {
-  final case class DesSubmitReturnResponseDetails(
-    chargeReference: Option[String],
-    amount: Option[BigDecimal],
-    dueDate: Option[LocalDate],
-    formBundleNumber: String
-  )
-
-  final case class DesSubmitReturnResponse(
-    processingDate: LocalDateTime,
-    ppdReturnResponseDetails: DesSubmitReturnResponseDetails
-  )
-
-  final case class DesListReturnsResponse(returnList: List[DesReturnSummary])
-
-  final case class DesCharge(chargeDescription: String, dueDate: LocalDate, chargeReference: String)
-
-  final case class DesReturnSummary(
-    submissionId: String,
-    submissionDate: LocalDate,
-    completionDate: LocalDate,
-    lastUpdatedDate: Option[LocalDate],
-    taxYear: String,
-    propertyAddress: AddressDetails,
-    totalCGTLiability: BigDecimal,
-    charges: Option[List[DesCharge]]
-  )
-
-  implicit val chargeFormat: OFormat[DesCharge]                             = Json.format
-  implicit val returnFormat: OFormat[DesReturnSummary]                      = Json.format
-  implicit val desListReturnResponseFormat: OFormat[DesListReturnsResponse] = Json.format
-
-  implicit val ppdReturnResponseDetailsFormat: Format[DesSubmitReturnResponseDetails] =
-    Json.format[DesSubmitReturnResponseDetails]
-
-  implicit val desReturnResponseFormat: Format[DesSubmitReturnResponse] =
-    Json.format[DesSubmitReturnResponse]
-
-  val expiredMessage = "Amend deadline has passed"
 }

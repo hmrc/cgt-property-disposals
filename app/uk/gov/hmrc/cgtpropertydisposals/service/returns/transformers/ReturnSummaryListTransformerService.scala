@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, 
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DesCharge, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
