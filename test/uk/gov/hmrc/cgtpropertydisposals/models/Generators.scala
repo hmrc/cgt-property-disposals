@@ -18,18 +18,19 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import org.apache.pekko.util.ByteString
 import org.bson.types.ObjectId
-//import org.scalacheck.ScalacheckShapeless._
+import io.github.martinhh.derived.scalacheck.given
 import org.scalacheck.{Arbitrary, Gen}
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.arb
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesSubscriptionUpdateRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsMetadata, DmsSubmissionPayload, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids._
+import uk.gov.hmrc.cgtpropertydisposals.models.ids.*
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.IndividualBusinessPartnerRecordRequest
@@ -39,6 +40,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{Subscrib
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExampleCompanyDetailsAnswers.CompleteExampleCompanyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
@@ -51,19 +53,15 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.{CompleteSupportingEvidenceAnswers, SupportingEvidence}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UploadDetails, UpscanSuccess}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
 import uk.gov.hmrc.mongo.workitem.WorkItem
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.arb
 
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import java.util.Base64
 import scala.reflect.{ClassTag, classTag}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary
-import io.github.martinhh.derived.scalacheck.given
 
 object Generators
     extends GenUtils
@@ -98,43 +96,43 @@ sealed trait GenUtils {
   def gen[A](implicit arb: Arbitrary[A]): Gen[A] = arb.arbitrary
 
   // define our own Arbitrary instance for String to generate more legible strings
-  given stringArb: Arbitrary[String] = Arbitrary(
+  implicit val stringArb: Arbitrary[String] = Arbitrary(
     for {
       n <- Gen.choose(1, 30)
       s <- Gen.listOfN(n, Gen.alphaChar).map(_.mkString(""))
     } yield s
   )
 
-  given longArb: Arbitrary[Long] = Arbitrary(Gen.choose(0L, 100L))
+  implicit val longArb: Arbitrary[Long] = Arbitrary(Gen.choose(0L, 100L))
 
-  given bigDecimalGen: Arbitrary[BigDecimal] = Arbitrary(Gen.choose(0, 100).map(BigDecimal(_)))
+  implicit val bigDecimalGen: Arbitrary[BigDecimal] = Arbitrary(Gen.choose(0, 100).map(BigDecimal(_)))
 
-  given localDateTimeArb: Arbitrary[LocalDateTime] =
+  implicit val localDateTimeArb: Arbitrary[LocalDateTime] =
     Arbitrary(
       Gen
         .chooseNum(0L, 10000L)
         .map(l => LocalDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.systemDefault()))
     )
 
-  /*  given localDateArb: Arbitrary[LocalDate] = Arbitrary(
-    Gen.chooseNum(0, 10000L).map(LocalDate.ofEpochDay)
-  )*/
+  implicit val localDateArb: Arbitrary[LocalDate] = Arbitrary(
+    Gen.chooseNum(0L, 10000L).map(LocalDate.ofEpochDay)
+  )
 
-  given byteStringArb: Arbitrary[ByteString] =
+  implicit val byteStringArb: Arbitrary[ByteString] =
     Arbitrary(
       Gen
         .choose(0L, Long.MaxValue)
         .map(s => ByteString(s))
     )
 
-  given bsonObjectId: Arbitrary[ObjectId] =
+  implicit val bsonObjectId: Arbitrary[ObjectId] =
     Arbitrary(
       Gen
         .choose(0L, 10000L)
         .map(_ => ObjectId.get())
     )
 
-  given instantArb: Arbitrary[Instant] =
+  implicit val instantArb: Arbitrary[Instant] =
     Arbitrary(
       Gen
         .chooseNum(0L, 10000L)
