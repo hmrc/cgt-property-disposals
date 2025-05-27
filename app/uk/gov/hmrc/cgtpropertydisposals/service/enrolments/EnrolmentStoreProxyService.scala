@@ -46,8 +46,8 @@ class EnrolmentStoreProxyServiceImpl @Inject() (
 
   def cgtEnrolmentExists(cgtReference: CgtReference)(implicit hc: HeaderCarrier): EitherT[Future, Error, Boolean] =
     enrolmentStoreProxyConnector.getPrincipalEnrolments(cgtReference).subflatMap { httpResponse =>
-      if (httpResponse.status === OK) Right(true)
-      else if (httpResponse.status === NO_CONTENT) Right(false)
+      if httpResponse.status === OK then Right(true)
+      else if httpResponse.status === NO_CONTENT then Right(false)
       else Left(Error(s"Call to check for principal enrolments came back with status ${httpResponse.status}"))
     }
 

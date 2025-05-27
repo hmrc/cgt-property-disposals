@@ -107,7 +107,7 @@ class TaxEnrolmentServiceImpl @Inject() (
   override def allocateEnrolmentToGroup(taxEnrolmentRequest: TaxEnrolmentRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
-    for {
+    for
       httpResponse <- EitherT.liftF(makeES8call(taxEnrolmentRequest))
       result       <-
         EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)).leftFlatMap[Unit, Error] { error =>
@@ -116,7 +116,7 @@ class TaxEnrolmentServiceImpl @Inject() (
             .save(taxEnrolmentRequest)
             .leftMap(error => Error(s"Could not store enrolment details: $error"))
         }
-    } yield result
+    yield result
 
   private def handleTaxEnrolmentServiceResponse(httpResponse: HttpResponse): Either[Error, Unit] =
     httpResponse.status match {
@@ -130,13 +130,13 @@ class TaxEnrolmentServiceImpl @Inject() (
     enrolmentState match {
 
       case (Some(createEnrolmentRequest), None) =>
-        val result = for {
+        val result = for
           httpResponse <- EitherT.liftF(makeES8call(createEnrolmentRequest)) // attempt to create enrolment
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
           _            <- taxEnrolmentRepository.delete(
                             createEnrolmentRequest.ggCredId
                           ) // delete record if enrolment was successful
-        } yield ()
+        yield ()
         result
           .bimap(
             error => logger.warn(s"Error when trying to create enrolments again: $error"),
@@ -145,11 +145,11 @@ class TaxEnrolmentServiceImpl @Inject() (
           .merge
 
       case (None, Some(updateVerifiersRequest)) =>
-        val result = for {
+        val result = for
           httpResponse <- EitherT.liftF(makeES6call(updateVerifiersRequest))
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse))
           _            <- verifiersRepository.delete(updateVerifiersRequest.ggCredId)
-        } yield ()
+        yield ()
         result
           .bimap(
             error => logger.warn(s"Error when updating verifiers: $error"),
@@ -161,13 +161,13 @@ class TaxEnrolmentServiceImpl @Inject() (
         val updatedCreateEnrolmentRequest =
           enrolmentRequest.copy(address = updateVerifiersRequest.subscribedUpdateDetails.newDetails.address)
 
-        val result = for {
+        val result = for
           _            <- taxEnrolmentRepository.update(enrolmentRequest.ggCredId, updatedCreateEnrolmentRequest)
           httpResponse <- EitherT.liftF(makeES8call(updatedCreateEnrolmentRequest)) // attempt to create enrolment
           _            <- EitherT.fromEither(handleTaxEnrolmentServiceResponse(httpResponse)) // evaluate enrolment result
           _            <- taxEnrolmentRepository.delete(enrolmentRequest.ggCredId) // delete record if enrolment was successful
           _            <- verifiersRepository.delete(enrolmentRequest.ggCredId) // delete the update verifier request
-        } yield ()
+        yield ()
         result
           .bimap(
             error => logger.warn(s"Error when creating enrolments with updated verifiers: $error"),
@@ -181,7 +181,7 @@ class TaxEnrolmentServiceImpl @Inject() (
   override def hasCgtSubscription(
     ggCredId: String
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[TaxEnrolmentRequest]] =
-    for {
+    for
       maybeEnrolmentRequest      <-
         taxEnrolmentRepository
           .get(ggCredId)
@@ -195,34 +195,33 @@ class TaxEnrolmentServiceImpl @Inject() (
             )
           )
       _                          <- EitherT.liftF(handleEnrolmentState(maybeEnrolmentRequest -> maybeUpdateVerifierRequest))
-    } yield maybeEnrolmentRequest
+    yield maybeEnrolmentRequest
 
   override def updateVerifiers(updateVerifiersRequest: UpdateVerifiersRequest)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, Unit] =
-    if (hasChangedAddress(updateVerifiersRequest.subscribedUpdateDetails))
-      for {
+    if hasChangedAddress(updateVerifiersRequest.subscribedUpdateDetails) then
+      for
         _                           <- verifiersRepository.delete(updateVerifiersRequest.ggCredId)
         _                           <- verifiersRepository.insert(updateVerifiersRequest)
         maybeCreateEnrolmentRequest <- taxEnrolmentRepository.get(updateVerifiersRequest.ggCredId)
         _                           <- EitherT.liftF(handleEnrolmentState(maybeCreateEnrolmentRequest -> Some(updateVerifiersRequest)))
-      } yield ()
-    else
-      EitherT.rightT[Future, Error](())
+      yield ()
+    else EitherT.rightT[Future, Error](())
 
   private def hasChangedAddress(subscribedUpdateDetails: SubscribedUpdateDetails): Boolean =
     subscribedUpdateDetails.newDetails.address match {
       case Address.UkAddress(_, _, _, _, newPostcode)      =>
         subscribedUpdateDetails.previousDetails.address match {
           case Address.UkAddress(_, _, _, _, oldPostcode) =>
-            if (newPostcode.equals(oldPostcode)) false else true
+            if newPostcode.equals(oldPostcode) then false else true
           case _: Address.NonUkAddress                    => true
         }
       case Address.NonUkAddress(_, _, _, _, _, newCountry) =>
         subscribedUpdateDetails.previousDetails.address match {
           case _: Address.UkAddress                                 => true
           case Address.NonUkAddress(_, _, _, _, _, previousCountry) =>
-            if (newCountry === previousCountry) false else true
+            if newCountry === previousCountry then false else true
         }
     }
 

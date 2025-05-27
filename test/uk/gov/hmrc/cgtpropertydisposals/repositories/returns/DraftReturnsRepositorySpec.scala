@@ -28,6 +28,8 @@ import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class DraftReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
 
   override def beforeEach(): Unit =

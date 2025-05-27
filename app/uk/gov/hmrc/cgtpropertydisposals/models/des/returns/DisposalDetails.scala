@@ -84,10 +84,8 @@ object DisposalDetails {
   def apply(c: CompleteReturn): DisposalDetails = {
     def extractGainOrLoss(a: Option[AmountInPence]): (Option[BigDecimal], Option[BigDecimal]) =
       a.fold[(Option[BigDecimal], Option[BigDecimal])](None -> None) { f =>
-        if (f < AmountInPence.zero)
-          None               -> Some(-f.inPounds())
-        else
-          Some(f.inPounds()) -> None
+        if f < AmountInPence.zero then None -> Some(-f.inPounds())
+        else Some(f.inPounds())             -> None
       }
 
     c match {
@@ -203,7 +201,7 @@ object DisposalDetails {
   }
 
   private def improvementCosts(c: CompleteSingleDisposalReturn): Option[BigDecimal] =
-    if (c.acquisitionDetails.improvementCosts > AmountInPence.zero)
+    if c.acquisitionDetails.improvementCosts > AmountInPence.zero then
       Some(c.acquisitionDetails.improvementCosts.inPounds())
     else None
 

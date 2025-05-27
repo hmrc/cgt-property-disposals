@@ -17,17 +17,15 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.email
 
 import cats.data.EitherT
-import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
+import cats.instances.future.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Request
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.EmailConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.SubscriptionConfirmationEmailSentEvent
@@ -40,8 +38,12 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
 
-class EmailServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+class EmailServiceImplSpec extends AnyWordSpec with Matchers {
 
   val mockAuditService: AuditService = mock[AuditService]
 
@@ -51,14 +53,15 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMocki
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  implicit val request: Request[_] = FakeRequest()
+  implicit val request: Request[?] = FakeRequest()
 
   private def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     result: Either[Error, HttpResponse]
   ) =
-    mockEmailConnector
-      .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(*)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockEmailConnector
+        .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(any())
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockSendReturnConfirmationEmail(
     submitReturnResponse: SubmitReturnResponse,
@@ -66,34 +69,37 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMocki
   )(
     result: Either[Error, HttpResponse]
   ) =
-    mockEmailConnector
-      .sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails)(*)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockEmailConnector
+        .sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails)(any())
+    ).thenReturn(EitherT.fromEither[Future](result))
 
-  private def mockAuditSubscriptionEmailEvent(email: String, cgtReference: String) =
-    mockAuditService
-      .sendEvent(
-        "subscriptionConfirmationEmailSent",
-        SubscriptionConfirmationEmailSentEvent(
-          email,
-          cgtReference
-        ),
-        "subscription-confirmation-email-sent"
-      )(*, *, *)
-      .doesNothing()
+  private def mockAuditSubscriptionEmailEvent(email: String, cgtReference: String): Unit =
+    doNothing().when(
+      mockAuditService
+        .sendEvent(
+          "subscriptionConfirmationEmailSent",
+          SubscriptionConfirmationEmailSentEvent(
+            email,
+            cgtReference
+          ),
+          "subscription-confirmation-email-sent"
+        )(any(), any(), any())
+    )
 
-  private def mockAuditReturnConfirmationEmailEvent(email: String, cgtReference: String, submissionId: String) =
-    mockAuditService
-      .sendEvent(
-        "returnConfirmationEmailSent",
-        ReturnConfirmationEmailSentEvent(
-          email,
-          cgtReference,
-          submissionId
-        ),
-        "return-confirmation-email-sent"
-      )(*, *, *)
-      .doesNothing()
+  private def mockAuditReturnConfirmationEmailEvent(email: String, cgtReference: String, submissionId: String): Unit =
+    doNothing().when(
+      mockAuditService
+        .sendEvent(
+          "returnConfirmationEmailSent",
+          ReturnConfirmationEmailSentEvent(
+            email,
+            cgtReference,
+            submissionId
+          ),
+          "return-confirmation-email-sent"
+        )(any(), any(), any())
+    )
 
   "EmailServiceImpl" when {
     "handling requests to send subscription confirmation emails" must {

@@ -36,6 +36,11 @@ import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
   private val mockUpscanService = mock[UpscanService]
 
@@ -44,9 +49,10 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   private def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
     response: Either[Error, Unit]
   ) =
-    mockUpscanService
-      .storeUpscanUpload(upscanUpload)
-      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
+    when(
+      mockUpscanService
+        .storeUpscanUpload(upscanUpload)
+    ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockUpdateUpscanUpload(
     uploadReference: UploadReference,
@@ -54,23 +60,26 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   )(
     response: Either[Error, Unit]
   ) =
-    mockUpscanService
-      .updateUpscanUpload(uploadReference, upscanUpload)
-      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
+    when(
+      mockUpscanService
+        .updateUpscanUpload(uploadReference, upscanUpload)
+    ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockGetUpscanUpload(uploadReference: UploadReference)(
     response: Either[Error, Option[UpscanUploadWrapper]]
   ) =
-    mockUpscanService
-      .readUpscanUpload(uploadReference)
-      .returns(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
+    when(
+      mockUpscanService
+        .readUpscanUpload(uploadReference)
+    ).thenReturn(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
 
   private def mockGetUpscanUploads(uploadReferences: List[UploadReference])(
     response: Either[Error, List[UpscanUploadWrapper]]
   ) =
-    mockUpscanService
-      .readUpscanUploads(uploadReferences)
-      .returns(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
+    when(
+      mockUpscanService
+        .readUpscanUploads(uploadReferences)
+    ).thenReturn(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
 
   val request = new AuthenticatedRequest(
     Fake.user,

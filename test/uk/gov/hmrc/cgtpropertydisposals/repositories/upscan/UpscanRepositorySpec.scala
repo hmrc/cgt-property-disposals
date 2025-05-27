@@ -29,9 +29,11 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 
-  val config = Configuration(
+  val config: Configuration = Configuration(
     ConfigFactory.parseString(
       """
         | mongodb.upscan.expiry-time = 20seconds
@@ -39,7 +41,7 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
     )
   )
 
-  val stagedInstant = sample[UpscanUploadWrapper].lastUpdated
+  val stagedInstant: Instant = sample[UpscanUploadWrapper].lastUpdated
 
   val currentInstant = new CurrentInstant {
     override def currentInstant(): Instant = stagedInstant

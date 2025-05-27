@@ -30,12 +30,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, ListReturnsResponse, ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.{AmendReturnsRepository, DefaultAmendReturnsRepository}
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary
 
 import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
 
 import java.time.LocalDate
 import scala.concurrent.Future
+import play.api.libs.ws.WSBodyReadables.readableAsString
 
 class GetReturnsControllerISpec extends IntegrationBaseSpec {
 

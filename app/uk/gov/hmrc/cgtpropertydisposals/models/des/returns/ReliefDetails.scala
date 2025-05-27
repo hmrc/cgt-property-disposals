@@ -48,13 +48,12 @@ object ReliefDetails {
       cr.reliefDetails.otherReliefs.map(_.fold(_ => true, () => false)).isDefined
 
   private def privateResRelief(cr: CompleteSingleDisposalReturn): Option[BigDecimal] =
-    if (cr.reliefDetails.privateResidentsRelief > AmountInPence.zero)
+    if cr.reliefDetails.privateResidentsRelief > AmountInPence.zero then
       Some(cr.reliefDetails.privateResidentsRelief.inPounds())
     else None
 
   private def lettingsRelief(cr: CompleteSingleDisposalReturn): Option[BigDecimal] =
-    if (cr.reliefDetails.lettingsRelief > AmountInPence.zero)
-      Some(cr.reliefDetails.lettingsRelief.inPounds())
+    if cr.reliefDetails.lettingsRelief > AmountInPence.zero then Some(cr.reliefDetails.lettingsRelief.inPounds())
     else None
 
   private final case class ReliefDetailsOutFormat(

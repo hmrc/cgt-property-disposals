@@ -33,15 +33,20 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+
 class TestOnlyControllerSpec extends ControllerSpec {
   private val draftReturnsService = mock[DraftReturnsService]
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   private def mockDeleteDraftReturnService(cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    draftReturnsService
-      .deleteDraftReturn(cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnsService
+        .deleteDraftReturn(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   val request = new AuthenticatedRequest(
     Fake.user,

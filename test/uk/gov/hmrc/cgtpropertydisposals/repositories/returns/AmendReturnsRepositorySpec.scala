@@ -27,6 +27,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, Sub
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CurrentInstant
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 

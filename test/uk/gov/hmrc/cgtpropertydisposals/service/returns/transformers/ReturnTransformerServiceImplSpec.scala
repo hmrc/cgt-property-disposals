@@ -17,8 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
 import cats.syntax.either._
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
@@ -34,7 +32,12 @@ import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, 
 
 import java.time.LocalDate
 
-class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
+class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers {
 
   private val mockCalculationService = mock[CgtCalculationService]
 
@@ -43,14 +46,16 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
   val transformer = new ReturnTransformerServiceImpl(mockCalculationService, mockTaxYearService)
 
   private def mockCalculateTaxDue()(result: CalculatedTaxDue) =
-    mockCalculationService
-      .calculateTaxDue(*, *, *, *, *, *, *, *, *, *)
-      .returns(result)
+    when(
+      mockCalculationService
+        .calculateTaxDue(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    ).thenReturn(result)
 
   private def mockGetTaxYear(date: LocalDate)(result: Option[TaxYear]) =
-    mockTaxYearService
-      .getTaxYear(date)
-      .returns(result)
+    when(
+      mockTaxYearService
+        .getTaxYear(date)
+    ).thenReturn(result)
 
   "ReturnTransformerServiceImpl" when {
     val ukAddress = sample[UkAddress]
@@ -1051,7 +1056,7 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
             )
         }
 
-        def furtherOrAmendReturnBehaviour(desReturnDetails: DesReturnDetails) = {
+        def furtherOrAmendReturnBehaviour(desReturnDetails: DesReturnDetails): Unit = {
           "finding the taxableGainOrLoss when a loss has been made" in {
             mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 

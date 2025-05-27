@@ -24,6 +24,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.{Individ
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class CustomerTypeSpec extends AnyWordSpec with Matchers {
 
   "CustomerType" must {

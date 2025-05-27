@@ -28,6 +28,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DateOfDeath, Representee
 
 import java.time.LocalDate
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class RepresentedPersonDetailsSpec extends AnyWordSpec with Matchers {
 
   "RepresentedPersonDetails" must {

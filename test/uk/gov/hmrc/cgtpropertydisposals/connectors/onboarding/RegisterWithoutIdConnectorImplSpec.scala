@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import com.typesafe.config.ConfigFactory
-import org.mockito.IdiomaticMockito
 import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -40,7 +39,6 @@ import java.util.UUID
 class RegisterWithoutIdConnectorImplSpec
     extends AnyWordSpec
     with Matchers
-    with IdiomaticMockito
     with WireMockSupport
     with WireMockMethods
     with GuiceOneAppPerSuite

@@ -118,7 +118,7 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
           .find(in("_id", uploadReference.map(_.value)*))
           .toFuture()
           .map { a =>
-            if (a.isEmpty) {
+            if a.isEmpty then {
               Left(Error(s"Could not get ids value"))
             } else {
               Right(a.toList)

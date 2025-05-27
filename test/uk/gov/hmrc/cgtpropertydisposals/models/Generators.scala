@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 
 import org.apache.pekko.util.ByteString
 import org.bson.types.ObjectId
-import org.scalacheck.ScalacheckShapeless._
+//import org.scalacheck.ScalacheckShapeless._
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
@@ -56,12 +56,14 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanS
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.DesReturnSummary
 import uk.gov.hmrc.mongo.workitem.WorkItem
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.arb
 
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import java.util.Base64
 import scala.reflect.{ClassTag, classTag}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary
+import io.github.martinhh.derived.scalacheck.given
 
 object Generators
     extends GenUtils
@@ -96,43 +98,43 @@ sealed trait GenUtils {
   def gen[A](implicit arb: Arbitrary[A]): Gen[A] = arb.arbitrary
 
   // define our own Arbitrary instance for String to generate more legible strings
-  implicit val stringArb: Arbitrary[String] = Arbitrary(
+  given stringArb: Arbitrary[String] = Arbitrary(
     for {
       n <- Gen.choose(1, 30)
       s <- Gen.listOfN(n, Gen.alphaChar).map(_.mkString(""))
     } yield s
   )
 
-  implicit val longArb: Arbitrary[Long] = Arbitrary(Gen.choose(0L, 100L))
+  given longArb: Arbitrary[Long] = Arbitrary(Gen.choose(0L, 100L))
 
-  implicit val bigDecimalGen: Arbitrary[BigDecimal] = Arbitrary(Gen.choose(0, 100).map(BigDecimal(_)))
+  given bigDecimalGen: Arbitrary[BigDecimal] = Arbitrary(Gen.choose(0, 100).map(BigDecimal(_)))
 
-  implicit val localDateTimeArb: Arbitrary[LocalDateTime] =
+  given localDateTimeArb: Arbitrary[LocalDateTime] =
     Arbitrary(
       Gen
         .chooseNum(0L, 10000L)
         .map(l => LocalDateTime.ofInstant(Instant.ofEpochMilli(l), ZoneId.systemDefault()))
     )
 
-  implicit val localDateArb: Arbitrary[LocalDate] = Arbitrary(
+  /*  given localDateArb: Arbitrary[LocalDate] = Arbitrary(
     Gen.chooseNum(0, 10000L).map(LocalDate.ofEpochDay)
-  )
+  )*/
 
-  implicit val byteStringArb: Arbitrary[ByteString] =
+  given byteStringArb: Arbitrary[ByteString] =
     Arbitrary(
       Gen
         .choose(0L, Long.MaxValue)
         .map(s => ByteString(s))
     )
 
-  implicit val bsonObjectId: Arbitrary[ObjectId] =
+  given bsonObjectId: Arbitrary[ObjectId] =
     Arbitrary(
       Gen
         .choose(0L, 10000L)
         .map(_ => ObjectId.get())
     )
 
-  implicit val instantArb: Arbitrary[Instant] =
+  given instantArb: Arbitrary[Instant] =
     Arbitrary(
       Gen
         .chooseNum(0L, 10000L)
@@ -143,295 +145,295 @@ sealed trait GenUtils {
 trait IdGen {
   this: GenUtils =>
 
-  implicit val cgtReferenceGen: Gen[CgtReference] = gen[CgtReference]
+  given cgtReferenceGen: Gen[CgtReference] = gen[CgtReference]
 
-  implicit val sapNumberGen: Gen[SapNumber] = gen[SapNumber]
+  given sapNumberGen: Gen[SapNumber] = gen[SapNumber]
 
-  implicit val sautrGen: Gen[SAUTR] = gen[SAUTR]
+  given sautrGen: Gen[SAUTR] = gen[SAUTR]
 
-  implicit val ninoGen: Gen[NINO] = gen[NINO]
+  given ninoGen: Gen[NINO] = gen[NINO]
 
-  implicit val agentReferenceNumberGen: Gen[AgentReferenceNumber] = gen[AgentReferenceNumber]
+  given agentReferenceNumberGen: Gen[AgentReferenceNumber] = gen[AgentReferenceNumber]
 }
 
 trait B64HtmlGen {
   this: GenUtils =>
-  implicit val b64HtmlGen: Gen[B64Html] =
+  given b64HtmlGen: Gen[B64Html] =
     Gen.asciiStr.map(s => B64Html(new String(Base64.getEncoder.encode(s.getBytes()))))
 }
 
 trait NameGen {
   this: GenUtils =>
 
-  implicit val individualNameGen: Gen[IndividualName] = gen[IndividualName]
+  given individualNameGen: Gen[IndividualName] = gen[IndividualName]
 
-  implicit val trustNameGen: Gen[TrustName] = gen[TrustName]
+  given trustNameGen: Gen[TrustName] = gen[TrustName]
 
-  implicit val contactNameGen: Gen[ContactName] = gen[ContactName]
+  given contactNameGen: Gen[ContactName] = gen[ContactName]
 }
 
 trait EmailGen {
   this: GenUtils =>
 
-  implicit val emailGen: Gen[Email] = gen[Email]
+  given emailGen: Gen[Email] = gen[Email]
 }
 
 trait OnboardingGen {
   this: GenUtils =>
 
-  implicit val registrationDetailsGen: Gen[RegistrationDetails] = gen[RegistrationDetails]
+  given registrationDetailsGen: Gen[RegistrationDetails] = gen[RegistrationDetails]
 
-  implicit val subscriptionDetailsGen: Gen[SubscriptionDetails] = gen[SubscriptionDetails]
+  given subscriptionDetailsGen: Gen[SubscriptionDetails] = gen[SubscriptionDetails]
 
-  implicit val subscriptionSuccessfulGen: Gen[SubscriptionSuccessful] = gen[SubscriptionSuccessful]
+  given subscriptionSuccessfulGen: Gen[SubscriptionSuccessful] = gen[SubscriptionSuccessful]
 
-  implicit val subscribedDetailsGen: Gen[SubscribedDetails] = gen[SubscribedDetails]
+  given subscribedDetailsGen: Gen[SubscribedDetails] = gen[SubscribedDetails]
 
-  implicit val desSubscriptionRequestGen: Gen[DesSubscriptionRequest] = gen[DesSubscriptionRequest]
+  given desSubscriptionRequestGen: Gen[DesSubscriptionRequest] = gen[DesSubscriptionRequest]
 
-  implicit val desUpdateRequestGen: Gen[DesSubscriptionUpdateRequest] = gen[DesSubscriptionUpdateRequest]
+  given desUpdateRequestGen: Gen[DesSubscriptionUpdateRequest] = gen[DesSubscriptionUpdateRequest]
 }
 
 trait BusinessPartnerRecordGen {
   this: GenUtils =>
 
-  implicit val bprGen: Gen[BusinessPartnerRecord] = gen[BusinessPartnerRecord]
+  given bprGen: Gen[BusinessPartnerRecord] = gen[BusinessPartnerRecord]
 
-  implicit val bprRequestGen: Gen[BusinessPartnerRecordRequest] = gen[BusinessPartnerRecordRequest]
+  given bprRequestGen: Gen[BusinessPartnerRecordRequest] = gen[BusinessPartnerRecordRequest]
 
-  implicit val individualBprRequestGen: Gen[IndividualBusinessPartnerRecordRequest] =
+  given individualBprRequestGen: Gen[IndividualBusinessPartnerRecordRequest] =
     gen[IndividualBusinessPartnerRecordRequest]
 }
 
 trait TaxEnrolmentGen {
   this: GenUtils =>
 
-  implicit val taxEnrolmentRequestGen: Gen[TaxEnrolmentRequest] = gen[TaxEnrolmentRequest]
+  given taxEnrolmentRequestGen: Gen[TaxEnrolmentRequest] = gen[TaxEnrolmentRequest]
 
-  implicit val updateVerifiersRequestGen: Gen[UpdateVerifiersRequest] = gen[UpdateVerifiersRequest]
+  given updateVerifiersRequestGen: Gen[UpdateVerifiersRequest] = gen[UpdateVerifiersRequest]
 }
 
 trait DraftReturnGen extends LowerPriorityDraftReturnGen {
   this: GenUtils =>
 
-  implicit val draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
+  given draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 
-  implicit val singleDisposalDraftReturnGen: Gen[DraftSingleDisposalReturn] =
+  given singleDisposalDraftReturnGen: Gen[DraftSingleDisposalReturn] =
     gen[DraftSingleDisposalReturn]
 }
 
 trait LowerPriorityDraftReturnGen {
   this: GenUtils =>
 
-  implicit val multipleDisposalDraftReturnGen: Gen[DraftMultipleDisposalsReturn] = gen[DraftMultipleDisposalsReturn]
+  given multipleDisposalDraftReturnGen: Gen[DraftMultipleDisposalsReturn] = gen[DraftMultipleDisposalsReturn]
 
-  implicit val multipleIndirectDisposalDraftReturnGen: Gen[DraftMultipleIndirectDisposalsReturn] =
+  given multipleIndirectDisposalDraftReturnGen: Gen[DraftMultipleIndirectDisposalsReturn] =
     gen[DraftMultipleIndirectDisposalsReturn]
 
-  implicit val singleIndirectDisposalDraftReturnGen: Gen[DraftSingleIndirectDisposalReturn] =
+  given singleIndirectDisposalDraftReturnGen: Gen[DraftSingleIndirectDisposalReturn] =
     gen[DraftSingleIndirectDisposalReturn]
 
-  implicit val singleMixedUseDraftReturnGen: Gen[DraftSingleMixedUseDisposalReturn] =
+  given singleMixedUseDraftReturnGen: Gen[DraftSingleMixedUseDisposalReturn] =
     gen[DraftSingleMixedUseDisposalReturn]
 }
 
 trait UpscanGen {
   this: GenUtils =>
-  implicit val uploadDetails: Gen[UploadDetails]            = gen[UploadDetails]
-  implicit val newUpscanSuccess: Gen[NewUpscanSuccess]      = gen[NewUpscanSuccess]
-  implicit val upscanUploadGen: Gen[UpscanUpload]           = gen[UpscanUpload]
-  implicit val upscanUploadNewGen: Gen[UpscanUploadWrapper] = gen[UpscanUploadWrapper]
-  implicit val uploadReferenceGen: Gen[UploadReference]     = gen[UploadReference]
-  implicit val upscanSuccessGen: Gen[UpscanSuccess]         = gen[UpscanSuccess]
+  given uploadDetails: Gen[UploadDetails]            = gen[UploadDetails]
+  given newUpscanSuccess: Gen[NewUpscanSuccess]      = gen[NewUpscanSuccess]
+  given upscanUploadGen: Gen[UpscanUpload]           = gen[UpscanUpload]
+  given upscanUploadNewGen: Gen[UpscanUploadWrapper] = gen[UpscanUploadWrapper]
+  given uploadReferenceGen: Gen[UploadReference]     = gen[UploadReference]
+  given upscanSuccessGen: Gen[UpscanSuccess]         = gen[UpscanSuccess]
 }
 
 trait DmsSubmissionGen {
   this: GenUtils =>
-  implicit val dmsMetadataGen: Gen[DmsMetadata]                   = gen[DmsMetadata]
-  implicit val fileAttachmentGen: Gen[FileAttachment]             = gen[FileAttachment]
-  implicit val dmsSubmissionPayloadGen: Gen[DmsSubmissionPayload] = gen[DmsSubmissionPayload]
-  implicit val dmsSubmissionRequestGen: Gen[DmsSubmissionRequest] = gen[DmsSubmissionRequest]
-  implicit val workItemGen: Gen[WorkItem[DmsSubmissionRequest]]   = gen[WorkItem[DmsSubmissionRequest]]
+  given dmsMetadataGen: Gen[DmsMetadata]                   = gen[DmsMetadata]
+  given fileAttachmentGen: Gen[FileAttachment]             = gen[FileAttachment]
+  given dmsSubmissionPayloadGen: Gen[DmsSubmissionPayload] = gen[DmsSubmissionPayload]
+  given dmsSubmissionRequestGen: Gen[DmsSubmissionRequest] = gen[DmsSubmissionRequest]
+  given workItemGen: Gen[WorkItem[DmsSubmissionRequest]]   = gen[WorkItem[DmsSubmissionRequest]]
 }
 
 trait ReturnsGen extends LowerPriorityReturnsGen {
   this: GenUtils =>
 
-  implicit val completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
+  given completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
 
-  implicit val displayReturnGen: Gen[DisplayReturn] = gen[DisplayReturn]
+  given displayReturnGen: Gen[DisplayReturn] = gen[DisplayReturn]
 
-  implicit val completeSingleDisposalReturnGen: Gen[CompleteSingleDisposalReturn] = gen[CompleteSingleDisposalReturn]
+  given completeSingleDisposalReturnGen: Gen[CompleteSingleDisposalReturn] = gen[CompleteSingleDisposalReturn]
 
-  implicit val completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
+  given completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
     gen[CompleteSingleDisposalTriageAnswers]
 
-  implicit val completeMultipleDisposalsTriageAnswersGen: Gen[CompleteMultipleDisposalsTriageAnswers] =
+  given completeMultipleDisposalsTriageAnswersGen: Gen[CompleteMultipleDisposalsTriageAnswers] =
     gen[CompleteMultipleDisposalsTriageAnswers]
 
-  implicit val completeExamplePropertyDetailsAnswersGen: Gen[CompleteExamplePropertyDetailsAnswers] =
+  given completeExamplePropertyDetailsAnswersGen: Gen[CompleteExamplePropertyDetailsAnswers] =
     gen[CompleteExamplePropertyDetailsAnswers]
 
-  implicit val completeDisposalDetailsAnswersGen: Gen[CompleteDisposalDetailsAnswers] =
+  given completeDisposalDetailsAnswersGen: Gen[CompleteDisposalDetailsAnswers] =
     gen[CompleteDisposalDetailsAnswers]
 
-  implicit val completeCalculatedYearToDateLiabilityAnswersGen: Gen[CompleteCalculatedYTDAnswers] =
+  given completeCalculatedYearToDateLiabilityAnswersGen: Gen[CompleteCalculatedYTDAnswers] =
     gen[CompleteCalculatedYTDAnswers]
 
-  implicit val completeNonCalculatedYearToDateLiabilityAnswersGen: Gen[CompleteNonCalculatedYTDAnswers] =
+  given completeNonCalculatedYearToDateLiabilityAnswersGen: Gen[CompleteNonCalculatedYTDAnswers] =
     gen[CompleteNonCalculatedYTDAnswers]
 
-  implicit val hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
+  given hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
     gen[HasEstimatedDetailsWithCalculatedTaxDue]
 
-  implicit val otherReliefsGen: Gen[OtherReliefs] = gen[OtherReliefs]
+  given otherReliefsGen: Gen[OtherReliefs] = gen[OtherReliefs]
 
-  implicit val calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
+  given calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
 
-  implicit val gainCalculatedTaxDueGen: Gen[GainCalculatedTaxDue] = gen[GainCalculatedTaxDue]
+  given gainCalculatedTaxDueGen: Gen[GainCalculatedTaxDue] = gen[GainCalculatedTaxDue]
 
-  implicit val completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] =
+  given completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] =
     gen[CompleteAcquisitionDetailsAnswers]
 
-  implicit val completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] =
+  given completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] =
     gen[CompleteExemptionAndLossesAnswers]
 
-  implicit val listReturnResponseGen: Gen[ListReturnsResponse] =
+  given listReturnResponseGen: Gen[ListReturnsResponse] =
     gen[ListReturnsResponse]
 
-  implicit val submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
+  given submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
 
-  implicit val submitReturnWrapperGen: Gen[SubmitReturnWrapper] = gen[SubmitReturnWrapper]
+  given submitReturnWrapperGen: Gen[SubmitReturnWrapper] = gen[SubmitReturnWrapper]
 
-  implicit val submitReturnResponseGen: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
+  given submitReturnResponseGen: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
 
-  implicit val taxYearGen: Gen[TaxYear] = gen[TaxYear]
+  given taxYearGen: Gen[TaxYear] = gen[TaxYear]
 
-  implicit val taxYearConfigGen: Gen[TaxYearConfig] = gen[TaxYearConfig]
+  given taxYearConfigGen: Gen[TaxYearConfig] = gen[TaxYearConfig]
 
-  implicit val disposalDateGen: Gen[DisposalDate] = gen[DisposalDate]
+  given disposalDateGen: Gen[DisposalDate] = gen[DisposalDate]
 
-  implicit val calculateCgtTaxDueRequestGen: Gen[CalculateCgtTaxDueRequest] =
+  given calculateCgtTaxDueRequestGen: Gen[CalculateCgtTaxDueRequest] =
     gen[CalculateCgtTaxDueRequest]
 
-  implicit val returnSummaryGen: Gen[ReturnSummary] = gen[ReturnSummary]
+  given returnSummaryGen: Gen[ReturnSummary] = gen[ReturnSummary]
 
-  implicit val assetTypeGen: Gen[AssetType] = gen[AssetType]
+  given assetTypeGen: Gen[AssetType] = gen[AssetType]
 
-  implicit val mandatoryEvidenceGen: Gen[MandatoryEvidence] = gen[MandatoryEvidence]
+  given mandatoryEvidenceGen: Gen[MandatoryEvidence] = gen[MandatoryEvidence]
 
-  implicit val supportingEvidenceGen: Gen[SupportingEvidence] = gen[SupportingEvidence]
+  given supportingEvidenceGen: Gen[SupportingEvidence] = gen[SupportingEvidence]
 
-  implicit val representeeDetailsGen: Gen[RepresenteeDetails] = gen[RepresenteeDetails]
+  given representeeDetailsGen: Gen[RepresenteeDetails] = gen[RepresenteeDetails]
 
-  implicit val representeeContactDetailsGen: Gen[RepresenteeContactDetails] = gen[RepresenteeContactDetails]
+  given representeeContactDetailsGen: Gen[RepresenteeContactDetails] = gen[RepresenteeContactDetails]
 
-  implicit val completeRepresenteeAnswersGen: Gen[CompleteRepresenteeAnswers] = gen[CompleteRepresenteeAnswers]
+  given completeRepresenteeAnswersGen: Gen[CompleteRepresenteeAnswers] = gen[CompleteRepresenteeAnswers]
 
-  implicit val completeExampleCompanyDetailsAnswersGen: Gen[CompleteExampleCompanyDetailsAnswers] =
+  given completeExampleCompanyDetailsAnswersGen: Gen[CompleteExampleCompanyDetailsAnswers] =
     gen[CompleteExampleCompanyDetailsAnswers]
 
-  implicit val completeSupportingEvidenceAnswersGen: Gen[CompleteSupportingEvidenceAnswers] =
+  given completeSupportingEvidenceAnswersGen: Gen[CompleteSupportingEvidenceAnswers] =
     gen[CompleteSupportingEvidenceAnswers]
 
-  implicit val amendReturnDataGen: Gen[AmendReturnData] = gen[AmendReturnData]
+  given amendReturnDataGen: Gen[AmendReturnData] = gen[AmendReturnData]
 
-  implicit val completeReturnWithSummaryGen: Gen[CompleteReturnWithSummary] = gen[CompleteReturnWithSummary]
+  given completeReturnWithSummaryGen: Gen[CompleteReturnWithSummary] = gen[CompleteReturnWithSummary]
 }
 
 trait LowerPriorityReturnsGen {
   this: GenUtils =>
 
-  implicit val nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
+  given nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
 
-  implicit val completeMultipleDisposalReturnGen: Gen[CompleteMultipleDisposalsReturn] =
+  given completeMultipleDisposalReturnGen: Gen[CompleteMultipleDisposalsReturn] =
     gen[CompleteMultipleDisposalsReturn]
 
-  implicit val completeSingleIndirectDisposalReturnGen: Gen[CompleteSingleIndirectDisposalReturn] =
+  given completeSingleIndirectDisposalReturnGen: Gen[CompleteSingleIndirectDisposalReturn] =
     gen[CompleteSingleIndirectDisposalReturn]
 
-  implicit val completeMultipleIndirectDisposalReturnGen: Gen[CompleteMultipleIndirectDisposalReturn] =
+  given completeMultipleIndirectDisposalReturnGen: Gen[CompleteMultipleIndirectDisposalReturn] =
     gen[CompleteMultipleIndirectDisposalReturn]
 
-  implicit val completeSingleMixedUseDisposalReturnGen: Gen[CompleteSingleMixedUseDisposalReturn] =
+  given completeSingleMixedUseDisposalReturnGen: Gen[CompleteSingleMixedUseDisposalReturn] =
     gen[CompleteSingleMixedUseDisposalReturn]
 
-  implicit val completeMixedUsePropertyDetailsGen: Gen[CompleteMixedUsePropertyDetailsAnswers] =
+  given completeMixedUsePropertyDetailsGen: Gen[CompleteMixedUsePropertyDetailsAnswers] =
     gen[CompleteMixedUsePropertyDetailsAnswers]
 }
 
 trait DesReturnsGen {
   this: GenUtils =>
 
-  implicit val desReturnDetailsGen: Gen[DesReturnDetails] = gen[DesReturnDetails]
+  given desReturnDetailsGen: Gen[DesReturnDetails] = gen[DesReturnDetails]
 
-  implicit val desSingleDisposalDetailsGen: Gen[SingleDisposalDetails] = gen[SingleDisposalDetails]
+  given desSingleDisposalDetailsGen: Gen[SingleDisposalDetails] = gen[SingleDisposalDetails]
 
-  implicit val desMultipleDisposalsDetailsGen: Gen[MultipleDisposalDetails] =
+  given desMultipleDisposalsDetailsGen: Gen[MultipleDisposalDetails] =
     gen[MultipleDisposalDetails]
 
-  implicit val desSingleMixedUseDisposalsDetailsGen: Gen[SingleMixedUseDisposalDetails] =
+  given desSingleMixedUseDisposalsDetailsGen: Gen[SingleMixedUseDisposalDetails] =
     gen[SingleMixedUseDisposalDetails]
 
-  implicit val returnDetailsGen: Gen[ReturnDetails] = gen[ReturnDetails]
+  given returnDetailsGen: Gen[ReturnDetails] = gen[ReturnDetails]
 
-  implicit val desReliefDetailsGen: Gen[ReliefDetails] = gen[ReliefDetails]
+  given desReliefDetailsGen: Gen[ReliefDetails] = gen[ReliefDetails]
 
-  implicit val representedPersonDetailsGen: Gen[RepresentedPersonDetails] = gen[RepresentedPersonDetails]
+  given representedPersonDetailsGen: Gen[RepresentedPersonDetails] = gen[RepresentedPersonDetails]
 
-  implicit val incomeAllowanceDetailsGen: Gen[IncomeAllowanceDetails] = gen[IncomeAllowanceDetails]
+  given incomeAllowanceDetailsGen: Gen[IncomeAllowanceDetails] = gen[IncomeAllowanceDetails]
 
-  implicit val desReturnSummaryGen: Gen[DesReturnSummary] = gen[DesReturnSummary]
+  given desReturnSummaryGen: Gen[DesReturnSummary] = gen[DesReturnSummary]
 
-  implicit val desFinancialTransactionGen: Gen[DesFinancialTransaction] = gen[DesFinancialTransaction]
+  given desFinancialTransactionGen: Gen[DesFinancialTransaction] = gen[DesFinancialTransaction]
 
-  implicit val desSubmitReturnRequestGen: Gen[DesSubmitReturnRequest] = gen[DesSubmitReturnRequest]
+  given desSubmitReturnRequestGen: Gen[DesSubmitReturnRequest] = gen[DesSubmitReturnRequest]
 
-  implicit val createReturnTypeGen: Gen[CreateReturnType] = gen[CreateReturnType]
+  given createReturnTypeGen: Gen[CreateReturnType] = gen[CreateReturnType]
 
-  implicit val amendReturnTypeGen: Gen[AmendReturnType] = gen[AmendReturnType]
+  given amendReturnTypeGen: Gen[AmendReturnType] = gen[AmendReturnType]
 }
 
 trait AddressGen extends AddressLowerPriorityGen {
   this: GenUtils =>
 
-  implicit val addressGen: Gen[Address] = gen[Address]
+  given addressGen: Gen[Address] = gen[Address]
 
-  implicit val postcodeGen: Gen[Postcode] = Gen.oneOf(List(Postcode("BN11 3QY"), Postcode("BN11 4QY")))
+  given postcodeGen: Gen[Postcode] = Gen.oneOf(List(Postcode("BN11 3QY"), Postcode("BN11 4QY")))
 
-  implicit val ukAddressGen: Gen[UkAddress] =
+  given ukAddressGen: Gen[UkAddress] =
     for {
       a <- gen[UkAddress]
       p <- postcodeGen
     } yield a.copy(postcode = p)
 
-  implicit val countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
+  given countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
 }
 
 trait AddressLowerPriorityGen {
   this: GenUtils =>
 
-  implicit val nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
+  given nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
 }
 
 trait MoneyGen {
   this: GenUtils =>
 
-  implicit val amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
+  given amountInPenceGen: Gen[AmountInPence] = gen[AmountInPence]
 
-  implicit val amountInPenceWithSourceGen: Gen[AmountInPenceWithSource] = gen[AmountInPenceWithSource]
+  given amountInPenceWithSourceGen: Gen[AmountInPenceWithSource] = gen[AmountInPenceWithSource]
 }
 
 trait FurtherReturnCalculationGen {
   this: GenUtils =>
 
-  implicit val taxableGainOrLossCalculationRequestGen: Gen[TaxableGainOrLossCalculationRequest] =
+  given taxableGainOrLossCalculationRequestGen: Gen[TaxableGainOrLossCalculationRequest] =
     gen[TaxableGainOrLossCalculationRequest]
 
-  implicit val taxableGainOrLossCalculationGen: Gen[TaxableGainOrLossCalculation] = gen[TaxableGainOrLossCalculation]
+  given taxableGainOrLossCalculationGen: Gen[TaxableGainOrLossCalculation] = gen[TaxableGainOrLossCalculation]
 
-  implicit val ytdLiabilityCalculationRequestGen: Gen[YearToDateLiabilityCalculationRequest] =
+  given ytdLiabilityCalculationRequestGen: Gen[YearToDateLiabilityCalculationRequest] =
     gen[YearToDateLiabilityCalculationRequest]
 
-  implicit val ytdLiabilityCalculationGen: Gen[YearToDateLiabilityCalculation] = gen[YearToDateLiabilityCalculation]
+  given ytdLiabilityCalculationGen: Gen[YearToDateLiabilityCalculation] = gen[YearToDateLiabilityCalculation]
 }

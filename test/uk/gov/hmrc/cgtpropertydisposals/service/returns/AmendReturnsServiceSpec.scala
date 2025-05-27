@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Request
@@ -36,7 +35,12 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito with MongoSupport {
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
+class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MongoSupport {
 
   private val mockAmendReturnsRepo = mock[AmendReturnsRepository]
 
@@ -48,16 +52,18 @@ class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMo
   private def mockGetAmendReturnList(
     cgtReference: CgtReference
   )(result: Either[Error, List[SubmitReturnWrapper]]) =
-    mockAmendReturnsRepo
-      .fetch(cgtReference)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockAmendReturnsRepo
+        .fetch(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockSaveAmendReturnList(
     submitReturnRequest: SubmitReturnRequest
   )(result: Either[Error, Unit]) =
-    mockAmendReturnsRepo
-      .save(submitReturnRequest)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockAmendReturnsRepo
+        .save(submitReturnRequest)
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   "AmendReturnService" when {
     "handling saving amend returns" should {

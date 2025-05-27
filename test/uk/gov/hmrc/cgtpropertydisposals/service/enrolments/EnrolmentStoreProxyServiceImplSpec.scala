@@ -18,8 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.service.enrolments
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.Helpers._
@@ -32,16 +30,21 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers {
 
   private val mockEnrolmentProxyConnector = mock[EnrolmentStoreProxyConnector]
 
   val service = new EnrolmentStoreProxyServiceImpl(mockEnrolmentProxyConnector)
 
   private def mockGetPrincipalEnrolments(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
-    mockEnrolmentProxyConnector
-      .getPrincipalEnrolments(cgtReference)(*)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockEnrolmentProxyConnector
+        .getPrincipalEnrolments(cgtReference)(any())
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   "EnrolmentStoreProxyServiceImpl" when {
     "handling requests to determine whether a cgt enrolment exists for a cgt reference" must {

@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.service.dms
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.util.ByteString
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -40,7 +39,12 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
+class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
   private val mockDmsConnector  = mock[DmsConnector]
   private val mockUpscanService = mock[UpscanService]
 
@@ -61,16 +65,18 @@ class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers with IdiomaticM
   private def mockDmsSubmission(dmsSubmissionPayload: DmsSubmissionPayload)(
     response: DmsEnvelopeId
   ) =
-    mockDmsConnector
-      .submitToDms(dmsSubmissionPayload)
-      .returns(Future.successful(response))
+    when(
+      mockDmsConnector
+        .submitToDms(dmsSubmissionPayload)
+    ).thenReturn(Future.successful(response))
 
   private def mockDownloadS3Urls(upscanSuccesses: List[UpscanSuccess])(
     response: List[Either[Error, FileAttachment]]
   ) =
-    mockUpscanService
-      .downloadFilesFromS3(upscanSuccesses)
-      .returns(Future.successful(response))
+    when(
+      mockUpscanService
+        .downloadFilesFromS3(upscanSuccesses)
+    ).thenReturn(Future.successful(response))
 
   private val actorSystem                                                  = ActorSystem()
   implicit val dmsSubmissionPollerExecutionContext: FileIOExecutionContext =

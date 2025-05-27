@@ -17,8 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsNumber, JsValue, Json}
@@ -47,7 +45,12 @@ import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
+class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
 
   private val mockSubscriptionConnector = mock[SubscriptionConnector]
 
@@ -66,34 +69,37 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with Idiomat
     httpStatus: Int,
     responseBody: Option[JsValue],
     desSubscriptionRequest: DesSubscriptionRequest
-  ) =
-    mockAuditService
-      .sendEvent(
-        "subscriptionResponse",
-        SubscriptionResponseEvent(
-          httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
-          desSubscriptionRequest
-        ),
-        "subscription-response"
-      )(
-        *,
-        *,
-        *
-      )
-      .doesNothing()
+  ): Unit =
+    doNothing().when(
+      mockAuditService
+        .sendEvent(
+          "subscriptionResponse",
+          SubscriptionResponseEvent(
+            httpStatus,
+            responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
+            desSubscriptionRequest
+          ),
+          "subscription-response"
+        )(
+          any(),
+          any(),
+          any()
+        )
+    )
 
   private def mockSubscribe(
     expectedSubscriptionDetails: DesSubscriptionRequest
   )(response: Either[Error, HttpResponse]) =
-    mockSubscriptionConnector
-      .subscribe(expectedSubscriptionDetails)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionConnector
+        .subscribe(expectedSubscriptionDetails)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
-    mockSubscriptionConnector
-      .getSubscription(cgtReference)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionConnector
+        .getSubscription(cgtReference)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockUpdateSubscriptionDetails(
     subscribedDetails: DesSubscriptionUpdateRequest,
@@ -101,21 +107,24 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with Idiomat
   )(
     response: Either[Error, HttpResponse]
   ) =
-    mockSubscriptionConnector
-      .updateSubscription(subscribedDetails, cgtReference)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionConnector
+        .updateSubscription(subscribedDetails, cgtReference)(any)
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, HttpResponse]) =
-    mockSubscriptionConnector
-      .getSubscriptionStatus(sapNumber)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionConnector
+        .getSubscriptionStatus(sapNumber)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockSendConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     response: Either[Error, Unit]
   ) =
-    mockEmailService
-      .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(*, *)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockEmailService
+        .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(any(), any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private val emptyJsonBody = "{}"
   private val noJsonInBody  = ""
@@ -640,7 +649,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with Idiomat
 
     "handling requests to subscribe" must {
       implicit val hc: HeaderCarrier   = HeaderCarrier()
-      implicit val request: Request[_] = FakeRequest()
+      implicit val request: Request[?] = FakeRequest()
 
       val subscriptionDetails = sample[SubscriptionDetails]
       val subscriptionRequest = DesSubscriptionRequest(subscriptionDetails)

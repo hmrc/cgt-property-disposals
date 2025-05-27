@@ -17,8 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsNumber, JsValue, Json}
@@ -38,8 +36,12 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
 
-class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers {
 
   private val mockConnector = mock[RegisterWithoutIdConnector]
 
@@ -51,37 +53,39 @@ class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers with Id
     new RegisterWithoutIdServiceImpl(mockConnector, mockUUIDGenerator, mockAuditService, MockMetrics.metrics)
 
   private def mockGenerateUUID(uuid: UUID) =
-    mockUUIDGenerator.nextId().returns(uuid)
+    when(mockUUIDGenerator.nextId()).thenReturn(uuid)
 
   private def mockRegisterWithoutId(expectedRegistrationDetails: RegistrationDetails, expectedReferenceId: UUID)(
     response: Either[Error, HttpResponse]
   ) =
-    mockConnector
-      .registerWithoutId(expectedRegistrationDetails, expectedReferenceId)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockConnector
+        .registerWithoutId(expectedRegistrationDetails, expectedReferenceId)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
-  private def mockAuditRegistrationResponse(httpStatus: Int, responseBody: Option[JsValue]) =
-    mockAuditService
-      .sendEvent(
-        "registrationResponse",
-        RegistrationResponseEvent(
-          httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }"""))
-        ),
-        "registration-response"
-      )(
-        *,
-        *,
-        *
-      )
-      .doesNothing()
+  private def mockAuditRegistrationResponse(httpStatus: Int, responseBody: Option[JsValue]): Unit =
+    doNothing().when(
+      mockAuditService
+        .sendEvent(
+          "registrationResponse",
+          RegistrationResponseEvent(
+            httpStatus,
+            responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }"""))
+          ),
+          "registration-response"
+        )(
+          any(),
+          any(),
+          any()
+        )
+    )
 
   private val noJsonInBody = ""
 
   "RegisterWithoutIdServiceImpl" when {
     "handling requests to register without id" must {
       implicit val hc: HeaderCarrier   = HeaderCarrier()
-      implicit val request: Request[_] = FakeRequest()
+      implicit val request: Request[?] = FakeRequest()
       val registrationDetails          = sample[RegistrationDetails]
       val referenceId                  = UUID.randomUUID()
 

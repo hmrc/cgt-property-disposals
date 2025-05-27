@@ -22,6 +22,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
 
 import java.time.{Clock, Instant, ZoneId}
 

@@ -28,6 +28,9 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
+import org.mongodb.scala.SingleObservableFuture
 
 class TaxEnrolmentRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with BeforeAndAfterAll {
 

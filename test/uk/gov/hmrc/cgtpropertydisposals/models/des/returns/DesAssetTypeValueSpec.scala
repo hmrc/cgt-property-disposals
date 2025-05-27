@@ -25,25 +25,26 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteM
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   "DesAssetTypeValue" must {
 
     "have a method which can convert asset types in single disposals and convert them back" in {
-      forAll {
-        assetType: AssetType =>
-          val completeReturn = sample[CompleteSingleDisposalReturn].copy(
-            triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
-              assetType = assetType
-            )
+      forAll { (assetType: AssetType) =>
+        val completeReturn = sample[CompleteSingleDisposalReturn].copy(
+          triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+            assetType = assetType
           )
+        )
 
-          DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
+        DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
       }
     }
 
     "have a method which can convert asset types in multiple disposals and convert them back" in {
-      forAll { assetTypes: List[AssetType] =>
+      forAll { (assetTypes: List[AssetType]) =>
         whenever(assetTypes.nonEmpty) {
           val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(
             triageAnswers = sample[CompleteMultipleDisposalsTriageAnswers].copy(
@@ -58,15 +59,14 @@ class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDri
     }
 
     "have a method which can convert asset types in single mixed use disposals and convert them back" in {
-      forAll {
-        assetType: AssetType =>
-          val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
-            triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
-              assetType = assetType
-            )
+      forAll { (assetType: AssetType) =>
+        val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
+          triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
+            assetType = assetType
           )
+        )
 
-          DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
+        DesAssetTypeValue(completeReturn).toAssetTypes() shouldBe Right(List(assetType))
       }
 
     }

@@ -43,7 +43,7 @@ object DesReturnType {
 
   def apply(submitReturnRequest: SubmitReturnRequest, clock: Clock = Clock.systemUTC()): DesReturnType = {
     val timestamp    =
-      if (submitReturnRequest.isFurtherReturn) s" ${Instant.now(clock).getEpochSecond.toString}"
+      if submitReturnRequest.isFurtherReturn then s" ${Instant.now(clock).getEpochSecond.toString}"
       else ""
     val returnSource =
       submitReturnRequest.agentReferenceNumber
@@ -70,13 +70,13 @@ object DesReturnType {
     }
 
     override def reads(json: JsValue): JsResult[DesReturnType] =
-      for {
+      for
         source         <- (json \ "source").validate[String]
         submissionType <- (json \ "submissionType").validate[SubmissionType]
         result         <- submissionType match {
                             case SubmissionType.New   => JsSuccess(CreateReturnType(source))
                             case SubmissionType.Amend => JsSuccess(AmendReturnType(source, None))
                           }
-      } yield result
+      yield result
   }
 }

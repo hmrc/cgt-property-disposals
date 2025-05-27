@@ -61,7 +61,7 @@ object Address {
             case JsSuccess("nonUk", _) => json.validate[NonUkAddress]
             case JsSuccess(other, _)   => JsError(s"Unknown _type: $other")
             case JsError(_)            =>
-              if ((json \ "countryCode").isDefined) json.validate[NonUkAddress]
+              if (json \ "countryCode").isDefined then json.validate[NonUkAddress]
               else json.validate[UkAddress]
           }
       }

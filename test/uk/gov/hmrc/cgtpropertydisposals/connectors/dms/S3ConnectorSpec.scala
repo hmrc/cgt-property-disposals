@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.ActorSystem
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -45,7 +44,6 @@ import scala.language.postfixOps
 class S3ConnectorSpec
     extends AnyWordSpec
     with Matchers
-    with IdiomaticMockito
     with WireMockSupport
     with WireMockMethods
     with GuiceOneAppPerSuite {

@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -37,6 +36,11 @@ import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class GetReturnsControllerSpec extends ControllerSpec {
 
   private val mockReturnsService = mock[ReturnsService]
@@ -44,16 +48,18 @@ class GetReturnsControllerSpec extends ControllerSpec {
   private def mockListReturns(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     response: Either[Error, List[ReturnSummary]]
   ) =
-    mockReturnsService
-      .listReturns(cgtReference, fromDate, toDate)(*)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockReturnsService
+        .listReturns(cgtReference, fromDate, toDate)(any())
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
     response: Either[Error, DisplayReturn]
   ) =
-    mockReturnsService
-      .displayReturn(cgtReference, submissionId)(*)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockReturnsService
+        .displayReturn(cgtReference, submissionId)(any())
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   val request = new AuthenticatedRequest(
     Fake.user,

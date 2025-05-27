@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import com.typesafe.config.ConfigFactory
-import org.mockito.IdiomaticMockito
 import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -33,11 +32,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
 
 class SubscriptionConnectorImplSpec
     extends AnyWordSpec
     with Matchers
-    with IdiomaticMockito
     with WireMockSupport
     with WireMockMethods
     with GuiceOneAppPerSuite

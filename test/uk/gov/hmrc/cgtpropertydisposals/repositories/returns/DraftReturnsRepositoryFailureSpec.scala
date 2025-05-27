@@ -46,6 +46,9 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import org.mongodb.scala.SingleObservableFuture
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with BeforeAndAfterAll {
   private val config = Configuration(
     ConfigFactory.parseString(

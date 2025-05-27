@@ -31,6 +31,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.Comp
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class CgtCalculationServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   val service = new CgtCalculationServiceImpl
@@ -1000,19 +1002,18 @@ class CgtCalculationServiceImplSpec extends AnyWordSpec with Matchers with Scala
       }
 
       "calculate gain or loss after in year losses correctly" in {
-        forAll {
-          exemptionsAndLosses: CompleteExemptionAndLossesAnswers =>
-            val currentGlar = AmountInPence(1L)
-            service
-              .calculateTaxableGainOrLoss(
-                TaxableGainOrLossCalculationRequest(
-                  List.empty,
-                  currentGlar,
-                  exemptionsAndLosses,
-                  sample[UkAddress]
-                )
+        forAll { (exemptionsAndLosses: CompleteExemptionAndLossesAnswers) =>
+          val currentGlar = AmountInPence(1L)
+          service
+            .calculateTaxableGainOrLoss(
+              TaxableGainOrLossCalculationRequest(
+                List.empty,
+                currentGlar,
+                exemptionsAndLosses,
+                sample[UkAddress]
               )
-              .gainOrLossAfterInYearLosses shouldBe (currentGlar -- exemptionsAndLosses.inYearLosses)
+            )
+            .gainOrLossAfterInYearLosses shouldBe (currentGlar -- exemptionsAndLosses.inYearLosses)
         }
       }
 

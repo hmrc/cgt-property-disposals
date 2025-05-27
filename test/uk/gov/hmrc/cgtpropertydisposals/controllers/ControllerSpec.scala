@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers
 
-import org.mockito.IdiomaticMockito
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-trait ControllerSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll with IdiomaticMockito
+trait ControllerSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll

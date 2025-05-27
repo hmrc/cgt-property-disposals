@@ -17,17 +17,19 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
 import cats.data.EitherT
-import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
+import cats.instances.future.*
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
@@ -46,6 +48,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
 
 class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
   private val mockSubscriptionService      = mock[SubscriptionService]
@@ -67,45 +70,52 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
   private def mockSubscribe(expectedSubscriptionDetails: SubscriptionDetails)(
     response: Either[Error, SubscriptionResponse]
   ) =
-    mockSubscriptionService
-      .subscribe(expectedSubscriptionDetails)(*, *)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionService
+        .subscribe(expectedSubscriptionDetails)(any(), any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, Option[SubscribedDetails]]) =
-    mockSubscriptionService
-      .getSubscription(cgtReference)(*)
-      .returns(EitherT.fromEither(response))
+    when(
+      mockSubscriptionService
+        .getSubscription(cgtReference)(any())
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockUpdateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
     response: Either[Error, SubscriptionUpdateResponse]
   ) =
-    mockSubscriptionService
-      .updateSubscription(subscribedUpdateDetails)(*)
-      .returns(EitherT.fromEither(response))
+    when(
+      mockSubscriptionService
+        .updateSubscription(subscribedUpdateDetails)(any())
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockUpdateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
     response: Either[Error, Unit]
   ) =
-    mockTaxEnrolmentService
-      .updateVerifiers(updateVerifierDetails)(*)
-      .returns(EitherT.fromEither(response))
+    when(
+      mockTaxEnrolmentService
+        .updateVerifiers(updateVerifierDetails)(any())
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
-    mockTaxEnrolmentService
-      .allocateEnrolmentToGroup(taxEnrolmentRequest)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockTaxEnrolmentService
+        .allocateEnrolmentToGroup(taxEnrolmentRequest)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
-    mockTaxEnrolmentService
-      .hasCgtSubscription(ggCredId)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockTaxEnrolmentService
+        .hasCgtSubscription(ggCredId)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockRegisterWithoutId(registrationDetails: RegistrationDetails)(response: Either[Error, SapNumber]) =
-    mockRegisterWithoutIdService
-      .registerWithoutId(registrationDetails)(*, *)
-      .returns(EitherT.fromEither(response))
+    when(
+      mockRegisterWithoutIdService
+        .registerWithoutId(registrationDetails)(any(), any())
+    ).thenReturn(EitherT.fromEither(response))
 
   val (nonUkCountry, nonUkCountryCode) = Country("HK") -> "HK"
 

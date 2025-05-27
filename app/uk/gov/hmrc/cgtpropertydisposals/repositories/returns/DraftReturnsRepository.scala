@@ -102,7 +102,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
           .deleteMany(equal("return.cgtReference.value", cgtReference.value))
           .toFuture()
           .map { result =>
-            if (result.head.wasAcknowledged()) {
+            if result.head.wasAcknowledged() then {
               Right(())
             } else {
               Left(
@@ -127,7 +127,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
           )
           .toFuture()
           .map { result =>
-            if (result.head.wasAcknowledged()) {
+            if result.head.wasAcknowledged() then {
               Right(())
             } else {
               Left(

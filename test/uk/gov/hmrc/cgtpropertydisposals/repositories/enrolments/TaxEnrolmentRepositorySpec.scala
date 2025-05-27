@@ -27,6 +27,8 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class TaxEnrolmentRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 
   val repository = new DefaultTaxEnrolmentRepository(mongoComponent)

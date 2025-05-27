@@ -17,16 +17,18 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
 import cats.data.EitherT
-import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.Headers
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest, BusinessPartnerRecordResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
@@ -36,6 +38,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
 
 class BusinessPartnerRecordControllerSpec extends ControllerSpec {
   private val bprService = mock[BusinessPartnerRecordService]
@@ -45,9 +48,10 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
   private def mockBprService(expectedBprRequest: BusinessPartnerRecordRequest)(
     result: Either[Error, BusinessPartnerRecordResponse]
   ) =
-    bprService
-      .getBusinessPartnerRecord(expectedBprRequest)(*, *)
-      .returns(EitherT(Future.successful(result)))
+    when(
+      bprService
+        .getBusinessPartnerRecord(expectedBprRequest)(any(), any())
+    ).thenReturn(EitherT(Future.successful(result)))
 
   val request =
     new AuthenticatedRequest(

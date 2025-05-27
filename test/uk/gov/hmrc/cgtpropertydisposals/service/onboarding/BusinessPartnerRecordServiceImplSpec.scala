@@ -18,8 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
@@ -46,7 +44,12 @@ import java.time.{Clock, LocalDateTime, ZoneId, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
+class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
 
   val mockBprConnector: BusinessPartnerRecordConnector = mock[BusinessPartnerRecordConnector]
 
@@ -73,44 +76,50 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
     }
 
   private def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
-    mockBprConnector
-      .getBusinessPartnerRecord(bprRequest)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockBprConnector
+        .getBusinessPartnerRecord(bprRequest)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, Option[CgtReference]]) =
-    mockSubscriptionService
-      .getSubscriptionStatus(sapNumber)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionService
+        .getSubscriptionStatus(sapNumber)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockEnrolmentExists(cgtReference: CgtReference)(result: Either[Error, Boolean]) =
-    mockEnrolmentStoreProxyService
-      .cgtEnrolmentExists(cgtReference)(*)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockEnrolmentStoreProxyService
+        .cgtEnrolmentExists(cgtReference)(any())
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockGetSubscription(
     cgtReference: CgtReference
   )(response: Either[Error, Option[SubscribedDetails]]): Unit =
-    mockSubscriptionService
-      .getSubscription(cgtReference)(*)
-      .returns(EitherT.fromEither(response))
+    when(
+      mockSubscriptionService
+        .getSubscription(cgtReference)(any())
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
-    mockTaxEnrolmentService
-      .allocateEnrolmentToGroup(taxEnrolmentRequest)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockTaxEnrolmentService
+        .allocateEnrolmentToGroup(taxEnrolmentRequest)(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     result: Either[Error, Unit]
   ) =
-    mockEmailService
-      .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(*, *)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockEmailService
+        .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(any(), any())
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  implicit val request: Request[_] = FakeRequest()
+  implicit val request: Request[?] = FakeRequest()
 
   val (name, trustName) = sample[IndividualName] -> sample[TrustName]
 

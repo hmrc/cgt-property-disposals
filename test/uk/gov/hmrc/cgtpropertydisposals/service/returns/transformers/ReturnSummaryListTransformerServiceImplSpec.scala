@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
 import org.scalatest.OneInstancePerTest
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -29,20 +27,21 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, Des
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, UkResidentReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DesCharge, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 
 import java.time.LocalDate
 
-class ReturnSummaryListTransformerServiceImplSpec
-    extends AnyWordSpec
-    with Matchers
-    with IdiomaticMockito
-    with OneInstancePerTest {
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
+class ReturnSummaryListTransformerServiceImplSpec extends AnyWordSpec with Matchers with OneInstancePerTest {
 
   private val mockTaxYearService = mock[TaxYearService]
 
-  mockTaxYearService.getTaxYear(*).returns(Some(sample[TaxYear]))
+  when(mockTaxYearService.getTaxYear(any())).thenReturn(Some(sample[TaxYear]))
 
   val transformer = new ReturnSummaryListTransformerServiceImpl(mockTaxYearService)
 

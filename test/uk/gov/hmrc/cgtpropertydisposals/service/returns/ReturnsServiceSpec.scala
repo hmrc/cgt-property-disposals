@@ -17,20 +17,21 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
-import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
+import cats.instances.future.*
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json._
+import org.scalatestplus.mockito.MockitoSugar.mock
+import play.api.libs.json.*
 import play.api.mvc.Request
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnector
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{*, given}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, DesFinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -40,11 +41,10 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.{DeltaCharge, ReturnCharge}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesListReturnsResponse, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
@@ -52,7 +52,9 @@ import java.time.{LocalDate, LocalDateTime, LocalTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary.desListReturnResponseFormat
+
+class ReturnsServiceSpec extends AnyWordSpec with Matchers {
 
   private val returnsConnector = mock[ReturnsConnector]
 
@@ -88,92 +90,103 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  implicit val request: Request[_] = FakeRequest()
+  implicit val request: Request[?] = FakeRequest()
 
   private def mockSubmitReturn(cgtReference: CgtReference, returnRequest: DesSubmitReturnRequest)(
     response: Either[Error, HttpResponse]
   ) =
-    returnsConnector
-      .submit(cgtReference, returnRequest)(hc)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      returnsConnector
+        .submit(cgtReference, returnRequest)(hc)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockListReturn(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     response: Either[Error, HttpResponse]
   ) =
-    returnsConnector
-      .listReturns(cgtReference, fromDate, toDate)(*)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      returnsConnector
+        .listReturns(cgtReference, fromDate, toDate)(any())
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
     response: Either[Error, HttpResponse]
   ) =
-    returnsConnector
-      .displayReturn(cgtReference, submissionId)(*)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      returnsConnector
+        .displayReturn(cgtReference, submissionId)(any())
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockGetFinancialData(cgtReference: CgtReference, fromDate: LocalDate, toDate: LocalDate)(
     response: Either[Error, HttpResponse]
   ) =
-    mockFinancialDataConnector
-      .getFinancialData(cgtReference, fromDate, toDate)(*)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockFinancialDataConnector
+        .getFinancialData(cgtReference, fromDate, toDate)(any())
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockGetAvailableTaxYears =
-    mockTaxYearService.getAvailableTaxYears.returns(List(2020, 2021, 2022))
+    when(mockTaxYearService.getAvailableTaxYears).thenReturn(List(2020, 2021, 2022))
 
   private def mockTransformReturn(desReturn: DesReturnDetails)(result: Either[Error, DisplayReturn]) =
-    mockReturnTransformerService
-      .toCompleteReturn(desReturn)
-      .returns(result)
+    when(
+      mockReturnTransformerService
+        .toCompleteReturn(desReturn)
+    ).thenReturn(result)
 
   private def mockTransformReturnsList(
     returns: List[DesReturnSummary],
     financialData: List[DesFinancialTransaction],
     submitReturnRequest: List[SubmitReturnRequest]
   )(result: Either[Error, List[ReturnSummary]]) =
-    mockReturnListSummaryTransformerService
-      .toReturnSummaryList(returns, financialData, submitReturnRequest)
-      .returns(result)
+    when(
+      mockReturnListSummaryTransformerService
+        .toReturnSummaryList(returns, financialData, submitReturnRequest)
+    ).thenReturn(result)
 
   private def mockGetAmendReturnList(
     cgtReference: CgtReference
   )(result: Either[Error, List[SubmitReturnWrapper]]) =
-    mockAmendReturnService
-      .getAmendedReturn(cgtReference)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockAmendReturnService
+        .getAmendedReturn(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockSaveAmendReturnList(
     submitReturnRequest: SubmitReturnRequest
   )(result: Either[Error, Unit]) =
-    mockAmendReturnService
-      .saveAmendedReturn(submitReturnRequest)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockAmendReturnService
+        .saveAmendedReturn(submitReturnRequest)
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockSendReturnSubmitConfirmationEmail(
     submitReturnRequest: SubmitReturnRequest,
     submitReturnResponse: SubmitReturnResponse
   )(response: Either[Error, Unit]) =
-    mockEmailService
-      .sendReturnConfirmationEmail(submitReturnRequest, submitReturnResponse)(*, *)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockEmailService
+        .sendReturnConfirmationEmail(submitReturnRequest, submitReturnResponse)(any(), any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockAuditSubmitReturnEvent(
     cgtReference: CgtReference,
     submitReturnRequest: DesSubmitReturnRequest,
     agentReferenceNumber: Option[AgentReferenceNumber]
   ): Unit =
-    mockAuditService
-      .sendEvent(
-        "submitReturn",
-        SubmitReturnEvent(submitReturnRequest, cgtReference.value, agentReferenceNumber.map(_.value)),
-        "submit-return"
-      )(*, *, *)
-      .doesNothing()
+    doNothing().when(
+      mockAuditService
+        .sendEvent(
+          "submitReturn",
+          SubmitReturnEvent(submitReturnRequest, cgtReference.value, agentReferenceNumber.map(_.value)),
+          "submit-return"
+        )(any(), any(), any())
+    )
 
   private def mockSaveDraftReturn(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    mockDraftReturnService
-      .saveDraftReturn(df, cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockDraftReturnService
+        .saveDraftReturn(df, cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockAuditSubmitReturnResponseEvent(
     httpStatus: Int,
@@ -183,25 +196,27 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito
     agentReferenceNumber: Option[AgentReferenceNumber],
     amendReturnData: Option[AmendReturnData]
   ): Unit =
-    mockAuditService
-      .sendEvent(
-        "submitReturnResponse",
-        SubmitReturnResponseEvent(
-          httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
-          Json.toJson(desSubmitReturnRequest),
-          name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
-          agentReferenceNumber.map(_.value),
-          amendReturnData.map(a => Json.toJson(a.originalReturn.completeReturn))
-        ),
-        "submit-return-response"
-      )(*, *, *)
-      .doesNothing()
+    doNothing().when(
+      mockAuditService
+        .sendEvent(
+          "submitReturnResponse",
+          SubmitReturnResponseEvent(
+            httpStatus,
+            responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
+            Json.toJson(desSubmitReturnRequest),
+            name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
+            agentReferenceNumber.map(_.value),
+            amendReturnData.map(a => Json.toJson(a.originalReturn.completeReturn))
+          ),
+          "submit-return-response"
+        )(any(), any(), any())
+    )
 
   private def mockGetDraftReturns(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
-    mockDraftReturnService
-      .getDraftReturn(cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockDraftReturnService
+        .getDraftReturn(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private val emptyJsonBody = "{}"
   private val noJsonInBody  = ""

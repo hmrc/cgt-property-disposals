@@ -38,6 +38,11 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class DraftReturnsControllerSpec extends ControllerSpec {
   private val draftReturnsService = mock[DraftReturnsService]
 
@@ -46,19 +51,22 @@ class DraftReturnsControllerSpec extends ControllerSpec {
   private val draftReturn = sample[DraftReturn]
 
   private def mockStoreDraftReturnsService(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    draftReturnsService
-      .saveDraftReturn(df, cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnsService
+        .saveDraftReturn(df, cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockGetDraftReturnsService(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
-    draftReturnsService
-      .getDraftReturn(cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnsService
+        .getDraftReturn(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDeleteDraftReturnsService(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
-    draftReturnsService
-      .deleteDraftReturns(draftReturnIds)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnsService
+        .deleteDraftReturns(draftReturnIds)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   val request = new AuthenticatedRequest(
     Fake.user,

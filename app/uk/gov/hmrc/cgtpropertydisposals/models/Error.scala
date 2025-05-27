@@ -38,10 +38,10 @@ object Error {
       "type"    -> t.getClass.getName
     )
 
-    override def reads(json: JsValue): JsResult[Throwable] = for {
+    override def reads(json: JsValue): JsResult[Throwable] = for
       msg <- (json \ "message").validate[String]
       typ <- (json \ "type").validateOpt[String]
-    } yield new RuntimeException(s"${typ.getOrElse("Throwable")}: $msg")
+    yield new RuntimeException(s"${typ.getOrElse("Throwable")}: $msg")
   }
 
   implicit val eitherFormat: Format[Either[String, Throwable]] = new Format[Either[String, Throwable]] {

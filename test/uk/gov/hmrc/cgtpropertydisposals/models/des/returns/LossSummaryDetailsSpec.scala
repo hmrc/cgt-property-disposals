@@ -22,6 +22,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class LossSummaryDetailsSpec extends AnyWordSpec with Matchers {
 
   "LossSummaryDetails" must {

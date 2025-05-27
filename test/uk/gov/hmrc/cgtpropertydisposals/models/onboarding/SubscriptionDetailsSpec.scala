@@ -24,6 +24,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionDetails
 
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class SubscriptionDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   "SubscriptionDetails" must {

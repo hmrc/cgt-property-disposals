@@ -32,14 +32,20 @@ import uk.gov.hmrc.http.HeaderCarrier
 import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.Future
 
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+
 class TaxYearControllerSpec extends ControllerSpec {
 
   private val mockTaxYearService = mock[TaxYearService]
 
   private def mockGetTaxYear(date: LocalDate)(response: Option[TaxYear]) =
-    mockTaxYearService
-      .getTaxYear(date)
-      .returns(response)
+    when(
+      mockTaxYearService
+        .getTaxYear(date)
+    ).thenReturn(response)
 
   val controller = new TaxYearController(
     Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),

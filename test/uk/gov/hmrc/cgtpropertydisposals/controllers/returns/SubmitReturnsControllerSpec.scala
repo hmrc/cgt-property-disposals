@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
 import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Headers
 import play.api.test.Helpers._
@@ -44,6 +43,11 @@ import java.time.LocalDateTime
 import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
 
 class SubmitReturnsControllerSpec extends ControllerSpec {
   val draftReturnsService: DraftReturnsService       = mock[DraftReturnsService]
@@ -77,14 +81,16 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   private def mockSubmitReturnService(request: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
     response: Either[Error, SubmitReturnResponse]
   ) =
-    returnsService
-      .submitReturn(request, representeeDetails)(*, *)
-      .returns(EitherT.fromEither(response))
+    when(
+      returnsService
+        .submitReturn(request, representeeDetails)(any(), any())
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Unit]) =
-    draftReturnsService
-      .deleteDraftReturns(List(id))
-      .returns(EitherT.fromEither(response))
+    when(
+      draftReturnsService
+        .deleteDraftReturns(List(id))
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockDmsSubmissionRequest(
     html: B64Html,
@@ -92,14 +98,15 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     submitReturnRequest: SubmitReturnRequest
   ) = {
     val res: EitherT[Future, Error, DmsEnvelopeId] = EitherT.fromEither(Right(DmsEnvelopeId("test envelope id")))
-    mockDmsSubmissionService
-      .submitToDms(
-        sanitise(html),
-        submitReturnResponse.formBundleId,
-        submitReturnRequest.subscribedDetails.cgtReference,
-        submitReturnRequest.completeReturn
-      )(*)
-      .returns(res)
+    when(
+      mockDmsSubmissionService
+        .submitToDms(
+          sanitise(html),
+          submitReturnResponse.formBundleId,
+          submitReturnRequest.subscribedDetails.cgtReference,
+          submitReturnRequest.completeReturn
+        )(any())
+    ).thenReturn(res)
   }
 
   "SubmitReturnsController" when {
