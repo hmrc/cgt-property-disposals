@@ -21,13 +21,13 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CurrentInstant
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global

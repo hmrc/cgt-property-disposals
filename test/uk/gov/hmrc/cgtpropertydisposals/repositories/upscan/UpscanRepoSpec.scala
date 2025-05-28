@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers.*
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, given}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.{sample, given}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanUpload
 import uk.gov.hmrc.mongo.test.MongoSupport
 

@@ -29,7 +29,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
@@ -48,7 +48,8 @@ import uk.gov.hmrc.http.HeaderCarrier
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 
 class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
   private val mockSubscriptionService      = mock[SubscriptionService]

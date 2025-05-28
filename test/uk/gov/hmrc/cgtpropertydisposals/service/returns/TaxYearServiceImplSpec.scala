@@ -24,13 +24,13 @@ import play.api.Configuration
 import pureconfig.*
 import pureconfig.configurable.localDateConfigConvert
 import pureconfig.generic.semiauto.*
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.{TaxYear, TaxYearConfig}
 import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
 
 import java.time._
 import java.time.format.DateTimeFormatter
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
 
 class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenPropertyChecks {
   private val currentTaxYear = HmrcTaxYear.current.startYear

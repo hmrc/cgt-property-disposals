@@ -30,7 +30,8 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.{AUTHORIZATION, await, defaultAwaitTimeout}
 import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{dmsMetadataGen, sample}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DmsSubmissionGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.*
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.PdfGenerationService
 import uk.gov.hmrc.http.test.WireMockSupport

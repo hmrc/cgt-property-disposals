@@ -22,7 +22,7 @@ import play.api.libs.ws.{WSRequest, WSResponse}
 import stubs.{AuthStub, DownstreamStub}
 import support.IntegrationBaseSpec
 import uk.gov.hmrc.cgtpropertydisposals.models
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{amendReturnDataGen, desFinancialTransactionGen, desReturnSummaryGen, sample, submitReturnRequestGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Postcode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialDataResponse, DesFinancialTransaction}
@@ -31,6 +31,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, ListReturnsResponse, ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.{AmendReturnsRepository, DefaultAmendReturnsRepository}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 
 import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
 
