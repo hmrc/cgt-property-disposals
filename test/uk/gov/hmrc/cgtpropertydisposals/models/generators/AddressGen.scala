@@ -33,7 +33,7 @@ object AddressGen extends GenUtils {
       p <- postcodeGen
     } yield a.copy(postcode = p)
 
-  given countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
+  given countryGen: Gen[Country]           = Gen.oneOf(Country.countryCodes.map(Country(_)))
   given nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
 
 }

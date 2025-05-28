@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName, ContactName}
+import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
 

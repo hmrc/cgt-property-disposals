@@ -30,7 +30,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSin
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeMultipleDisposalReturnGen
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleMixedUseDisposalReturnGen
 
-
 class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   "DesAssetTypeValue" must {

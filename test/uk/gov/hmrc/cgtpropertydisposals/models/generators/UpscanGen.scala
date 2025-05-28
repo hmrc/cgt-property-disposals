@@ -20,8 +20,7 @@ import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UploadDetails, UpscanSuccess}
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanUpload, UpscanUploadWrapper, UploadReference}
-
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 
 object UpscanGen extends GenUtils {
   given uploadDetails: Gen[UploadDetails] = gen[UploadDetails]

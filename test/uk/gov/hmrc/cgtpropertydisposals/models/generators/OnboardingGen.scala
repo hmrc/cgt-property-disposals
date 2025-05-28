@@ -25,7 +25,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionReq
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
 
-
 object OnboardingGen extends GenUtils {
   given registrationDetailsGen: Gen[RegistrationDetails] = gen[RegistrationDetails]
 

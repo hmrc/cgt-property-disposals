@@ -23,6 +23,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 
 object TaxEnrolmentGen extends GenUtils {
-  given taxEnrolmentRequestGen: Gen[TaxEnrolmentRequest] = gen[TaxEnrolmentRequest]
+  given taxEnrolmentRequestGen: Gen[TaxEnrolmentRequest]       = gen[TaxEnrolmentRequest]
   given updateVerifiersRequestGen: Gen[UpdateVerifiersRequest] = gen[UpdateVerifiersRequest]
 }

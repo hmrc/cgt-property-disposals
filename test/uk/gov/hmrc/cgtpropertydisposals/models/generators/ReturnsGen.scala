@@ -119,6 +119,5 @@ object ReturnsGen extends GenUtils {
   given amendReturnDataGen: Gen[AmendReturnData] = gen[AmendReturnData]
 
   given completeReturnWithSummaryGen: Gen[CompleteReturnWithSummary] = gen[CompleteReturnWithSummary]
-  
 
 }
