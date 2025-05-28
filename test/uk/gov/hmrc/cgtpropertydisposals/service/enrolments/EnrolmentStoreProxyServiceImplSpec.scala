@@ -34,6 +34,8 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
+
 class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers {
 
   private val mockEnrolmentProxyConnector = mock[EnrolmentStoreProxyConnector]

@@ -28,9 +28,13 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.CurrentInstant
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnWrapperGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnRequestGen
 
 class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
   private val config = Configuration(

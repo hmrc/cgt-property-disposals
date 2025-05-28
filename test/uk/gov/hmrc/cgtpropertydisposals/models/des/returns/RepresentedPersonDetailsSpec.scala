@@ -29,6 +29,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DateOfDeath, Representee
 import java.time.LocalDate
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.sautrGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeRepresenteeAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.representeeContactDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.postcodeGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.countryGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.ninoGen
 
 class RepresentedPersonDetailsSpec extends AnyWordSpec with Matchers {
 

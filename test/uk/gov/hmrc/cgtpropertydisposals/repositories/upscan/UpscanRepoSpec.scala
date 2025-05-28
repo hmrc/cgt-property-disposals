@@ -30,6 +30,8 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import java.time.{Clock, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadGen
+
 class UpscanRepoSpec extends AnyWordSpec with MongoSupport with ScalaFutures with DefaultAwaitTimeout with Matchers {
 
   private val config = Configuration(

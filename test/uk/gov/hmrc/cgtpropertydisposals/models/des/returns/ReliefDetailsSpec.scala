@@ -25,6 +25,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherR
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSingleDisposalReturnGen
 
 class ReliefDetailsSpec extends AnyWordSpec with Matchers {
 

@@ -29,6 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import org.mongodb.scala.SingleObservableFuture
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxEnrolmentGen.updateVerifiersRequestGen
 
 class VerifiersRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 

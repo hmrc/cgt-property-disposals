@@ -30,6 +30,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeMultipleDisposalReturnGen
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleIndirectDisposalReturnGen
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeMultipleIndirectDisposalReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleMixedUseDisposalReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleMixedUseDisposalReturnGen
 
 class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 

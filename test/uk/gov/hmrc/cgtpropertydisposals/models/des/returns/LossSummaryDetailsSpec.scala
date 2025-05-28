@@ -23,6 +23,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeExemptionAndLossesAnswersGen
 
 class LossSummaryDetailsSpec extends AnyWordSpec with Matchers {
 

@@ -31,6 +31,18 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, TaxableAmountOfMoney}
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSingleDisposalReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.gainCalculatedTaxDueGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeCalculatedYearToDateLiabilityAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnRequestGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.individualNameGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.trustNameGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeMultipleIndirectDisposalReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeNonCalculatedYearToDateLiabilityAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeMultipleDisposalReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleMixedUseDisposalReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleIndirectDisposalReturnGen
 
 class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 

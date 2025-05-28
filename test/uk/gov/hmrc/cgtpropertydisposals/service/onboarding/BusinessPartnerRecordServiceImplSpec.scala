@@ -48,6 +48,11 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.BusinessPartnerRecordGen.individualBprRequestGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.individualNameGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.sapNumberGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.trustNameGen
 
 class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
 

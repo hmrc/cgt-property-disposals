@@ -29,6 +29,8 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 
 import org.mongodb.scala.SingleObservableFuture
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.uploadReferenceGen
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
