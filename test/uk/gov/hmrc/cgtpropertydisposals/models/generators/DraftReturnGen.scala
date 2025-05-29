@@ -17,9 +17,11 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftMultipleDisposalsReturn, DraftMultipleIndirectDisposalsReturn, DraftReturn, DraftSingleDisposalReturn, DraftSingleIndirectDisposalReturn, DraftSingleMixedUseDisposalReturn}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftMultipleDisposalsReturn, DraftMultipleIndirectDisposalsReturn,
+  DraftReturn, DraftSingleDisposalReturn, DraftSingleIndirectDisposalReturn, DraftSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturnWrapper
 
 object DraftReturnGen extends GenUtils {
   given draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]

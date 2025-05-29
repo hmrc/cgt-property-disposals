@@ -52,7 +52,21 @@ import java.time.{LocalDate, LocalDateTime, LocalTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleDisposalDraftReturnGen
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary.desListReturnResponseFormat
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleMixedUseDraftReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnRequestGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.multipleDisposalDraftReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleDisposalDraftReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.amendReturnDataGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleIndirectDisposalDraftReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeReturnWithSummaryGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeExemptionAndLossesAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSupportingEvidenceAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeNonCalculatedYearToDateLiabilityAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.returnSummaryGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.displayReturnGen
 
 class ReturnsServiceSpec extends AnyWordSpec with Matchers {
 

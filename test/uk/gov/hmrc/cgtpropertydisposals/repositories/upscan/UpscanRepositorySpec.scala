@@ -30,9 +30,10 @@ import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadNewGen
+//import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadNewGen
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadGen
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadWrapper
 
 class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 

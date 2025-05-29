@@ -32,6 +32,15 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSingleDisposalTriageAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeDisposalDetailsAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeAcquisitionDetailsAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.MoneyGen.amountInPenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.MoneyGen.amountInPenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.disposalDateGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeExemptionAndLossesAnswersGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
 
 class CgtCalculationServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 

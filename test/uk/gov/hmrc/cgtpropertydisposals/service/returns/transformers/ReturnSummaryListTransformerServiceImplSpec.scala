@@ -36,6 +36,16 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desFinancialTransactionGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desReturnSummaryGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.nonUkAddressGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnRequestGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.amendReturnDataGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.countryGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeReturnWithSummaryGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.returnSummaryGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
 
 class ReturnSummaryListTransformerServiceImplSpec extends AnyWordSpec with Matchers with OneInstancePerTest {
 

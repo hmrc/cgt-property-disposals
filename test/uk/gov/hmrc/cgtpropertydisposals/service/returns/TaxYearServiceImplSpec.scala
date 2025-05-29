@@ -31,6 +31,7 @@ import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
 import java.time._
 import java.time.format.DateTimeFormatter
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.taxYearConfigGen
 
 class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenPropertyChecks {
   private val currentTaxYear = HmrcTaxYear.current.startYear

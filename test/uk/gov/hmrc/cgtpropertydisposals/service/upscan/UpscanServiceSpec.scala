@@ -38,6 +38,9 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanSuccessGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadWrapper
 
 class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global

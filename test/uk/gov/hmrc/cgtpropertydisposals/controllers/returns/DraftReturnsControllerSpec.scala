@@ -45,6 +45,8 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftMultipleIndirectDisposalsReturn
+
 class DraftReturnsControllerSpec extends ControllerSpec {
   private val draftReturnsService = mock[DraftReturnsService]
 

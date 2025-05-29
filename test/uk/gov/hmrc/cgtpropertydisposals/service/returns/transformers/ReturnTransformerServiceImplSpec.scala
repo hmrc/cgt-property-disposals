@@ -36,6 +36,24 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desSingleDisposalDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desReturnDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desReturnSummaryGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.returnDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.incomeAllowanceDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.nonUkAddressGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desReliefDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.gainCalculatedTaxDueGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.returnDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.createReturnTypeGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.returnDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.amendReturnTypeGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.representedPersonDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desSingleMixedUseDisposalsDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desMultipleDisposalsDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.countryGen
 
 class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers {
 

@@ -16,23 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
-import org.scalacheck.Gen
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UploadDetails, UpscanSuccess}
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
+import org.scalacheck.Gen
+import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 
-object UpscanGen extends GenUtils {
-  given uploadDetails: Gen[UploadDetails] = gen[UploadDetails]
 
-  given newUpscanSuccess: Gen[NewUpscanSuccess] = gen[NewUpscanSuccess]
-
-  given upscanUploadGen: Gen[UpscanUpload] = gen[UpscanUpload]
-
-  given upscanUploadWrapper: Gen[UpscanUploadWrapper] = gen[UpscanUploadWrapper]
-
-  given uploadReferenceGen: Gen[UploadReference] = gen[UploadReference]
-
-  given upscanSuccessGen: Gen[UpscanSuccess] = gen[UpscanSuccess]
+object TaxYearGen extends GenUtils {
+  given taxYearGen: Gen[TaxYear]= gen[TaxYear]
+  
 
 }
