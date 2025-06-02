@@ -19,19 +19,13 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{completeMultipleDisposalReturnGen, completeMultipleIndirectDisposalReturnGen, completeSingleIndirectDisposalReturnGen, completeSingleMixedUseDisposalReturnGen, given}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
-
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeMultipleDisposalReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleIndirectDisposalReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeMultipleIndirectDisposalReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleMixedUseDisposalReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleMixedUseDisposalReturnGen
 
 class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 

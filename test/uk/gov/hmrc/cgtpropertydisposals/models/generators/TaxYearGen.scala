@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
 import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear

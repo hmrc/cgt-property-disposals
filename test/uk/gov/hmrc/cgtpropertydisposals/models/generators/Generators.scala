@@ -19,17 +19,23 @@ package uk.gov.hmrc.cgtpropertydisposals.models.generators
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.*
 
+import java.time.LocalDate
+import scala.language.implicitConversions
 import scala.reflect.{ClassTag, classTag}
 
 object Generators {
-  def sample[A : ClassTag](implicit gen: Gen[A]): A =
-    gen.sample.getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
+  implicit val stringGen: Gen[String] = Gen.nonEmptyListOf(Gen.alphaUpperChar).map(_.mkString(""))
 
-  def sampleOptional[A : ClassTag](implicit gen: Gen[A]): Option[A] =
-    Gen
-      .option(gen)
-      .sample
-      .getOrElse(sys.error(s"Could not generate instance of ${classTag[A].runtimeClass.getSimpleName}"))
+  implicit val booleanGen: Gen[Boolean] = Gen.oneOf(true, false)
+
+  implicit val longGen: Gen[Long] = Gen.choose(-5e13.toLong, 5e13.toLong)
+
+  implicit def listGen[A](g: Gen[A]): Gen[List[A]] = Gen.listOf(g)
+
+  def sample[A](implicit gen: Gen[A]): A =
+    gen.sample.getOrElse(sys.error(s"Could not generate instance with $gen"))
 
   implicit def arb[A](implicit g: Gen[A]): Arbitrary[A] = Arbitrary(g)
+
+  val dateGen: Gen[LocalDate] = Arbitrary.arbitrary[LocalDate]
 }

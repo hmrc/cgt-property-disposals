@@ -16,28 +16,48 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.gen
 
-object AddressGen extends AddressLowerPriorityGen {
+trait AddressHigherPriorityGen {
+  implicit val postcodeGen: Gen[Postcode] = Generators.stringGen.map(Postcode(_))
 
-  given addressGen: Gen[Address] = gen[Address]
-
-  given postcodeGen: Gen[Postcode] = Gen.oneOf(List(Postcode("BN11 3QY"), Postcode("BN11 4QY")))
-
-  given ukAddressGen: Gen[UkAddress] =
+  implicit val ukAddressGen: Gen[UkAddress] =
     for {
-      a <- gen[UkAddress]
-      p <- postcodeGen
-    } yield a.copy(postcode = p)
-
-  given countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
+      line1    <- Generators.stringGen
+      line2    <- Gen.option(Generators.stringGen)
+      town     <- Gen.option(Generators.stringGen)
+      county   <- Gen.option(Generators.stringGen)
+      postcode <- postcodeGen
+    } yield UkAddress(line1, line2, town, county, postcode)
 }
 
-trait AddressLowerPriorityGen {
-  given nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
+object AddressGen extends AddressHigherPriorityGen {
+
+  implicit val countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
+
+  implicit val nonUkAddressGen: Gen[NonUkAddress] = for {
+    line1    <- Generators.stringGen
+    line2    <- Gen.option(Generators.stringGen)
+    line3    <- Gen.option(Generators.stringGen)
+    line4    <- Gen.option(Generators.stringGen)
+    postcode <- postcodeGen
+    country  <- countryGen
+  } yield NonUkAddress(line1, line2, line3, line4, Some(postcode), country)
+
+  implicit val addressGen: Gen[Address] = Gen.oneOf(ukAddressGen, nonUkAddressGen)
+
+  given addressArb: Arbitrary[Address] = Arbitrary(AddressGen.addressGen)
+
+  given postcodeArb: Arbitrary[Postcode] = Arbitrary(AddressGen.postcodeGen)
+
+  given countryArb: Arbitrary[Country] = Arbitrary(AddressGen.countryGen)
+
+  given ukAddressArb: Arbitrary[UkAddress] = Arbitrary(AddressGen.ukAddressGen)
+
+  given nonUkAddressArb: Arbitrary[NonUkAddress] = Arbitrary(AddressGen.nonUkAddressGen)
 }

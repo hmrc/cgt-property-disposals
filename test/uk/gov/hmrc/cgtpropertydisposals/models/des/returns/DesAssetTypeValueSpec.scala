@@ -19,16 +19,12 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{completeMultipleDisposalReturnGen, completeSingleDisposalReturnGen, completeSingleMixedUseDisposalReturnGen, given}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSingleDisposalReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeMultipleDisposalReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.completeSingleMixedUseDisposalReturnGen
 
 class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
@@ -75,7 +71,7 @@ class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDri
     }
 
     "be able to return an error when it encounters an unknown asset type" in {
-      DesAssetTypeValue("abc").toAssetTypes() shouldBe a[Left[_, _]]
+      DesAssetTypeValue("abc").toAssetTypes() shouldBe a[Left[?, ?]]
 
     }
 

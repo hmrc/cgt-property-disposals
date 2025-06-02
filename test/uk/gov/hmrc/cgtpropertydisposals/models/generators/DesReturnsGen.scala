@@ -16,15 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
-import org.scalacheck.Gen
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DesReturnDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.SingleDisposalDetails
+import org.scalacheck.Gen
+import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialTransaction
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary
-import uk.gov.hmrc.cgtpropertydisposals.models.des.DesFinancialTransaction
 
 object DesReturnsGen extends GenUtils {
   given desReturnDetailsGen: Gen[DesReturnDetails] = gen[DesReturnDetails]
