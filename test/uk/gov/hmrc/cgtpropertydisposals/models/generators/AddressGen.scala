@@ -21,8 +21,10 @@ import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postco
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.gen
 
-object AddressGen extends GenUtils {
+object AddressGen extends AddressLowerPriorityGen {
+
   given addressGen: Gen[Address] = gen[Address]
 
   given postcodeGen: Gen[Postcode] = Gen.oneOf(List(Postcode("BN11 3QY"), Postcode("BN11 4QY")))
@@ -33,7 +35,9 @@ object AddressGen extends GenUtils {
       p <- postcodeGen
     } yield a.copy(postcode = p)
 
-  given countryGen: Gen[Country]           = Gen.oneOf(Country.countryCodes.map(Country(_)))
-  given nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
+  given countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
+}
 
+trait AddressLowerPriorityGen {
+  given nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
 }

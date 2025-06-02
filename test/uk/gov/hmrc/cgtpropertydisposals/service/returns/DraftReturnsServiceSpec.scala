@@ -17,12 +17,16 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
-import cats.instances.future._
+import cats.instances.future.*
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.test.Helpers._
+import org.scalatestplus.mockito.MockitoSugar.mock
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.multipleDisposalDraftReturnGen
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DraftReturnsRepository
@@ -31,13 +35,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{doNothing, when}
-import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.multipleDisposalDraftReturnGen
 
 class DraftReturnsServiceSpec extends AnyWordSpec with Matchers {
 

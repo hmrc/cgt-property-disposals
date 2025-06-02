@@ -17,17 +17,21 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
-import cats.instances.future._
+import cats.instances.future.*
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.Headers
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
@@ -37,15 +41,6 @@ import java.time.LocalDateTime
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar.mock
-
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
-
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftMultipleIndirectDisposalsReturn
 
 class DraftReturnsControllerSpec extends ControllerSpec {
   private val draftReturnsService = mock[DraftReturnsService]

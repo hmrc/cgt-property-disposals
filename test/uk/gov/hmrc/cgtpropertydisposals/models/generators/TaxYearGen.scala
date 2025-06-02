@@ -21,9 +21,7 @@ import io.github.martinhh.derived.scalacheck.given
 import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 
-
 object TaxYearGen extends GenUtils {
-  given taxYearGen: Gen[TaxYear]= gen[TaxYear]
-  
+  given taxYearGen: Gen[TaxYear] = gen[TaxYear]
 
 }

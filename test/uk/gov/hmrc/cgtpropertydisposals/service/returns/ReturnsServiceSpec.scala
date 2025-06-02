@@ -31,18 +31,22 @@ import uk.gov.hmrc.cgtpropertydisposals.connectors.account.FinancialDataConnecto
 import uk.gov.hmrc.cgtpropertydisposals.connectors.returns.ReturnsConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.{*, given}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, DesFinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.{multipleDisposalDraftReturnGen, singleDisposalDraftReturnGen, singleIndirectDisposalDraftReturnGen, singleMixedUseDraftReturnGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.{*, given}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{amendReturnDataGen, completeExemptionAndLossesAnswersGen, completeNonCalculatedYearToDateLiabilityAnswersGen, completeReturnWithSummaryGen, completeSupportingEvidenceAnswersGen, displayReturnGen, returnSummaryGen, submitReturnRequestGen}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary.desListReturnResponseFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse.{DeltaCharge, ReturnCharge}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.audit.{SubmitReturnEvent, SubmitReturnResponseEvent}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
@@ -51,22 +55,6 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import java.time.{LocalDate, LocalDateTime, LocalTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleDisposalDraftReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary.desListReturnResponseFormat
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleMixedUseDraftReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnRequestGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.multipleDisposalDraftReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleDisposalDraftReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.amendReturnDataGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleIndirectDisposalDraftReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeReturnWithSummaryGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeExemptionAndLossesAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSupportingEvidenceAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeNonCalculatedYearToDateLiabilityAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.returnSummaryGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.displayReturnGen
 
 class ReturnsServiceSpec extends AnyWordSpec with Matchers {
 

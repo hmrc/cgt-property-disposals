@@ -16,52 +16,9 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
-import io.github.martinhh.derived.scalacheck.given
-import org.apache.pekko.util.ByteString
-import org.bson.types.ObjectId
 import org.scalacheck.{Arbitrary, Gen}
-import Generators.arb
-import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
-import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.*
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesSubscriptionUpdateRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsMetadata, DmsSubmissionPayload, FileAttachment}
-import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.ids.*
-import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.IndividualBusinessPartnerRecordRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscriptionResponse.SubscriptionSuccessful
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.{SubscribedDetails, SubscriptionDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExampleCompanyDetailsAnswers.CompleteExampleCompanyDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.MixedUsePropertyDetailsAnswers.CompleteMixedUsePropertyDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.{CompleteSupportingEvidenceAnswers, SupportingEvidence}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UploadDetails, UpscanSuccess}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.models.*
-import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
-import uk.gov.hmrc.mongo.workitem.WorkItem
 
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
-import java.util.Base64
 import scala.reflect.{ClassTag, classTag}
 
 object Generators {
