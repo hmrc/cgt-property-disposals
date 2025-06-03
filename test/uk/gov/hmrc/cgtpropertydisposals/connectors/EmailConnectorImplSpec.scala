@@ -35,6 +35,7 @@ import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 

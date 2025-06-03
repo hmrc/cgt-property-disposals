@@ -35,6 +35,7 @@ import org.mongodb.scala.SingleObservableFuture
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 
 class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSupport with BeforeAndAfterAll {
   private val config = Configuration(

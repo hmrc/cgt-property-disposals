@@ -39,8 +39,8 @@ import scala.concurrent.Future
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.registrationDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
 
 class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers {
 

@@ -35,17 +35,11 @@ import java.time.LocalDate
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desFinancialTransactionGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desReturnSummaryGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.nonUkAddressGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnRequestGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.amendReturnDataGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.countryGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeReturnWithSummaryGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.returnSummaryGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.given
 
 class ReturnSummaryListTransformerServiceImplSpec extends AnyWordSpec with Matchers with OneInstancePerTest {
 

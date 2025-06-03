@@ -19,12 +19,9 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.{*, given}
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.{individualNameGen, trustNameGen}
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{completeCalculatedYearToDateLiabilityAnswersGen, completeMultipleDisposalReturnGen, completeMultipleIndirectDisposalReturnGen, completeNonCalculatedYearToDateLiabilityAnswersGen, completeSingleDisposalReturnGen, completeSingleIndirectDisposalReturnGen, completeSingleMixedUseDisposalReturnGen, gainCalculatedTaxDueGen, submitReturnRequestGen}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
@@ -32,6 +29,15 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteM
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{CompleteReturn, SubmitReturnRequest, TaxableAmountOfMoney}
+import io.github.martinhh.derived.scalacheck.anyGivenArbitrary
+import io.github.martinhh.derived.arbitrary.anyGivenArbitrary
+
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 
 class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 

@@ -35,7 +35,7 @@ object Generators {
   def sample[A](implicit gen: Gen[A]): A =
     gen.sample.getOrElse(sys.error(s"Could not generate instance with $gen"))
 
-  implicit def arb[A](implicit g: Gen[A]): Arbitrary[A] = Arbitrary(g)
+//  implicit def arb[A](implicit g: Gen[A]): Arbitrary[A] = Arbitrary(g)
 
   val dateGen: Gen[LocalDate] = Arbitrary.arbitrary[LocalDate]
 }

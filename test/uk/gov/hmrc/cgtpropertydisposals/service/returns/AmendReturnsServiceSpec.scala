@@ -39,9 +39,10 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnRequestGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
 
 class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MongoSupport {
 

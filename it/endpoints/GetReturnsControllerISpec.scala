@@ -33,6 +33,7 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.{AmendReturnsReposi
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DesReturnSummary
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 
 import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}

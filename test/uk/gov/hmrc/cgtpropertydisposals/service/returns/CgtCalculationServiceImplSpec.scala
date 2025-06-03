@@ -31,6 +31,8 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.Comp
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
+import io.github.martinhh.derived.scalacheck.given
+
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSingleDisposalTriageAnswersGen
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeDisposalDetailsAnswersGen

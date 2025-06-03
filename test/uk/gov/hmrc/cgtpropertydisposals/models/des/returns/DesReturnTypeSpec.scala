@@ -24,6 +24,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.ids.AgentReferenceNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 
 import java.time.{Clock, Instant, ZoneId}
 

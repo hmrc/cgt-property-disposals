@@ -23,6 +23,7 @@ import org.mockito.Mockito.{doNothing, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.libs.json.*
 import play.api.mvc.Request
 import play.api.test.FakeRequest
@@ -34,10 +35,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, DesFinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.{multipleDisposalDraftReturnGen, singleDisposalDraftReturnGen, singleIndirectDisposalDraftReturnGen, singleMixedUseDraftReturnGen}
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.{*, given}
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{amendReturnDataGen, completeExemptionAndLossesAnswersGen, completeNonCalculatedYearToDateLiabilityAnswersGen, completeReturnWithSummaryGen, completeSupportingEvidenceAnswersGen, displayReturnGen, returnSummaryGen, submitReturnRequestGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.*

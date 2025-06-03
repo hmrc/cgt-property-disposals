@@ -20,21 +20,19 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CurrentInstant
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnWrapperGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
-
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.submitReturnRequestGen
 
 class AmendReturnsRepositorySpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
   private val config = Configuration(

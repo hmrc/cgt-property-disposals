@@ -42,11 +42,9 @@ import scala.concurrent.Future
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeMultipleDisposalReturnGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeNonCalculatedYearToDateLiabilityAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.mandatoryEvidenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
 
 class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
   private val mockDmsConnector  = mock[DmsConnector]

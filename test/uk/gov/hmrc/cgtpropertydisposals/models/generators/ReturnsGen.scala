@@ -19,6 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.generators
 import io.github.martinhh.derived.scalacheck.given
 import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYearConfig
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.B64HtmlGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
@@ -37,7 +38,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswer
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.time.TaxYear
 
-object ReturnsGen extends LowerPriorityReturnsGen {
+object ReturnsGen extends GenUtils {
   given completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
 
   given displayReturnGen: Gen[DisplayReturn] = gen[DisplayReturn]
@@ -80,12 +81,6 @@ object ReturnsGen extends LowerPriorityReturnsGen {
   given listReturnResponseGen: Gen[ListReturnsResponse] =
     gen[ListReturnsResponse]
 
-  given submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
-
-  given submitReturnWrapperGen: Gen[SubmitReturnWrapper] = gen[SubmitReturnWrapper]
-
-  given submitReturnResponseGen: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
-
   given taxYearGen: Gen[TaxYear] = gen[TaxYear]
 
   given taxYearConfigGen: Gen[TaxYearConfig] = gen[TaxYearConfig]
@@ -118,25 +113,5 @@ object ReturnsGen extends LowerPriorityReturnsGen {
   given amendReturnDataGen: Gen[AmendReturnData] = gen[AmendReturnData]
 
   given completeReturnWithSummaryGen: Gen[CompleteReturnWithSummary] = gen[CompleteReturnWithSummary]
-
-}
-
-trait LowerPriorityReturnsGen extends GenUtils {
-  given nonGainCalculatedTaxDueGen: Gen[NonGainCalculatedTaxDue] = gen[NonGainCalculatedTaxDue]
-
-  given completeMultipleDisposalReturnGen: Gen[CompleteMultipleDisposalsReturn] =
-    gen[CompleteMultipleDisposalsReturn]
-
-  given completeSingleIndirectDisposalReturnGen: Gen[CompleteSingleIndirectDisposalReturn] =
-    gen[CompleteSingleIndirectDisposalReturn]
-
-  given completeMultipleIndirectDisposalReturnGen: Gen[CompleteMultipleIndirectDisposalReturn] =
-    gen[CompleteMultipleIndirectDisposalReturn]
-
-  given completeSingleMixedUseDisposalReturnGen: Gen[CompleteSingleMixedUseDisposalReturn] =
-    gen[CompleteSingleMixedUseDisposalReturn]
-
-  given completeMixedUsePropertyDetailsGen: Gen[CompleteMixedUsePropertyDetailsAnswers] =
-    gen[CompleteMixedUsePropertyDetailsAnswers]
 
 }
