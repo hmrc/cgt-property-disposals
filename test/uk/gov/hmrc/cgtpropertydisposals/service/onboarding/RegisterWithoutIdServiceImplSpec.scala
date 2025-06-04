@@ -65,21 +65,20 @@ class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers {
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockAuditRegistrationResponse(httpStatus: Int, responseBody: Option[JsValue]): Unit =
-    doNothing().when(
-      mockAuditService
-        .sendEvent(
-          "registrationResponse",
-          RegistrationResponseEvent(
-            httpStatus,
-            responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }"""))
-          ),
-          "registration-response"
-        )(
-          any(),
-          any(),
-          any()
-        )
-    )
+    doNothing()
+      .when(mockAuditService)
+      .sendEvent(
+        "registrationResponse",
+        RegistrationResponseEvent(
+          httpStatus,
+          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }"""))
+        ),
+        "registration-response"
+      )(
+        any(),
+        any(),
+        any()
+      )
 
   private val noJsonInBody = ""
 

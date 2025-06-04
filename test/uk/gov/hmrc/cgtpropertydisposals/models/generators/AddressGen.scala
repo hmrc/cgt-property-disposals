@@ -36,28 +36,21 @@ trait AddressHigherPriorityGen {
     } yield UkAddress(line1, line2, town, county, postcode)
 }
 
-object AddressGen extends AddressHigherPriorityGen {
+object AddressGen extends AddressLowerPriorityGen {
 
-  implicit val countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
+  given addressGen: Gen[Address] = gen[Address]
 
-  implicit val nonUkAddressGen: Gen[NonUkAddress] = for {
-    line1    <- Generators.stringGen
-    line2    <- Gen.option(Generators.stringGen)
-    line3    <- Gen.option(Generators.stringGen)
-    line4    <- Gen.option(Generators.stringGen)
-    postcode <- postcodeGen
-    country  <- countryGen
-  } yield NonUkAddress(line1, line2, line3, line4, Some(postcode), country)
+  given postcodeGen: Gen[Postcode] = Gen.oneOf(List(Postcode("BN11 3QY"), Postcode("BN11 4QY")))
 
-  implicit val addressGen: Gen[Address] = Gen.oneOf(ukAddressGen, nonUkAddressGen)
+  given ukAddressGen: Gen[UkAddress] =
+    for {
+      a <- gen[UkAddress]
+      p <- postcodeGen
+    } yield a.copy(postcode = p)
 
-  given addressArb: Arbitrary[Address] = Arbitrary(AddressGen.addressGen)
+  given countryGen: Gen[Country] = Gen.oneOf(Country.countryCodes.map(Country(_)))
+}
 
-  given postcodeArb: Arbitrary[Postcode] = Arbitrary(AddressGen.postcodeGen)
-
-  given countryArb: Arbitrary[Country] = Arbitrary(AddressGen.countryGen)
-
-  given ukAddressArb: Arbitrary[UkAddress] = Arbitrary(AddressGen.ukAddressGen)
-
-  given nonUkAddressArb: Arbitrary[NonUkAddress] = Arbitrary(AddressGen.nonUkAddressGen)
+trait AddressLowerPriorityGen extends GenUtils {
+  given nonUkAddressGen: Gen[NonUkAddress] = gen[NonUkAddress]
 }

@@ -72,22 +72,21 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
     responseBody: Option[JsValue],
     desSubscriptionRequest: DesSubscriptionRequest
   ): Unit =
-    doNothing().when(
-      mockAuditService
-        .sendEvent(
-          "subscriptionResponse",
-          SubscriptionResponseEvent(
-            httpStatus,
-            responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
-            desSubscriptionRequest
-          ),
-          "subscription-response"
-        )(
-          any(),
-          any(),
-          any()
-        )
-    )
+    doNothing()
+      .when(mockAuditService)
+      .sendEvent(
+        "subscriptionResponse",
+        SubscriptionResponseEvent(
+          httpStatus,
+          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
+          desSubscriptionRequest
+        ),
+        "subscription-response"
+      )(
+        any(),
+        any(),
+        any()
+      )
 
   private def mockSubscribe(
     expectedSubscriptionDetails: DesSubscriptionRequest

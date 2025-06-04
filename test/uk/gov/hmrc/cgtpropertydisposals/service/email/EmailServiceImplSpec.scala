@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.service.email
 
 import cats.data.EitherT
 import cats.instances.future.*
+import org.mockito.ArgumentMatchers
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Request
@@ -65,7 +66,11 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockEmailConnector
-        .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(any())
+        .sendSubscriptionConfirmationEmail(
+          ArgumentMatchers.eq(cgtReference),
+          ArgumentMatchers.eq(email),
+          ArgumentMatchers.eq(contactName)
+        )(any())
     ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockSendReturnConfirmationEmail(
@@ -76,35 +81,40 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockEmailConnector
-        .sendReturnSubmitConfirmationEmail(submitReturnResponse, subscribedDetails)(any())
+        .sendReturnSubmitConfirmationEmail(
+          ArgumentMatchers.eq(submitReturnResponse),
+          ArgumentMatchers.eq(subscribedDetails)
+        )(any())
     ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockAuditSubscriptionEmailEvent(email: String, cgtReference: String): Unit =
-    doNothing().when(
-      mockAuditService
-        .sendEvent(
-          "subscriptionConfirmationEmailSent",
+    doNothing()
+      .when(mockAuditService)
+      .sendEvent(
+        ArgumentMatchers.eq("subscriptionConfirmationEmailSent"),
+        ArgumentMatchers.eq(
           SubscriptionConfirmationEmailSentEvent(
             email,
             cgtReference
-          ),
-          "subscription-confirmation-email-sent"
-        )(any(), any(), any())
-    )
+          )
+        ),
+        ArgumentMatchers.eq("subscription-confirmation-email-sent")
+      )(any(), any(), any())
 
   private def mockAuditReturnConfirmationEmailEvent(email: String, cgtReference: String, submissionId: String): Unit =
-    doNothing().when(
-      mockAuditService
-        .sendEvent(
-          "returnConfirmationEmailSent",
+    doNothing()
+      .when(mockAuditService)
+      .sendEvent(
+        ArgumentMatchers.eq("returnConfirmationEmailSent"),
+        ArgumentMatchers.eq(
           ReturnConfirmationEmailSentEvent(
             email,
             cgtReference,
             submissionId
-          ),
-          "return-confirmation-email-sent"
-        )(any(), any(), any())
-    )
+          )
+        ),
+        ArgumentMatchers.eq("return-confirmation-email-sent")
+      )(any(), any(), any())
 
   "EmailServiceImpl" when {
     "handling requests to send subscription confirmation emails" must {

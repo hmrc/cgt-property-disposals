@@ -36,36 +36,35 @@ class DisposalDetailsSplitSpec extends AnyWordSpec with Matchers with ScalaCheck
 
   "DisposalDetails" when {
     def singleDisposalDetailsValue[A](
-                                       disposalDetails: DisposalDetails
-                                     )(value: SingleDisposalDetails => A): Either[String, A] =
+      disposalDetails: DisposalDetails
+    )(value: SingleDisposalDetails => A): Either[String, A] =
       disposalDetails match {
         case s: SingleDisposalDetails => Right(value(s))
-        case other => Left(s"Expected single disposals details but got $other")
+        case other                    => Left(s"Expected single disposals details but got $other")
       }
 
     def multipleDisposalsDetailsValue[A](
-                                          disposalDetails: DisposalDetails
-                                        )(value: MultipleDisposalDetails => A): Either[String, A] =
+      disposalDetails: DisposalDetails
+    )(value: MultipleDisposalDetails => A): Either[String, A] =
       disposalDetails match {
         case s: MultipleDisposalDetails => Right(value(s))
-        case other =>
+        case other                      =>
           Left(s"Expected multiple disposals details but got $other")
       }
 
     def singleMixedUseDisposalDetailsValue[A](
-                                               disposalDetails: DisposalDetails
-                                             )(value: SingleMixedUseDisposalDetails => A): Either[String, A] =
+      disposalDetails: DisposalDetails
+    )(value: SingleMixedUseDisposalDetails => A): Either[String, A] =
       disposalDetails match {
         case s: SingleMixedUseDisposalDetails => Right(value(s))
-        case other => Left(s"Expected single disposals details but got $other")
+        case other                            => Left(s"Expected single disposals details but got $other")
       }
-
 
     "given a single indirect disposal return" must {
       "populate the improvement costs correctly" in {
         forAll { (completeReturn: CompleteSingleIndirectDisposalReturn) =>
           val result = DisposalDetails(completeReturn)
-          singleDisposalDetailsValue(result)(_.improvements) shouldBe Right(false)
+          singleDisposalDetailsValue(result)(_.improvements)     shouldBe Right(false)
           singleDisposalDetailsValue(result)(_.improvementCosts) shouldBe Right(None)
         }
       }
@@ -104,10 +103,10 @@ class DisposalDetailsSplitSpec extends AnyWordSpec with Matchers with ScalaCheck
 
       "populate the rebased acquisition price fields correctly" in {
         forAll { (completeReturn: CompleteSingleIndirectDisposalReturn) =>
-          val result = DisposalDetails(completeReturn)
+          val result             = DisposalDetails(completeReturn)
           val acquisitionDetails = completeReturn.acquisitionDetails
 
-          singleDisposalDetailsValue(result)(_.rebased) shouldBe Right(acquisitionDetails.shouldUseRebase)
+          singleDisposalDetailsValue(result)(_.rebased)       shouldBe Right(acquisitionDetails.shouldUseRebase)
           singleDisposalDetailsValue(result)(_.rebasedAmount) shouldBe Right(
             acquisitionDetails.rebasedAcquisitionPrice.map(_.inPounds())
           )

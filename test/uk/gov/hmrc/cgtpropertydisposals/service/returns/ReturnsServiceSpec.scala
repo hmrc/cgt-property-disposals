@@ -176,14 +176,13 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers {
     submitReturnRequest: DesSubmitReturnRequest,
     agentReferenceNumber: Option[AgentReferenceNumber]
   ): Unit =
-    doNothing().when(
-      mockAuditService
-        .sendEvent(
-          "submitReturn",
-          SubmitReturnEvent(submitReturnRequest, cgtReference.value, agentReferenceNumber.map(_.value)),
-          "submit-return"
-        )(any(), any(), any())
-    )
+    doNothing()
+      .when(mockAuditService)
+      .sendEvent(
+        "submitReturn",
+        SubmitReturnEvent(submitReturnRequest, cgtReference.value, agentReferenceNumber.map(_.value)),
+        "submit-return"
+      )(any(), any(), any())
 
   private def mockSaveDraftReturn(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
     when(
