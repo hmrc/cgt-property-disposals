@@ -20,10 +20,6 @@ import org.scalacheck.Gen
 import io.github.martinhh.derived.scalacheck.given
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.stringGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.dateGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.addressGen
 
 object TaxEnrolmentGen extends GenUtils {
   given taxEnrolmentRequestGen: Gen[TaxEnrolmentRequest]       = gen[TaxEnrolmentRequest]

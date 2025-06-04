@@ -8,7 +8,7 @@ lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
   .settings(
-    scalaVersion := "3.6.4")
+    scalaVersion := "3.3.5")
   .settings(
     majorVersion := 2,
     PlayKeys.playDefaultPort := 7021,
@@ -16,6 +16,7 @@ lazy val microservice = Project(appName, file("."))
     onLoadMessage := "",
     scalafmtOnCompile := true,
     scalacOptions += "-Wconf:src=routes/.*:s,src=txt/.*:s",
+    scalacOptions += "-Xmax-inlines:264",
     scalacOptions ~= { options =>
       options.distinct
     }

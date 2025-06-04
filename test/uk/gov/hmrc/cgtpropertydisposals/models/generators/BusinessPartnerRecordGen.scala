@@ -16,12 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
-import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
 import io.github.martinhh.derived.scalacheck.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.EmailGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.given
 import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.IndividualBusinessPartnerRecordRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.{BusinessPartnerRecord, BusinessPartnerRecordRequest}
 
 object BusinessPartnerRecordGen extends GenUtils:
   given bprGen: Gen[BusinessPartnerRecord] = gen[BusinessPartnerRecord]

@@ -19,69 +19,30 @@ package uk.gov.hmrc.cgtpropertydisposals.models.generators
 import io.github.martinhh.derived.scalacheck.given
 import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYearConfig
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.B64HtmlGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExampleCompanyDetailsAnswers.CompleteExampleCompanyDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExamplePropertyDetailsAnswers.CompleteExamplePropertyDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MixedUsePropertyDetailsAnswers.CompleteMixedUsePropertyDetailsAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.OtherReliefsOption.OtherReliefs
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.{CompleteSupportingEvidenceAnswers, SupportingEvidence}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
-import uk.gov.hmrc.time.TaxYear
 
 object ReturnsGen extends GenUtils {
-  given completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
-
-  given displayReturnGen: Gen[DisplayReturn] = gen[DisplayReturn]
-
-  given completeSingleDisposalReturnGen: Gen[CompleteSingleDisposalReturn] = gen[CompleteSingleDisposalReturn]
-
-  given completeSingleDisposalTriageAnswersGen: Gen[CompleteSingleDisposalTriageAnswers] =
-    gen[CompleteSingleDisposalTriageAnswers]
-
-  given completeMultipleDisposalsTriageAnswersGen: Gen[CompleteMultipleDisposalsTriageAnswers] =
-    gen[CompleteMultipleDisposalsTriageAnswers]
-
-  given completeExamplePropertyDetailsAnswersGen: Gen[CompleteExamplePropertyDetailsAnswers] =
-    gen[CompleteExamplePropertyDetailsAnswers]
-
-  given completeDisposalDetailsAnswersGen: Gen[CompleteDisposalDetailsAnswers] =
-    gen[CompleteDisposalDetailsAnswers]
-
-  given completeCalculatedYearToDateLiabilityAnswersGen: Gen[CompleteCalculatedYTDAnswers] =
-    gen[CompleteCalculatedYTDAnswers]
-
-  given completeNonCalculatedYearToDateLiabilityAnswersGen: Gen[CompleteNonCalculatedYTDAnswers] =
-    gen[CompleteNonCalculatedYTDAnswers]
-
-  given hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
-    gen[HasEstimatedDetailsWithCalculatedTaxDue]
-
-  given otherReliefsGen: Gen[OtherReliefs] = gen[OtherReliefs]
 
   given calculatedTaxDueGen: Gen[CalculatedTaxDue] = gen[CalculatedTaxDue]
 
   given gainCalculatedTaxDueGen: Gen[GainCalculatedTaxDue] = gen[GainCalculatedTaxDue]
 
-  given completeAcquisitionDetailsAnswersGen: Gen[CompleteAcquisitionDetailsAnswers] =
-    gen[CompleteAcquisitionDetailsAnswers]
-
-  given completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] =
-    gen[CompleteExemptionAndLossesAnswers]
-
   given listReturnResponseGen: Gen[ListReturnsResponse] =
     gen[ListReturnsResponse]
 
-  given taxYearGen: Gen[TaxYear] = gen[TaxYear]
+  // given taxYearGen: Gen[TaxYear] = gen[TaxYear]
 
   given taxYearConfigGen: Gen[TaxYearConfig] = gen[TaxYearConfig]
 
@@ -102,16 +63,16 @@ object ReturnsGen extends GenUtils {
 
   given representeeContactDetailsGen: Gen[RepresenteeContactDetails] = gen[RepresenteeContactDetails]
 
-  given completeRepresenteeAnswersGen: Gen[CompleteRepresenteeAnswers] = gen[CompleteRepresenteeAnswers]
-
   given completeExampleCompanyDetailsAnswersGen: Gen[CompleteExampleCompanyDetailsAnswers] =
     gen[CompleteExampleCompanyDetailsAnswers]
 
-  given completeSupportingEvidenceAnswersGen: Gen[CompleteSupportingEvidenceAnswers] =
-    gen[CompleteSupportingEvidenceAnswers]
+  given hasEstimatedDetailsWithCalculatedTaxDueGen: Gen[HasEstimatedDetailsWithCalculatedTaxDue] =
+    gen[HasEstimatedDetailsWithCalculatedTaxDue]
 
   given amendReturnDataGen: Gen[AmendReturnData] = gen[AmendReturnData]
 
   given completeReturnWithSummaryGen: Gen[CompleteReturnWithSummary] = gen[CompleteReturnWithSummary]
+
+  given displayReturnGen: Gen[DisplayReturn] = gen[DisplayReturn]
 
 }

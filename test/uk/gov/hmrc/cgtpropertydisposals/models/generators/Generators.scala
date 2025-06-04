@@ -21,7 +21,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.*
 
 import java.time.LocalDate
 import scala.language.implicitConversions
-import scala.reflect.{ClassTag, classTag}
 
 object Generators {
   implicit val stringGen: Gen[String] = Gen.nonEmptyListOf(Gen.alphaUpperChar).map(_.mkString(""))

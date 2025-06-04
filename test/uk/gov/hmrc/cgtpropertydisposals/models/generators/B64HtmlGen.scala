@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
 import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.B64Html
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import io.github.martinhh.derived.scalacheck.given
 
 import java.util.Base64

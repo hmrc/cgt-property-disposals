@@ -17,21 +17,20 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
 import io.github.martinhh.derived.scalacheck.given
-import org.scalacheck.Gen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.gen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.stringGen
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftMultipleDisposalsReturn, DraftMultipleIndirectDisposalsReturn, DraftReturn, DraftSingleDisposalReturn, DraftSingleIndirectDisposalReturn, DraftSingleMixedUseDisposalReturn}
+import org.scalacheck.{Arbitrary, Gen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.gen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.supportingEvidenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AcquisitionDetailsAnswers, DisposalDetailsAnswers, DraftMultipleDisposalsReturn, DraftMultipleIndirectDisposalsReturn, DraftReturn, DraftSingleDisposalReturn, DraftSingleIndirectDisposalReturn, DraftSingleMixedUseDisposalReturn, ExemptionAndLossesAnswers, ReliefDetailsAnswers, RepresenteeAnswers, SingleDisposalTriageAnswers, SupportingEvidenceAnswers, YearToDateLiabilityAnswers}
 
-object DraftReturnGen extends LowerPriorityDraftReturnGen {
-  given singleDisposalDraftReturnGen: Gen[DraftSingleDisposalReturn] = gen[DraftSingleDisposalReturn]
+import java.time.LocalDate
 
-  given draftReturnGen: Gen[DraftReturn] = Gen.oneOf(
-    singleDisposalDraftReturnGen,
-    singleIndirectDisposalDraftReturnGen,
-    singleMixedUseDraftReturnGen,
-    multipleDisposalDraftReturnGen,
-    multipleIndirectDisposalDraftReturnGen
-  )
+object DraftReturnGen extends HigherPriorityDraftReturnGen with GenUtils
+
+trait HigherPriorityDraftReturnGen extends LowerPriorityDraftReturnGen {
+
+  given singleDisposalDraftReturnGen: Gen[DraftSingleDisposalReturn] = singleDisposalDraftReturnGen2
+
+  given draftReturnGen: Gen[DraftReturn] = gen[DraftReturn]
 }
 
 trait LowerPriorityDraftReturnGen extends GenUtils {
@@ -46,4 +45,35 @@ trait LowerPriorityDraftReturnGen extends GenUtils {
 
   given singleMixedUseDraftReturnGen: Gen[DraftSingleMixedUseDisposalReturn] =
     gen[DraftSingleMixedUseDisposalReturn]
+
+  given singleDisposalDraftReturnGen2: Gen[DraftSingleDisposalReturn] =
+    for {
+      id                         <- Gen.uuid
+      triageAnswers              <- gen[SingleDisposalTriageAnswers]
+      propertyAddress            <- Gen.option(AddressGen.ukAddressGen)
+      disposalDetailsAnswers     <- Gen.option(gen[DisposalDetailsAnswers])
+      acquisitionDetailsAnswers  <- Gen.option(gen[AcquisitionDetailsAnswers])
+      reliefDetailsAnswers       <- Gen.option(gen[ReliefDetailsAnswers])
+      exemptionAndLossesAnswers  <- Gen.option(gen[ExemptionAndLossesAnswers])
+      yearToDateLiabilityAnswers <- Gen.option(gen[YearToDateLiabilityAnswers])
+      initialGainOrLoss          <- Gen.option(MoneyGen.amountInPenceGen)
+      supportingEvidenceAnswers  <- Gen.option(gen[SupportingEvidenceAnswers])
+      representeeAnswers         <- Gen.option(gen[RepresenteeAnswers])
+      gainOrLossAfterReliefs     <- Gen.option(MoneyGen.amountInPenceGen)
+      lastUpdatedDate            <- Arbitrary.arbitrary[LocalDate]
+    } yield DraftSingleDisposalReturn(
+      id,
+      triageAnswers,
+      propertyAddress,
+      disposalDetailsAnswers,
+      acquisitionDetailsAnswers,
+      reliefDetailsAnswers,
+      exemptionAndLossesAnswers,
+      yearToDateLiabilityAnswers,
+      initialGainOrLoss,
+      supportingEvidenceAnswers,
+      representeeAnswers,
+      gainOrLossAfterReliefs,
+      lastUpdatedDate
+    )
 }

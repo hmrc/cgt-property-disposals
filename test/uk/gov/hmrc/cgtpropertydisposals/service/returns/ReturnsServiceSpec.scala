@@ -35,6 +35,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, DesFinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given

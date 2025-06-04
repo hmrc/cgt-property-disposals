@@ -29,13 +29,13 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DateOfDeath, Representee
 import java.time.LocalDate
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.sautrGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeRepresenteeAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.representeeContactDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.postcodeGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.countryGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.ninoGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 
 class RepresentedPersonDetailsSpec extends AnyWordSpec with Matchers {
 

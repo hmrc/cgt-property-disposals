@@ -36,8 +36,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.taxYearGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.given
 
 class TaxYearControllerSpec extends ControllerSpec {
 

@@ -19,14 +19,19 @@ package uk.gov.hmrc.cgtpropertydisposals.service.dms
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.util.ByteString
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.Configuration
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.DmsConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms._
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteMultipleDisposalsReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
@@ -38,13 +43,6 @@ import uk.gov.hmrc.cgtpropertydisposals.util.FileIOExecutionContext
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
-
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
 
 class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
   private val mockDmsConnector  = mock[DmsConnector]

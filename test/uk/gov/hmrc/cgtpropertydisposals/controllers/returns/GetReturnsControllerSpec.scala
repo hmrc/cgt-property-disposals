@@ -40,6 +40,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 
 class GetReturnsControllerSpec extends ControllerSpec {

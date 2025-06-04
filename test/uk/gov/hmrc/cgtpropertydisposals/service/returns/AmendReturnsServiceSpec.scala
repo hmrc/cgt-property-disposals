@@ -51,7 +51,7 @@ class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MongoSuppor
   val returnsService = new DefaultAmendReturnsService(mockAmendReturnsRepo)
 
   implicit val hc: HeaderCarrier   = HeaderCarrier()
-  implicit val request: Request[_] = FakeRequest()
+  implicit val request: Request[?] = FakeRequest()
 
   private def mockGetAmendReturnList(
     cgtReference: CgtReference
