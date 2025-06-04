@@ -16,33 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
+import io.github.martinhh.derived.scalacheck.given
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.{*, given}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.MoneyGen.amountInPenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{completeAcquisitionDetailsAnswersGen, completeDisposalDetailsAnswersGen, completeExemptionAndLossesAnswersGen, completeSingleDisposalTriageAnswersGen, disposalDateGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
-
-import io.github.martinhh.derived.scalacheck.given
-
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeSingleDisposalTriageAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeDisposalDetailsAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeAcquisitionDetailsAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.MoneyGen.amountInPenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.MoneyGen.amountInPenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.disposalDateGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.completeExemptionAndLossesAnswersGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
 
 class CgtCalculationServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 

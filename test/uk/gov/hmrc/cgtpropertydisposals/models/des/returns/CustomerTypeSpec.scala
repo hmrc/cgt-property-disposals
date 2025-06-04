@@ -25,7 +25,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
 
 class CustomerTypeSpec extends AnyWordSpec with Matchers {
 

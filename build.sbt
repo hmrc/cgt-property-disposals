@@ -15,7 +15,7 @@ lazy val microservice = Project(appName, file("."))
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test(),
     onLoadMessage := "",
     scalafmtOnCompile := true,
-    scalacOptions += "-Wconf:src=routes/.*:s,src=txt/.*:s",
+    scalacOptions += "-Wconf:src=routes/.*:s,src=txt/.*:s,-Xmax-inlines:264",
     scalacOptions ~= { options =>
       options.distinct
     }

@@ -16,16 +16,18 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
+import org.scalacheck.{Arbitrary, Gen}
 import io.github.martinhh.derived.scalacheck.given
-import org.scalacheck.Gen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{SubmitReturnRequest, SubmitReturnResponse, SubmitReturnWrapper}
-
 
 object SubmitReturnGen extends GenUtils {
   given submitReturnRequestGen: Gen[SubmitReturnRequest] = gen[SubmitReturnRequest]
 
-  given submitReturnWrapperGen: Gen[SubmitReturnWrapper] = gen[SubmitReturnWrapper]
+  given submitReturnWrapperGen: Gen[SubmitReturnWrapper] = for {
+    id          <- Gen.uuid.map(_.toString)
+    request     <- Arbitrary.arbitrary[SubmitReturnRequest]
+    lastUpdated <- Arbitrary.arbitrary[java.time.Instant]
+  } yield SubmitReturnWrapper(id, request, lastUpdated)
 
   given submitReturnResponseGen: Gen[SubmitReturnResponse] = gen[SubmitReturnResponse]
 

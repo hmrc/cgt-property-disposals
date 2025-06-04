@@ -42,4 +42,3 @@ object LowerPriorityReturnsGen extends GenUtils {
     gen[CompleteMixedUsePropertyDetailsAnswers]
 
 }
-

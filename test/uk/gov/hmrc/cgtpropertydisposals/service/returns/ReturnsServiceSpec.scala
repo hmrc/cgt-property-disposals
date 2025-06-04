@@ -23,7 +23,6 @@ import org.mockito.Mockito.{doNothing, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
-import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.libs.json.*
 import play.api.mvc.Request
 import play.api.test.FakeRequest

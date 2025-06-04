@@ -16,44 +16,28 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import cats.syntax.either._
+import cats.syntax.either.*
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.{countryGen, nonUkAddressGen, ukAddressGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.{amendReturnTypeGen, createReturnTypeGen, desMultipleDisposalsDetailsGen, desReliefDetailsGen, desReturnDetailsGen, desReturnSummaryGen, desSingleDisposalDetailsGen, desSingleMixedUseDisposalsDetailsGen, incomeAllowanceDetailsGen, representedPersonDetailsGen, returnDetailsGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.{*, given}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.gainCalculatedTaxDueGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxYear}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
 
 import java.time.LocalDate
-
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{doNothing, when}
-import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desSingleDisposalDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desReturnDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desReturnSummaryGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.returnDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.incomeAllowanceDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.nonUkAddressGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desReliefDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.gainCalculatedTaxDueGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.returnDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.createReturnTypeGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.returnDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.amendReturnTypeGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.representedPersonDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desSingleMixedUseDisposalsDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.desMultipleDisposalsDetailsGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.countryGen
 
 class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers {
 

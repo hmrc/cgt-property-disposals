@@ -23,10 +23,13 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.name.ContactName
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
@@ -34,10 +37,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnResponse
 import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 
 class EmailConnectorImplSpec
     extends AnyWordSpec

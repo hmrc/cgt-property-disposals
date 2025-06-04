@@ -17,8 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.testonly
 
 import cats.data.EitherT
-import cats.instances.future._
-import play.api.test.Helpers.{status, _}
+import cats.instances.future.*
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import play.api.test.Helpers.{status, *}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
@@ -32,10 +34,6 @@ import java.time.LocalDateTime
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar.mock
 
 class TestOnlyControllerSpec extends ControllerSpec {
   private val draftReturnsService = mock[DraftReturnsService]
