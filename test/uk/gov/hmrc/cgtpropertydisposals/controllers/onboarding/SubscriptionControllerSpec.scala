@@ -18,6 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
 import cats.data.EitherT
 import cats.instances.future.*
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -73,13 +74,13 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
   ) =
     when(
       mockSubscriptionService
-        .subscribe(expectedSubscriptionDetails)(any(), any())
+        .subscribe(ArgumentMatchers.eq(expectedSubscriptionDetails))(any(), any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, Option[SubscribedDetails]]) =
     when(
       mockSubscriptionService
-        .getSubscription(cgtReference)(any())
+        .getSubscription(ArgumentMatchers.eq(cgtReference))(any())
     ).thenReturn(EitherT.fromEither(response))
 
   private def mockUpdateSubscription(subscribedUpdateDetails: SubscribedUpdateDetails)(
@@ -87,7 +88,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
   ) =
     when(
       mockSubscriptionService
-        .updateSubscription(subscribedUpdateDetails)(any())
+        .updateSubscription(ArgumentMatchers.eq(subscribedUpdateDetails))(any())
     ).thenReturn(EitherT.fromEither(response))
 
   private def mockUpdateVerifiers(updateVerifierDetails: UpdateVerifiersRequest)(
@@ -95,7 +96,7 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
   ) =
     when(
       mockTaxEnrolmentService
-        .updateVerifiers(updateVerifierDetails)(any())
+        .updateVerifiers(ArgumentMatchers.eq(updateVerifierDetails))(any())
     ).thenReturn(EitherT.fromEither(response))
 
   private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
@@ -103,19 +104,19 @@ class SubscriptionControllerSpec extends ControllerSpec with ScalaCheckDrivenPro
   ) =
     when(
       mockTaxEnrolmentService
-        .allocateEnrolmentToGroup(taxEnrolmentRequest)(any())
+        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockCheckCgtEnrolmentExists(ggCredId: String)(response: Either[Error, Option[TaxEnrolmentRequest]]) =
     when(
       mockTaxEnrolmentService
-        .hasCgtSubscription(ggCredId)(any())
+        .hasCgtSubscription(ArgumentMatchers.eq(ggCredId))(any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockRegisterWithoutId(registrationDetails: RegistrationDetails)(response: Either[Error, SapNumber]) =
     when(
       mockRegisterWithoutIdService
-        .registerWithoutId(registrationDetails)(any(), any())
+        .registerWithoutId(ArgumentMatchers.eq(registrationDetails))(any(), any())
     ).thenReturn(EitherT.fromEither(response))
 
   val (nonUkCountry, nonUkCountryCode) = Country("HK") -> "HK"

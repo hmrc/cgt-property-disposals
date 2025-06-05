@@ -17,15 +17,16 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
+import org.mockito.ArgumentMatchers
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsNumber, JsValue, Json}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
@@ -44,7 +45,6 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -75,13 +75,13 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
     doNothing()
       .when(mockAuditService)
       .sendEvent(
-        "subscriptionResponse",
-        SubscriptionResponseEvent(
+        ArgumentMatchers.eq("subscriptionResponse"),
+        ArgumentMatchers.eq(SubscriptionResponseEvent(
           httpStatus,
           responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
           desSubscriptionRequest
-        ),
-        "subscription-response"
+        )),
+        ArgumentMatchers.eq("subscription-response")
       )(
         any(),
         any(),
@@ -93,13 +93,13 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
   )(response: Either[Error, HttpResponse]) =
     when(
       mockSubscriptionConnector
-        .subscribe(expectedSubscriptionDetails)(any())
+        .subscribe(ArgumentMatchers.eq(expectedSubscriptionDetails))(any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
     when(
       mockSubscriptionConnector
-        .getSubscription(cgtReference)(any())
+        .getSubscription(ArgumentMatchers.eq(cgtReference))(any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockUpdateSubscriptionDetails(
@@ -110,13 +110,13 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockSubscriptionConnector
-        .updateSubscription(subscribedDetails, cgtReference)(any)
+        .updateSubscription(ArgumentMatchers.eq(subscribedDetails), ArgumentMatchers.eq(cgtReference))(any)
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, HttpResponse]) =
     when(
       mockSubscriptionConnector
-        .getSubscriptionStatus(sapNumber)(any())
+        .getSubscriptionStatus(ArgumentMatchers.eq(sapNumber))(any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockSendConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
@@ -124,7 +124,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockEmailService
-        .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(any(), any())
+        .sendSubscriptionConfirmationEmail(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(email), ArgumentMatchers.eq(contactName))(any(), any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private val emptyJsonBody = "{}"

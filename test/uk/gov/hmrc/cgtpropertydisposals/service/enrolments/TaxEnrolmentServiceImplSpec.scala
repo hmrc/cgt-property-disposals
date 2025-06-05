@@ -17,9 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.enrolments
 
 import cats.data.EitherT
+import org.mockito.ArgumentMatchers
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
@@ -37,7 +38,6 @@ import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -57,7 +57,7 @@ class TaxEnrolmentServiceImplSpec extends AnyWordSpec with Matchers with CleanMo
   ) =
     when(
       mockConnector
-        .allocateEnrolmentToGroup(taxEnrolmentRequest)(any())
+        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(any())
     ).thenReturn(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
   private def mockUpdateVerifier(updateVerifierDetails: UpdateVerifiersRequest)(
@@ -65,7 +65,7 @@ class TaxEnrolmentServiceImplSpec extends AnyWordSpec with Matchers with CleanMo
   ) =
     when(
       mockConnector
-        .updateVerifiers(updateVerifierDetails)(any())
+        .updateVerifiers(ArgumentMatchers.eq(updateVerifierDetails))(any())
     ).thenReturn(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
   private def mockInsertEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
