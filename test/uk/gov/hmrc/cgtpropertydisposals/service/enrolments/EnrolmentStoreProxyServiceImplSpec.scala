@@ -17,24 +17,23 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.enrolments
 
 import cats.data.EitherT
-import cats.instances.future._
+import cats.instances.future.*
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.test.Helpers._
+import org.scalatestplus.mockito.MockitoSugar.mock
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments.EnrolmentStoreProxyConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{doNothing, when}
-import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
 
 class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers {
 
@@ -45,7 +44,7 @@ class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers {
   private def mockGetPrincipalEnrolments(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
     when(
       mockEnrolmentProxyConnector
-        .getPrincipalEnrolments(cgtReference)(any())
+        .getPrincipalEnrolments(ArgumentMatchers.eq(cgtReference))(any())
     ).thenReturn(EitherT.fromEither[Future](response))
 
   "EnrolmentStoreProxyServiceImpl" when {

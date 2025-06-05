@@ -17,6 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.onboarding
 
 import cats.data.EitherT
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -52,7 +53,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
   ) =
     when(
       bprService
-        .getBusinessPartnerRecord(expectedBprRequest)(any(), any())
+        .getBusinessPartnerRecord(ArgumentMatchers.eq(expectedBprRequest))(any(), any())
     ).thenReturn(EitherT(Future.successful(result)))
 
   val request =

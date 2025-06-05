@@ -109,7 +109,9 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       returnsConnector
-        .listReturns(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(fromDate), ArgumentMatchers.eq(toDate))(any())
+        .listReturns(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(fromDate), ArgumentMatchers.eq(toDate))(
+          any()
+        )
     ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
@@ -125,7 +127,11 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockFinancialDataConnector
-        .getFinancialData(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(fromDate), ArgumentMatchers.eq(toDate))(any())
+        .getFinancialData(
+          ArgumentMatchers.eq(cgtReference),
+          ArgumentMatchers.eq(fromDate),
+          ArgumentMatchers.eq(toDate)
+        )(any())
     ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockGetAvailableTaxYears =
@@ -169,7 +175,10 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers {
   )(response: Either[Error, Unit]) =
     when(
       mockEmailService
-        .sendReturnConfirmationEmail(ArgumentMatchers.eq(submitReturnRequest), ArgumentMatchers.eq(submitReturnResponse))(any(), any())
+        .sendReturnConfirmationEmail(
+          ArgumentMatchers.eq(submitReturnRequest),
+          ArgumentMatchers.eq(submitReturnResponse)
+        )(any(), any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockAuditSubmitReturnEvent(
@@ -181,7 +190,8 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers {
       .when(mockAuditService)
       .sendEvent(
         ArgumentMatchers.eq("submitReturn"),
-        ArgumentMatchers.eq(SubmitReturnEvent(submitReturnRequest, cgtReference.value, agentReferenceNumber.map(_.value))),
+        ArgumentMatchers
+          .eq(SubmitReturnEvent(submitReturnRequest, cgtReference.value, agentReferenceNumber.map(_.value))),
         ArgumentMatchers.eq("submit-return")
       )(any(), any(), any())
 
@@ -199,21 +209,22 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers {
     agentReferenceNumber: Option[AgentReferenceNumber],
     amendReturnData: Option[AmendReturnData]
   ): Unit =
-    doNothing().when(
-      mockAuditService)
-        .sendEvent(
-          ArgumentMatchers.eq("submitReturnResponse"),
-          ArgumentMatchers.eq(SubmitReturnResponseEvent(
+    doNothing()
+      .when(mockAuditService)
+      .sendEvent(
+        ArgumentMatchers.eq("submitReturnResponse"),
+        ArgumentMatchers.eq(
+          SubmitReturnResponseEvent(
             httpStatus,
             responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
             Json.toJson(desSubmitReturnRequest),
             name.fold(_.value, n => s"${n.firstName} ${n.lastName}"),
             agentReferenceNumber.map(_.value),
-            amendReturnData.map(a => Json.toJson(a.originalReturn.completeReturn)))
-          ),
-          ArgumentMatchers.eq("submit-return-response")
-        )(any(), any(), any())
-    
+            amendReturnData.map(a => Json.toJson(a.originalReturn.completeReturn))
+          )
+        ),
+        ArgumentMatchers.eq("submit-return-response")
+      )(any(), any(), any())
 
   private def mockGetDraftReturns(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
     when(

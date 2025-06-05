@@ -17,15 +17,20 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsNumber, JsValue, Json}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.SapNumber
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.RegistrationResponseEvent
@@ -36,11 +41,6 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{doNothing, when}
-import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
 
 class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers {
 
@@ -61,19 +61,23 @@ class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockConnector
-        .registerWithoutId(expectedRegistrationDetails, expectedReferenceId)(any())
+        .registerWithoutId(ArgumentMatchers.eq(expectedRegistrationDetails), ArgumentMatchers.eq(expectedReferenceId))(
+          any()
+        )
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockAuditRegistrationResponse(httpStatus: Int, responseBody: Option[JsValue]): Unit =
     doNothing()
       .when(mockAuditService)
       .sendEvent(
-        "registrationResponse",
-        RegistrationResponseEvent(
-          httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }"""))
+        ArgumentMatchers.eq("registrationResponse"),
+        ArgumentMatchers.eq(
+          RegistrationResponseEvent(
+            httpStatus,
+            responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }"""))
+          )
         ),
-        "registration-response"
+        ArgumentMatchers.eq("registration-response")
       )(
         any(),
         any(),

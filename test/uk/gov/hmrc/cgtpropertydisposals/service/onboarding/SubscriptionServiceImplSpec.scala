@@ -18,20 +18,25 @@ package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
 import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsNumber, JsValue, Json}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.sapNumberGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscriptionDetailsGen
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.SubscriptionResponseEvent
@@ -45,12 +50,6 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{doNothing, when}
-import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.sapNumberGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscriptionDetailsGen
 
 class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
 
@@ -76,11 +75,13 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
       .when(mockAuditService)
       .sendEvent(
         ArgumentMatchers.eq("subscriptionResponse"),
-        ArgumentMatchers.eq(SubscriptionResponseEvent(
-          httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
-          desSubscriptionRequest
-        )),
+        ArgumentMatchers.eq(
+          SubscriptionResponseEvent(
+            httpStatus,
+            responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
+            desSubscriptionRequest
+          )
+        ),
         ArgumentMatchers.eq("subscription-response")
       )(
         any(),
@@ -124,7 +125,11 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockEmailService
-        .sendSubscriptionConfirmationEmail(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(email), ArgumentMatchers.eq(contactName))(any(), any())
+        .sendSubscriptionConfirmationEmail(
+          ArgumentMatchers.eq(cgtReference),
+          ArgumentMatchers.eq(email),
+          ArgumentMatchers.eq(contactName)
+        )(any(), any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private val emptyJsonBody = "{}"

@@ -17,16 +17,17 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
-import cats.instances.future._
+import cats.instances.future.*
+import org.mockito.ArgumentMatchers
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DisplayReturn, ListReturnsResponse, ReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.ReturnsService
@@ -35,7 +36,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -51,7 +51,9 @@ class GetReturnsControllerSpec extends ControllerSpec {
   ) =
     when(
       mockReturnsService
-        .listReturns(cgtReference, fromDate, toDate)(any())
+        .listReturns(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(fromDate), ArgumentMatchers.eq(toDate))(
+          any()
+        )
     ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDisplayReturn(cgtReference: CgtReference, submissionId: String)(
@@ -59,7 +61,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
   ) =
     when(
       mockReturnsService
-        .displayReturn(cgtReference, submissionId)(any())
+        .displayReturn(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(submissionId))(any())
     ).thenReturn(EitherT.fromEither[Future](response))
 
   val request = new AuthenticatedRequest(

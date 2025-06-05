@@ -17,16 +17,17 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
-import cats.instances.future._
+import cats.instances.future.*
+import org.mockito.ArgumentMatchers
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 import play.api.mvc.Request
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
@@ -43,7 +44,6 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import java.time.{Clock, LocalDateTime, ZoneId, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, when}
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -83,19 +83,19 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
   private def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
     when(
       mockBprConnector
-        .getBusinessPartnerRecord(bprRequest)(any())
+        .getBusinessPartnerRecord(ArgumentMatchers.eq(bprRequest))(any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, Option[CgtReference]]) =
     when(
       mockSubscriptionService
-        .getSubscriptionStatus(sapNumber)(any())
+        .getSubscriptionStatus(ArgumentMatchers.eq(sapNumber))(any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockEnrolmentExists(cgtReference: CgtReference)(result: Either[Error, Boolean]) =
     when(
       mockEnrolmentStoreProxyService
-        .cgtEnrolmentExists(cgtReference)(any())
+        .cgtEnrolmentExists(ArgumentMatchers.eq(cgtReference))(any())
     ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockGetSubscription(
@@ -103,7 +103,7 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
   )(response: Either[Error, Option[SubscribedDetails]]): Unit =
     when(
       mockSubscriptionService
-        .getSubscription(cgtReference)(any())
+        .getSubscription(ArgumentMatchers.eq(cgtReference))(any())
     ).thenReturn(EitherT.fromEither(response))
 
   private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
@@ -111,7 +111,7 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockTaxEnrolmentService
-        .allocateEnrolmentToGroup(taxEnrolmentRequest)(any())
+        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
@@ -119,7 +119,7 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockEmailService
-        .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(any(), any())
+        .sendSubscriptionConfirmationEmail(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(email), ArgumentMatchers.eq(contactName))(any(), any())
     ).thenReturn(EitherT.fromEither[Future](result))
 
   implicit val hc: HeaderCarrier = HeaderCarrier()

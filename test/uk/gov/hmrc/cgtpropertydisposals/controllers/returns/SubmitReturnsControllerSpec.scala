@@ -17,10 +17,11 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
-import cats.instances.future._
+import cats.instances.future.*
+import org.mockito.ArgumentMatchers
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Headers
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
@@ -43,7 +44,6 @@ import java.time.LocalDateTime
 import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -51,7 +51,6 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.B64HtmlGen.given
-
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
 
 class SubmitReturnsControllerSpec extends ControllerSpec {
@@ -88,7 +87,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   ) =
     when(
       returnsService
-        .submitReturn(request, representeeDetails)(any(), any())
+        .submitReturn(ArgumentMatchers.eq(request), ArgumentMatchers.eq(representeeDetails))(any(), any())
     ).thenReturn(EitherT.fromEither(response))
 
   private def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Unit]) =
@@ -106,10 +105,10 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     when(
       mockDmsSubmissionService
         .submitToDms(
-          sanitise(html),
-          submitReturnResponse.formBundleId,
-          submitReturnRequest.subscribedDetails.cgtReference,
-          submitReturnRequest.completeReturn
+          ArgumentMatchers.eq(sanitise(html)),
+          ArgumentMatchers.eq(submitReturnResponse.formBundleId),
+          ArgumentMatchers.eq(submitReturnRequest.subscribedDetails.cgtReference),
+          ArgumentMatchers.eq(submitReturnRequest.completeReturn)
         )(any())
     ).thenReturn(res)
   }
