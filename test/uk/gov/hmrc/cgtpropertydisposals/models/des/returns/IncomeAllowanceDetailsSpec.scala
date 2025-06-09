@@ -16,11 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import io.github.martinhh.derived.arbitrary.anyGivenArbitrary
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
@@ -32,104 +35,98 @@ class IncomeAllowanceDetailsSpec extends AnyWordSpec with Matchers with ScalaChe
     "have an apply method" which {
       "creates IncomeAllowanceDetails correctly" when {
         "the return passed in is for a single disposal calculated journey" in {
-          forAll {
-            calculatedYtdAnswers: CompleteCalculatedYTDAnswers =>
-              val calculatedReturn = sample[CompleteSingleDisposalReturn].copy(
-                exemptionsAndLossesDetails =
-                  sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
-                yearToDateLiabilityAnswers = Right(calculatedYtdAnswers)
-              )
-              IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
-                BigDecimal("0.01"),
-                Some(calculatedYtdAnswers.estimatedIncome.inPounds()),
-                calculatedYtdAnswers.personalAllowance.map(_.inPounds()),
-                Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
-              )
+          forAll { (calculatedYtdAnswers: CompleteCalculatedYTDAnswers) =>
+            val calculatedReturn = sample[CompleteSingleDisposalReturn].copy(
+              exemptionsAndLossesDetails =
+                sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
+              yearToDateLiabilityAnswers = Right(calculatedYtdAnswers)
+            )
+            IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
+              BigDecimal("0.01"),
+              Some(calculatedYtdAnswers.estimatedIncome.inPounds()),
+              calculatedYtdAnswers.personalAllowance.map(_.inPounds()),
+              Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
+            )
           }
         }
 
         "the return passed in is for a single disposal non-calculated journey" in {
-          forAll {
-            nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
-              val calculatedReturn = sample[CompleteSingleDisposalReturn].copy(
-                exemptionsAndLossesDetails =
-                  sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
-                yearToDateLiabilityAnswers = Left(nonCalculatedYtdAnswers)
-              )
-              IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
-                BigDecimal("0.01"),
-                nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
-                nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
-                Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
-              )
+          forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
+            val calculatedReturn = sample[CompleteSingleDisposalReturn].copy(
+              exemptionsAndLossesDetails =
+                sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
+              yearToDateLiabilityAnswers = Left(nonCalculatedYtdAnswers)
+            )
+            IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
+              BigDecimal("0.01"),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
+              Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
+            )
           }
         }
 
         "the return passed in is for a multiple disposals journey" in {
-          forAll {
-            nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
-              val calculatedReturn = sample[CompleteMultipleDisposalsReturn].copy(
-                exemptionAndLossesAnswers =
-                  sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
-                yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
-              )
-              IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
-                BigDecimal("0.01"),
-                nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
-                nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
-                Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
-              )
+          forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
+            val calculatedReturn = sample[CompleteMultipleDisposalsReturn].copy(
+              exemptionAndLossesAnswers =
+                sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
+              yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
+            )
+            IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
+              BigDecimal("0.01"),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
+              Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
+            )
           }
         }
 
         "the return passed in is for a single indirect disposal journey" in {
-          forAll {
-            nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
-              val calculatedReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
-                exemptionsAndLossesDetails =
-                  sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
-                yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
-              )
-              IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
-                BigDecimal("0.01"),
-                nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
-                nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
-                Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
-              )
+          forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
+            val calculatedReturn = sample[CompleteSingleIndirectDisposalReturn].copy(
+              exemptionsAndLossesDetails =
+                sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
+              yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
+            )
+            IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
+              BigDecimal("0.01"),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
+              Some(calculatedReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
+            )
           }
         }
 
         "the return passed in is for a multiple indirect disposals journey" in {
-          forAll {
-            nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
-              val calculatedReturn = sample[CompleteMultipleIndirectDisposalReturn].copy(
-                exemptionsAndLossesDetails =
-                  sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
-                yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
-              )
-              IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
-                BigDecimal("0.01"),
-                nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
-                nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
-                Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
-              )
+          forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
+            val calculatedReturn = sample[CompleteMultipleIndirectDisposalReturn].copy(
+              exemptionsAndLossesDetails =
+                sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
+              yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
+            )
+            IncomeAllowanceDetails(calculatedReturn) shouldBe IncomeAllowanceDetails(
+              BigDecimal("0.01"),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
+              Some(calculatedReturn.triageAnswers.taxYear.incomeTaxHigherRateThreshold.inPounds())
+            )
           }
         }
 
         "the return passed in is for a single mixed use disposal journey" in {
-          forAll {
-            nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
-              val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
-                exemptionsAndLossesDetails =
-                  sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
-                yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
-              )
-              IncomeAllowanceDetails(completeReturn) shouldBe IncomeAllowanceDetails(
-                BigDecimal("0.01"),
-                nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
-                nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
-                Some(completeReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
-              )
+          forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
+            val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
+              exemptionsAndLossesDetails =
+                sample[CompleteExemptionAndLossesAnswers].copy(annualExemptAmount = AmountInPence(1L)),
+              yearToDateLiabilityAnswers = nonCalculatedYtdAnswers
+            )
+            IncomeAllowanceDetails(completeReturn) shouldBe IncomeAllowanceDetails(
+              BigDecimal("0.01"),
+              nonCalculatedYtdAnswers.estimatedIncome.map(_.inPounds()),
+              nonCalculatedYtdAnswers.personalAllowance.map(_.inPounds()),
+              Some(completeReturn.triageAnswers.disposalDate.taxYear.incomeTaxHigherRateThreshold.inPounds())
+            )
           }
         }
       }

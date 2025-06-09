@@ -85,7 +85,7 @@ class SubscriptionServiceImpl @Inject() (
   override def subscribe(
     subscriptionDetails: SubscriptionDetails
   )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, SubscriptionResponse] =
-    for {
+    for
       subscriptionResponse <- sendSubscriptionRequest(subscriptionDetails)
       _                    <- subscriptionResponse match {
                                 case successful: SubscriptionSuccessful =>
@@ -100,7 +100,7 @@ class SubscriptionServiceImpl @Inject() (
                                     )
                                 case _                                  => EitherT.pure[Future, Error](())
                               }
-    } yield subscriptionResponse
+    yield subscriptionResponse
 
   private def sendSubscriptionRequest(
     subscriptionDetails: SubscriptionDetails
@@ -116,10 +116,8 @@ class SubscriptionServiceImpl @Inject() (
     subscriptionConnector.subscribe(desSubscriptionRequest).subflatMap { response =>
       timer.close()
       auditSubscriptionResponse(response.status, response.body, desSubscriptionRequest)
-      if (response.status === OK)
-        response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
-      else if (isAlreadySubscribedResponse(response))
-        Right(AlreadySubscribed)
+      if response.status === OK then response.parseJSON[SubscriptionSuccessful]().leftMap(Error(_))
+      else if isAlreadySubscribedResponse(response) then Right(AlreadySubscribed)
       else {
         metrics.subscriptionCreateErrorCounter.inc()
         Left(Error(s"call to subscribe came back with status ${response.status}"))
@@ -151,7 +149,7 @@ class SubscriptionServiceImpl @Inject() (
           "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
         )
 
-      if (response.status === OK)
+      if response.status === OK then
         response
           .parseJSON[DesSubscriptionDisplayDetails]()
           .flatMap(toSubscriptionDisplayRecord(_, cgtReference))
@@ -162,8 +160,7 @@ class SubscriptionServiceImpl @Inject() (
             },
             Some(_)
           )
-      else if (isNoSubscriptionExistsResponse(response))
-        Right(None)
+      else if isNoSubscriptionExistsResponse(response) then Right(None)
       else {
         metrics.subscriptionGetErrorCounter.inc()
         Left(Error(s"call to subscription display api came back with status ${response.status}"))
@@ -188,7 +185,7 @@ class SubscriptionServiceImpl @Inject() (
             "DES CorrelationId" -> response.header("CorrelationId").getOrElse("-")
           )
 
-        if (response.status === OK)
+        if response.status === OK then
           response
             .parseJSON[SubscriptionUpdateResponse]()
             .leftMap { e =>
@@ -209,7 +206,7 @@ class SubscriptionServiceImpl @Inject() (
 
     subscriptionConnector.getSubscriptionStatus(sapNumber).subflatMap { response =>
       timer.close()
-      if (response.status === OK)
+      if response.status === OK then
         response
           .parseJSON[DesSubscriptionStatusResponse]()
           .leftMap { e =>
@@ -277,7 +274,7 @@ class SubscriptionServiceImpl @Inject() (
     desSubscriptionRequest: DesSubscriptionRequest
   )(implicit hc: HeaderCarrier, request: Request[?]): Unit = {
     val responseJson =
-      if ((responseHttpStatus === OK && responseBody.nonEmpty) || responseHttpStatus === FORBIDDEN) {
+      if (responseHttpStatus === OK && responseBody.nonEmpty) || responseHttpStatus === FORBIDDEN then {
         Json.parse(responseBody)
       } else {
         Json.obj("body : could not parse body as JSON: " -> responseBody)

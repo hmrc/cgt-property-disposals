@@ -20,7 +20,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Format
 import play.api.mvc.PathBindable
 
-final case class UploadReference(value: String) extends AnyVal
+final case class UploadReference(value: String)
 
 object UploadReference {
   implicit val binder: PathBindable[UploadReference] =

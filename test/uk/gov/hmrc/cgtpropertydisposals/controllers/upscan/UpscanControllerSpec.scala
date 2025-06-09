@@ -17,18 +17,21 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.upscan
 
 import cats.data.EitherT
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Headers, WrappedRequest}
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.*
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -44,9 +47,10 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   private def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
     response: Either[Error, Unit]
   ) =
-    mockUpscanService
-      .storeUpscanUpload(upscanUpload)
-      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
+    when(
+      mockUpscanService
+        .storeUpscanUpload(upscanUpload)
+    ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockUpdateUpscanUpload(
     uploadReference: UploadReference,
@@ -54,23 +58,26 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
   )(
     response: Either[Error, Unit]
   ) =
-    mockUpscanService
-      .updateUpscanUpload(uploadReference, upscanUpload)
-      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
+    when(
+      mockUpscanService
+        .updateUpscanUpload(uploadReference, upscanUpload)
+    ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockGetUpscanUpload(uploadReference: UploadReference)(
     response: Either[Error, Option[UpscanUploadWrapper]]
   ) =
-    mockUpscanService
-      .readUpscanUpload(uploadReference)
-      .returns(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
+    when(
+      mockUpscanService
+        .readUpscanUpload(uploadReference)
+    ).thenReturn(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
 
   private def mockGetUpscanUploads(uploadReferences: List[UploadReference])(
     response: Either[Error, List[UpscanUploadWrapper]]
   ) =
-    mockUpscanService
-      .readUpscanUploads(uploadReferences)
-      .returns(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
+    when(
+      mockUpscanService
+        .readUpscanUploads(uploadReferences)
+    ).thenReturn(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
 
   val request = new AuthenticatedRequest(
     Fake.user,

@@ -74,7 +74,7 @@ class RegisterWithoutIdServiceImpl @Inject() (
         response.body
       )
 
-      if (response.status === OK)
+      if response.status === OK then
         response
           .parseJSON[RegisterWithoutIdResponse]()
           .bimap(

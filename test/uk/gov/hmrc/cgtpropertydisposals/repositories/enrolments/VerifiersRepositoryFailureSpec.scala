@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 
+import org.mongodb.scala.SingleObservableFuture
 import org.scalacheck.Arbitrary
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxEnrolmentGen.given
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.mongo.test.MongoSupport
 

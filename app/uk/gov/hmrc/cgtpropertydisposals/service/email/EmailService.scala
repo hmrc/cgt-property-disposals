@@ -71,7 +71,7 @@ class EmailServiceImpl @Inject() (connector: EmailConnector, auditService: Audit
       .subflatMap { httpResponse =>
         timer.close()
 
-        if (httpResponse.status =!= ACCEPTED) {
+        if httpResponse.status =!= ACCEPTED then {
           metrics.subscriptionConfirmationEmailErrorCounter.inc()
           Left(Error(s"Call to send confirmation email came back with status ${httpResponse.status}"))
         } else
@@ -97,7 +97,7 @@ class EmailServiceImpl @Inject() (connector: EmailConnector, auditService: Audit
       )
       .subflatMap { httpResponse =>
         timer.close()
-        if (httpResponse.status === ACCEPTED)
+        if httpResponse.status === ACCEPTED then
           Right(auditSubscriptionConfirmationEmailSent(returnRequest, submitReturnResponse))
         else {
           metrics.submitReturnConfirmationEmailErrorCounter.inc()

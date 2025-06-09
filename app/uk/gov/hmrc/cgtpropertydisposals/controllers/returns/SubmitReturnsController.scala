@@ -52,7 +52,7 @@ class SubmitReturnsController @Inject() (
     authenticate(parse.json).async { implicit request =>
       withJsonBody[SubmitReturnRequest] { returnRequest =>
         val result =
-          for {
+          for
             sanitisedHtml      <- EitherT.fromEither(sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
             representeeDetails <- extractRepresenteeAnswersWithValidId(returnRequest)
             submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
@@ -67,7 +67,7 @@ class SubmitReturnsController @Inject() (
                                       s"'cgtRef' : ${returnRequest.subscribedDetails.cgtReference}]"
                                   )
             _                  <- draftReturnsService.deleteDraftReturns(List(returnRequest.id))
-          } yield submissionResult
+          yield submissionResult
 
         result.fold(
           error =>

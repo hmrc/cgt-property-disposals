@@ -71,7 +71,7 @@ class DefaultVerifiersRepository @Inject() (mongo: MongoComponent)(implicit
           .insertOne(updateVerifiersRequest)
           .toFuture()
           .map[Either[Error, Unit]] { result =>
-            if (result.wasAcknowledged()) {
+            if result.wasAcknowledged() then {
               Right(())
             } else {
               Left(

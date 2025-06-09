@@ -17,22 +17,22 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import cats.data.EitherT
-import cats.instances.char._
-import cats.syntax.eq._
+import cats.instances.char.*
+import cats.syntax.eq.*
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnectorImpl.{RegistrationAddress, RegistrationContactDetails, RegistrationIndividual, RegistrationRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-
 import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnectorImpl.{RegistrationAddress, RegistrationContactDetails, RegistrationIndividual, RegistrationRequest}
+
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -56,9 +56,10 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClientV2, val config: 
     registrationDetails: RegistrationDetails,
     acknowledgementReferenceId: UUID
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
+    val acknowledgementRef       = acknowledgementReferenceId.toString.filterNot(_ === '-')
     val registerWithoutIdRequest = RegistrationRequest(
       "CGT",
-      acknowledgementReferenceId.toString.filterNot(_ === '-'),
+      acknowledgementRef,
       isAnAgent = false,
       isAGroup = false,
       RegistrationIndividual(registrationDetails.name.firstName, registrationDetails.name.lastName),
@@ -66,15 +67,19 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClientV2, val config: 
       RegistrationContactDetails(registrationDetails.emailAddress.value)
     )
 
-    EitherT[Future, Error, HttpResponse](
-      http
-        .post(url"$url")
-        .withBody(Json.toJson(registerWithoutIdRequest))
-        .setHeader(headers*)
-        .execute[HttpResponse]
+    EitherT[Future, Error, HttpResponse] {
+      val request = Json.toJson(registerWithoutIdRequest)
+      val result  =
+        http
+          .post(url"$url")
+          .withBody(request)
+          .setHeader(headers: _*)
+          .execute[HttpResponse]
+      result
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
-    )
+    }
+
   }
 
   private def toRegistrationAddress(address: Address) =
@@ -111,8 +116,28 @@ object RegisterWithoutIdConnectorImpl {
     countryCode: String
   )
 
-  implicit val individualWrites: Writes[RegistrationIndividual]         = Json.writes[RegistrationIndividual]
-  implicit val addressWrites: Writes[RegistrationAddress]               = Json.writes[RegistrationAddress]
+  implicit val individualWrites: Writes[RegistrationIndividual] = Json.writes[RegistrationIndividual]
+
   implicit val contactDetailsWrites: Writes[RegistrationContactDetails] = Json.writes[RegistrationContactDetails]
-  implicit val requestWrites: Writes[RegistrationRequest]               = Json.writes[RegistrationRequest]
+  implicit val addressWrites: Writes[RegistrationAddress]               = new Writes[RegistrationAddress] {
+    override def writes(o: RegistrationAddress): JsValue = Json.obj(
+      "addressLine1" -> o.addressLine1,
+      "addressLine2" -> o.addressLine2,
+      "addressLine3" -> o.addressLine3,
+      "addressLine4" -> o.addressLine4,
+      "postalCode"   -> o.postalCode,
+      "countryCode"  -> o.countryCode
+    )
+  }
+  implicit val requestWrites: Writes[RegistrationRequest]               = new Writes[RegistrationRequest] {
+    override def writes(o: RegistrationRequest): JsValue = Json.obj(
+      "regime"                   -> o.regime,
+      "acknowledgementReference" -> o.acknowledgementReference,
+      "isAnAgent"                -> o.isAnAgent,
+      "isAGroup"                 -> o.isAGroup,
+      "individual"               -> o.individual,
+      "address"                  -> o.address,
+      "contactDetails"           -> o.contactDetails
+    )
+  }
 }

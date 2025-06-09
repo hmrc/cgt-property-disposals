@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, Json, OFormat}
+import uk.gov.hmrc.cgtpropertydisposals.models.EitherFormat
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
@@ -140,6 +141,9 @@ object CompleteReturn {
   implicit val completeSingleDisposalReturnFormat: OFormat[CompleteSingleDisposalReturn]                      = Json.format
   implicit val completeSingleMixedUseDisposalReturnFormat: OFormat[CompleteSingleMixedUseDisposalReturn]      = Json.format
   implicit val completeSingleIndirectDisposalReturnFormat: OFormat[CompleteSingleIndirectDisposalReturn]      = Json.format
+
+  implicit val eitherFormat: Format[Either[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]] =
+    EitherFormat.eitherFormat[CompleteNonCalculatedYTDAnswers, CompleteCalculatedYTDAnswers]
 
   implicit val format: OFormat[CompleteReturn] = new OFormat[CompleteReturn] {
     override def reads(json: play.api.libs.json.JsValue): play.api.libs.json.JsResult[CompleteReturn] =

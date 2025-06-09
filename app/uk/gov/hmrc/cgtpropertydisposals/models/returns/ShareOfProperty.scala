@@ -37,8 +37,8 @@ object ShareOfProperty {
   final case class Other(percentageValue: BigDecimal) extends ShareOfProperty
 
   def apply(percentage: BigDecimal): ShareOfProperty =
-    if (percentage === BigDecimal("50")) Half
-    else if (percentage === BigDecimal("100")) Full
+    if percentage === BigDecimal("50") then Half
+    else if percentage === BigDecimal("100") then Full
     else Other(percentage)
 
   implicit val format: Format[ShareOfProperty] = new Format[ShareOfProperty] {

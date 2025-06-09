@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.upscan
 
-import play.api.libs.json.*
+import play.api.libs.json.{JsError, JsObject, JsResult, JsValue, Json, OFormat}
 
 import java.time.Instant
 
@@ -87,7 +87,7 @@ object UpscanCallBack {
     override def writes(o: UpscanCallBack): JsObject = o match {
       case s: UpscanSuccess    => Json.obj("UpscanSuccess" -> Json.toJson(s))
       case f: UpscanFailure    => Json.obj("UpscanFailure" -> Json.toJson(f))
-      case n: NewUpscanSuccess => Json.obj("UpscanFailure" -> Json.toJson(n))
+      case n: NewUpscanSuccess => Json.obj("NewUpscanSuccess" -> Json.toJson(n))
     }
   }
 

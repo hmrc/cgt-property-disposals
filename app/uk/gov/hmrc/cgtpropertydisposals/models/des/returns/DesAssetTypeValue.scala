@@ -67,10 +67,8 @@ object DesAssetTypeValue {
         case other                   => Left(other)
       }
       val (unknowns, assetTypes) = result.partitionWith(identity)
-      if (unknowns.nonEmpty)
-        Left(s"Could not parse asset types: [${unknowns.mkString(", ")}]")
-      else
-        Right(assetTypes)
+      if unknowns.nonEmpty then Left(s"Could not parse asset types: [${unknowns.mkString(", ")}]")
+      else Right(assetTypes)
     }
 
     def isIndirectDisposal(): Boolean = a.value === Values.indirectDisposal

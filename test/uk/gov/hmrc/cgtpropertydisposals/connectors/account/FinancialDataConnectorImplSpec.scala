@@ -17,7 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.account
 
 import com.typesafe.config.ConfigFactory
-import org.mockito.IdiomaticMockito
+
 import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -26,17 +26,17 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
 import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 
 import java.time.LocalDate
 
 class FinancialDataConnectorImplSpec
     extends AnyWordSpec
     with Matchers
-    with IdiomaticMockito
     with WireMockSupport
     with WireMockMethods
     with GuiceOneAppPerSuite
@@ -101,8 +101,8 @@ class FinancialDataConnectorImplSpec
             ).thenReturn(httpResponse.status, httpResponse.body)
 
             val response = await(connector.getFinancialData(cgtReference, fromDate, toDate).value).value
-            response.status shouldBe httpResponse.status
-            response.body   shouldBe httpResponse.body
+            response.status.shouldBe(httpResponse.status)
+            response.body.shouldBe(httpResponse.body)
           }
         }
       }

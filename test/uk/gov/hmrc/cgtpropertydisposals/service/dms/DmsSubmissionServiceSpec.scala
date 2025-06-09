@@ -21,16 +21,21 @@ import cats.instances.future._
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.util.ByteString
+import org.mockito.Mockito.when
 import org.bson.types.ObjectId
 import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.Configuration
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.DmsConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms._
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteMultipleDisposalsReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
@@ -46,7 +51,7 @@ import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with IdiomaticMockito {
+class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers {
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
   private val mockDmsConnector      = mock[DmsConnector]
@@ -84,16 +89,18 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers with Idiomati
   private def mockDmsSubmission(dmsSubmissionPayload: DmsSubmissionPayload)(
     response: DmsEnvelopeId
   ) =
-    mockDmsConnector
-      .submitToDms(dmsSubmissionPayload)
-      .returns(Future.successful(response))
+    when(
+      mockDmsConnector
+        .submitToDms(dmsSubmissionPayload)
+    ).thenReturn(Future.successful(response))
 
   private def mockDownloadS3Urls(upscanSuccesses: List[UpscanSuccess])(
     response: List[Either[Error, FileAttachment]]
   ) =
-    mockUpscanService
-      .downloadFilesFromS3(upscanSuccesses)
-      .returns(Future.successful(response))
+    when(
+      mockUpscanService
+        .downloadFilesFromS3(upscanSuccesses)
+    ).thenReturn(Future.successful(response))
 
   private val actorSystem                                                  = ActorSystem()
   implicit val dmsSubmissionPollerExecutionContext: FileIOExecutionContext =

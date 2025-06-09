@@ -16,20 +16,25 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
+import io.github.martinhh.derived.scalacheck.given
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.MoneyGen.amountInPenceGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{completeAcquisitionDetailsAnswersGen, completeDisposalDetailsAnswersGen, completeExemptionAndLossesAnswersGen, completeSingleDisposalTriageAnswersGen, disposalDateGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DisposalDetailsAnswers.CompleteDisposalDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ReliefDetailsAnswers.CompleteReliefDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SingleDisposalTriageAnswers.CompleteSingleDisposalTriageAnswers
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 
 class CgtCalculationServiceImplSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
@@ -1000,19 +1005,18 @@ class CgtCalculationServiceImplSpec extends AnyWordSpec with Matchers with Scala
       }
 
       "calculate gain or loss after in year losses correctly" in {
-        forAll {
-          exemptionsAndLosses: CompleteExemptionAndLossesAnswers =>
-            val currentGlar = AmountInPence(1L)
-            service
-              .calculateTaxableGainOrLoss(
-                TaxableGainOrLossCalculationRequest(
-                  List.empty,
-                  currentGlar,
-                  exemptionsAndLosses,
-                  sample[UkAddress]
-                )
+        forAll { (exemptionsAndLosses: CompleteExemptionAndLossesAnswers) =>
+          val currentGlar = AmountInPence(1L)
+          service
+            .calculateTaxableGainOrLoss(
+              TaxableGainOrLossCalculationRequest(
+                List.empty,
+                currentGlar,
+                exemptionsAndLosses,
+                sample[UkAddress]
               )
-              .gainOrLossAfterInYearLosses shouldBe (currentGlar -- exemptionsAndLosses.inYearLosses)
+            )
+            .gainOrLossAfterInYearLosses shouldBe (currentGlar -- exemptionsAndLosses.inYearLosses)
         }
       }
 

@@ -27,13 +27,11 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion     % scope,
    // "org.mockito"                %% "mockito-scala"                 % "1.17.37"        % scope,
     "org.scalamock"              %% "scalamock"                     % "7.3.2"          % scope,
-    //"com.github.alexarchambault" %% "scalacheck-shapeless_1.18"     % "1.3.2"          % scope,
     "org.jsoup"                   % "jsoup"                         % "1.20.1",
-    "org.scalatestplus"          %% "scalacheck-1-18"               % "3.2.19.0"       % scope,
     "org.scalatest"              %% "scalatest"                     % "3.2.19"           % scope,
     "org.apache.pekko"           %% "pekko-testkit"                 % pekkoVersion     % scope,
-    "io.github.martinhh"         %% "scalacheck-derived"            % "0.8.2"          % scope,
-    "org.scalacheck"             %% "scalacheck"                    % "1.18.1"        % scope,
+    "org.scalacheck"             %% "scalacheck"                    % "1.18.1"         % scope,
+    "org.scalatestplus"           % "scalacheck-1-18_3"             % "3.2.19.0"       % scope,
     "io.github.martinhh"         %% "scalacheck-derived" % "0.8.2"  % scope,
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion  % scope exclude ("org.playframework", "play-json_2.13")
     //"org.julienrf"               %% "play-json-derived-codecs"      % "7.0.0" cross CrossVersion.for3Use2_13

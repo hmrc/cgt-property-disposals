@@ -16,25 +16,30 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import cats.syntax.either._
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
+import cats.syntax.either.*
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
+import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.DisposalDetails.{MultipleDisposalDetails, SingleDisposalDetails, SingleMixedUseDisposalDetails}
-import uk.gov.hmrc.cgtpropertydisposals.models.des.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.{countryGen, nonUkAddressGen, ukAddressGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.{amendReturnTypeGen, createReturnTypeGen, desMultipleDisposalsDetailsGen, desReliefDetailsGen, desReturnDetailsGen, desSingleDisposalDetailsGen, desSingleMixedUseDisposalsDetailsGen, incomeAllowanceDetailsGen, representedPersonDetailsGen, returnDetailsGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.gainCalculatedTaxDueGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, TaxYear}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.{CgtCalculationService, TaxYearService}
 
 import java.time.LocalDate
 
-class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers {
 
   private val mockCalculationService = mock[CgtCalculationService]
 
@@ -43,14 +48,16 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
   val transformer = new ReturnTransformerServiceImpl(mockCalculationService, mockTaxYearService)
 
   private def mockCalculateTaxDue()(result: CalculatedTaxDue) =
-    mockCalculationService
-      .calculateTaxDue(*, *, *, *, *, *, *, *, *, *)
-      .returns(result)
+    when(
+      mockCalculationService
+        .calculateTaxDue(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    ).thenReturn(result)
 
   private def mockGetTaxYear(date: LocalDate)(result: Option[TaxYear]) =
-    mockTaxYearService
-      .getTaxYear(date)
-      .returns(result)
+    when(
+      mockTaxYearService
+        .getTaxYear(date)
+    ).thenReturn(result)
 
   "ReturnTransformerServiceImpl" when {
     val ukAddress = sample[UkAddress]
@@ -109,7 +116,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
               case s @ CompleteSingleDisposalReturn(_, _, _, _, _, _, _, _, _, _, _, _) => Right(value(s))
               case other                                                                => Left(s"Expected CompleteSingleDisposalReturn but got $other")
             }
-          case Right(other)            => Left(s"Expected CompleteSingleDisposalReturn but got $other")
         }
 
       def mockGetTaxYearAndCalculatedTaxDue(): Unit =
@@ -1051,7 +1057,7 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
             )
         }
 
-        def furtherOrAmendReturnBehaviour(desReturnDetails: DesReturnDetails) = {
+        def furtherOrAmendReturnBehaviour(desReturnDetails: DesReturnDetails): Unit = {
           "finding the taxableGainOrLoss when a loss has been made" in {
             mockGetTaxYear(validSingleDisposalDetails.disposalDate)(Some(taxYear))
 
@@ -1345,7 +1351,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
               case m @ CompleteMultipleDisposalsReturn(_, _, _, _, _, _, _, _) => Right(value(m))
               case other                                                       => Left(s"Expected CompleteMultipleDisposalsReturn but got $other")
             }
-          case Right(other)            => Left(s"Expected CompleteMultipleDisposalsReturn but got $other")
         }
 
       def mockGetTaxYearSuccess(): Unit =
@@ -1833,7 +1838,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
               case s @ CompleteSingleIndirectDisposalReturn(_, _, _, _, _, _, _, _, _, _) => Right(value(s))
               case other                                                                  => Left(s"Expected CompleteSingleDisposalReturn but got $other")
             }
-          case Right(other)            => Left(s"Expected CompleteSingleDisposalReturn but got $other")
         }
 
       def mockGetValidTaxYear(taxYear: TaxYear = sample[TaxYear]) =
@@ -2497,7 +2501,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
               case m @ CompleteMultipleIndirectDisposalReturn(_, _, _, _, _, _, _, _) => Right(value(m))
               case other                                                              => Left(s"Expected CompleteMultipleIndirectDisposalReturn but got $other")
             }
-          case Right(other)            => Left(s"Expected CompleteMultipleIndirectDisposalReturn but got $other")
         }
 
       def mockGetTaxYearSuccess(): Unit =
@@ -2962,7 +2965,6 @@ class ReturnTransformerServiceImplSpec extends AnyWordSpec with Matchers with Id
               case m @ CompleteSingleMixedUseDisposalReturn(_, _, _, _, _, _, _, _) => Right(value(m))
               case other                                                            => Left(s"Expected CompleteSingleMixedUseDisposalReturn but got $other")
             }
-          case Right(other)            => Left(s"Expected CompleteSingleMixedUseDisposalReturn but got $other")
         }
 
       def mockGetTaxYearSuccess(): Unit =

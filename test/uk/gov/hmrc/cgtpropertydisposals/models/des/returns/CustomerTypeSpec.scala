@@ -19,10 +19,12 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.CustomerType.{Individual, Trust}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
+
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
 
 class CustomerTypeSpec extends AnyWordSpec with Matchers {
 

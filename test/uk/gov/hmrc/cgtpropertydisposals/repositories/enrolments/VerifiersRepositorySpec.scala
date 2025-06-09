@@ -19,8 +19,9 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 import org.scalacheck.Arbitrary
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxEnrolmentGen.given
 import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersRequest
 import uk.gov.hmrc.mongo.test.MongoSupport
 
@@ -34,7 +35,7 @@ class VerifiersRepositorySpec extends AnyWordSpec with Matchers with MongoSuppor
   implicit val arbLocalDateTime: Arbitrary[LocalDateTime] =
     Arbitrary(LocalDateTime.now())
 
-  val verifierDetails = sample[UpdateVerifiersRequest]
+  val verifierDetails: UpdateVerifiersRequest = sample[UpdateVerifiersRequest]
 
   "The Update Verifiers repository" when {
     "inserting" should {
@@ -46,20 +47,20 @@ class VerifiersRepositorySpec extends AnyWordSpec with Matchers with MongoSuppor
     "getting" should {
       "retrieve an existing record" in {
         await(repository.insert(verifierDetails).value)       shouldBe Right(())
-        await(repository.get(verifierDetails.ggCredId).value) shouldBe (Right(Some(verifierDetails)))
+        await(repository.get(verifierDetails.ggCredId).value) shouldBe Right(Some(verifierDetails))
       }
       "return none if the record does not exist" in {
-        await(repository.get("this-gg-cred-id-does-not-exist").value) shouldBe (Right(None))
+        await(repository.get("this-gg-cred-id-does-not-exist").value) shouldBe Right(None)
       }
     }
 
     "deleting" should {
       "return a count of one when deleting a unique tax enrolment record" in {
         await(repository.insert(verifierDetails).value)
-        await(repository.delete(verifierDetails.ggCredId).value) shouldBe (Right(1))
+        await(repository.delete(verifierDetails.ggCredId).value) shouldBe Right(1)
       }
       "return a count of zero when the tax enrolment record does not exist" in {
-        await(repository.delete("this-gg-cred-id-does-not-exist").value) shouldBe (Right(0))
+        await(repository.delete("this-gg-cred-id-does-not-exist").value) shouldBe Right(0)
       }
     }
   }

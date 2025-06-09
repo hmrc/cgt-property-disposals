@@ -17,12 +17,15 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import com.typesafe.config.ConfigFactory
+import org.mongodb.scala.SingleObservableFuture
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import play.api.test.Helpers.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SubmitReturnRequest
 import uk.gov.hmrc.cgtpropertydisposals.repositories.DefaultCurrentInstant

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments
 
 import com.typesafe.config.ConfigFactory
-import org.mockito.IdiomaticMockito
 import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -25,16 +24,16 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
 import play.api.{Application, Configuration}
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.util.WireMockMethods
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 
 class EnrolmentStoreProxyConnectorImplSpec
     extends AnyWordSpec
     with Matchers
-    with IdiomaticMockito
     with WireMockSupport
     with WireMockMethods
     with GuiceOneAppPerSuite

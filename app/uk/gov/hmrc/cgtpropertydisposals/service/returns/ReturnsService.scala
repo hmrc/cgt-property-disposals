@@ -90,8 +90,8 @@ class DefaultReturnsService @Inject() (
     representeeDetails: Option[RepresenteeDetails]
   )(implicit hc: HeaderCarrier, request: Request[?]): EitherT[Future, Error, SubmitReturnResponse] = {
     val isAmendReturn                                  = returnRequest.amendReturnData.isDefined
-    if (isAmendReturn) {
-      if (returnRequest.amendReturnData.get.originalReturn.summary.expired) {
+    if isAmendReturn then {
+      if returnRequest.amendReturnData.get.originalReturn.summary.expired then {
         logger.warn("Amend deadline has passed, cannot amend return")
         return EitherT.leftT(Error(DesReturnSummary.expiredMessage))
       }
@@ -106,7 +106,7 @@ class DefaultReturnsService @Inject() (
     )
     val (fromDate, toDate)                             = (taxYear.startDateInclusive, taxYear.endDateExclusive)
     val desSubmitReturnRequest: DesSubmitReturnRequest = DesSubmitReturnRequest(returnRequest, representeeDetails)
-    for {
+    for
       _                  <- auditReturnBeforeSubmit(returnRequest, desSubmitReturnRequest)
       returnHttpResponse <- submitReturnAndAudit(returnRequest, desSubmitReturnRequest)
       _                  <- amendReturnsService.saveAmendedReturn(returnRequest).leftFlatMap { e =>
@@ -116,7 +116,7 @@ class DefaultReturnsService @Inject() (
       desResponse        <- EitherT.fromEither[Future](
                               returnHttpResponse.parseJSON[DesSubmitReturnResponse]().leftMap(Error(_))
                             )
-      deltaCharge        <- if (isAmendReturn) deltaCharge(desResponse, cgtReference, fromDate, toDate)
+      deltaCharge        <- if isAmendReturn then deltaCharge(desResponse, cgtReference, fromDate, toDate)
                             else EitherT.pure(None)
       returnResponse     <- prepareSubmitReturnResponse(desResponse, deltaCharge)
       _                  <- emailService.sendReturnConfirmationEmail(returnRequest, returnResponse).leftFlatMap { e =>
@@ -124,7 +124,7 @@ class DefaultReturnsService @Inject() (
                               EitherT.pure[Future, Error](())
                             }
       _                  <- handleAmendedReturn(returnRequest)
-    } yield returnResponse
+    yield returnResponse
   }
 
   private def deltaCharge(
@@ -135,10 +135,10 @@ class DefaultReturnsService @Inject() (
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, Option[DeltaCharge]] =
     response.ppdReturnResponseDetails.chargeReference match {
       case Some(chargeReference) =>
-        for {
+        for
           desFinancialData <- getDesFinancialData(cgtReference, fromDate, toDate)
           charge           <- EitherT.fromEither[Future](findDeltaCharge(desFinancialData.financialTransactions, chargeReference))
-        } yield charge
+        yield charge
 
       case _ => EitherT.pure(None)
     }
@@ -153,9 +153,9 @@ class DefaultReturnsService @Inject() (
       financialDataConnector.getFinancialData(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
 
-        if (response.status === OK) {
+        if response.status === OK then {
           response.parseJSON[DesFinancialDataResponse]().leftMap(Error(_))
-        } else if (isNoFinancialDataResponse(response, cgtReference.value, fromDate, toDate)) {
+        } else if isNoFinancialDataResponse(response, cgtReference.value, fromDate, toDate) then {
           Right(DesFinancialDataResponse(List.empty))
         } else {
           metrics.financialDataErrorCounter.inc()
@@ -175,7 +175,7 @@ class DefaultReturnsService @Inject() (
       case transaction1 :: transaction2 :: Nil =>
         getReturnCharge(transaction1) -> getReturnCharge(transaction2) match {
           case (Some(r1), Some(r2)) =>
-            if (r1.dueDate.isBefore(r2.dueDate)) Right(Some(DeltaCharge(r1, r2)))
+            if r1.dueDate.isBefore(r2.dueDate) then Right(Some(DeltaCharge(r1, r2)))
             else Right(Some(DeltaCharge(r2, r1)))
 
           case _ =>
@@ -201,10 +201,8 @@ class DefaultReturnsService @Inject() (
 
   private def handleAmendedReturn(submitReturnRequest: SubmitReturnRequest): EitherT[Future, Error, Unit] = {
     def modifyDraftReturn(draftReturn: DraftReturn): Option[DraftReturn] =
-      if (
-        draftReturn.exemptionAndLossesAnswers.isEmpty && draftReturn.yearToDateLiabilityAnswers.isEmpty && draftReturn.supportingEvidenceAnswers.isEmpty
-      )
-        None
+      if draftReturn.exemptionAndLossesAnswers.isEmpty && draftReturn.yearToDateLiabilityAnswers.isEmpty && draftReturn.supportingEvidenceAnswers.isEmpty
+      then None
       else
         draftReturn match {
           case single: DraftSingleDisposalReturn                      =>
@@ -250,12 +248,11 @@ class DefaultReturnsService @Inject() (
         }
 
     val cgtReference = submitReturnRequest.subscribedDetails.cgtReference
-    if (submitReturnRequest.amendReturnData.isEmpty)
-      EitherT.pure(())
+    if submitReturnRequest.amendReturnData.isEmpty then EitherT.pure(())
     else {
       import cats.instances.list.*
 
-      for {
+      for
         draftReturns        <- draftReturnsService.getDraftReturn(cgtReference)
         modifiedDraftReturns = draftReturns.foldLeft(List.empty[DraftReturn]) { (acc, curr) =>
                                  modifyDraftReturn(curr).fold(acc)(_ :: acc)
@@ -263,7 +260,7 @@ class DefaultReturnsService @Inject() (
         _                   <- modifiedDraftReturns
                                  .map(d => draftReturnsService.saveDraftReturn(d, cgtReference))
                                  .sequence
-      } yield ()
+      yield ()
     }
   }
 
@@ -304,8 +301,7 @@ class DefaultReturnsService @Inject() (
           returnRequest.amendReturnData
         )
 
-        if (httpResponse.status === OK)
-          Right(httpResponse)
+        if httpResponse.status === OK then Right(httpResponse)
         else {
           metrics.submitReturnErrorCounter.inc()
           Left(Error(s"call to submit return came back with status ${httpResponse.status}"))
@@ -330,8 +326,8 @@ class DefaultReturnsService @Inject() (
       val timer = metrics.listReturnsTimer.time()
       returnsConnector.listReturns(cgtReference, fromDate, toDate).subflatMap { response =>
         timer.close()
-        if (response.status === OK) { response.parseJSON[DesListReturnsResponse]().leftMap(Error(_)) }
-        else if (isNoReturnsDataResponse(response, cgtReference.value, fromDate, toDate)) {
+        if response.status === OK then { response.parseJSON[DesListReturnsResponse]().leftMap(Error(_)) }
+        else if isNoReturnsDataResponse(response, cgtReference.value, fromDate, toDate) then {
           Right(DesListReturnsResponse(List.empty))
         } else {
           metrics.listReturnsErrorCounter.inc()
@@ -344,7 +340,7 @@ class DefaultReturnsService @Inject() (
       amendReturnsService.getAmendedReturn(cgtReference)
 
     def listReturnsResult(desReturnList: DesListReturnsResponse): EitherT[Future, Error, List[ReturnSummary]] =
-      for {
+      for
         listOfDesFinancialData        <- listOfFutureDesFinancialData.traverse(identity)
         listOfDesFinancialTransactions =
           listOfDesFinancialData.flatMap(desFinancialData => desFinancialData.financialTransactions)
@@ -358,7 +354,7 @@ class DefaultReturnsService @Inject() (
                                              )
                                            )
                                          )
-      } yield returnSummaries
+      yield returnSummaries
 
     desReturnList.flatMap {
       case DesListReturnsResponse(Nil)        => EitherT.rightT(List.empty)
@@ -370,7 +366,7 @@ class DefaultReturnsService @Inject() (
     lazy val hasNoReturnBody = response.parseJSON[DesErrorResponse]().exists(_.hasError(expectedError))
     val isNoDataResponse     = response.status === NOT_FOUND && hasNoReturnBody
 
-    if (isNoDataResponse) logger.info(logString)
+    if isNoDataResponse then logger.info(logString)
     isNoDataResponse
   }
 
@@ -408,11 +404,11 @@ class DefaultReturnsService @Inject() (
     val timer = metrics.displayReturnTimer.time()
     returnsConnector.displayReturn(cgtReference, submissionId).subflatMap { response =>
       timer.close()
-      if (response.status === OK) {
-        for {
+      if response.status === OK then {
+        for
           desReturn      <- response.parseJSON[DesReturnDetails]().leftMap(Error(_))
           completeReturn <- returnTransformerService.toCompleteReturn(desReturn)
-        } yield completeReturn
+        yield completeReturn
       } else {
         metrics.displayReturnErrorCounter.inc()
         Left(Error(s"call to list returns came back with status ${response.status}"))

@@ -55,11 +55,11 @@ class SubscriptionController @Inject() (
   def subscribe(): Action[AnyContent] =
     authenticate.async { implicit request =>
       val result: EitherT[Future, SubscriptionError, SubscriptionResponse] =
-        for {
+        for
           subscriptionDetails  <- EitherT.fromEither[Future](extractRequest[SubscriptionDetails](request))
           subscriptionResponse <- subscribeAndEnrol(subscriptionDetails)
                                     .leftMap[SubscriptionError](BackendError.apply)
-        } yield subscriptionResponse
+        yield subscriptionResponse
 
       result.fold(
         {
@@ -79,12 +79,12 @@ class SubscriptionController @Inject() (
 
   def registerWithoutId(): Action[AnyContent] =
     authenticate.async { implicit request =>
-      val result = for {
+      val result = for
         registrationDetails <- EitherT.fromEither[Future](extractRequest[RegistrationDetails](request))
         sapNumber           <- registerWithoutIdService
                                  .registerWithoutId(registrationDetails)
                                  .leftMap[SubscriptionError](BackendError.apply)
-      } yield sapNumber
+      yield sapNumber
 
       result.fold(
         {
@@ -127,7 +127,7 @@ class SubscriptionController @Inject() (
   def updateSubscription(): Action[AnyContent] =
     authenticate.async { implicit request =>
       val result: EitherT[Future, SubscriptionError, SubscriptionUpdateResponse] =
-        for {
+        for
           subscribedUpdateDetails <- EitherT.fromEither[Future](extractRequest[SubscribedUpdateDetails](request))
           subscriptionResponse    <- subscriptionService
                                        .updateSubscription(subscribedUpdateDetails)
@@ -135,7 +135,7 @@ class SubscriptionController @Inject() (
           _                       <- taxEnrolmentService
                                        .updateVerifiers(UpdateVerifiersRequest(request.user.ggCredId, subscribedUpdateDetails))
                                        .leftMap[SubscriptionError](BackendError.apply)
-        } yield subscriptionResponse
+        yield subscriptionResponse
 
       result.fold(
         {
@@ -165,7 +165,7 @@ class SubscriptionController @Inject() (
   private def subscribeAndEnrol(
     subscriptionDetails: SubscriptionDetails
   )(implicit request: AuthenticatedRequest[?]): EitherT[Future, Error, SubscriptionResponse] =
-    for {
+    for
       subscriptionResponse <- subscriptionService.subscribe(subscriptionDetails)
       _                    <- subscriptionResponse match {
                                 case SubscriptionSuccessful(cgtReferenceNumber) =>
@@ -180,7 +180,7 @@ class SubscriptionController @Inject() (
 
                                 case AlreadySubscribed => EitherT.pure[Future, Error](())
                               }
-    } yield subscriptionResponse
+    yield subscriptionResponse
 }
 
 object SubscriptionController {
