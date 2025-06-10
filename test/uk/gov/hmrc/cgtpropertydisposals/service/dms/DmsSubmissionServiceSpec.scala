@@ -23,7 +23,6 @@ import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.util.ByteString
 import org.mockito.Mockito.when
 import org.bson.types.ObjectId
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -36,6 +35,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DmsSubmissionGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteMultipleDisposalsReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
@@ -51,7 +51,7 @@ import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers {
+class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
   private val mockDmsConnector      = mock[DmsConnector]
@@ -74,17 +74,21 @@ class DmsSubmissionServiceSpec() extends AnyWordSpec with Matchers {
   )
 
   private def mockDmsSubmissionRequestGet()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
-    mockDmsSubmissionRepo.get.returns(EitherT.fromEither[Future](response))
+    when(mockDmsSubmissionRepo.get).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockSetProcessingStatus(id: ObjectId, status: ProcessingStatus)(response: Either[Error, Boolean]) =
-    mockDmsSubmissionRepo
-      .setProcessingStatus(id, status)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockDmsSubmissionRepo
+        .setProcessingStatus(id, status)
+    )
+      .thenReturn(EitherT.fromEither[Future](response))
 
   private def mockSetResultStatus(id: ObjectId, status: ResultStatus)(response: Either[Error, Boolean]) =
-    mockDmsSubmissionRepo
-      .setResultStatus(id, status)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockDmsSubmissionRepo
+        .setResultStatus(id, status)
+    )
+      .thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDmsSubmission(dmsSubmissionPayload: DmsSubmissionPayload)(
     response: DmsEnvelopeId
