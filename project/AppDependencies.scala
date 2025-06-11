@@ -5,7 +5,7 @@ object AppDependencies {
   private val mongoVersion = "2.6.0"
   private val pekkoVersion = "1.1.3"
 
-  private val bootstrapVersion = "9.12.0"
+  private val bootstrapVersion = "9.13.0"
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapVersion,
@@ -18,7 +18,7 @@ object AppDependencies {
     "org.apache.pekko"                        %% "pekko-serialization-jackson"             % pekkoVersion,
     "org.apache.pekko"                        %% "pekko-stream"                            % pekkoVersion,
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion,
-    "com.openhtmltopdf"                        % "openhtmltopdf-pdfbox"                    % "1.0.10",
+    "io.github.openhtmltopdf"                  % "openhtmltopdf-pdfbox"                    % "1.1.28",
     "uk.gov.hmrc"                             %% "tax-year"                                % "5.0.0"
   )
 
