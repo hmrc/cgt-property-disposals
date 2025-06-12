@@ -42,7 +42,6 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-@annotation.nowarn("id=205")
 class DraftReturnsControllerSpec extends ControllerSpec {
   private val draftReturnsService = mock[DraftReturnsService]
 

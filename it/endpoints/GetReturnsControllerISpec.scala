@@ -22,7 +22,6 @@ import play.api.libs.ws.{WSRequest, WSResponse}
 import stubs.{AuthStub, DownstreamStub}
 import support.IntegrationBaseSpec
 import uk.gov.hmrc.cgtpropertydisposals.models
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Postcode
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{AddressDetails, DesFinancialDataResponse, DesFinancialTransaction}
@@ -51,7 +50,7 @@ class GetReturnsControllerISpec extends IntegrationBaseSpec {
     val fromDate: String = s"$currentTaxYear-01-01"
     val toDate: String   = s"$currentTaxYear-02-01"
 
-    val listRouteUri: String                           = s"/returns/$cgtRef/$fromDate/$toDate"
+    def listRouteUri: String                           = s"/returns/$cgtRef/$fromDate/$toDate"
     val listDownstreamUri: String                      = s"/capital-gains-tax/returns/$cgtRef"
     val listDownstreamQueryParams: Map[String, String] = Map("fromDate" -> fromDate, "toDate" -> toDate)
 

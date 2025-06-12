@@ -73,7 +73,7 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClientV2, val config: 
         http
           .post(url"$url")
           .withBody(request)
-          .setHeader(headers: _*)
+          .setHeader(headers*)
           .execute[HttpResponse]
       result
         .map(Right(_))
