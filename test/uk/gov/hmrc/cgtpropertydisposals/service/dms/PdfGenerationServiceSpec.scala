@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.Loader
 import org.apache.pdfbox.text.PDFTextStripper
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -50,7 +50,7 @@ class PdfGenerationServiceSpec extends AnyWordSpecLike with Matchers {
       pdfBytes.length should be > 0
 
       try {
-        val doc = PDDocument.load(pdfBytes)
+        val doc = Loader.loadPDF(pdfBytes)
         doc.getNumberOfPages shouldBe 1
         val page = doc.getPage(0)
         page.hasContents shouldBe true
