@@ -195,9 +195,8 @@ object ReturnDetails {
 
     }
 
-    if (value < AmountInPence.zero)
-      AmountInPence.zero.inPounds() -> Some(value.inPounds().abs)
-    else value.inPounds()           -> None
+    if value < AmountInPence.zero then AmountInPence.zero.inPounds() -> Some(value.inPounds().abs)
+    else value.inPounds()                                            -> None
   }
 
   implicit val returnDetailsFormat: OFormat[ReturnDetails] = Json.format[ReturnDetails]

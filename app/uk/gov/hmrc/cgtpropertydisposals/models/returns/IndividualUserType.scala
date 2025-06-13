@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.*
 
 sealed trait IndividualUserType extends Product with Serializable
 
@@ -31,6 +30,25 @@ object IndividualUserType {
 
   case object PersonalRepresentativeInPeriodOfAdmin extends IndividualUserType
 
-  implicit val format: OFormat[IndividualUserType] = derived.oformat()
+  implicit val individualUserTypeFormat: Format[IndividualUserType] = new Format[IndividualUserType] {
+    override def reads(json: JsValue): JsResult[IndividualUserType] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head._1 match {
+          case "Self"                                  => JsSuccess(Self)
+          case "Capacitor"                             => JsSuccess(Capacitor)
+          case "PersonalRepresentative"                => JsSuccess(PersonalRepresentative)
+          case "PersonalRepresentativeInPeriodOfAdmin" => JsSuccess(PersonalRepresentativeInPeriodOfAdmin)
+          case other                                   => JsError(s"Invalid individual user type: $other")
+        }
+      case _                                    => JsError("Expected JSON object with one IndividualUserType key")
+    }
+
+    override def writes(o: IndividualUserType): JsValue = o match {
+      case Self                                  => Json.obj("Self" -> Json.obj())
+      case Capacitor                             => Json.obj("Capacitor" -> Json.obj())
+      case PersonalRepresentative                => Json.obj("PersonalRepresentative" -> Json.obj())
+      case PersonalRepresentativeInPeriodOfAdmin => Json.obj("PersonalRepresentativeInPeriodOfAdmin" -> Json.obj())
+    }
+  }
 
 }

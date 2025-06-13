@@ -41,7 +41,7 @@ object AddressDetails {
     addressDetails: AddressDetails,
     allowNonIsoCountryCodes: Boolean
   ): Validation[Address] =
-    if (addressDetails.countryCode === Country.uk.code)
+    if addressDetails.countryCode === Country.uk.code then
       addressDetails.postalCode.fold[ValidatedNel[String, Address]](
         Invalid(NonEmptyList.one("Could not find postcode for UK address"))
       )(p =>
@@ -58,7 +58,7 @@ object AddressDetails {
     else {
       val countryCode = addressDetails.countryCode
       val country     =
-        if (Country.countryCodes.contains(countryCode) || allowNonIsoCountryCodes) Some(Country(countryCode))
+        if Country.countryCodes.contains(countryCode) || allowNonIsoCountryCodes then Some(Country(countryCode))
         else None
 
       country.fold[ValidatedNel[String, Address]](

@@ -7,14 +7,18 @@ lazy val ItTest = config("it") extend Test
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(scalaVersion := "2.13.16")
+  .settings(
+    scalaVersion := "3.6.4")
   .settings(
     majorVersion := 2,
     PlayKeys.playDefaultPort := 7021,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test(),
     onLoadMessage := "",
     scalafmtOnCompile := true,
-    scalacOptions ++= Seq("-Wconf:src=routes/.*:s", "-Xlint:-byname-implicit")
+    scalacOptions += "-Wconf:src=routes/.*:s,src=txt/.*:s",
+    scalacOptions ~= { options =>
+      options.distinct
+    }
   )
   .settings(CodeCoverageSettings.settings *)
   // Disable default sbt Test options (might change with new versions of bootstrap)

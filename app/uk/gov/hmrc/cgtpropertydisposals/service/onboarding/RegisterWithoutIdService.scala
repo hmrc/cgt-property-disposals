@@ -45,7 +45,7 @@ trait RegisterWithoutIdService {
 
   def registerWithoutId(registrationDetails: RegistrationDetails)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, SapNumber]
 
 }
@@ -62,7 +62,7 @@ class RegisterWithoutIdServiceImpl @Inject() (
 
   def registerWithoutId(registrationDetails: RegistrationDetails)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, SapNumber] = {
     val referenceId = uuidGenerator.nextId()
     val timer       = metrics.registerWithoutIdTimer.time()
@@ -74,7 +74,7 @@ class RegisterWithoutIdServiceImpl @Inject() (
         response.body
       )
 
-      if (response.status === OK)
+      if response.status === OK then
         response
           .parseJSON[RegisterWithoutIdResponse]()
           .bimap(
@@ -99,7 +99,7 @@ class RegisterWithoutIdServiceImpl @Inject() (
   private def sendRegistrationAuditEvent(
     httpStatus: Int,
     body: String
-  )(implicit hc: HeaderCarrier, request: Request[_]): Unit = {
+  )(implicit hc: HeaderCarrier, request: Request[?]): Unit = {
     val json = Try(Json.parse(body)).getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $body" }"""))
 
     auditService.sendEvent(

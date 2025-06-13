@@ -33,6 +33,6 @@ object SubmitReturnWrapper {
     implicit val formatInstant: Format[Instant] = MongoJavatimeFormats.instantFormat
     ((__ \ "_id").format[String]
       ~ (__ \ "return").format[SubmitReturnRequest]
-      ~ (__ \ "lastUpdated").format[Instant])(SubmitReturnWrapper.apply, unlift(SubmitReturnWrapper.unapply))
+      ~ (__ \ "lastUpdated").format[Instant])(SubmitReturnWrapper.apply, o => Tuple.fromProductTyped(o))
   }
 }

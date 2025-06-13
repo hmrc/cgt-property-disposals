@@ -16,33 +16,34 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers
 
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import org.scalatest.OneInstancePerTest
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialTransaction, DesFinancialTransactionItem}
+import uk.gov.hmrc.cgtpropertydisposals.models.finance.*
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, UkResidentReturn}
-import uk.gov.hmrc.cgtpropertydisposals.models.finance._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{AmendReturnData, CompleteReturnWithSummary, ReturnSummary, SubmitReturnRequest}
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DesReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 
 import java.time.LocalDate
 
-class ReturnSummaryListTransformerServiceImplSpec
-    extends AnyWordSpec
-    with Matchers
-    with IdiomaticMockito
-    with OneInstancePerTest {
+class ReturnSummaryListTransformerServiceImplSpec extends AnyWordSpec with Matchers with OneInstancePerTest {
 
   private val mockTaxYearService = mock[TaxYearService]
 
-  mockTaxYearService.getTaxYear(*).returns(Some(sample[TaxYear]))
+  when(mockTaxYearService.getTaxYear(any())).thenReturn(Some(sample[TaxYear]))
 
   val transformer = new ReturnSummaryListTransformerServiceImpl(mockTaxYearService)
 

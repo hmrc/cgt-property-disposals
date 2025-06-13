@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{JsError, JsObject, JsResult, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 
@@ -49,5 +48,31 @@ object MultipleDisposalsTriageAnswers {
     completionDate: CompletionDate
   ) extends MultipleDisposalsTriageAnswers
 
-  implicit val format: OFormat[MultipleDisposalsTriageAnswers] = derived.oformat()
+  implicit val completeMultipleDisposalsTriageAnswersFormat: OFormat[CompleteMultipleDisposalsTriageAnswers]     =
+    Json.format[CompleteMultipleDisposalsTriageAnswers]
+  implicit val incompleteMultipleDisposalsTriageAnswersFormat: OFormat[IncompleteMultipleDisposalsTriageAnswers] =
+    Json.format[IncompleteMultipleDisposalsTriageAnswers]
+
+  implicit val format: OFormat[MultipleDisposalsTriageAnswers] = new OFormat[MultipleDisposalsTriageAnswers] {
+    override def reads(json: JsValue): JsResult[MultipleDisposalsTriageAnswers] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("IncompleteMultipleDisposalsTriageAnswers", value) =>
+            value.validate[IncompleteMultipleDisposalsTriageAnswers]
+          case ("CompleteMultipleDisposalsTriageAnswers", value)   =>
+            value.validate[CompleteMultipleDisposalsTriageAnswers]
+          case (other, _)                                          =>
+            JsError(s"Unrecognized MultipleDisposalsTriageAnswers type: $other")
+        }
+      case _                                    =>
+        JsError("Expected wrapper object with one MultipleDisposalsTriageAnswers entry")
+    }
+
+    override def writes(o: MultipleDisposalsTriageAnswers): JsObject = o match {
+      case i: IncompleteMultipleDisposalsTriageAnswers =>
+        Json.obj("IncompleteMultipleDisposalsTriageAnswers" -> Json.toJson(i))
+      case c: CompleteMultipleDisposalsTriageAnswers   =>
+        Json.obj("CompleteMultipleDisposalsTriageAnswers" -> Json.toJson(c))
+    }
+  }
 }

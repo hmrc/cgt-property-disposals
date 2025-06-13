@@ -17,17 +17,21 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
-import cats.instances.future._
+import cats.instances.future.*
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsString, JsValue, Json}
 import play.api.mvc.Headers
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
@@ -46,19 +50,22 @@ class DraftReturnsControllerSpec extends ControllerSpec {
   private val draftReturn = sample[DraftReturn]
 
   private def mockStoreDraftReturnsService(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    draftReturnsService
-      .saveDraftReturn(df, cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnsService
+        .saveDraftReturn(df, cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockGetDraftReturnsService(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
-    draftReturnsService
-      .getDraftReturn(cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnsService
+        .getDraftReturn(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDeleteDraftReturnsService(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
-    draftReturnsService
-      .deleteDraftReturns(draftReturnIds)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnsService
+        .deleteDraftReturns(draftReturnIds)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   val request = new AuthenticatedRequest(
     Fake.user,
@@ -70,7 +77,7 @@ class DraftReturnsControllerSpec extends ControllerSpec {
   private def fakeRequestWithJsonBody(body: JsValue) =
     request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
-  val controller                                     = new DraftReturnsController(
+  val controller = new DraftReturnsController(
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     draftReturnsService = draftReturnsService,
     cc = Helpers.stubControllerComponents()

@@ -19,9 +19,10 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.enrolments
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import com.mongodb.client.model.Indexes.ascending
+import org.mongodb.scala.gridfs.{ObservableFuture, SingleObservableFuture}
+import org.mongodb.scala.model.*
 import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.model._
-import uk.gov.hmrc.cgtpropertydisposals.models._
+import uk.gov.hmrc.cgtpropertydisposals.models.*
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -62,7 +63,7 @@ class DefaultTaxEnrolmentRepository @Inject() (mongo: MongoComponent)(implicit
           .insertOne(cgtEnrolmentRequest)
           .toFuture()
           .map[Either[Error, Unit]] { result =>
-            if (result.wasAcknowledged()) {
+            if result.wasAcknowledged() then {
               Right(())
             } else {
               Left(

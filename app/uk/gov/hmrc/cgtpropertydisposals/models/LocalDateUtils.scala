@@ -22,6 +22,6 @@ import java.time.LocalDate
 
 object LocalDateUtils {
 
-  implicit val order: Order[LocalDate] = Order.from(_ compareTo _)
+  implicit val order: Order[LocalDate] = Order.from(_ `compareTo` _)
 
 }

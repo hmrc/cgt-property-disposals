@@ -21,14 +21,15 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import pureconfig._
+import pureconfig.*
 import pureconfig.configurable.localDateConfigConvert
-import pureconfig.generic.auto._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import pureconfig.generic.semiauto.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.taxYearConfigGen
 import uk.gov.hmrc.cgtpropertydisposals.models.{TaxYear, TaxYearConfig}
-import uk.gov.hmrc.time.{TaxYear => HmrcTaxYear}
+import uk.gov.hmrc.time.TaxYear as HmrcTaxYear
 
-import java.time._
+import java.time.*
 import java.time.format.DateTimeFormatter
 
 class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenPropertyChecks {
@@ -79,7 +80,9 @@ class TaxYearServiceImplSpec extends AnyWordSpec with Matchers with TableDrivenP
       (currentTaxYearMinus5Config.endDateExclusive.minusDays(1L), currentTaxYearMinus5Config)
     )
 
-  implicit val localDateConvert: ConfigConvert[LocalDate] = localDateConfigConvert(DateTimeFormatter.ISO_DATE)
+  implicit val localDateConvert: ConfigConvert[LocalDate]       = localDateConfigConvert(DateTimeFormatter.ISO_DATE)
+  implicit val taxYearConfigWriter: ConfigWriter[TaxYearConfig] =
+    deriveWriter[TaxYearConfig]
 
   private def config = {
     val taxYearsConfigObj = ConfigWriter[List[TaxYearConfig]].to(taxYearConfigs)

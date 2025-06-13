@@ -23,11 +23,11 @@ sealed trait DesAcquisitionType extends Product with Serializable
 
 object DesAcquisitionType {
 
-  final case object Bought extends DesAcquisitionType
+  case object Bought extends DesAcquisitionType
 
-  final case object Inherited extends DesAcquisitionType
+  case object Inherited extends DesAcquisitionType
 
-  final case object Gifted extends DesAcquisitionType
+  case object Gifted extends DesAcquisitionType
 
   final case class Other(value: String) extends DesAcquisitionType
 
@@ -39,26 +39,21 @@ object DesAcquisitionType {
       case AcquisitionMethod.Other(value) => Other(value)
     }
 
-  implicit val format: Format[DesAcquisitionType] =
-    Format(
-      { json: JsValue =>
-        json match {
-          case JsString("bought")    => JsSuccess(Bought)
-          case JsString("inherited") => JsSuccess(Inherited)
-          case JsString("gifted")    => JsSuccess(Gifted)
-          case JsString(other)       => JsSuccess(Other(other))
-          case other                 => JsError(s"Expected string for acquisition type but got $other")
-        }
-      },
-      { acquisitionMethod: DesAcquisitionType =>
-        acquisitionMethod match {
-          case Bought       => JsString("bought")
-          case Inherited    => JsString("inherited")
-          case Gifted       => JsString("gifted")
-          case Other(other) => JsString(other)
+  implicit val format: Format[DesAcquisitionType] = new Format[DesAcquisitionType] {
+    override def reads(json: JsValue): JsResult[DesAcquisitionType] = json match {
+      case JsString("bought")    => JsSuccess(Bought)
+      case JsString("inherited") => JsSuccess(Inherited)
+      case JsString("gifted")    => JsSuccess(Gifted)
+      case JsString(other)       => JsSuccess(Other(other))
+      case other                 => JsError(s"Expected string for acquisition type but got $other")
+    }
 
-        }
-      }
-    )
+    override def writes(o: DesAcquisitionType): JsValue = o match {
+      case Bought       => JsString("bought")
+      case Inherited    => JsString("inherited")
+      case Gifted       => JsString("gifted")
+      case Other(other) => JsString(other)
+    }
+  }
 
 }

@@ -20,8 +20,9 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.{upscanUploadGen, upscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.CurrentInstant
 import uk.gov.hmrc.mongo.test.MongoSupport
@@ -31,7 +32,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 
-  val config = Configuration(
+  val config: Configuration = Configuration(
     ConfigFactory.parseString(
       """
         | mongodb.upscan.expiry-time = 20seconds
@@ -39,9 +40,9 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
     )
   )
 
-  val stagedInstant = sample[UpscanUploadWrapper].lastUpdated
+  val stagedInstant: Instant = sample[UpscanUploadWrapper].lastUpdated
 
-  val currentInstant = new CurrentInstant {
+  val currentInstant: CurrentInstant = new CurrentInstant {
     override def currentInstant(): Instant = stagedInstant
   }
 

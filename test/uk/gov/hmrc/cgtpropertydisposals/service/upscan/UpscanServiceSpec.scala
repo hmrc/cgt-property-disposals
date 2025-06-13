@@ -18,14 +18,16 @@ package uk.gov.hmrc.cgtpropertydisposals.service.upscan
 
 import cats.data.EitherT
 import org.apache.pekko.util.ByteString
-import org.mockito.IdiomaticMockito
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.S3Connector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.FileAttachment
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
@@ -34,7 +36,7 @@ import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class UpscanServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito with CleanMongoCollectionSupport {
+class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   private val mockUpscanRepository                        = mock[UpscanRepository]
   private val mockUpscanConnector                         = mock[S3Connector]
@@ -43,38 +45,43 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito 
   private def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
     response: Either[Error, Unit]
   ) =
-    mockUpscanRepository
-      .insert(upscanUpload)
-      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
+    when(
+      mockUpscanRepository
+        .insert(upscanUpload)
+    ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockReadUpscanUpload(uploadReference: UploadReference)(
     response: Either[Error, Option[UpscanUploadWrapper]]
   ) =
-    mockUpscanRepository
-      .select(uploadReference)
-      .returns(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
+    when(
+      mockUpscanRepository
+        .select(uploadReference)
+    ).thenReturn(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
 
   private def mockReadUpscanUploads(uploadReferences: List[UploadReference])(
     response: Either[Error, List[UpscanUploadWrapper]]
   ) =
-    mockUpscanRepository
-      .selectAll(uploadReferences)
-      .returns(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
+    when(
+      mockUpscanRepository
+        .selectAll(uploadReferences)
+    ).thenReturn(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
 
   private def mockUpdateUpscanUpload(
     uploadReference: UploadReference,
     upscanUpload: UpscanUpload
   )(response: Either[Error, Unit]) =
-    mockUpscanRepository
-      .update(uploadReference, upscanUpload)
-      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
+    when(
+      mockUpscanRepository
+        .update(uploadReference, upscanUpload)
+    ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockDownloadFile(upscanSuccess: UpscanSuccess)(
     response: Either[Error, FileAttachment]
   ) =
-    mockUpscanConnector
-      .downloadFile(upscanSuccess)
-      .returns(Future[Either[Error, FileAttachment]](response))
+    when(
+      mockUpscanConnector
+        .downloadFile(upscanSuccess)
+    ).thenReturn(Future[Either[Error, FileAttachment]](response))
 
   private val upscanUpload        = sample[UpscanUpload]
   private val upscanUploadWrapper = sample[UpscanUploadWrapper]

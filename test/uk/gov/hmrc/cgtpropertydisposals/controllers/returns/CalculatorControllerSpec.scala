@@ -16,16 +16,20 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import org.mockito.ArgumentMatchersSugar.*
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsNumber, JsValue, Json}
 import play.api.mvc.{Headers, Result}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.FurtherReturnCalculationGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.CgtCalculationService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -39,34 +43,37 @@ class CalculatorControllerSpec extends ControllerSpec {
   private def mockCalculateTaxDue(
     request: CalculateCgtTaxDueRequest
   )(response: CalculatedTaxDue) =
-    mockCalculatorService
-      .calculateTaxDue(
-        *,
-        *,
-        *,
-        *,
-        *,
-        *,
-        *,
-        *,
-        *,
-        *
-      )
-      .returns(response)
+    when(
+      mockCalculatorService
+        .calculateTaxDue(
+          any(),
+          any(),
+          any(),
+          any(),
+          any(),
+          any(),
+          any(),
+          any(),
+          any(),
+          any()
+        )
+    ).thenReturn(response)
 
   private def mockCalculateTaxableGainOrLoss(
     request: TaxableGainOrLossCalculationRequest
   )(response: TaxableGainOrLossCalculation) =
-    mockCalculatorService
-      .calculateTaxableGainOrLoss(request)
-      .returns(response)
+    when(
+      mockCalculatorService
+        .calculateTaxableGainOrLoss(request)
+    ).thenReturn(response)
 
   private def mockCalculateYearToDateLiability(
     request: YearToDateLiabilityCalculationRequest
   )(response: YearToDateLiabilityCalculation) =
-    mockCalculatorService
-      .calculateYearToDateLiability(request)
-      .returns(response)
+    when(
+      mockCalculatorService
+        .calculateYearToDateLiability(request)
+    ).thenReturn(response)
 
   val controller = new CalculatorController(
     Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),

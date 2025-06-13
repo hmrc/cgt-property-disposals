@@ -35,11 +35,11 @@ object LossSummaryDetails {
     val previousYearsLosses = exemptionAndLossesAnswers.previousYearsLosses
 
     val preYearLossUsed =
-      if (previousYearsLosses > AmountInPence.zero) Some(previousYearsLosses.inPounds())
+      if previousYearsLosses > AmountInPence.zero then Some(previousYearsLosses.inPounds())
       else None
 
     val inYearLossUsed =
-      if (inYearLosses > AmountInPence.zero) Some(inYearLosses.inPounds())
+      if inYearLosses > AmountInPence.zero then Some(inYearLosses.inPounds())
       else None
 
     LossSummaryDetails(

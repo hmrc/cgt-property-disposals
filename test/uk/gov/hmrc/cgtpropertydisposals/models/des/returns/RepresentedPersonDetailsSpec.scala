@@ -18,10 +18,13 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.{countryGen, postcodeGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.{cgtReferenceGen, ninoGen, sautrGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{completeRepresenteeAnswersGen, representeeContactDetailsGen}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DateOfDeath, RepresenteeContactDetails, RepresenteeDetails}

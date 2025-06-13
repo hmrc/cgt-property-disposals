@@ -17,18 +17,22 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
-import cats.instances.future._
-import org.mockito.IdiomaticMockito
+import cats.instances.future.*
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.mvc.Request
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.AmendReturnsRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.test.MongoSupport
@@ -36,28 +40,30 @@ import uk.gov.hmrc.mongo.test.MongoSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito with MongoSupport {
+class AmendReturnsServiceSpec extends AnyWordSpec with Matchers with MongoSupport {
 
   private val mockAmendReturnsRepo = mock[AmendReturnsRepository]
 
   val returnsService = new DefaultAmendReturnsService(mockAmendReturnsRepo)
 
   implicit val hc: HeaderCarrier   = HeaderCarrier()
-  implicit val request: Request[_] = FakeRequest()
+  implicit val request: Request[?] = FakeRequest()
 
   private def mockGetAmendReturnList(
     cgtReference: CgtReference
   )(result: Either[Error, List[SubmitReturnWrapper]]) =
-    mockAmendReturnsRepo
-      .fetch(cgtReference)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockAmendReturnsRepo
+        .fetch(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockSaveAmendReturnList(
     submitReturnRequest: SubmitReturnRequest
   )(result: Either[Error, Unit]) =
-    mockAmendReturnsRepo
-      .save(submitReturnRequest)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockAmendReturnsRepo
+        .save(submitReturnRequest)
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   "AmendReturnService" when {
     "handling saving amend returns" should {

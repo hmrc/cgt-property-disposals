@@ -57,21 +57,21 @@ class S3ConnectorImpl @Inject() (
 
   override def downloadFile(upscanSuccess: UpscanSuccess): Future[Either[Error, FileAttachment]] = {
     logger.info(s"Downloading files from S3")
-    val result = for {
+    val result = for
       filename <-
         EitherT.fromOption[Future](upscanSuccess.uploadDetails.get("fileName"), Error("missing file descriptors"))
       mimeType <-
         EitherT.fromOption[Future](upscanSuccess.uploadDetails.get("fileMimeType"), Error("missing file descriptors"))
       response <- EitherT.right[Error](playHttpClient.get(upscanSuccess.downloadUrl, headers, timeout))
       _        <-
-        if (is4xx(response.status) || is5xx(response.status)) {
+        if is4xx(response.status) || is5xx(response.status) then {
           EitherT.leftT[Future, Unit](Error("could not download file from s3"))
         } else {
           EitherT.rightT[Future, Error](())
         }
       bytes    <-
         EitherT.right[Error](response.bodyAsSource.limit(maxFileDownloadSize * limitScaleFactor).runWith(Sink.seq))
-    } yield {
+    yield {
       logger.info("Successfully downloaded files from S3")
       replaceAllInvalidCharsWithHyphen(FileAttachment(UUID.randomUUID().toString, filename, Some(mimeType), bytes))
     }
@@ -88,11 +88,11 @@ class S3ConnectorImpl @Inject() (
     val filenameWithExtension = f.filename.split("\\.(?=[^\\.]+$)")
 
     val updatedFilename =
-      if (invalidASCIIChars.contains(filenameWithExtension(0))) "-"
+      if invalidASCIIChars.contains(filenameWithExtension(0)) then "-"
       else invalidSpecialChars.replaceAllIn(filenameWithExtension(0), "-")
 
     val fullUpdatedFilename =
-      if (filenameWithExtension.length > 1) s"$updatedFilename.${filenameWithExtension(1)}"
+      if filenameWithExtension.length > 1 then s"$updatedFilename.${filenameWithExtension(1)}"
       else updatedFilename
 
     f.copy(filename = fullUpdatedFilename)

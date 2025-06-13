@@ -19,7 +19,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Format
 
-final case class TelephoneNumber(value: String) extends AnyVal
+final case class TelephoneNumber(value: String)
 
 object TelephoneNumber {
   implicit val format: Format[TelephoneNumber] = implicitly[Format[String]].inmap(TelephoneNumber(_), _.value)

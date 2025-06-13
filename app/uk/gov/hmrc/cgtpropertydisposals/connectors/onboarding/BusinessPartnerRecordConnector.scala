@@ -29,6 +29,8 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[BusinessPartnerRecordConnectorImpl])
@@ -78,7 +80,7 @@ class BusinessPartnerRecordConnectorImpl @Inject() (
       http
         .post(url"${url(bprRequest)}")
         .withBody(Json.toJson(registerDetails))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>

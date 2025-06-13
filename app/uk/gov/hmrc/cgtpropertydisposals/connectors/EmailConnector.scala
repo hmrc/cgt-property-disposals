@@ -31,6 +31,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -64,7 +65,7 @@ class EmailConnectorImpl @Inject() (
   def sendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
-    for {
+    for
       acceptLanguage <- EitherT.fromOption[Future](
                           AcceptLanguage.fromHeaderCarrier(hc),
                           Error("Could not find Accept-Language HTTP header")
@@ -88,8 +89,7 @@ class EmailConnectorImpl @Inject() (
                               Left(Error(e))
                             }
                         )
-
-    } yield httpResponse
+    yield httpResponse
 
   def sendReturnSubmitConfirmationEmail(
     submitReturnResponse: SubmitReturnResponse,
@@ -97,7 +97,7 @@ class EmailConnectorImpl @Inject() (
   )(implicit
     hc: HeaderCarrier
   ): EitherT[Future, Error, HttpResponse] =
-    for {
+    for
       acceptLanguage <- EitherT.fromOption[Future](
                           AcceptLanguage.fromHeaderCarrier(hc),
                           Error("Could not find Accept-Language HTTP header")
@@ -121,7 +121,7 @@ class EmailConnectorImpl @Inject() (
                               Left(Error(e))
                             }
                         )
-    } yield httpResponse
+    yield httpResponse
 }
 
 object EmailConnectorImpl {

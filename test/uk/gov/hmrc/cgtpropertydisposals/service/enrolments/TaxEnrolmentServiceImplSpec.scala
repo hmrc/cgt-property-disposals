@@ -17,11 +17,13 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.enrolments
 
 import cats.data.EitherT
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.test.Helpers._
+import org.scalatestplus.mockito.MockitoSugar.mock
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.enrolments.TaxEnrolmentConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
@@ -40,11 +42,7 @@ import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class TaxEnrolmentServiceImplSpec
-    extends AnyWordSpec
-    with Matchers
-    with IdiomaticMockito
-    with CleanMongoCollectionSupport {
+class TaxEnrolmentServiceImplSpec extends AnyWordSpec with Matchers with CleanMongoCollectionSupport {
 
   val mockConnector: TaxEnrolmentConnector            = mock[TaxEnrolmentConnector]
   val mockEnrolmentRepository: TaxEnrolmentRepository = mock[TaxEnrolmentRepository]
@@ -56,65 +54,74 @@ class TaxEnrolmentServiceImplSpec
   private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, HttpResponse]
   ) =
-    mockConnector
-      .allocateEnrolmentToGroup(taxEnrolmentRequest)(*)
-      .returns(EitherT[Future, Error, HttpResponse](Future.successful(response)))
+    when(
+      mockConnector
+        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(any())
+    ).thenReturn(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
   private def mockUpdateVerifier(updateVerifierDetails: UpdateVerifiersRequest)(
     response: Either[Error, HttpResponse]
   ) =
-    mockConnector
-      .updateVerifiers(updateVerifierDetails)(*)
-      .returns(EitherT[Future, Error, HttpResponse](Future.successful(response)))
+    when(
+      mockConnector
+        .updateVerifiers(ArgumentMatchers.eq(updateVerifierDetails))(any())
+    ).thenReturn(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
   private def mockInsertEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
-    mockEnrolmentRepository
-      .save(taxEnrolmentRequest)
-      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
+    when(
+      mockEnrolmentRepository
+        .save(taxEnrolmentRequest)
+    ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockInsertVerifier(updateVerifierDetails: UpdateVerifiersRequest)(
     response: Either[Error, Unit]
   ) =
-    mockVerifierRepository
-      .insert(updateVerifierDetails)
-      .returns(EitherT[Future, Error, Unit](Future.successful(response)))
+    when(
+      mockVerifierRepository
+        .insert(updateVerifierDetails)
+    ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockGetEnrolment(ggCredId: String)(
     response: Either[Error, Option[TaxEnrolmentRequest]]
   ) =
-    mockEnrolmentRepository
-      .get(ggCredId)
-      .returns(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
+    when(
+      mockEnrolmentRepository
+        .get(ggCredId)
+    ).thenReturn(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
 
   private def mockGetUpdateVerifier(ggCredId: String)(
     response: Either[Error, Option[UpdateVerifiersRequest]]
   ) =
-    mockVerifierRepository
-      .get(ggCredId)
-      .returns(EitherT[Future, Error, Option[UpdateVerifiersRequest]](Future.successful(response)))
+    when(
+      mockVerifierRepository
+        .get(ggCredId)
+    ).thenReturn(EitherT[Future, Error, Option[UpdateVerifiersRequest]](Future.successful(response)))
 
   private def mockDeleteEnrolment(ggCredId: String)(
     response: Either[Error, Int]
   ) =
-    mockEnrolmentRepository
-      .delete(ggCredId)
-      .returns(EitherT[Future, Error, Int](Future.successful(response)))
+    when(
+      mockEnrolmentRepository
+        .delete(ggCredId)
+    ).thenReturn(EitherT[Future, Error, Int](Future.successful(response)))
 
   private def mockDeleteVerifier(ggCredId: String)(
     response: Either[Error, Int]
   ) =
-    mockVerifierRepository
-      .delete(ggCredId)
-      .returns(EitherT[Future, Error, Int](Future.successful(response)))
+    when(
+      mockVerifierRepository
+        .delete(ggCredId)
+    ).thenReturn(EitherT[Future, Error, Int](Future.successful(response)))
 
   private def mockUpdateEnrolment(ggCredId: String, taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Option[TaxEnrolmentRequest]]
   ) =
-    mockEnrolmentRepository
-      .update(ggCredId, taxEnrolmentRequest)
-      .returns(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
+    when(
+      mockEnrolmentRepository
+        .update(ggCredId, taxEnrolmentRequest)
+    ).thenReturn(EitherT[Future, Error, Option[TaxEnrolmentRequest]](Future.successful(response)))
 
   val (nonUkCountry, nonUkCountryCode) = Country("HK") -> "HK"
   implicit val hc: HeaderCarrier       = HeaderCarrier()

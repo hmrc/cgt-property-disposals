@@ -93,17 +93,15 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         )
     }
 
-    val totalReliefs: AmountInPence = {
+    val totalReliefs: AmountInPence =
       reliefDetails.privateResidentsRelief ++ reliefDetails.lettingsRelief
-    }
 
     val gainOrLossAfterReliefs: AmountInPence =
-      if (initialGainOrLossWithSource.amount > AmountInPence.zero)
+      if initialGainOrLossWithSource.amount > AmountInPence.zero then
         (initialGainOrLossWithSource.amount -- totalReliefs).withFloorZero
-      else if (initialGainOrLossWithSource.amount < AmountInPence.zero)
+      else if initialGainOrLossWithSource.amount < AmountInPence.zero then
         (initialGainOrLossWithSource.amount ++ totalReliefs).withCeilingZero
-      else
-        AmountInPence.zero
+      else AmountInPence.zero
 
     val TaxableGainOrLossCalculation(taxableGain, _, gainOrLossAfterInYearLosses, yearPosition, _, _) =
       calculateTaxableGainOrLoss(
@@ -122,7 +120,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
         isATrust
       )
 
-    if (taxableGain <= AmountInPence.zero)
+    if taxableGain <= AmountInPence.zero then
       NonGainCalculatedTaxDue(
         disposalAmountLessCosts,
         acquisitionAmountPlusCosts,
@@ -171,7 +169,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
     val gainsAfterReliefs              =
       calculationDataWithCurrentData.map(r =>
         r.copy(gainOrLossAfterReliefs =
-          if (r.gainOrLossAfterReliefs.isPositive | calculationData.isEmpty) r.gainOrLossAfterReliefs
+          if r.gainOrLossAfterReliefs.isPositive | calculationData.isEmpty then r.gainOrLossAfterReliefs
           else AmountInPence.zero
         )
       )
@@ -184,26 +182,21 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       totalGainsAfterReliefs -- exemptionAndLosses.inYearLosses
 
     val previousYearsLosses =
-      if (gainOrLossAfterInYearLosses < AmountInPence.zero)
-        AmountInPence.zero
-      else
-        exemptionAndLosses.previousYearsLosses
+      if gainOrLossAfterInYearLosses < AmountInPence.zero then AmountInPence.zero
+      else exemptionAndLosses.previousYearsLosses
 
     val yearPosition: AmountInPence =
-      if (gainOrLossAfterInYearLosses > AmountInPence.zero)
+      if gainOrLossAfterInYearLosses > AmountInPence.zero then
         (gainOrLossAfterInYearLosses -- exemptionAndLosses.annualExemptAmount).withFloorZero
-      else
-        gainOrLossAfterInYearLosses
+      else gainOrLossAfterInYearLosses
 
     val previousYearLossesUsed =
-      if (yearPosition > AmountInPence.zero) previousYearsLosses
+      if yearPosition > AmountInPence.zero then previousYearsLosses
       else AmountInPence.zero
 
     val taxableGainOrLoss =
-      if (yearPosition > AmountInPence.zero)
-        (yearPosition -- previousYearLossesUsed).withFloorZero
-      else
-        yearPosition
+      if yearPosition > AmountInPence.zero then (yearPosition -- previousYearLossesUsed).withFloorZero
+      else yearPosition
 
     TaxableGainOrLossCalculation(
       taxableGainOrLoss,
@@ -239,8 +232,7 @@ class CgtCalculationServiceImpl extends CgtCalculationService {
       }
     val taxableIncome                  = (estimatedIncome -- personalAllowance).withFloorZero
     val lowerBandTax                   =
-      if (isATrust)
-        TaxableAmountOfMoney(lowerBandRate, AmountInPence(0L))
+      if isATrust then TaxableAmountOfMoney(lowerBandRate, AmountInPence(0L))
       else
         TaxableAmountOfMoney(
           lowerBandRate,

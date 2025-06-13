@@ -17,13 +17,16 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.returns
 
 import cats.data.EitherT
-import cats.instances.future._
-import org.mockito.IdiomaticMockito
+import cats.instances.future.*
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.test.Helpers._
+import org.scalatestplus.mockito.MockitoSugar.mock
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.multipleDisposalDraftReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DraftReturnsRepository
@@ -33,7 +36,7 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+class DraftReturnsServiceSpec extends AnyWordSpec with Matchers {
 
   private val draftReturnRepository = mock[DraftReturnsRepository]
   val draftReturnsService           = new DefaultDraftReturnsService(draftReturnRepository)
@@ -43,24 +46,28 @@ class DraftReturnsServiceSpec extends AnyWordSpec with Matchers with IdiomaticMo
   private def mockStoreDraftReturn(draftReturn: DraftReturn, cgtReference: CgtReference)(
     response: Either[Error, Unit]
   ) =
-    draftReturnRepository
-      .save(draftReturn, cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnRepository
+        .save(draftReturn, cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockGetDraftReturn(cgtReference: CgtReference)(response: Either[Error, List[DraftReturn]]) =
-    draftReturnRepository
-      .fetch(cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnRepository
+        .fetch(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDeleteDraftReturns(draftReturnIds: List[UUID])(response: Either[Error, Unit]) =
-    draftReturnRepository
-      .deleteAll(draftReturnIds)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnRepository
+        .deleteAll(draftReturnIds)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDeleteADraftReturn(cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    draftReturnRepository
-      .delete(cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnRepository
+        .delete(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   "DraftReturnsRepository" when {
     "storing draft returns" should {

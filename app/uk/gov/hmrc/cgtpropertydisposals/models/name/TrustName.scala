@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.name
 
 import play.api.libs.json.{Format, Json}
 
-final case class TrustName(value: String) extends AnyVal
+final case class TrustName(value: String)
 
 object TrustName {
 

@@ -75,7 +75,7 @@ class DefaultDmsSubmissionService @Inject() (
     cgtReference: CgtReference,
     completeReturn: CompleteReturn
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, DmsEnvelopeId] =
-    for {
+    for
       attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
       fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
       envId           <- EitherT.liftF(
@@ -92,7 +92,7 @@ class DefaultDmsSubmissionService @Inject() (
                              )
                            )
                          )
-    } yield envId
+    yield envId
 
   private def getUpscanSuccesses(completeReturn: CompleteReturn): List[UpscanSuccess] = {
     val mandatoryEvidence = completeReturn.fold(

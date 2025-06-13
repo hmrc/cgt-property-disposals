@@ -31,7 +31,8 @@ object AcceptLanguage {
     headerCarrier.otherHeaders.toMap
       .map { case (k, v) => k.toLowerCase -> v.toLowerCase }
       .get("accept-language") match {
-      case Some(acceptLange) => if (acceptLange === "cy") Some(CY) else if (acceptLange === "en") Some(EN) else None
+      case Some(acceptLange) =>
+        if acceptLange === "cy" then Some(CY) else if acceptLange === "en" then Some(EN) else None
       case None              => None
     }
 }
