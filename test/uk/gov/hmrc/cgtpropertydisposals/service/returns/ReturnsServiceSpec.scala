@@ -39,6 +39,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}

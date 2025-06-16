@@ -27,6 +27,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGe
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails

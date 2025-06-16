@@ -56,10 +56,9 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClientV2, val config: 
     registrationDetails: RegistrationDetails,
     acknowledgementReferenceId: UUID
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, HttpResponse] = {
-    val acknowledgementRef       = acknowledgementReferenceId.toString.filterNot(_ === '-')
     val registerWithoutIdRequest = RegistrationRequest(
       "CGT",
-      acknowledgementRef,
+      acknowledgementReferenceId.toString.filterNot(_ === '-'),
       isAnAgent = false,
       isAGroup = false,
       RegistrationIndividual(registrationDetails.name.firstName, registrationDetails.name.lastName),
@@ -67,19 +66,15 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClientV2, val config: 
       RegistrationContactDetails(registrationDetails.emailAddress.value)
     )
 
-    EitherT[Future, Error, HttpResponse] {
-      val request = Json.toJson(registerWithoutIdRequest)
-      val result  =
-        http
-          .post(url"$url")
-          .withBody(request)
-          .setHeader(headers*)
-          .execute[HttpResponse]
-      result
+    EitherT[Future, Error, HttpResponse](
+      http
+        .post(url"$url")
+        .withBody(Json.toJson(registerWithoutIdRequest))
+        .setHeader(headers*)
+        .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
-    }
-
+    )
   }
 
   private def toRegistrationAddress(address: Address) =
@@ -116,28 +111,8 @@ object RegisterWithoutIdConnectorImpl {
     countryCode: String
   )
 
-  implicit val individualWrites: Writes[RegistrationIndividual] = Json.writes[RegistrationIndividual]
-
+  implicit val individualWrites: Writes[RegistrationIndividual]         = Json.writes[RegistrationIndividual]
+  implicit val addressWrites: Writes[RegistrationAddress]               = Json.writes[RegistrationAddress]
   implicit val contactDetailsWrites: Writes[RegistrationContactDetails] = Json.writes[RegistrationContactDetails]
-  implicit val addressWrites: Writes[RegistrationAddress]               = new Writes[RegistrationAddress] {
-    override def writes(o: RegistrationAddress): JsValue = Json.obj(
-      "addressLine1" -> o.addressLine1,
-      "addressLine2" -> o.addressLine2,
-      "addressLine3" -> o.addressLine3,
-      "addressLine4" -> o.addressLine4,
-      "postalCode"   -> o.postalCode,
-      "countryCode"  -> o.countryCode
-    )
-  }
-  implicit val requestWrites: Writes[RegistrationRequest]               = new Writes[RegistrationRequest] {
-    override def writes(o: RegistrationRequest): JsValue = Json.obj(
-      "regime"                   -> o.regime,
-      "acknowledgementReference" -> o.acknowledgementReference,
-      "isAnAgent"                -> o.isAnAgent,
-      "isAGroup"                 -> o.isAGroup,
-      "individual"               -> o.individual,
-      "address"                  -> o.address,
-      "contactDetails"           -> o.contactDetails
-    )
-  }
+  implicit val requestWrites: Writes[RegistrationRequest]               = Json.writes[RegistrationRequest]
 }

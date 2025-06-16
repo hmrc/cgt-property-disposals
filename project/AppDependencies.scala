@@ -24,13 +24,10 @@ object AppDependencies {
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion % scope,
     "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion     % scope,
-    "org.scalamock"              %% "scalamock"                     % "7.3.2"          % scope,
-    "org.jsoup"                   % "jsoup"                         % "1.20.1",
-    "org.scalatest"              %% "scalatest"                     % "3.2.19"         % scope,
     "org.apache.pekko"           %% "pekko-testkit"                 % pekkoVersion      % scope,
     "org.scalacheck"             %% "scalacheck"                    % "1.18.1"          % scope,
     "org.scalatestplus"           % "scalacheck-1-18_3"             % "3.2.19.0"        % scope,
-    "io.github.martinhh"         %% "scalacheck-derived"            % "0.8.2"           % scope,
+    "io.github.martinhh"         %% "scalacheck-derived"            % "0.9.0"           % scope,
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion  % scope exclude ("org.playframework", "play-json_2.13"))
 
 }

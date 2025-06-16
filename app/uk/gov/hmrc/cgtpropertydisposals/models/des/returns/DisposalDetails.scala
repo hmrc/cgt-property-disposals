@@ -16,14 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
-import cats.syntax.order._
-import play.api.libs.json.{JsValue, Json, OFormat}
+import cats.syntax.order.*
+import play.api.libs.json.*
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteMultipleIndirectDisposalReturn, CompleteSingleDisposalReturn, CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
-import uk.gov.hmrc.cgtpropertydisposals.models.returns._
-import play.api.libs.json._
 
 import java.time.LocalDate
 

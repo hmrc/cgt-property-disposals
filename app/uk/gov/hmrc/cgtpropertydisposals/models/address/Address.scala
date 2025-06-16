@@ -17,10 +17,9 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.address
 
 import cats.Eq
-import play.api.libs.json.OFormat
+import play.api.libs.json.*
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.KeyValuePair
-import play.api.libs.json._
 
 sealed trait Address
 

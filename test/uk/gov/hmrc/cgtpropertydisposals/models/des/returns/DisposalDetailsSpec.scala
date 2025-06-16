@@ -28,6 +28,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}

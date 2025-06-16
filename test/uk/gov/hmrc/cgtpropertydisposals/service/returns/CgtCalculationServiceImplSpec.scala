@@ -23,11 +23,12 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.ukAddressGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.AddressGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.MoneyGen.amountInPenceGen
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.{completeAcquisitionDetailsAnswersGen, completeDisposalDetailsAnswersGen, completeExemptionAndLossesAnswersGen, completeSingleDisposalTriageAnswersGen, disposalDateGen}
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.MoneyGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}
