@@ -28,7 +28,7 @@ object Name {
   def nameValidation(
     typeOfPersonDetails: TypeOfPersonDetails
   ): Validation[Either[TrustName, IndividualName]] =
-    if (typeOfPersonDetails.typeOfPerson === "Individual")
+    if typeOfPersonDetails.typeOfPerson === "Individual" then
       typeOfPersonDetails.firstName -> typeOfPersonDetails.lastName match {
         case (Some(firstName), Some(lastName)) => Valid(Right(IndividualName(firstName, lastName)))
         case (Some(_), None)                   =>
@@ -38,7 +38,7 @@ object Name {
         case (None, None)                      =>
           Invalid(NonEmptyList.one("Subscription Display response did not contain first name or last name"))
       }
-    else if (typeOfPersonDetails.typeOfPerson === "Trustee")
+    else if typeOfPersonDetails.typeOfPerson === "Trustee" then
       typeOfPersonDetails.organisationName match {
         case Some(organisationName) => Valid(Left(TrustName(organisationName)))
         case None                   => Invalid(NonEmptyList.one("Subscription Display response did not contain organisation name"))

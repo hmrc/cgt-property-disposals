@@ -20,8 +20,10 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import play.api.test.Helpers.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.singleMixedUseDraftReturnGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.cgtReferenceGen
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
 import uk.gov.hmrc.mongo.test.CleanMongoCollectionSupport

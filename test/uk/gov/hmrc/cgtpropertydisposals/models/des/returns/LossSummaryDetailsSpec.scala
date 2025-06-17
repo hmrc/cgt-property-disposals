@@ -18,8 +18,9 @@ package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers.CompleteExemptionAndLossesAnswers
 
 class LossSummaryDetailsSpec extends AnyWordSpec with Matchers {

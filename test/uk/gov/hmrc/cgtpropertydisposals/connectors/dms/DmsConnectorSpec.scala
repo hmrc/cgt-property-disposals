@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.connectors.dms
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.http.Fault
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.util.ByteString
-import org.mockito.IdiomaticMockito
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -30,8 +30,9 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.{AUTHORIZATION, await, defaultAwaitTimeout}
 import play.api.{Application, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{dmsMetadataGen, sample}
-import uk.gov.hmrc.cgtpropertydisposals.models.dms._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DmsSubmissionGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.*
 import uk.gov.hmrc.cgtpropertydisposals.service.dms.PdfGenerationService
 import uk.gov.hmrc.http.test.WireMockSupport
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
@@ -39,11 +40,12 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, UpstreamErrorResponse}
 import java.time.format.DateTimeFormatter
 import java.time.{Clock, Instant, LocalDateTime, ZoneId}
 import java.util.Base64
+import org.mockito.Mockito.when
 
 class DmsConnectorSpec
     extends AnyWordSpec
     with Matchers
-    with IdiomaticMockito
+    with MockitoSugar
     with WireMockSupport
     with GuiceOneAppPerSuite {
   private val config = Configuration(
@@ -90,7 +92,7 @@ class DmsConnectorSpec
 
   private val mockPdfBytes = "some pdf stuff".getBytes
 
-  mockPdfGenerationService.generatePDFBytes(blankHtml) returns mockPdfBytes
+  when(mockPdfGenerationService.generatePDFBytes(blankHtml)).thenReturn(mockPdfBytes)
 
   private val dmsSubmissionPayload = DmsSubmissionPayload(
     B64Html(encodedHtml),
@@ -147,8 +149,7 @@ class DmsConnectorSpec
         )
       )
 
-      await(connector.submitToDms(dmsSubmissionPayload)) shouldBe
-        DmsEnvelopeId("test envelope id")
+      await(connector.submitToDms(dmsSubmissionPayload)).shouldBe(DmsEnvelopeId("test envelope id"))
     }
   }
 

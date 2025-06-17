@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.finance.ChargeType.{DeltaCharge, 
 import uk.gov.hmrc.cgtpropertydisposals.models.finance._
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.{ReturnSummary, SubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.{Error, Validation, invalid}
-import uk.gov.hmrc.cgtpropertydisposals.service.returns.DefaultReturnsService.{DesCharge, DesReturnSummary}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DesCharge, DesReturnSummary}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
@@ -93,8 +93,7 @@ class ReturnSummaryListTransformerServiceImpl @Inject() (
 
     val mainReturnChargeAmountValidation: Validation[(AmountInPence, Option[String])] = chargesValidation.andThen {
       charges =>
-        if (returnSummary.totalCGTLiability === BigDecimal("0") && charges.isEmpty)
-          Valid(AmountInPence.zero -> None)
+        if returnSummary.totalCGTLiability === BigDecimal("0") && charges.isEmpty then Valid(AmountInPence.zero -> None)
         else
           charges.filter(c =>
             c.chargeType === ChargeType.UkResidentReturn || c.chargeType === ChargeType.NonUkResidentReturn
@@ -162,7 +161,7 @@ class ReturnSummaryListTransformerServiceImpl @Inject() (
               .toValidatedNel
               .andThen(t => validatePayments(t).map(t -> _))
 
-          val secondaryChargeValidation                                                     = validateSecondaryCharge(
+          val secondaryChargeValidation = validateSecondaryCharge(
             returnSummaryCharge,
             chargeTypeValidation,
             financialDataValidation,
@@ -189,10 +188,9 @@ class ReturnSummaryListTransformerServiceImpl @Inject() (
               }
 
               secondaryCharge.fold(List(charge)) { secondaryCharge =>
-                if (charge.dueDate.isBefore(secondaryCharge.dueDate))
+                if charge.dueDate.isBefore(secondaryCharge.dueDate) then
                   List(charge, secondaryCharge.copy(chargeType = DeltaCharge))
-                else
-                  List(secondaryCharge, charge.copy(chargeType = DeltaCharge))
+                else List(secondaryCharge, charge.copy(chargeType = DeltaCharge))
               }
 
           }
@@ -222,7 +220,7 @@ class ReturnSummaryListTransformerServiceImpl @Inject() (
           case Some(Nil) | Some(_ :: Nil)                => Valid(None)
           case Some(transaction1 :: transaction2 :: Nil) =>
             financialDataValidation.andThen { case (foundTransaction, _) =>
-              val secondaryChargeTransaction = if (foundTransaction === transaction1) transaction2 else transaction1
+              val secondaryChargeTransaction = if foundTransaction === transaction1 then transaction2 else transaction1
 
               Either
                 .fromOption(

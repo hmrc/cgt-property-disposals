@@ -21,7 +21,7 @@ import play.api.libs.json.Format
 
 import java.time.LocalDate
 
-final case class AcquisitionDate(value: LocalDate) extends AnyVal
+final case class AcquisitionDate(value: LocalDate)
 
 object AcquisitionDate {
 

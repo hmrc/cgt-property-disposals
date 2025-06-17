@@ -17,8 +17,10 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.testonly
 
 import cats.data.EitherT
-import cats.instances.future._
-import play.api.test.Helpers.{status, _}
+import cats.instances.future.*
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import play.api.test.Helpers.{status, *}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
@@ -39,9 +41,10 @@ class TestOnlyControllerSpec extends ControllerSpec {
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   private def mockDeleteDraftReturnService(cgtReference: CgtReference)(response: Either[Error, Unit]) =
-    draftReturnsService
-      .deleteDraftReturn(cgtReference)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      draftReturnsService
+        .deleteDraftReturn(cgtReference)
+    ).thenReturn(EitherT.fromEither[Future](response))
 
   val request = new AuthenticatedRequest(
     Fake.user,

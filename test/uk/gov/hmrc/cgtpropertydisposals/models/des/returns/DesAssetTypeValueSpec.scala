@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import io.github.martinhh.derived.scalacheck.given
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AssetType
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.CompleteMultipleDisposalsTriageAnswers
@@ -30,7 +33,7 @@ class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDri
   "DesAssetTypeValue" must {
 
     "have a method which can convert asset types in single disposals and convert them back" in {
-      forAll { assetType: AssetType =>
+      forAll { (assetType: AssetType) =>
         val completeReturn = sample[CompleteSingleDisposalReturn].copy(
           triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
             assetType = assetType
@@ -42,7 +45,7 @@ class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDri
     }
 
     "have a method which can convert asset types in multiple disposals and convert them back" in {
-      forAll { assetTypes: List[AssetType] =>
+      forAll { (assetTypes: List[AssetType]) =>
         whenever(assetTypes.nonEmpty) {
           val completeReturn = sample[CompleteMultipleDisposalsReturn].copy(
             triageAnswers = sample[CompleteMultipleDisposalsTriageAnswers].copy(
@@ -57,7 +60,7 @@ class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDri
     }
 
     "have a method which can convert asset types in single mixed use disposals and convert them back" in {
-      forAll { assetType: AssetType =>
+      forAll { (assetType: AssetType) =>
         val completeReturn = sample[CompleteSingleMixedUseDisposalReturn].copy(
           triageAnswers = sample[CompleteSingleDisposalTriageAnswers].copy(
             assetType = assetType
@@ -70,7 +73,7 @@ class DesAssetTypeValueSpec extends AnyWordSpec with Matchers with ScalaCheckDri
     }
 
     "be able to return an error when it encounters an unknown asset type" in {
-      DesAssetTypeValue("abc").toAssetTypes() shouldBe a[Left[_, _]]
+      DesAssetTypeValue("abc").toAssetTypes() shouldBe a[Left[?, ?]]
 
     }
 

@@ -15,9 +15,7 @@
  */
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
-
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
@@ -37,6 +35,31 @@ object ExampleCompanyDetailsAnswers {
     acquisitionPrice: AmountInPence
   ) extends ExampleCompanyDetailsAnswers
 
-  implicit val format: OFormat[ExampleCompanyDetailsAnswers] = derived.oformat()
+  implicit val completeExampleCompanyDetailsAnswersFormat: OFormat[CompleteExampleCompanyDetailsAnswers]     =
+    Json.format[CompleteExampleCompanyDetailsAnswers]
+  implicit val incompleteExampleCompanyDetailsAnswersFormat: OFormat[IncompleteExampleCompanyDetailsAnswers] =
+    Json.format[IncompleteExampleCompanyDetailsAnswers]
+
+  implicit val format: OFormat[ExampleCompanyDetailsAnswers] = new OFormat[ExampleCompanyDetailsAnswers] {
+
+    import play.api.libs.json._
+
+    override def reads(json: JsValue): JsResult[ExampleCompanyDetailsAnswers] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("IncompleteExampleCompanyDetailsAnswers", value) =>
+            value.validate[IncompleteExampleCompanyDetailsAnswers]
+          case ("CompleteExampleCompanyDetailsAnswers", value)   => value.validate[CompleteExampleCompanyDetailsAnswers]
+          case (other, _)                                        => JsError(s"Unrecognized ExampleCompanyDetailsAnswers type: $other")
+        }
+      case _                                    => JsError("Expected ExampleCompanyDetailsAnswers wrapper object with a single entry")
+    }
+
+    override def writes(o: ExampleCompanyDetailsAnswers): JsObject = o match {
+      case i: IncompleteExampleCompanyDetailsAnswers =>
+        Json.obj("IncompleteExampleCompanyDetailsAnswers" -> Json.toJson(i))
+      case c: CompleteExampleCompanyDetailsAnswers   => Json.obj("CompleteExampleCompanyDetailsAnswers" -> Json.toJson(c))
+    }
+  }
 
 }

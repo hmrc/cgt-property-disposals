@@ -30,6 +30,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 
 @ImplementedBy(classOf[SubscriptionConnectorImpl])
 trait SubscriptionConnector {
@@ -70,7 +71,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: Servi
       http
         .post(url"$subscribeUrl")
         .withBody(Json.toJson(subscriptionRequest))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }
@@ -82,7 +83,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: Servi
     EitherT[Future, Error, HttpResponse](
       http
         .get(url"${subscriptionUrl(cgtReference)}")
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
@@ -97,7 +98,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: Servi
       http
         .put(url"${subscriptionUrl(cgtReference)}")
         .withBody(Json.toJson(subscriptionRequest))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e =>
@@ -111,7 +112,7 @@ class SubscriptionConnectorImpl @Inject() (http: HttpClientV2, val config: Servi
     EitherT[Future, Error, HttpResponse](
       http
         .get(url"${subscriptionStatusUrl(sapNumber)}")
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }

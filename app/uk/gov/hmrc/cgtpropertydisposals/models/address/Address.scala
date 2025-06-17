@@ -17,8 +17,7 @@
 package uk.gov.hmrc.cgtpropertydisposals.models.address
 
 import cats.Eq
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.*
 import uk.gov.hmrc.cgtpropertydisposals.models.des.AddressDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.KeyValuePair
 
@@ -47,7 +46,30 @@ object Address {
 
   // the format instance using the play-json-derived-codecs library wraps
   // the case class inside a JsObject with case class type name as the key
-  implicit val format: OFormat[Address] = derived.oformat()
+  implicit val ukAddressFormat: OFormat[UkAddress]       = Json.format[UkAddress]
+  implicit val nonUkAddressFormat: OFormat[NonUkAddress] = Json.format[NonUkAddress]
+
+  implicit val format: OFormat[Address] = new OFormat[Address] {
+    override def reads(json: JsValue): JsResult[Address] =
+      (json \ "UkAddress", json \ "NonUkAddress") match {
+        case (JsDefined(ukJson), _)    => ukJson.validate[UkAddress]
+        case (_, JsDefined(nonUkJson)) => nonUkJson.validate[NonUkAddress]
+        case _                         =>
+          (json \ "_type").validate[String] match {
+            case JsSuccess("uk", _)    => json.validate[UkAddress]
+            case JsSuccess("nonUk", _) => json.validate[NonUkAddress]
+            case JsSuccess(other, _)   => JsError(s"Unknown _type: $other")
+            case JsError(_)            =>
+              if (json \ "countryCode").isDefined then json.validate[NonUkAddress]
+              else json.validate[UkAddress]
+          }
+      }
+
+    override def writes(address: Address): JsObject = address match {
+      case uk: UkAddress       => Json.obj("UkAddress" -> Json.toJson(uk)(ukAddressFormat))
+      case nonUk: NonUkAddress => Json.obj("NonUkAddress" -> Json.toJson(nonUk)(nonUkAddressFormat))
+    }
+  }
 
   def toAddressDetails(address: Address): AddressDetails =
     address match {

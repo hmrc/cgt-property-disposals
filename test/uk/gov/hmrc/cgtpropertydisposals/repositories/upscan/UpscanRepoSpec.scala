@@ -22,20 +22,16 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.DefaultAwaitTimeout
-import play.api.test.Helpers._
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UpscanUpload, UpscanUploadWrapper}
-import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import play.api.test.Helpers.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.sample
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.upscanUploadGen
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanUpload
+import uk.gov.hmrc.mongo.test.MongoSupport
 
 import java.time.{Clock, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UpscanRepoSpec
-    extends AnyWordSpec
-    with DefaultPlayMongoRepositorySupport[UpscanUploadWrapper]
-    with ScalaFutures
-    with DefaultAwaitTimeout
-    with Matchers {
+class UpscanRepoSpec extends AnyWordSpec with MongoSupport with ScalaFutures with DefaultAwaitTimeout with Matchers {
 
   private val config = Configuration(
     ConfigFactory.parseString(
@@ -45,16 +41,15 @@ class UpscanRepoSpec
     )
   )
 
-  override protected def beforeAll(): Unit =
+  protected def beforeAll(): Unit =
     dropDatabase()
 
-  override protected val repository = new DefaultUpscanRepo(mongoComponent, config)
+  protected val repository = new DefaultUpscanRepo(mongoComponent, config)
 
   "Upscan Repository" when {
     "inserting" should {
       "insert a new upscan upload document" in {
         val upscanUpload = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
-        println(" upscan value is ::" + upscanUpload)
         await(repository.insert(upscanUpload).value) shouldBe Right(())
       }
     }

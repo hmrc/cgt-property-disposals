@@ -26,6 +26,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.{MongoComponent, TimestampSupport}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
+import org.mongodb.scala.SingleObservableFuture
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit

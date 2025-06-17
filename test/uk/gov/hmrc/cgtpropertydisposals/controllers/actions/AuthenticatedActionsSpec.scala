@@ -17,10 +17,11 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.actions
 
 import org.apache.pekko.stream.testkit.NoMaterializer
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.mvc.{BodyParsers, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{defaultAwaitTimeout, status}
@@ -29,7 +30,7 @@ import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, MissingBearerTo
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class AuthenticatedActionsSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+class AuthenticatedActionsSpec extends AnyWordSpec with Matchers {
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
   private val authConnector = mock[AuthConnector]
@@ -41,9 +42,10 @@ class AuthenticatedActionsSpec extends AnyWordSpec with Matchers with IdiomaticM
   )
 
   private def mockAuthorise()(response: Future[Option[Credentials]]) =
-    authConnector
-      .authorise[Option[Credentials]](*, *)(*, *)
-      .returns(response)
+    when(
+      authConnector
+        .authorise[Option[Credentials]](any(), any())(any(), any())
+    ).thenReturn(response)
 
   "AuthenticatedActionsSpec" should {
     "authorized request" in {

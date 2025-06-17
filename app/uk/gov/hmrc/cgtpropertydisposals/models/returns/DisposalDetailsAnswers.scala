@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{JsError, JsObject, JsResult, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 sealed trait DisposalDetailsAnswers extends Product with Serializable
@@ -36,6 +35,31 @@ object DisposalDetailsAnswers {
     disposalFees: AmountInPence
   ) extends DisposalDetailsAnswers
 
-  implicit val format: OFormat[DisposalDetailsAnswers] = derived.oformat[DisposalDetailsAnswers]()
+  implicit val completeFormat: OFormat[CompleteDisposalDetailsAnswers]     = Json.format[CompleteDisposalDetailsAnswers]
+  implicit val inCompleteFormat: OFormat[IncompleteDisposalDetailsAnswers] =
+    Json.format[IncompleteDisposalDetailsAnswers]
+
+  implicit val format: OFormat[DisposalDetailsAnswers] = new OFormat[DisposalDetailsAnswers] {
+    override def reads(json: JsValue): JsResult[DisposalDetailsAnswers] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("IncompleteDisposalDetailsAnswers", value) =>
+            value.validate[IncompleteDisposalDetailsAnswers]
+          case ("CompleteDisposalDetailsAnswers", value)   =>
+            value.validate[CompleteDisposalDetailsAnswers]
+          case (other, _)                                  =>
+            JsError(s"Unrecognized DisposalDetailsAnswers type: $other")
+        }
+      case _                                    =>
+        JsError("Expected DisposalDetailsAnswers wrapper object with a single entry")
+    }
+
+    override def writes(a: DisposalDetailsAnswers): JsObject = a match {
+      case i: IncompleteDisposalDetailsAnswers =>
+        Json.obj("IncompleteDisposalDetailsAnswers" -> Json.toJson(i))
+      case c: CompleteDisposalDetailsAnswers   =>
+        Json.obj("CompleteDisposalDetailsAnswers" -> Json.toJson(c))
+    }
+  }
 
 }

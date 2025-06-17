@@ -34,6 +34,7 @@ import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.time.Instant
 import java.util.UUID
@@ -101,7 +102,7 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
           .deleteMany(equal("return.cgtReference.value", cgtReference.value))
           .toFuture()
           .map { result =>
-            if (result.wasAcknowledged()) {
+            if result.head.wasAcknowledged() then {
               Right(())
             } else {
               Left(
@@ -122,11 +123,11 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       preservingMdc {
         collection
           .deleteMany(
-            or(draftReturnIds.map(id => equal("return.draftId", Codecs.toBson(id))): _*)
+            or(draftReturnIds.map(id => equal("return.draftId", Codecs.toBson(id)))*)
           )
           .toFuture()
           .map { result =>
-            if (result.wasAcknowledged()) {
+            if result.head.wasAcknowledged() then {
               Right(())
             } else {
               Left(

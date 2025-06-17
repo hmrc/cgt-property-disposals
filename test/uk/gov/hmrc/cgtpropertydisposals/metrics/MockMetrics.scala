@@ -17,9 +17,9 @@
 package uk.gov.hmrc.cgtpropertydisposals.metrics
 
 import com.codahale.metrics.{Counter, Timer}
-import org.mockito.IdiomaticMockito
+import org.scalatestplus.mockito.MockitoSugar.mock
 
-object MockMetrics extends IdiomaticMockito {
+object MockMetrics {
   val metrics: Metrics = new Metrics(mock[com.codahale.metrics.MetricRegistry]) {
 
     override def timer(name: String): Timer = new Timer()

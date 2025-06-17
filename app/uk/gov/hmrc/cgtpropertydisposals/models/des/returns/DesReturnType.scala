@@ -43,7 +43,7 @@ object DesReturnType {
 
   def apply(submitReturnRequest: SubmitReturnRequest, clock: Clock = Clock.systemUTC()): DesReturnType = {
     val timestamp    =
-      if (submitReturnRequest.isFurtherReturn) s" ${Instant.now(clock).getEpochSecond.toString}"
+      if submitReturnRequest.isFurtherReturn then s" ${Instant.now(clock).getEpochSecond.toString}"
       else ""
     val returnSource =
       submitReturnRequest.agentReferenceNumber
@@ -55,30 +55,28 @@ object DesReturnType {
       )
   }
 
-  implicit val returnTypeFormat: OFormat[DesReturnType] =
-    OFormat[DesReturnType](
-      json =>
-        for {
-          source         <- (json \ "source").validate[String]
-          submissionType <- (json \ "submissionType").validate[SubmissionType]
-          result         <- submissionType match {
-                              case SubmissionType.New   => JsSuccess(CreateReturnType(source))
-                              case SubmissionType.Amend => JsSuccess(AmendReturnType(source, None))
-                            }
-        } yield result,
-      { r: DesReturnType =>
-        r match {
-          case c: CreateReturnType =>
-            JsObject(Map("source" -> JsString(c.source), "submissionType" -> Json.toJson(c.submissionType)))
-          case a: AmendReturnType  =>
-            JsObject(
-              Map(
-                "source"         -> JsString(a.source),
-                "submissionType" -> Json.toJson(a.submissionType),
-                "submissionID"   -> a.submissionID.fold[JsValue](JsNull)(JsString)
-              )
-            )
-        }
-      }
-    )
+  implicit val returnTypeFormat: OFormat[DesReturnType] = new OFormat[DesReturnType] {
+    override def writes(o: DesReturnType): JsObject = o match {
+      case c: CreateReturnType =>
+        JsObject(Map("source" -> JsString(c.source), "submissionType" -> Json.toJson(c.submissionType)))
+      case a: AmendReturnType  =>
+        JsObject(
+          Map(
+            "source"         -> JsString(a.source),
+            "submissionType" -> Json.toJson(a.submissionType),
+            "submissionID"   -> a.submissionID.fold[JsValue](JsNull)(JsString.apply)
+          )
+        )
+    }
+
+    override def reads(json: JsValue): JsResult[DesReturnType] =
+      for
+        source         <- (json \ "source").validate[String]
+        submissionType <- (json \ "submissionType").validate[SubmissionType]
+        result         <- submissionType match {
+                            case SubmissionType.New   => JsSuccess(CreateReturnType(source))
+                            case SubmissionType.Amend => JsSuccess(AmendReturnType(source, None))
+                          }
+      yield result
+  }
 }

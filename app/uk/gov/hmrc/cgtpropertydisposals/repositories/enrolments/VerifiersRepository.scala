@@ -26,6 +26,8 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.model.UpdateVerifiersReques
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
+import org.mongodb.scala.gridfs.ObservableFuture
+import org.mongodb.scala.gridfs.SingleObservableFuture
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -69,7 +71,7 @@ class DefaultVerifiersRepository @Inject() (mongo: MongoComponent)(implicit
           .insertOne(updateVerifiersRequest)
           .toFuture()
           .map[Either[Error, Unit]] { result =>
-            if (result.wasAcknowledged()) {
+            if result.wasAcknowledged() then {
               Right(())
             } else {
               Left(

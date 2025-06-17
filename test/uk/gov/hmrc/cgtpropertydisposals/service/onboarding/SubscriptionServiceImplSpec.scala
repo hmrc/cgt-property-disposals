@@ -17,22 +17,26 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{doNothing, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsNumber, JsValue, Json}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.SubscriptionConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.accounts.SubscribedUpdateDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.DesSubscriptionUpdateRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.des.onboarding.DesSubscriptionRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.sapNumberGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscriptionDetailsGen
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.audit.SubscriptionResponseEvent
@@ -47,7 +51,7 @@ import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
 
   private val mockSubscriptionConnector = mock[SubscriptionConnector]
 
@@ -66,34 +70,38 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with Idiomat
     httpStatus: Int,
     responseBody: Option[JsValue],
     desSubscriptionRequest: DesSubscriptionRequest
-  ) =
-    mockAuditService
+  ): Unit =
+    doNothing()
+      .when(mockAuditService)
       .sendEvent(
-        "subscriptionResponse",
-        SubscriptionResponseEvent(
-          httpStatus,
-          responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
-          desSubscriptionRequest
+        ArgumentMatchers.eq("subscriptionResponse"),
+        ArgumentMatchers.eq(
+          SubscriptionResponseEvent(
+            httpStatus,
+            responseBody.getOrElse(Json.parse("""{ "body" : "could not parse body as JSON: " }""")),
+            desSubscriptionRequest
+          )
         ),
-        "subscription-response"
+        ArgumentMatchers.eq("subscription-response")
       )(
-        *,
-        *,
-        *
+        any(),
+        any(),
+        any()
       )
-      .doesNothing()
 
   private def mockSubscribe(
     expectedSubscriptionDetails: DesSubscriptionRequest
   )(response: Either[Error, HttpResponse]) =
-    mockSubscriptionConnector
-      .subscribe(expectedSubscriptionDetails)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionConnector
+        .subscribe(ArgumentMatchers.eq(expectedSubscriptionDetails))(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
-    mockSubscriptionConnector
-      .getSubscription(cgtReference)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionConnector
+        .getSubscription(ArgumentMatchers.eq(cgtReference))(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockUpdateSubscriptionDetails(
     subscribedDetails: DesSubscriptionUpdateRequest,
@@ -101,21 +109,28 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with Idiomat
   )(
     response: Either[Error, HttpResponse]
   ) =
-    mockSubscriptionConnector
-      .updateSubscription(subscribedDetails, cgtReference)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionConnector
+        .updateSubscription(ArgumentMatchers.eq(subscribedDetails), ArgumentMatchers.eq(cgtReference))(any)
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, HttpResponse]) =
-    mockSubscriptionConnector
-      .getSubscriptionStatus(sapNumber)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionConnector
+        .getSubscriptionStatus(ArgumentMatchers.eq(sapNumber))(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockSendConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     response: Either[Error, Unit]
   ) =
-    mockEmailService
-      .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(*, *)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockEmailService
+        .sendSubscriptionConfirmationEmail(
+          ArgumentMatchers.eq(cgtReference),
+          ArgumentMatchers.eq(email),
+          ArgumentMatchers.eq(contactName)
+        )(any(), any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private val emptyJsonBody = "{}"
   private val noJsonInBody  = ""
@@ -640,7 +655,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers with Idiomat
 
     "handling requests to subscribe" must {
       implicit val hc: HeaderCarrier   = HeaderCarrier()
-      implicit val request: Request[_] = FakeRequest()
+      implicit val request: Request[?] = FakeRequest()
 
       val subscriptionDetails = sample[SubscriptionDetails]
       val subscriptionRequest = DesSubscriptionRequest(subscriptionDetails)

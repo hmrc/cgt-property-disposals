@@ -54,7 +54,7 @@ trait BusinessPartnerRecordService {
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, BusinessPartnerRecordResponse]
 
 }
@@ -78,9 +78,9 @@ class BusinessPartnerRecordServiceImpl @Inject() (
 
   def getBusinessPartnerRecord(bprRequest: BusinessPartnerRecordRequest)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, BusinessPartnerRecordResponse] =
-    for {
+    for
       maybeBpr                             <- getBpr(bprRequest)
       maybeCgtRef                          <- maybeBpr.fold[EitherT[Future, Error, Option[CgtReference]]](EitherT.pure(None))(bpr =>
                                                 subscriptionService.getSubscriptionStatus(bpr.sapNumber)
@@ -89,26 +89,26 @@ class BusinessPartnerRecordServiceImpl @Inject() (
         maybeCgtRef.fold[EitherT[Future, Error, Option[SubscribedDetails]]](
           EitherT.pure[Future, Error](None)
         )(cgtRef => getNewEnrolmentSubscriptionDetails(cgtRef, bprRequest))
-    } yield BusinessPartnerRecordResponse(maybeBpr, maybeCgtRef, maybeNewEnrolmentSubscriptionDetails)
+    yield BusinessPartnerRecordResponse(maybeBpr, maybeCgtRef, maybeNewEnrolmentSubscriptionDetails)
 
   private def getNewEnrolmentSubscriptionDetails(cgtReference: CgtReference, bprRequest: BusinessPartnerRecordRequest)(
     implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, Option[SubscribedDetails]] =
-    if (!bprRequest.createNewEnrolmentIfMissing) EitherT.pure(None)
+    if !bprRequest.createNewEnrolmentIfMissing then EitherT.pure(None)
     else
-      for {
+      for
         enrolmentExists   <- enrolmentStoreProxyService.cgtEnrolmentExists(cgtReference)
-        subscribedDetails <- if (enrolmentExists) EitherT.pure[Future, Error](None)
+        subscribedDetails <- if enrolmentExists then EitherT.pure[Future, Error](None)
                              else getSubscribedDetailsAndEnrol(cgtReference, bprRequest.ggCredId).map(Some(_))
-      } yield subscribedDetails
+      yield subscribedDetails
 
   private def getSubscribedDetailsAndEnrol(cgtReference: CgtReference, ggCredId: String)(implicit
     hc: HeaderCarrier,
-    request: Request[_]
+    request: Request[?]
   ): EitherT[Future, Error, SubscribedDetails] =
-    for {
+    for
       subscriptionDetails <-
         subscriptionService
           .getSubscription(cgtReference)
@@ -134,7 +134,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
                                .leftFlatMap(e =>
                                  EitherT.pure[Future, Error](logger.warn("Could not send subscription confirmation email", e))
                                )
-    } yield subscriptionDetails
+    yield subscriptionDetails
 
   private def getBpr(
     bprRequest: BusinessPartnerRecordRequest
@@ -149,20 +149,19 @@ class BusinessPartnerRecordServiceImpl @Inject() (
           "DES CorrelationId" -> response.header(correlationIdHeaderKey).getOrElse("-")
         )
 
-      if (response.status === OK)
+      if response.status === OK then
         response
           .parseJSON[DesBusinessPartnerRecord]()
           .flatMap(toBusinessPartnerRecord)
           .map(Some(_))
           .leftMap { e =>
             metrics.registerWithIdErrorCounter.inc()
-            Error(e, identifiers: _*)
+            Error(e, identifiers*)
           }
-      else if (isNotFoundResponse(response))
-        Right(None)
+      else if isNotFoundResponse(response) then Right(None)
       else {
         metrics.registerWithIdErrorCounter.inc()
-        Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers: _*))
+        Left(Error(s"Call to get BPR came back with status ${response.status}", identifiers*))
       }
     }
   }

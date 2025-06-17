@@ -16,16 +16,19 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.TaxYearResponse
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.TaxYearService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -37,9 +40,10 @@ class TaxYearControllerSpec extends ControllerSpec {
   private val mockTaxYearService = mock[TaxYearService]
 
   private def mockGetTaxYear(date: LocalDate)(response: Option[TaxYear]) =
-    mockTaxYearService
-      .getTaxYear(date)
-      .returns(response)
+    when(
+      mockTaxYearService
+        .getTaxYear(date)
+    ).thenReturn(response)
 
   val controller = new TaxYearController(
     Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),

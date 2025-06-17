@@ -17,15 +17,15 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import com.typesafe.config.ConfigFactory
-import org.mockito.IdiomaticMockito
 import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsString, Json}
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.{Application, Configuration}
+import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnectorImpl.{RegistrationAddress, RegistrationContactDetails, RegistrationIndividual, RegistrationRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Email
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Country, Postcode}
@@ -40,7 +40,6 @@ import java.util.UUID
 class RegisterWithoutIdConnectorImplSpec
     extends AnyWordSpec
     with Matchers
-    with IdiomaticMockito
     with WireMockSupport
     with WireMockMethods
     with GuiceOneAppPerSuite
@@ -93,30 +92,21 @@ class RegisterWithoutIdConnectorImplSpec
       )
       val referenceId: UUID   = UUID.randomUUID()
 
-      val expectedRequest = Json.parse(
-        s"""
-           |{
-           |  "regime": "CGT",
-           |  "acknowledgementReference" : "${referenceId.toString.replaceAll("-", "")}",
-           |  "isAnAgent": false,
-           |  "isAGroup": false,
-           |  "individual": {
-           |    "firstName": "name",
-           |    "lastName":  "surname"
-           |  },
-           |  "address" : {
-           |    "addressLine1" : "addressLine1",
-           |    "addressLine2" : "addressLine2",
-           |    "addressLine3" : "addressLine3",
-           |    "addressLine4" : "addressLine4",
-           |    "postalCode" : "postcode",
-           |    "countryCode" : "GB"
-           |  },
-           |  "contactDetails" : {
-           |    "emailAddress" : "email"
-           |  }
-           |}
-           |""".stripMargin
+      val expectedRequest = RegistrationRequest(
+        "CGT",
+        referenceId.toString.filterNot(_ === '-'),
+        isAnAgent = false,
+        isAGroup = false,
+        RegistrationIndividual("name", "surname"),
+        RegistrationAddress(
+          "addressLine1",
+          Some("addressLine2"),
+          Some("addressLine3"),
+          Some("addressLine4"),
+          Some("postcode"),
+          "GB"
+        ),
+        RegistrationContactDetails("email")
       )
 
       "do a post http call and return the result" in {
@@ -130,7 +120,7 @@ class RegisterWithoutIdConnectorImplSpec
               POST,
               expectedUrl,
               headers = expectedHeaders.toMap,
-              body = Some(expectedRequest.toString())
+              body = Some(Json.toJson(expectedRequest).toString)
             ).thenReturn(httpResponse.status, httpResponse.body)
 
             val response = await(connector.registerWithoutId(registrationDetails, referenceId).value).value
@@ -146,7 +136,7 @@ class RegisterWithoutIdConnectorImplSpec
           POST,
           expectedUrl,
           headers = expectedHeaders.toMap,
-          body = Some(expectedRequest.toString())
+          body = Some(Json.toJson(expectedRequest).toString)
         )
 
         await(connector.registerWithoutId(registrationDetails, referenceId).value).isLeft shouldBe true
@@ -169,37 +159,28 @@ class RegisterWithoutIdConnectorImplSpec
           )
         )
 
-        val expectedRequest = Json.parse(
-          s"""
-             |{
-             |  "regime": "CGT",
-             |  "acknowledgementReference" : "${referenceId.toString.replaceAll("-", "")}",
-             |  "isAnAgent": false,
-             |  "isAGroup": false,
-             |  "individual": {
-             |    "firstName": "name",
-             |    "lastName":  "surname"
-             |  },
-             |  "address" : {
-             |    "addressLine1" : "addressLine1",
-             |    "addressLine2" : "addressLine2",
-             |    "addressLine3" : "addressLine3",
-             |    "addressLine4" : "addressLine4",
-             |    "postalCode" : "postcode",
-             |    "countryCode" : "HK"
-             |  },
-             |  "contactDetails" : {
-             |    "emailAddress" : "email"
-             |  }
-             |}
-             |""".stripMargin
+        val registrationRequest = RegistrationRequest(
+          "CGT",
+          referenceId.toString.filterNot(_ === '-'),
+          isAnAgent = false,
+          isAGroup = false,
+          RegistrationIndividual("name", "surname"),
+          RegistrationAddress(
+            "addressLine1",
+            Some("addressLine2"),
+            Some("addressLine3"),
+            Some("addressLine4"),
+            Some("postcode"),
+            "HK"
+          ),
+          RegistrationContactDetails("email")
         )
 
         when(
           POST,
           expectedUrl,
           headers = expectedHeaders.toMap,
-          body = Some(expectedRequest.toString())
+          body = Some(Json.toJson(registrationRequest).toString)
         ).thenReturn(httpResponse.status, httpResponse.body)
 
         val response = await(connector.registerWithoutId(registrationDetails, referenceId).value).value

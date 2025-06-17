@@ -21,6 +21,7 @@ import play.api.libs.ws.WSRequest
 import support.IntegrationBaseSpec
 
 import scala.util.Random
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 class DmsCallbackControllerISpec extends IntegrationBaseSpec {
   trait Test {

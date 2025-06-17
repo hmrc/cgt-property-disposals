@@ -35,6 +35,8 @@ import java.time.{Clock, LocalDateTime}
 import java.util.Base64
 import scala.concurrent.Future
 
+import play.api.libs.ws.WSBodyWritables.bodyWritableOf_Multipart
+
 @Singleton
 class DmsConnector @Inject() (
   httpClient: HttpClientV2,
@@ -63,7 +65,7 @@ class DmsConnector @Inject() (
 
     val pdfBytes = pdfGeneratorService.generatePDFBytes(decode(dmsSubmissionPayload.b64Html.value))
 
-    val fileParts: Seq[MultipartFormData.FilePart[Source[ByteString, _]]] =
+    val fileParts: Seq[MultipartFormData.FilePart[Source[ByteString, ?]]] =
       Seq(
         MultipartFormData.FilePart(
           key = "form",
@@ -73,7 +75,7 @@ class DmsConnector @Inject() (
         )
       )
 
-    val attachmentParts: Seq[MultipartFormData.FilePart[Source[ByteString, _]]] = dmsSubmissionPayload.attachments.map {
+    val attachmentParts: Seq[MultipartFormData.FilePart[Source[ByteString, ?]]] = dmsSubmissionPayload.attachments.map {
       attachment =>
         MultipartFormData.FilePart(
           key = "attachment",
@@ -83,7 +85,7 @@ class DmsConnector @Inject() (
         )
     }
 
-    val source: Source[MultipartFormData.Part[Source[ByteString, _]], NotUsed] = Source(
+    val source: Source[MultipartFormData.Part[Source[ByteString, ?]], NotUsed] = Source(
       dataParts ++ fileParts ++ attachmentParts
     )
 

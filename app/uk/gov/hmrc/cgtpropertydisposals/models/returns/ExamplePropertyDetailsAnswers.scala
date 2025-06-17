@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.*
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
@@ -39,9 +38,31 @@ object ExamplePropertyDetailsAnswers {
     acquisitionPrice: AmountInPence
   ) extends ExamplePropertyDetailsAnswers
 
-  implicit val format: OFormat[ExamplePropertyDetailsAnswers] = {
-    implicit val ukAddressFormat: OFormat[UkAddress] = Json.format
-    derived.oformat()
+  implicit val ukAddressFormat: OFormat[UkAddress] = Json.format
+
+  implicit val completeExamplePropertyDetailsAnswersFormat: OFormat[CompleteExamplePropertyDetailsAnswers]     =
+    Json.format[CompleteExamplePropertyDetailsAnswers]
+  implicit val incompleteExamplePropertyDetailsAnswersFormat: OFormat[IncompleteExamplePropertyDetailsAnswers] =
+    Json.format[IncompleteExamplePropertyDetailsAnswers]
+
+  implicit val format: OFormat[ExamplePropertyDetailsAnswers] = new OFormat[ExamplePropertyDetailsAnswers] {
+    override def reads(json: JsValue): JsResult[ExamplePropertyDetailsAnswers] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("IncompleteExamplePropertyDetailsAnswers", value) =>
+            value.validate[IncompleteExamplePropertyDetailsAnswers]
+          case ("CompleteExamplePropertyDetailsAnswers", value)   => value.validate[CompleteExamplePropertyDetailsAnswers]
+          case (other, _)                                         => JsError(s"Unrecognized ExamplePropertyDetailsAnswers type: $other")
+        }
+      case _                                    => JsError("Expected ExamplePropertyDetailsAnswers wrapper object with a single entry")
+    }
+
+    override def writes(o: ExamplePropertyDetailsAnswers): JsObject = o match {
+      case i: IncompleteExamplePropertyDetailsAnswers =>
+        Json.obj("IncompleteExamplePropertyDetailsAnswers" -> Json.toJson(i))
+      case c: CompleteExamplePropertyDetailsAnswers   =>
+        Json.obj("CompleteExamplePropertyDetailsAnswers" -> Json.toJson(c))
+    }
   }
 
 }

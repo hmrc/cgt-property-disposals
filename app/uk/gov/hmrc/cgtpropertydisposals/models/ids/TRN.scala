@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.models.ids
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class TRN(value: String) extends AnyVal
+final case class TRN(value: String)
 
 object TRN {
 

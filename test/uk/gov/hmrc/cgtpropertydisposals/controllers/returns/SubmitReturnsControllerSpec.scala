@@ -17,17 +17,17 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
 import cats.data.EitherT
-import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
+import cats.instances.future.*
+import org.mockito.ArgumentMatchers
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Headers
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators.{sample, _}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsEnvelopeId}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
@@ -44,6 +44,15 @@ import java.time.LocalDateTime
 import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.B64HtmlGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
 
 class SubmitReturnsControllerSpec extends ControllerSpec {
   val draftReturnsService: DraftReturnsService       = mock[DraftReturnsService]
@@ -64,7 +73,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   private def fakeRequestWithJsonBody(body: JsValue) =
     request.withHeaders(Headers.apply(CONTENT_TYPE -> JSON)).withBody(body)
 
-  val controller                                     = new SubmitReturnsController(
+  val controller = new SubmitReturnsController(
     authenticate = Fake.login(Fake.user, LocalDateTime.of(2020, 1, 1, 15, 47, 20)),
     draftReturnsService = draftReturnsService,
     returnsService = returnsService,
@@ -77,14 +86,16 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   private def mockSubmitReturnService(request: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
     response: Either[Error, SubmitReturnResponse]
   ) =
-    returnsService
-      .submitReturn(request, representeeDetails)(*, *)
-      .returns(EitherT.fromEither(response))
+    when(
+      returnsService
+        .submitReturn(ArgumentMatchers.eq(request), ArgumentMatchers.eq(representeeDetails))(any(), any())
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Unit]) =
-    draftReturnsService
-      .deleteDraftReturns(List(id))
-      .returns(EitherT.fromEither(response))
+    when(
+      draftReturnsService
+        .deleteDraftReturns(List(id))
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockDmsSubmissionRequest(
     html: B64Html,
@@ -92,14 +103,15 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     submitReturnRequest: SubmitReturnRequest
   ) = {
     val res: EitherT[Future, Error, DmsEnvelopeId] = EitherT.fromEither(Right(DmsEnvelopeId("test envelope id")))
-    mockDmsSubmissionService
-      .submitToDms(
-        sanitise(html),
-        submitReturnResponse.formBundleId,
-        submitReturnRequest.subscribedDetails.cgtReference,
-        submitReturnRequest.completeReturn
-      )(*)
-      .returns(res)
+    when(
+      mockDmsSubmissionService
+        .submitToDms(
+          ArgumentMatchers.eq(sanitise(html)),
+          ArgumentMatchers.eq(submitReturnResponse.formBundleId),
+          ArgumentMatchers.eq(submitReturnRequest.subscribedDetails.cgtReference),
+          ArgumentMatchers.eq(submitReturnRequest.completeReturn)
+        )(any())
+    ).thenReturn(res)
   }
 
   "SubmitReturnsController" when {

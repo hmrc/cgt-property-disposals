@@ -17,21 +17,27 @@
 package uk.gov.hmrc.cgtpropertydisposals.service.onboarding
 
 import cats.data.EitherT
-import cats.instances.future._
-import org.mockito.ArgumentMatchersSugar.*
-import org.mockito.IdiomaticMockito
+import cats.instances.future.*
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.Json
 import play.api.mvc.Request
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.BusinessPartnerRecordConnector
 import uk.gov.hmrc.cgtpropertydisposals.metrics.MockMetrics
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
 import uk.gov.hmrc.cgtpropertydisposals.models.enrolments.TaxEnrolmentRequest
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.BusinessPartnerRecordGen.individualBprRequestGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.sapNumberGen
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.{individualNameGen, trustNameGen}
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.subscribedDetailsGen
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, SapNumber}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{ContactName, IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.bpr.BusinessPartnerRecordRequest.IndividualBusinessPartnerRecordRequest
@@ -46,7 +52,7 @@ import java.time.{Clock, LocalDateTime, ZoneId, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers with IdiomaticMockito {
+class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
 
   val mockBprConnector: BusinessPartnerRecordConnector = mock[BusinessPartnerRecordConnector]
 
@@ -73,44 +79,54 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
     }
 
   private def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
-    mockBprConnector
-      .getBusinessPartnerRecord(bprRequest)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockBprConnector
+        .getBusinessPartnerRecord(ArgumentMatchers.eq(bprRequest))(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, Option[CgtReference]]) =
-    mockSubscriptionService
-      .getSubscriptionStatus(sapNumber)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockSubscriptionService
+        .getSubscriptionStatus(ArgumentMatchers.eq(sapNumber))(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockEnrolmentExists(cgtReference: CgtReference)(result: Either[Error, Boolean]) =
-    mockEnrolmentStoreProxyService
-      .cgtEnrolmentExists(cgtReference)(*)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockEnrolmentStoreProxyService
+        .cgtEnrolmentExists(ArgumentMatchers.eq(cgtReference))(any())
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockGetSubscription(
     cgtReference: CgtReference
   )(response: Either[Error, Option[SubscribedDetails]]): Unit =
-    mockSubscriptionService
-      .getSubscription(cgtReference)(*)
-      .returns(EitherT.fromEither(response))
+    when(
+      mockSubscriptionService
+        .getSubscription(ArgumentMatchers.eq(cgtReference))(any())
+    ).thenReturn(EitherT.fromEither(response))
 
   private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
     response: Either[Error, Unit]
   ) =
-    mockTaxEnrolmentService
-      .allocateEnrolmentToGroup(taxEnrolmentRequest)(*)
-      .returns(EitherT(Future.successful(response)))
+    when(
+      mockTaxEnrolmentService
+        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(any())
+    ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
     result: Either[Error, Unit]
   ) =
-    mockEmailService
-      .sendSubscriptionConfirmationEmail(cgtReference, email, contactName)(*, *)
-      .returns(EitherT.fromEither[Future](result))
+    when(
+      mockEmailService
+        .sendSubscriptionConfirmationEmail(
+          ArgumentMatchers.eq(cgtReference),
+          ArgumentMatchers.eq(email),
+          ArgumentMatchers.eq(contactName)
+        )(any(), any())
+    ).thenReturn(EitherT.fromEither[Future](result))
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  implicit val request: Request[_] = FakeRequest()
+  implicit val request: Request[?] = FakeRequest()
 
   val (name, trustName) = sample[IndividualName] -> sample[TrustName]
 
@@ -131,15 +147,15 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers wit
         Json.parse(s"""
              |{
              |  ${individualName
-          .map(n => s""""individual":{"firstName":"${n.firstName}","lastName":"${n.lastName}"},""")
-          .getOrElse("")}
+                       .map(n => s""""individual":{"firstName":"${n.firstName}","lastName":"${n.lastName}"},""")
+                       .getOrElse("")}
              |  "contactDetails" : {
              |    "emailAddress" : "email"
              |  },
              |  "sapNumber" : "${sapNumber.value}",
              |  ${organisationName
-          .map(trustName => s""""organisation":{"organisationName":"${trustName.value}"},""")
-          .getOrElse("")}
+                       .map(trustName => s""""organisation":{"organisationName":"${trustName.value}"},""")
+                       .getOrElse("")}
              |  $addressBody
              |}
              |""".stripMargin)

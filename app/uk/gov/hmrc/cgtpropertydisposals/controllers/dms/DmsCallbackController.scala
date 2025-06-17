@@ -31,7 +31,7 @@ class DmsCallbackController @Inject() (cc: ControllerComponents) extends Backend
       case Some(failureReason) =>
         logger.warn(
           s"Dms submission failed due to $failureReason ${dmsSubmissionResult.failureType
-            .getOrElse("")}, id: ${dmsSubmissionResult.id}"
+              .getOrElse("")}, id: ${dmsSubmissionResult.id}"
         )
       case None                =>
         logger.info(s"Dms submission processed successfully, id: ${dmsSubmissionResult.id}")

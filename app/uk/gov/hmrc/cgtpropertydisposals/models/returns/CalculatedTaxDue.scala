@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsSuccess, JsValue, Json, OFormat}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
 
 final case class AmountInPenceWithSource(
@@ -39,7 +38,22 @@ object Source {
 
   case object Calculated extends Source
 
-  implicit val format: OFormat[Source] = derived.oformat()
+  implicit val format: Format[Source] = new Format[Source] {
+    override def reads(json: JsValue): JsResult[Source] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head._1 match {
+          case "UserSupplied" => JsSuccess(UserSupplied)
+          case "Calculated"   => JsSuccess(Calculated)
+          case other          => JsError(s"Invalid Source type: $other")
+        }
+      case _                                    => JsError("Expected Source wrapper object with one key")
+    }
+
+    override def writes(o: Source): JsValue = o match {
+      case UserSupplied => Json.obj("UserSupplied" -> Json.obj())
+      case Calculated   => Json.obj("Calculated" -> Json.obj())
+    }
+  }
 
 }
 
@@ -83,5 +97,23 @@ object CalculatedTaxDue {
     amountOfTaxDue: AmountInPence
   ) extends CalculatedTaxDue
 
-  implicit val format: OFormat[CalculatedTaxDue] = derived.oformat()
+  implicit val gainFormat: OFormat[GainCalculatedTaxDue]       = Json.format[GainCalculatedTaxDue]
+  implicit val nonGainFormat: OFormat[NonGainCalculatedTaxDue] = Json.format[NonGainCalculatedTaxDue]
+
+  implicit val format: OFormat[CalculatedTaxDue] = new OFormat[CalculatedTaxDue] {
+    override def reads(json: JsValue): JsResult[CalculatedTaxDue] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("GainCalculatedTaxDue", value)    => value.validate[GainCalculatedTaxDue]
+          case ("NonGainCalculatedTaxDue", value) => value.validate[NonGainCalculatedTaxDue]
+          case (other, _)                         => JsError(s"Unknown CalculatedTaxDue subtype: $other")
+        }
+      case _                                    => JsError("Expected wrapper object with one CalculatedTaxDue key")
+    }
+
+    override def writes(o: CalculatedTaxDue): JsObject = o match {
+      case g: GainCalculatedTaxDue     => Json.obj("GainCalculatedTaxDue" -> Json.toJson(g))
+      case ng: NonGainCalculatedTaxDue => Json.obj("NonGainCalculatedTaxDue" -> Json.toJson(ng))
+    }
+  }
 }

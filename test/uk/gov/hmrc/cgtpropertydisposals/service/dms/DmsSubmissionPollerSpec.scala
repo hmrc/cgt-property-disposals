@@ -22,13 +22,13 @@ import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import org.apache.pekko.testkit.{TestKit, TestProbe}
 import org.bson.types.ObjectId
-import org.mockito.IdiomaticMockito
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.Configuration
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.DmsSubmissionGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsEnvelopeId}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
@@ -39,6 +39,8 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed, Succeeded, ToDo}
 import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import org.mockito.Mockito.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
@@ -47,7 +49,6 @@ class DmsSubmissionPollerSpec
     extends TestKit(ActorSystem.create("dms-submission-poller"))
     with AnyWordSpecLike
     with Matchers
-    with IdiomaticMockito
     with Eventually
     with BeforeAndAfterAll {
 
@@ -96,7 +97,7 @@ class DmsSubmissionPollerSpec
   val servicesConfig                                                       = new ServicesConfig(config)
 
   private def mockDmsSubmissionRequestDequeue()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
-    mockDmsSubmissionService.dequeue.returns(EitherT.fromEither[Future](response))
+    when(mockDmsSubmissionService.dequeue).thenReturn(EitherT.fromEither[Future](response))
 
   private def mockSubmitToDms(
     html: B64Html,
@@ -104,22 +105,28 @@ class DmsSubmissionPollerSpec
     cgtReference: CgtReference,
     completeReturn: CompleteReturn
   )(response: Either[Error, DmsEnvelopeId]) =
-    mockDmsSubmissionService
-      .submitToDms(html, formBundleId, cgtReference, completeReturn)
-      .returns(EitherT.fromEither(response))
+    when(
+      mockDmsSubmissionService
+        .submitToDms(html, formBundleId, cgtReference, completeReturn)
+    )
+      .thenReturn(EitherT.fromEither(response))
 
   private def mockSetProcessingStatus(id: ObjectId, status: ProcessingStatus)(response: Either[Error, Boolean]) =
-    mockDmsSubmissionService
-      .setProcessingStatus(id, status)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockDmsSubmissionService
+        .setProcessingStatus(id, status)
+    )
+      .thenReturn(EitherT.fromEither[Future](response))
 
   private def mockSetResultStatus(id: ObjectId, status: ResultStatus)(response: Either[Error, Boolean]) =
-    mockDmsSubmissionService
-      .setResultStatus(id, status)
-      .returns(EitherT.fromEither[Future](response))
+    when(
+      mockDmsSubmissionService
+        .setResultStatus(id, status)
+    )
+      .thenReturn(EitherT.fromEither[Future](response))
 
   private def mockNextUUID(uuid: UUID) =
-    mockUUIDGenerator.nextId().returns(uuid)
+    when(mockUUIDGenerator.nextId()).thenReturn(uuid)
 
   "DMS Submission Poller" when {
     "it picks up a work item" must {

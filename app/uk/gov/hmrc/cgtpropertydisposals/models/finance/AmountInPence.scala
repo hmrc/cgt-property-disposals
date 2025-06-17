@@ -34,9 +34,9 @@ object AmountInPence {
 
     def --(other: AmountInPence): AmountInPence = AmountInPence(a.value - other.value)
 
-    def withFloorZero: AmountInPence = if (a.value < 0L) AmountInPence.zero else a
+    def withFloorZero: AmountInPence = if a.value < 0L then AmountInPence.zero else a
 
-    def withCeilingZero: AmountInPence = if (a.value > 0L) AmountInPence.zero else a
+    def withCeilingZero: AmountInPence = if a.value > 0L then AmountInPence.zero else a
 
     def isPositive: Boolean = a.value > 0L
 

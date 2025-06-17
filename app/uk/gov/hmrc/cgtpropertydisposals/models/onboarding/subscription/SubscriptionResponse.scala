@@ -22,9 +22,9 @@ sealed trait SubscriptionResponse extends Product with Serializable
 
 object SubscriptionResponse {
 
-  final case class SubscriptionSuccessful(cgtReferenceNumber: String) extends SubscriptionResponse
+  case class SubscriptionSuccessful(cgtReferenceNumber: String) extends SubscriptionResponse
 
-  final case object AlreadySubscribed extends SubscriptionResponse
+  case object AlreadySubscribed extends SubscriptionResponse
 
   implicit val subscriptionSuccessfulFormat: Format[SubscriptionSuccessful] = Json.format[SubscriptionSuccessful]
 

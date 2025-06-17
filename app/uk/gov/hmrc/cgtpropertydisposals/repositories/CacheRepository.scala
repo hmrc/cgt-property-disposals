@@ -27,6 +27,9 @@ import uk.gov.hmrc.cgtpropertydisposals.repositories.returns.DefaultDraftReturns
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
+import org.mongodb.scala.SingleObservableFuture
+import org.mongodb.scala.gridfs.ObservableFuture
+import org.mongodb.scala.documentToUntypedDocument
 
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
@@ -76,7 +79,7 @@ class CacheRepository[A : ClassTag](
         )
         .toFuture()
         .map { result =>
-          if (result == result) Right(()) else Left(Error(s"Could not store draft return: $result"))
+          if result == result then Right(()) else Left(Error(s"Could not store draft return: $result"))
         }
         .recover { case NonFatal(e) =>
           Left(Error(e))
@@ -131,7 +134,7 @@ object CacheRepository {
     logger: Logger
   )(implicit ex: ExecutionContext): Future[String] =
     preservingMdc {
-      (for {
+      (for
         indexes   <- collection.listIndexes().toFuture()
         maybeIndex = indexes.find(index => index.contains(ttlIndexName) && !index.containsValue(ttl))
         _         <- maybeIndex match {
@@ -141,7 +144,7 @@ object CacheRepository {
                        case None    => Future.successful(())
                      }
         result    <- collection.createIndex(ttlIndex.getKeys).toFuture()
-      } yield result).transform(_.tap {
+      yield result).transform(_.tap {
         case Success(e) => logger.warn("Could not ensure ttl index", e)
         case Failure(_) => logger.info("Successfully ensured ttl index")
       })

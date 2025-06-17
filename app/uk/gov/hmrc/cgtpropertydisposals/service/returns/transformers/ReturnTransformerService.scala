@@ -67,7 +67,7 @@ class ReturnTransformerServiceImpl @Inject() (
   override def toCompleteReturn(desReturn: DesReturnDetails): Either[Error, DisplayReturn] = {
     lazy val returnType = desReturn.returnType match {
       case _: CreateReturnType =>
-        if (isFurtherOrAmendReturn(desReturn)) ReturnType.FurtherReturn else ReturnType.FirstReturn
+        if isFurtherOrAmendReturn(desReturn) then ReturnType.FurtherReturn else ReturnType.FirstReturn
       case _: AmendReturnType  => ReturnType.AmendedReturn
     }
 
@@ -81,16 +81,14 @@ class ReturnTransformerServiceImpl @Inject() (
   ): ValidatedNel[String, CompleteReturn] =
     desReturn.disposalDetails match {
       case (singleDisposalDetails: SingleDisposalDetails) :: Nil =>
-        if (singleDisposalDetails.assetType.isIndirectDisposal())
+        if singleDisposalDetails.assetType.isIndirectDisposal() then
           validateSingleIndirectDisposal(desReturn, singleDisposalDetails)
-        else
-          validateSingleDisposal(desReturn, singleDisposalDetails)
+        else validateSingleDisposal(desReturn, singleDisposalDetails)
 
       case (multipleDisposalsDetails: MultipleDisposalDetails) :: Nil =>
-        if (multipleDisposalsDetails.assetType.isIndirectDisposal())
+        if multipleDisposalsDetails.assetType.isIndirectDisposal() then
           validateMultipleIndirectDisposal(desReturn, multipleDisposalsDetails)
-        else
-          validateMultipleDisposal(desReturn, multipleDisposalsDetails)
+        else validateMultipleDisposal(desReturn, multipleDisposalsDetails)
 
       case (singleMixedUseDisposalDetails: SingleMixedUseDisposalDetails) :: Nil =>
         validateSingleMixedUseMultipleDisposal(desReturn, singleMixedUseDisposalDetails)
@@ -186,7 +184,7 @@ class ReturnTransformerServiceImpl @Inject() (
         val initialGainOrLoss         = constructInitialGainAnswers(singleDisposalDetails)
 
         val yearToDateLiabilityAnswers =
-          if (isFurtherOrAmendReturn(desReturn) || desReturn.incomeAllowanceDetails.estimatedIncome.isEmpty)
+          if isFurtherOrAmendReturn(desReturn) || desReturn.incomeAllowanceDetails.estimatedIncome.isEmpty then
             Left(constructNonCalculatedYearToDateAnswers(desReturn))
           else {
             val estimatedIncome =
@@ -230,10 +228,10 @@ class ReturnTransformerServiceImpl @Inject() (
           reliefAnswers,
           exemptionAndLossesAnswers,
           yearToDateLiabilityAnswers,
-          if (isFurtherOrAmendReturn(desReturn)) None else initialGainOrLoss,
+          if isFurtherOrAmendReturn(desReturn) then None else initialGainOrLoss,
           CompleteSupportingEvidenceAnswers(false, List.empty), // we cannot determine if they uploaded anything
           None,
-          if (isFurtherOrAmendReturn(desReturn)) initialGainOrLoss else None,
+          if isFurtherOrAmendReturn(desReturn) then initialGainOrLoss else None,
           hasAttachments = desReturn.returnDetails.attachmentUpload
         )
     }
@@ -383,9 +381,10 @@ class ReturnTransformerServiceImpl @Inject() (
       desReturn.returnDetails.estimate,
       AmountInPence.fromPounds(desReturn.returnDetails.totalLiability),
       None, // we cannot read the details of the mandatory evidence back
-      if (isFurtherOrAmendReturn(desReturn)) Some(AmountInPence.fromPounds(desReturn.returnDetails.totalYTDLiability))
+      if isFurtherOrAmendReturn(desReturn) then
+        Some(AmountInPence.fromPounds(desReturn.returnDetails.totalYTDLiability))
       else None,
-      if (isFurtherOrAmendReturn(desReturn)) Some(desReturn.returnDetails.repayment) else None,
+      if isFurtherOrAmendReturn(desReturn) then Some(desReturn.returnDetails.repayment) else None,
       desReturn.incomeAllowanceDetails.estimatedIncome.map(AmountInPence.fromPounds),
       desReturn.incomeAllowanceDetails.personalAllowance.map(AmountInPence.fromPounds)
     )
@@ -469,12 +468,12 @@ class ReturnTransformerServiceImpl @Inject() (
     )
 
   private def countryValidation(desReturn: DesReturnDetails): Validation[Country] =
-    if (desReturn.returnDetails.isUKResident) Valid(Country.uk)
+    if desReturn.returnDetails.isUKResident then Valid(Country.uk)
     else
       desReturn.returnDetails.countryResidence.fold(
         invalid[Country]("Could not find country code for person who was a non-uk resident")
       )(code =>
-        if (Country.countryCodes.contains(code)) Valid(Country(code))
+        if Country.countryCodes.contains(code) then Valid(Country(code))
         else invalid[Country](s"Invalid country code found for person who was a non-uk resident: $code")
       )
 
@@ -545,6 +544,6 @@ class ReturnTransformerServiceImpl @Inject() (
     is supposed to indicate that the return is a first return.
    */
   private def isFurtherOrAmendReturn(desReturn: DesReturnDetails): Boolean =
-    if (desReturn.returnType.source.split(' ').length === 3) true else false
+    if desReturn.returnType.source.split(' ').length === 3 then true else false
 
 }

@@ -17,20 +17,21 @@
 package uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding
 
 import cats.data.EitherT
-import cats.instances.char._
-import cats.syntax.eq._
+import cats.instances.char.*
+import cats.syntax.eq.*
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{JsValue, Json, Writes}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.DesConnector
-import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnectorImpl.{RegistrationAddress, RegistrationContactDetails, RegistrationIndividual, RegistrationRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.RegistrationDetails
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.cgtpropertydisposals.connectors.onboarding.RegisterWithoutIdConnectorImpl.{RegistrationAddress, RegistrationContactDetails, RegistrationIndividual, RegistrationRequest}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -69,7 +70,7 @@ class RegisterWithoutIdConnectorImpl @Inject() (http: HttpClientV2, val config: 
       http
         .post(url"$url")
         .withBody(Json.toJson(registerWithoutIdRequest))
-        .setHeader(headers: _*)
+        .setHeader(headers*)
         .execute[HttpResponse]
         .map(Right(_))
         .recover { case e => Left(Error(e)) }

@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import julienrf.json.derived
-import play.api.libs.json.OFormat
+import play.api.libs.json.{Json, OFormat}
+
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 
 sealed trait SingleDisposalTriageAnswers extends Product with Serializable
@@ -46,6 +46,35 @@ object SingleDisposalTriageAnswers {
     completionDate: CompletionDate
   ) extends SingleDisposalTriageAnswers
 
-  implicit val format: OFormat[SingleDisposalTriageAnswers] = derived.oformat()
+  implicit val completeFormat: OFormat[CompleteSingleDisposalTriageAnswers]     =
+    Json.format[CompleteSingleDisposalTriageAnswers]
+  implicit val inCompleteFormat: OFormat[IncompleteSingleDisposalTriageAnswers] =
+    Json.format[IncompleteSingleDisposalTriageAnswers]
+
+  implicit val format: OFormat[SingleDisposalTriageAnswers] = new OFormat[SingleDisposalTriageAnswers] {
+
+    import play.api.libs.json._
+
+    override def reads(json: JsValue): JsResult[SingleDisposalTriageAnswers] = json match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.head match {
+          case ("IncompleteSingleDisposalTriageAnswers", value) =>
+            value.validate[IncompleteSingleDisposalTriageAnswers]
+          case ("CompleteSingleDisposalTriageAnswers", value)   =>
+            value.validate[CompleteSingleDisposalTriageAnswers]
+          case (other, _)                                       =>
+            JsError(s"Unrecognized SingleDisposalTriageAnswers type: $other")
+        }
+      case _                                    =>
+        JsError("Expected SingleDisposalTriageAnswers wrapper object with a single entry")
+    }
+
+    override def writes(o: SingleDisposalTriageAnswers): JsObject = o match {
+      case i: IncompleteSingleDisposalTriageAnswers =>
+        Json.obj("IncompleteSingleDisposalTriageAnswers" -> Json.toJson(i))
+      case c: CompleteSingleDisposalTriageAnswers   =>
+        Json.obj("CompleteSingleDisposalTriageAnswers" -> Json.toJson(c))
+    }
+  }
 
 }

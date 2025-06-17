@@ -16,12 +16,19 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.des.returns
 
+import io.github.martinhh.derived.scalacheck.anyGivenArbitrary
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import uk.gov.hmrc.cgtpropertydisposals.models.Generators._
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Country
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.NameGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.OnboardingGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
 import uk.gov.hmrc.cgtpropertydisposals.models.onboarding.subscription.SubscribedDetails
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.GainCalculatedTaxDue
@@ -233,7 +240,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "find the correct total liability, year to date value and estimate flag for a calculated journey" in {
-        forAll { calculatedYtdAnswers: CompleteCalculatedYTDAnswers =>
+        forAll { (calculatedYtdAnswers: CompleteCalculatedYTDAnswers) =>
           val result = ReturnDetails(
             singleDisposalSubmitReturnRequest.copy(
               completeReturn = completeReturn.copy(
@@ -249,7 +256,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "find the correct total liability and year to date value and estimate flag for a non-calculated journey" in {
-        forAll { nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val result = ReturnDetails(
             singleDisposalSubmitReturnRequest.copy(
               completeReturn = completeReturn.copy(
@@ -268,7 +275,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "set the repayment flag to false for a calculated return" in {
-        forAll { ytdAnswers: CompleteCalculatedYTDAnswers =>
+        forAll { (ytdAnswers: CompleteCalculatedYTDAnswers) =>
           val completeReturn      = sample[CompleteSingleDisposalReturn]
             .copy(yearToDateLiabilityAnswers = Right(ytdAnswers))
           val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -278,7 +285,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "set the repayment flag correctly for a non-calculated return" in {
-        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (ytdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val completeReturn      = sample[CompleteSingleDisposalReturn]
             .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
           val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -357,7 +364,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "find the correct total liability and year to date value and estimate flag" in {
-        forAll { nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val result = ReturnDetails(
             multipleDisposalsSubmitReturnRequest.copy(
               completeReturn = completeReturn.copy(
@@ -375,7 +382,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "set the repayment flag correctly" in {
-        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (ytdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val completeReturn      = sample[CompleteSingleDisposalReturn]
             .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
           val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -457,7 +464,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "find the correct total liability and year to date value and estimate flag for a non-calculated journey" in {
-        forAll { nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val result = ReturnDetails(
             singleIndirectDisposalSubmitReturnRequest.copy(
               completeReturn = completeReturn.copy(
@@ -475,7 +482,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "set the repayment flag correctly" in {
-        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (ytdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val completeReturn      = sample[CompleteSingleDisposalReturn]
             .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
           val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -554,7 +561,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "find the correct total liability and year to date value and estimate flag" in {
-        forAll { nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val result = ReturnDetails(
             multipleIndirectDisposalsSubmitReturnRequest.copy(
               completeReturn = completeReturn.copy(
@@ -572,7 +579,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "set the repayment flag correctly" in {
-        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (ytdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val completeReturn      = sample[CompleteSingleDisposalReturn]
             .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
           val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)
@@ -650,7 +657,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "find the correct total liability and year to date value and estimate flag" in {
-        forAll { nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (nonCalculatedYtdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val result = ReturnDetails(
             submitReturnRequest.copy(
               completeReturn = completeReturn.copy(
@@ -668,7 +675,7 @@ class ReturnDetailsSpec extends AnyWordSpec with Matchers with ScalaCheckDrivenP
       }
 
       "set the repayment flag correctly" in {
-        forAll { ytdAnswers: CompleteNonCalculatedYTDAnswers =>
+        forAll { (ytdAnswers: CompleteNonCalculatedYTDAnswers) =>
           val completeReturn      = sample[CompleteSingleDisposalReturn]
             .copy(yearToDateLiabilityAnswers = Left(ytdAnswers))
           val submitReturnRequest = sample[SubmitReturnRequest].copy(completeReturn = completeReturn)

@@ -29,6 +29,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 
 abstract class InternalAuthTokenInitialiser {
   val initialised: Future[Done]
@@ -60,7 +61,7 @@ class InternalAuthTokenInitialiserImpl @Inject() (
 
   private def ensureAuthToken(): Future[Done] =
     authTokenIsValid.flatMap { isValid =>
-      if (isValid) {
+      if isValid then {
         logger.info("Auth token is already valid")
         Future.successful(Done)
       } else {
@@ -87,7 +88,7 @@ class InternalAuthTokenInitialiserImpl @Inject() (
       )
       .execute
       .flatMap { response =>
-        if (response.status == CREATED) {
+        if response.status == CREATED then {
           logger.info("Auth token initialised")
           Future.successful(Done)
         } else {
