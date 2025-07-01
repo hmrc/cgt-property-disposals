@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.service.dms
 import cats.data.EitherT
 import cats.implicits.toTraverseOps
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import org.bson.types.ObjectId
 import play.api.{ConfigLoader, Configuration}
 import uk.gov.hmrc.cgtpropertydisposals.connectors.dms.DmsConnector
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -27,11 +26,9 @@ import uk.gov.hmrc.cgtpropertydisposals.models.dms._
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.{FileIOExecutionContext, Logging}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import java.util.Base64
 import scala.concurrent.Future
@@ -45,19 +42,12 @@ trait DmsSubmissionService {
     completeReturn: CompleteReturn
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, DmsEnvelopeId]
 
-  def dequeue: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]]
-
-  def setProcessingStatus(id: ObjectId, status: ProcessingStatus): EitherT[Future, Error, Boolean]
-
-  def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean]
-
 }
 
 @Singleton
 class DefaultDmsSubmissionService @Inject() (
   dmsConnector: DmsConnector,
   upscanService: UpscanService,
-  dmsSubmissionRepo: DmsSubmissionRepo,
   configuration: Configuration
 )(implicit ec: FileIOExecutionContext)
     extends DmsSubmissionService
@@ -115,13 +105,4 @@ class DefaultDmsSubmissionService @Inject() (
 
     mandatoryEvidence.toList.map(_.upscanSuccess) ::: supportingEvidences
   }
-
-  override def dequeue: EitherT[Future, Error, Option[WorkItem[DmsSubmissionRequest]]] =
-    dmsSubmissionRepo.get
-
-  override def setProcessingStatus(id: ObjectId, status: ProcessingStatus): EitherT[Future, Error, Boolean] =
-    dmsSubmissionRepo.setProcessingStatus(id, status)
-
-  override def setResultStatus(id: ObjectId, status: ResultStatus): EitherT[Future, Error, Boolean] =
-    dmsSubmissionRepo.setResultStatus(id, status)
 }

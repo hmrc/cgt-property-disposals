@@ -19,8 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.generators
 import io.github.martinhh.derived.scalacheck.given
 import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.dms.{DmsMetadata, DmsSubmissionPayload, FileAttachment}
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionRequest
-import uk.gov.hmrc.mongo.workitem.WorkItem
 
 object DmsSubmissionGen extends GenUtils {
   given dmsMetadataGen: Gen[DmsMetadata] = gen[DmsMetadata]
@@ -28,9 +26,4 @@ object DmsSubmissionGen extends GenUtils {
   given fileAttachmentGen: Gen[FileAttachment] = gen[FileAttachment]
 
   given dmsSubmissionPayloadGen: Gen[DmsSubmissionPayload] = gen[DmsSubmissionPayload]
-
-  given dmsSubmissionRequestGen: Gen[DmsSubmissionRequest] = gen[DmsSubmissionRequest]
-
-  given workItemGen: Gen[WorkItem[DmsSubmissionRequest]] = gen[WorkItem[DmsSubmissionRequest]]
-
 }
