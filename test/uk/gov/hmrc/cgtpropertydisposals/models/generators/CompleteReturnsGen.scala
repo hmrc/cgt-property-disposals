@@ -32,7 +32,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.returns.ExemptionAndLossesAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.CalculatedYTDAnswers.CompleteCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 
-object CompleteReturnsGen extends GenUtils{
+object CompleteReturnsGen extends GenUtils {
   given completeReturnGen: Gen[CompleteReturn] = gen[CompleteReturn]
 
   given completeSingleDisposalReturnGen: Gen[CompleteSingleDisposalReturn] = gen[CompleteSingleDisposalReturn]
@@ -60,7 +60,5 @@ object CompleteReturnsGen extends GenUtils{
 
   given completeExemptionAndLossesAnswersGen: Gen[CompleteExemptionAndLossesAnswers] =
     gen[CompleteExemptionAndLossesAnswers]
-
-
 
 }

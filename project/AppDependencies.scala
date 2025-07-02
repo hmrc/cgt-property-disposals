@@ -16,7 +16,7 @@ object AppDependencies {
     "org.apache.pekko"                        %% "pekko-protobuf-v3"                       % pekkoVersion,
     "org.apache.pekko"                        %% "pekko-serialization-jackson"             % pekkoVersion,
     "org.apache.pekko"                        %% "pekko-stream"                            % pekkoVersion,
-    "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-work-item-repo-$playVersion" % mongoVersion,
+    "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-$playVersion"                % mongoVersion,
     "io.github.openhtmltopdf"                  % "openhtmltopdf-pdfbox"                    % "1.1.28",
     "uk.gov.hmrc"                             %% "tax-year"                                % "5.0.0"
   )

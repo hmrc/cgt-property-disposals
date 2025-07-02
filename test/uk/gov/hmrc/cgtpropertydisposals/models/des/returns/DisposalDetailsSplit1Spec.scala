@@ -30,27 +30,25 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGe
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteSingleIndirectDisposalReturn, CompleteSingleMixedUseDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 
-class DisposalDetailsSplit1Spec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks{
+class DisposalDetailsSplit1Spec extends AnyWordSpec with Matchers with ScalaCheckDrivenPropertyChecks {
 
   "DisposalDetails" when {
 
     def singleMixedUseDisposalDetailsValue[A](
-                                               disposalDetails: DisposalDetails
-                                             )(value: SingleMixedUseDisposalDetails => A): Either[String, A] =
+      disposalDetails: DisposalDetails
+    )(value: SingleMixedUseDisposalDetails => A): Either[String, A] =
       disposalDetails match {
         case s: SingleMixedUseDisposalDetails => Right(value(s))
-        case other => Left(s"Expected single disposals details but got $other")
+        case other                            => Left(s"Expected single disposals details but got $other")
       }
 
-
     def singleDisposalDetailsValue[A](
-                                         disposalDetails: DisposalDetails
-                                       )(value: SingleDisposalDetails => A): Either[String, A] =
-        disposalDetails match {
-          case s: SingleDisposalDetails => Right(value(s))
-          case other => Left(s"Expected single disposals details but got $other")
-        }
-
+      disposalDetails: DisposalDetails
+    )(value: SingleDisposalDetails => A): Either[String, A] =
+      disposalDetails match {
+        case s: SingleDisposalDetails => Right(value(s))
+        case other                    => Left(s"Expected single disposals details but got $other")
+      }
 
     "given a single mixed use disposals return" must {
       "populate the disposal date correctly" in {

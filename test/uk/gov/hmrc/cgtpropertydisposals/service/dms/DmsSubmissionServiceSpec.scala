@@ -16,13 +16,10 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.service.dms
 
-import cats.data.EitherT
-import cats.instances.future._
 import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.util.ByteString
 import org.mockito.Mockito.when
-import org.bson.types.ObjectId
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -36,28 +33,23 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.LowerPriorityReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.DmsSubmissionGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteMultipleDisposalsReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
-import uk.gov.hmrc.cgtpropertydisposals.repositories.dms.DmsSubmissionRepo
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
 import uk.gov.hmrc.cgtpropertydisposals.util.FileIOExecutionContext
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed}
-import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
   val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
-  private val mockDmsConnector      = mock[DmsConnector]
-  private val mockUpscanService     = mock[UpscanService]
-  private val mockDmsSubmissionRepo = mock[DmsSubmissionRepo]
+  private val mockDmsConnector  = mock[DmsConnector]
+  private val mockUpscanService = mock[UpscanService]
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -73,23 +65,6 @@ class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
         |""".stripMargin
     )
   )
-
-  private def mockDmsSubmissionRequestGet()(response: Either[Error, Option[WorkItem[DmsSubmissionRequest]]]) =
-    when(mockDmsSubmissionRepo.get).thenReturn(EitherT.fromEither[Future](response))
-
-  private def mockSetProcessingStatus(id: ObjectId, status: ProcessingStatus)(response: Either[Error, Boolean]) =
-    when(
-      mockDmsSubmissionRepo
-        .setProcessingStatus(id, status)
-    )
-      .thenReturn(EitherT.fromEither[Future](response))
-
-  private def mockSetResultStatus(id: ObjectId, status: ResultStatus)(response: Either[Error, Boolean]) =
-    when(
-      mockDmsSubmissionRepo
-        .setResultStatus(id, status)
-    )
-      .thenReturn(EitherT.fromEither[Future](response))
 
   private def mockDmsSubmission(dmsSubmissionPayload: DmsSubmissionPayload)(
     response: DmsEnvelopeId
@@ -112,32 +87,9 @@ class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
     new FileIOExecutionContext(actorSystem)
 
   val dmsSubmissionService =
-    new DefaultDmsSubmissionService(mockDmsConnector, mockUpscanService, mockDmsSubmissionRepo, config)
+    new DefaultDmsSubmissionService(mockDmsConnector, mockUpscanService, config)
 
   "Dms Submission Service" when {
-    "the submission poller requests a work item" must {
-      "dequeue the next work item" in {
-        val workItem = sample[WorkItem[DmsSubmissionRequest]]
-        mockDmsSubmissionRequestGet()(Right(Some(workItem)))
-        await(dmsSubmissionService.dequeue.value) shouldBe Right(Some(workItem))
-      }
-    }
-
-    "the submission poller updates the processing status" must {
-      "return true to indicate that the status has been updated" in {
-        val workItem = sample[WorkItem[DmsSubmissionRequest]]
-        mockSetProcessingStatus(workItem.id, Failed)(Right(true))
-        await(dmsSubmissionService.setProcessingStatus(workItem.id, Failed).value) shouldBe Right(true)
-      }
-    }
-
-    "the submission poller updates the complete status" must {
-      "return true to indicate that the status has been updated" in {
-        val workItem = sample[WorkItem[DmsSubmissionRequest]]
-        mockSetResultStatus(workItem.id, PermanentlyFailed)(Right(true))
-        await(dmsSubmissionService.setResultStatus(workItem.id, PermanentlyFailed).value) shouldBe Right(true)
-      }
-    }
 
     "a dms file submission request is made" must {
       val cgtReference   = sample[CgtReference]

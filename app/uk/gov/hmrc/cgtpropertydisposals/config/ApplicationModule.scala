@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.config
 
 import com.google.inject.AbstractModule
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.cgtpropertydisposals.service.dms.DmsSubmissionPoller
 
 import java.time.Clock
 
@@ -29,7 +28,6 @@ class ApplicationModule(environment: Environment, config: Configuration) extends
     } else {
       bind(classOf[InternalAuthTokenInitialiser]).to(classOf[NoOpInternalAuthTokenInitialiser]).asEagerSingleton()
     }
-    bind(classOf[DmsSubmissionPoller]).asEagerSingleton()
     bind(classOf[Clock]).toInstance(Clock.systemDefaultZone())
   }
 }
