@@ -81,19 +81,19 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
   private def mockGetBPR(bprRequest: BusinessPartnerRecordRequest)(response: Either[Error, HttpResponse]) =
     when(
       mockBprConnector
-        .getBusinessPartnerRecord(ArgumentMatchers.eq(bprRequest))(any())
+        .getBusinessPartnerRecord(ArgumentMatchers.eq(bprRequest))(using any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, Option[CgtReference]]) =
     when(
       mockSubscriptionService
-        .getSubscriptionStatus(ArgumentMatchers.eq(sapNumber))(any())
+        .getSubscriptionStatus(ArgumentMatchers.eq(sapNumber))(using any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockEnrolmentExists(cgtReference: CgtReference)(result: Either[Error, Boolean]) =
     when(
       mockEnrolmentStoreProxyService
-        .cgtEnrolmentExists(ArgumentMatchers.eq(cgtReference))(any())
+        .cgtEnrolmentExists(ArgumentMatchers.eq(cgtReference))(using any())
     ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockGetSubscription(
@@ -101,7 +101,7 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
   )(response: Either[Error, Option[SubscribedDetails]]): Unit =
     when(
       mockSubscriptionService
-        .getSubscription(ArgumentMatchers.eq(cgtReference))(any())
+        .getSubscription(ArgumentMatchers.eq(cgtReference))(using any())
     ).thenReturn(EitherT.fromEither(response))
 
   private def mockAllocateEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(
@@ -109,7 +109,7 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockTaxEnrolmentService
-        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(any())
+        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(using any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockSendSubscriptionConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
@@ -121,7 +121,7 @@ class BusinessPartnerRecordServiceImplSpec extends AnyWordSpec with Matchers {
           ArgumentMatchers.eq(cgtReference),
           ArgumentMatchers.eq(email),
           ArgumentMatchers.eq(contactName)
-        )(any(), any())
+        )(using any(), any())
     ).thenReturn(EitherT.fromEither[Future](result))
 
   implicit val hc: HeaderCarrier = HeaderCarrier()

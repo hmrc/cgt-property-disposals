@@ -1,14 +1,12 @@
 import uk.gov.hmrc.DefaultBuildSettings.addTestReportOption
 
 val appName = "cgt-property-disposals"
-
+ThisBuild / scalaVersion := "3.7.1"
 lazy val ItTest = config("it") extend Test
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(
-    scalaVersion := "3.6.4")
   .settings(
     majorVersion := 2,
     PlayKeys.playDefaultPort := 7021,
@@ -17,8 +15,7 @@ lazy val microservice = Project(appName, file("."))
     scalafmtOnCompile := true,
     scalacOptions ++= Seq(
       "-Wconf:src=routes/.*:s",
-      "-Wconf:msg=unused import&src=txt/.*:s",
-      "-source:3.5"
+      "-Wconf:msg=unused import&src=txt/.*:s"
     ),
     scalacOptions ~= { options =>
       options.distinct
@@ -26,10 +23,6 @@ lazy val microservice = Project(appName, file("."))
 
   )
   .settings(CodeCoverageSettings.settings *)
-  // Disable default sbt Test options (might change with new versions of bootstrap)
-  .settings(
-    Test / testOptions -= Tests.Argument("-o", "-u", "target/test-reports", "-h", "target/test-reports/html-report")
-  )
   // Suppress successful events in Scalatest in standard output (-o)
   // Options described here: https://www.scalatest.org/user_guide/using_scalatest_with_sbt
   .settings(
@@ -53,4 +46,4 @@ lazy val microservice = Project(appName, file("."))
     addTestReportOption(ItTest, directory = "int-test-reports")
   )
 
-libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+dependencyOverrides += "org.scala-lang" % "scala-reflect" % "2.13.16"

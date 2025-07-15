@@ -44,7 +44,7 @@ class EnrolmentStoreProxyServiceImplSpec extends AnyWordSpec with Matchers {
   private def mockGetPrincipalEnrolments(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
     when(
       mockEnrolmentProxyConnector
-        .getPrincipalEnrolments(ArgumentMatchers.eq(cgtReference))(any())
+        .getPrincipalEnrolments(ArgumentMatchers.eq(cgtReference))(using any())
     ).thenReturn(EitherT.fromEither[Future](response))
 
   "EnrolmentStoreProxyServiceImpl" when {

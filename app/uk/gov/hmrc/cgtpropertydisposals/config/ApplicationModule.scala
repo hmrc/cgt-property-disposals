@@ -17,13 +17,13 @@
 package uk.gov.hmrc.cgtpropertydisposals.config
 
 import com.google.inject.AbstractModule
-import play.api.{Configuration, Environment}
+import com.typesafe.config.Config
 
 import java.time.Clock
 
-class ApplicationModule(environment: Environment, config: Configuration) extends AbstractModule {
+class ApplicationModule(config: Config) extends AbstractModule {
   override def configure(): Unit = {
-    if (config.get[Boolean]("create-internal-auth-token-on-start")) {
+    if (config.getBoolean("create-internal-auth-token-on-start")) {
       bind(classOf[InternalAuthTokenInitialiser]).to(classOf[InternalAuthTokenInitialiserImpl]).asEagerSingleton()
     } else {
       bind(classOf[InternalAuthTokenInitialiser]).to(classOf[NoOpInternalAuthTokenInitialiser]).asEagerSingleton()
