@@ -20,7 +20,6 @@ import io.github.martinhh.derived.scalacheck.given
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.{NonUkAddress, UkAddress}
 import uk.gov.hmrc.cgtpropertydisposals.models.address.{Address, Country, Postcode}
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.gen
 
 trait AddressHigherPriorityGen {
   implicit val postcodeGen: Gen[Postcode] = Generators.stringGen.map(Postcode(_))

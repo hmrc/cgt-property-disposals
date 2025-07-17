@@ -37,14 +37,14 @@ class AuthenticatedActionsSpec extends AnyWordSpec with Matchers {
 
   val builder = new AuthenticateActionBuilder(
     authConnector,
-    new BodyParsers.Default()(NoMaterializer),
+    new BodyParsers.Default()(using NoMaterializer),
     executionContext
   )
 
   private def mockAuthorise()(response: Future[Option[Credentials]]) =
     when(
       authConnector
-        .authorise[Option[Credentials]](any(), any())(any(), any())
+        .authorise[Option[Credentials]](any(), any())(using any(), any())
     ).thenReturn(response)
 
   "AuthenticatedActionsSpec" should {

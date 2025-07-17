@@ -52,7 +52,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
     when(
       mockReturnsService
         .listReturns(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(fromDate), ArgumentMatchers.eq(toDate))(
-          any()
+          using any()
         )
     ).thenReturn(EitherT.fromEither[Future](response))
 
@@ -61,7 +61,7 @@ class GetReturnsControllerSpec extends ControllerSpec {
   ) =
     when(
       mockReturnsService
-        .displayReturn(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(submissionId))(any())
+        .displayReturn(ArgumentMatchers.eq(cgtReference), ArgumentMatchers.eq(submissionId))(using any())
     ).thenReturn(EitherT.fromEither[Future](response))
 
   val request = new AuthenticatedRequest(

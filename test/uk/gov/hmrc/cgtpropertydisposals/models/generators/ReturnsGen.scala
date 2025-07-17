@@ -19,7 +19,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.generators
 import io.github.martinhh.derived.scalacheck.given
 import org.scalacheck.Gen
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYearConfig
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.B64HtmlGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.*
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CalculatedTaxDue.{GainCalculatedTaxDue, NonGainCalculatedTaxDue}

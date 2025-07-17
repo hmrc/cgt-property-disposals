@@ -53,7 +53,7 @@ class BusinessPartnerRecordControllerSpec extends ControllerSpec {
   ) =
     when(
       bprService
-        .getBusinessPartnerRecord(ArgumentMatchers.eq(expectedBprRequest))(any(), any())
+        .getBusinessPartnerRecord(ArgumentMatchers.eq(expectedBprRequest))(using any(), any())
     ).thenReturn(EitherT(Future.successful(result)))
 
   val request =

@@ -66,8 +66,8 @@ object Address {
       }
 
     override def writes(address: Address): JsObject = address match {
-      case uk: UkAddress       => Json.obj("UkAddress" -> Json.toJson(uk)(ukAddressFormat))
-      case nonUk: NonUkAddress => Json.obj("NonUkAddress" -> Json.toJson(nonUk)(nonUkAddressFormat))
+      case uk: UkAddress       => Json.obj("UkAddress" -> Json.toJson(uk)(using ukAddressFormat))
+      case nonUk: NonUkAddress => Json.obj("NonUkAddress" -> Json.toJson(nonUk)(using nonUkAddressFormat))
     }
   }
 

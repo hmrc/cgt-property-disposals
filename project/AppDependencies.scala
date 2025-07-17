@@ -3,9 +3,9 @@ import sbt.*
 object AppDependencies {
   private val playVersion  = "play-30"
   private val mongoVersion = "2.6.0"
-  private val pekkoVersion = "1.1.3"
+  private val pekkoVersion = "1.1.4"
 
-  private val bootstrapVersion = "9.13.0"
+  private val bootstrapVersion = "9.16.0"
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapVersion,
@@ -18,16 +18,15 @@ object AppDependencies {
     "org.apache.pekko"                        %% "pekko-stream"                            % pekkoVersion,
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-$playVersion"                % mongoVersion,
     "io.github.openhtmltopdf"                  % "openhtmltopdf-pdfbox"                    % "1.1.28",
-    "uk.gov.hmrc"                             %% "tax-year"                                % "5.0.0"
+    "uk.gov.hmrc"                             %% "tax-year"                                % "6.0.0"
   )
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion % scope,
-    "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion     % scope,
+    "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion      % scope,
     "org.apache.pekko"           %% "pekko-testkit"                 % pekkoVersion      % scope,
     "org.scalacheck"             %% "scalacheck"                    % "1.18.1"          % scope,
     "org.scalatestplus"           % "scalacheck-1-18_3"             % "3.2.19.0"        % scope,
-    "io.github.martinhh"         %% "scalacheck-derived"            % "0.9.0"           % scope,
-    "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion  % scope exclude ("org.playframework", "play-json_2.13"))
+    "io.github.martinhh"         %% "scalacheck-derived"            % "0.10.0"          % scope,
+    "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion  % scope)
 
 }

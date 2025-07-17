@@ -83,7 +83,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
           )
         ),
         ArgumentMatchers.eq("subscription-response")
-      )(
+      )(using
         any(),
         any(),
         any()
@@ -94,13 +94,13 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
   )(response: Either[Error, HttpResponse]) =
     when(
       mockSubscriptionConnector
-        .subscribe(ArgumentMatchers.eq(expectedSubscriptionDetails))(any())
+        .subscribe(ArgumentMatchers.eq(expectedSubscriptionDetails))(using any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscription(cgtReference: CgtReference)(response: Either[Error, HttpResponse]) =
     when(
       mockSubscriptionConnector
-        .getSubscription(ArgumentMatchers.eq(cgtReference))(any())
+        .getSubscription(ArgumentMatchers.eq(cgtReference))(using any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockUpdateSubscriptionDetails(
@@ -111,13 +111,13 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
   ) =
     when(
       mockSubscriptionConnector
-        .updateSubscription(ArgumentMatchers.eq(subscribedDetails), ArgumentMatchers.eq(cgtReference))(any)
+        .updateSubscription(ArgumentMatchers.eq(subscribedDetails), ArgumentMatchers.eq(cgtReference))(using any)
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockGetSubscriptionStatus(sapNumber: SapNumber)(response: Either[Error, HttpResponse]) =
     when(
       mockSubscriptionConnector
-        .getSubscriptionStatus(ArgumentMatchers.eq(sapNumber))(any())
+        .getSubscriptionStatus(ArgumentMatchers.eq(sapNumber))(using any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private def mockSendConfirmationEmail(cgtReference: CgtReference, email: Email, contactName: ContactName)(
@@ -129,7 +129,7 @@ class SubscriptionServiceImplSpec extends AnyWordSpec with Matchers {
           ArgumentMatchers.eq(cgtReference),
           ArgumentMatchers.eq(email),
           ArgumentMatchers.eq(contactName)
-        )(any(), any())
+        )(using any(), any())
     ).thenReturn(EitherT(Future.successful(response)))
 
   private val emptyJsonBody = "{}"

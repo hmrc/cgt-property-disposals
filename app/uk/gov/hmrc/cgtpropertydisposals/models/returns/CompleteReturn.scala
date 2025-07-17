@@ -119,8 +119,6 @@ object CompleteReturn {
 
   }
 
-  import DraftReturn.*
-
   implicit val singleDisposalTriageFormat: OFormat[CompleteSingleDisposalTriageAnswers]                       = Json.format
   implicit val multipleDisposalsTriageFormat: OFormat[CompleteMultipleDisposalsTriageAnswers]                 = Json.format
   implicit val ukAddressFormat: OFormat[UkAddress]                                                            = Json.format

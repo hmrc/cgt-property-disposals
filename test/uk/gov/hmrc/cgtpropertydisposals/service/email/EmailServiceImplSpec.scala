@@ -68,7 +68,7 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers {
           ArgumentMatchers.eq(cgtReference),
           ArgumentMatchers.eq(email),
           ArgumentMatchers.eq(contactName)
-        )(any())
+        )(using any())
     ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockSendReturnConfirmationEmail(
@@ -82,7 +82,7 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers {
         .sendReturnSubmitConfirmationEmail(
           ArgumentMatchers.eq(submitReturnResponse),
           ArgumentMatchers.eq(subscribedDetails)
-        )(any())
+        )(using any())
     ).thenReturn(EitherT.fromEither[Future](result))
 
   private def mockAuditSubscriptionEmailEvent(email: String, cgtReference: String): Unit =
@@ -97,7 +97,7 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers {
           )
         ),
         ArgumentMatchers.eq("subscription-confirmation-email-sent")
-      )(any(), any(), any())
+      )(using any(), any(), any())
 
   private def mockAuditReturnConfirmationEmailEvent(email: String, cgtReference: String, submissionId: String): Unit =
     doNothing()
@@ -112,7 +112,7 @@ class EmailServiceImplSpec extends AnyWordSpec with Matchers {
           )
         ),
         ArgumentMatchers.eq("return-confirmation-email-sent")
-      )(any(), any(), any())
+      )(using any(), any(), any())
 
   "EmailServiceImpl" when {
     "handling requests to send subscription confirmation emails" must {

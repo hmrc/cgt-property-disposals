@@ -40,9 +40,7 @@ class CalculatorControllerSpec extends ControllerSpec {
 
   private val mockCalculatorService = mock[CgtCalculationService]
 
-  private def mockCalculateTaxDue(
-    request: CalculateCgtTaxDueRequest
-  )(response: CalculatedTaxDue) =
+  private def mockCalculateTaxDue()(response: CalculatedTaxDue) =
     when(
       mockCalculatorService
         .calculateTaxDue(
@@ -105,7 +103,7 @@ class CalculatorControllerSpec extends ControllerSpec {
           val request          = sample[CalculateCgtTaxDueRequest]
           val calculatedTaxDue = sample[CalculatedTaxDue]
 
-          mockCalculateTaxDue(request)(calculatedTaxDue)
+          mockCalculateTaxDue()(calculatedTaxDue)
 
           val result = performAction(Json.toJson(request))
           status(result)        shouldBe OK

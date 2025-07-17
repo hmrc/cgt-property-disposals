@@ -72,7 +72,7 @@ class InternalAuthTokenInitialiserImpl @Inject() (
   private def createClientAuthToken(): Future[Done] = {
     logger.info("Initialising auth token")
     httpClient
-      .post(url"${configuration.baseUrl("internal-auth")}/test-only/token")(HeaderCarrier())
+      .post(url"${configuration.baseUrl("internal-auth")}/test-only/token")(using HeaderCarrier())
       .withBody(
         Json.obj(
           "token"       -> authToken,
@@ -100,7 +100,7 @@ class InternalAuthTokenInitialiserImpl @Inject() (
   private def authTokenIsValid: Future[Boolean] = {
     logger.info("Checking auth token")
     httpClient
-      .get(url"${configuration.baseUrl("internal-auth")}/test-only/token")(HeaderCarrier())
+      .get(url"${configuration.baseUrl("internal-auth")}/test-only/token")(using HeaderCarrier())
       .setHeader("Authorization" -> authToken)
       .execute
       .flatMap {

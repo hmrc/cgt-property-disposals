@@ -93,6 +93,6 @@ class TaxYearServiceImpl @Inject() (config: Configuration, clock: Clock) extends
 
     (supportedTaxYears.toList ++ configYears).distinct
       .filterNot(_ < HmrcTaxYear.current.startYear - 4)
-      .sorted(Ordering.Int.reverse)
+      .sorted(using Ordering.Int.reverse)
   }
 }

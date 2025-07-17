@@ -24,6 +24,11 @@ The other services this service relies on can be run using the `CGTPD_ALL` servi
 sm2 --start CGTPD_ALL
 sm2 --stop CGTPD
 ```   
+## Run Tests
+- Run Unit Tests:  `sbt test`
+- Run Integration Tests: `sbt it:test`
+- Run Unit and Integration Tests: `sbt test it:test`
+- Run Unit and Integration Tests with coverage report: `sbt clean compile coverage test it:test coverageReport`
 
 ## How to test Dms submission
 
