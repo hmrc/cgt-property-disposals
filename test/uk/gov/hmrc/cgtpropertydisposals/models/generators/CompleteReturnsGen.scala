@@ -18,7 +18,6 @@ package uk.gov.hmrc.cgtpropertydisposals.models.generators
 
 import org.scalacheck.Gen
 import io.github.martinhh.derived.scalacheck.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.gen
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.AcquisitionDetailsAnswers.CompleteAcquisitionDetailsAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteSingleDisposalReturn

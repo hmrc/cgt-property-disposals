@@ -62,7 +62,7 @@ class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers {
     when(
       mockConnector
         .registerWithoutId(ArgumentMatchers.eq(expectedRegistrationDetails), ArgumentMatchers.eq(expectedReferenceId))(
-          any()
+          using any()
         )
     ).thenReturn(EitherT(Future.successful(response)))
 
@@ -78,7 +78,7 @@ class RegisterWithoutIdServiceImplSpec extends AnyWordSpec with Matchers {
           )
         ),
         ArgumentMatchers.eq("registration-response")
-      )(
+      )(using
         any(),
         any(),
         any()

@@ -56,7 +56,7 @@ class TaxEnrolmentServiceImplSpec extends AnyWordSpec with Matchers with CleanMo
   ) =
     when(
       mockConnector
-        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(any())
+        .allocateEnrolmentToGroup(ArgumentMatchers.eq(taxEnrolmentRequest))(using any())
     ).thenReturn(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
   private def mockUpdateVerifier(updateVerifierDetails: UpdateVerifiersRequest)(
@@ -64,7 +64,7 @@ class TaxEnrolmentServiceImplSpec extends AnyWordSpec with Matchers with CleanMo
   ) =
     when(
       mockConnector
-        .updateVerifiers(ArgumentMatchers.eq(updateVerifierDetails))(any())
+        .updateVerifiers(ArgumentMatchers.eq(updateVerifierDetails))(using any())
     ).thenReturn(EitherT[Future, Error, HttpResponse](Future.successful(response)))
 
   private def mockInsertEnrolment(taxEnrolmentRequest: TaxEnrolmentRequest)(

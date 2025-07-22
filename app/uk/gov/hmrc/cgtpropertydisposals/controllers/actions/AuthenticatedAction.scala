@@ -50,16 +50,16 @@ class AuthenticateActionBuilder @Inject() (
 
   override def invokeBlock[A](request: Request[A], block: AuthenticatedRequest[A] => Future[Result]): Future[Result] = {
     val forbidden = Results.Forbidden("Forbidden")
-    val carrier   = hc(request)
+    val carrier   = hc(using request)
     authorised(AuthProviders(GovernmentGateway))
       .retrieve(v2.Retrievals.credentials) {
         case Some(credentials) =>
           val user = AuthenticatedUser(credentials.providerId)
           block(new AuthenticatedRequest[A](user, LocalDateTime.now(), carrier, request))
         case _                 => Future.successful(forbidden)
-      }(carrier, executionContext)
+      }(using carrier, executionContext)
       .recover { case _: NoActiveSession =>
         forbidden
-      }(executionContext)
+      }(using executionContext)
   }
 }

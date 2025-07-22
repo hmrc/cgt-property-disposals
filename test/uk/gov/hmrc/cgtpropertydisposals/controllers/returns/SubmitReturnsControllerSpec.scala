@@ -88,7 +88,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
   ) =
     when(
       returnsService
-        .submitReturn(ArgumentMatchers.eq(request), ArgumentMatchers.eq(representeeDetails))(any(), any())
+        .submitReturn(ArgumentMatchers.eq(request), ArgumentMatchers.eq(representeeDetails))(using any(), any())
     ).thenReturn(EitherT.fromEither(response))
 
   private def mockDeleteDraftReturnService(id: UUID)(response: Either[Error, Unit]) =
@@ -110,7 +110,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           ArgumentMatchers.eq(submitReturnResponse.formBundleId),
           ArgumentMatchers.eq(submitReturnRequest.subscribedDetails.cgtReference),
           ArgumentMatchers.eq(submitReturnRequest.completeReturn)
-        )(any())
+        )(using any())
     ).thenReturn(res)
   }
 
