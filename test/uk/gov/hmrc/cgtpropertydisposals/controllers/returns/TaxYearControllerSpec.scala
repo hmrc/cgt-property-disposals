@@ -25,7 +25,7 @@ import play.api.test.Helpers.*
 import uk.gov.hmrc.cgtpropertydisposals.Fake
 import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
-import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.TaxYearResponse
+import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.TaxYearController.{AvailableTaxYearsResponse, TaxYearResponse}
 import uk.gov.hmrc.cgtpropertydisposals.models.TaxYear
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.TaxYearGen.taxYearGen
@@ -43,6 +43,11 @@ class TaxYearControllerSpec extends ControllerSpec {
     when(
       mockTaxYearService
         .getTaxYear(date)
+    ).thenReturn(response)
+
+  private def mockGetAvailableTaxYears()(response: List[Int]) =
+    when(
+      mockTaxYearService.getAvailableTaxYears
     ).thenReturn(response)
 
   val controller = new TaxYearController(
@@ -87,6 +92,29 @@ class TaxYearControllerSpec extends ControllerSpec {
           val result = performAction(dateString)
           status(result)        shouldBe OK
           contentAsJson(result) shouldBe Json.toJson(TaxYearResponse(None))
+        }
+      }
+    }
+
+    "handling requests to get available Tax years" must {
+      def performAction(): Future[Result] =
+        controller.availableTaxYears()(request)
+
+      "return an ok response" when {
+        val listOfTaxYears = List(1, 2, 3)
+        "a tax year is found" in {
+          mockGetAvailableTaxYears()(listOfTaxYears)
+          val result = performAction()
+          status(result)        shouldBe OK
+          contentAsJson(result) shouldBe Json.toJson(AvailableTaxYearsResponse(listOfTaxYears))
+        }
+
+        "a tax year is not found" in {
+          mockGetAvailableTaxYears()(List.empty)
+
+          val result = performAction()
+          status(result)        shouldBe OK
+          contentAsJson(result) shouldBe Json.toJson(AvailableTaxYearsResponse(List.empty))
         }
       }
     }

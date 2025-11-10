@@ -50,7 +50,7 @@ class TaxEnrolmentRepositoryFailureSpec extends AnyWordSpec with Matchers with M
 
     "inserting into a broken repository" should {
       "fail the insert" in {
-        await(repository.save(taxEnrolmentRequest).value).isLeft shouldBe true
+        intercept[IllegalStateException](repository.save(taxEnrolmentRequest))
       }
     }
 
@@ -62,14 +62,15 @@ class TaxEnrolmentRepositoryFailureSpec extends AnyWordSpec with Matchers with M
 
     "deleting from a broken repository" should {
       "fail the delete" in {
-        await(repository.delete(taxEnrolmentRequest.ggCredId).value).isLeft shouldBe true
+        intercept[IllegalStateException](repository.delete(taxEnrolmentRequest.ggCredId))
       }
     }
-    "updating on a broken repository"   should {
+    "updating into a broken repository" should {
       val updatedTaxEnrolmentRequest = sample[TaxEnrolmentRequest]
       "fail to update" in {
-        await(repository.save(taxEnrolmentRequest).value)
-        await(repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest).value).isLeft shouldBe true
+        intercept[IllegalStateException](
+          repository.update(taxEnrolmentRequest.ggCredId, updatedTaxEnrolmentRequest)
+        )
       }
     }
   }

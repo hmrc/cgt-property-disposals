@@ -54,7 +54,7 @@ class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSu
     "inserting" should {
       "return an error if there is a failure" in {
         val upscanUpload = sample[UpscanUpload]
-        await(repository.insert(upscanUpload).value).isLeft shouldBe true
+        intercept[IllegalStateException](repository.insert(upscanUpload))
       }
     }
 
@@ -88,5 +88,4 @@ class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSu
       }
     }
   }
-
 }

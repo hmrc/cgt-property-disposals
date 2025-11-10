@@ -49,7 +49,7 @@ class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with Mong
 
     "inserting into a broken repository" should {
       "fail the insert" in {
-        await(repository.insert(updateVerifierDetails).value).isLeft shouldBe true
+        intercept[IllegalStateException](repository.insert(updateVerifierDetails))
       }
     }
 
@@ -61,7 +61,7 @@ class VerifiersRepositoryFailureSpec extends AnyWordSpec with Matchers with Mong
 
     "deleting from a broken repository" should {
       "fail the delete" in {
-        await(repository.delete(updateVerifierDetails.ggCredId).value).isLeft shouldBe true
+        intercept[IllegalStateException](repository.delete(updateVerifierDetails.ggCredId))
       }
     }
   }

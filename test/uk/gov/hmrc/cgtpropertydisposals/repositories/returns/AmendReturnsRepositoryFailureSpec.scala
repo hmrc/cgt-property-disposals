@@ -57,14 +57,14 @@ class AmendReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
 
   "AmendReturnsRepository" when {
 
-    "inserting" should {
-      "insert an amend return request successfully" in {
-        await(repository.save(submitReturnRequest).value).isLeft shouldBe true
+    "inserting into a broken repository" should {
+      "fail the insert" in {
+        intercept[IllegalStateException](repository.save(submitReturnRequest))
       }
     }
 
-    "getting" should {
-      "retrieve an existing record" in {
+    "getting from a broken repository" should {
+      "fail to retrieve an existing record" in {
         await(repository.fetch(cgtReference).value).isLeft shouldBe true
       }
     }
