@@ -70,14 +70,14 @@ class DraftReturnsRepositoryFailureSpec extends AnyWordSpec with Matchers with M
 
   "DraftReturnsRepository" when {
 
-    "inserting" should {
-      "create a new draft return successfully" in {
-        await(repository.save(draftReturn, cgtReference).value).isLeft shouldBe true
+    "inserting into a broken repository" should {
+      "fail to create a new draft return" in {
+        intercept[IllegalStateException](repository.save(draftReturn, cgtReference))
       }
     }
 
-    "getting" should {
-      "retrieve an existing record" in {
+    "getting from a broken repository" should {
+      "fail retrieving an existing record" in {
         await(repository.fetch(cgtReference).value).isLeft shouldBe true
       }
     }

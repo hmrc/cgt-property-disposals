@@ -33,8 +33,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import uk.gov.hmrc.play.http.logging.Mdc.preservingMdc
-import org.mongodb.scala.gridfs.ObservableFuture
+import uk.gov.hmrc.mdc.Mdc.preservingMdc
 
 import java.time.Instant
 import java.util.UUID

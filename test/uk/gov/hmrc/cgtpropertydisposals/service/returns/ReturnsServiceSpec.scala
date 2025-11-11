@@ -35,11 +35,11 @@ import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.des.returns.{DesReturnDetails, DesSubmitReturnRequest}
 import uk.gov.hmrc.cgtpropertydisposals.models.des.{DesFinancialDataResponse, DesFinancialTransaction}
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.ReturnsGen.given
-import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.SubmitReturnGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{AgentReferenceNumber, CgtReference}
 import uk.gov.hmrc.cgtpropertydisposals.models.name.{IndividualName, TrustName}
@@ -501,6 +501,86 @@ class ReturnsServiceSpec extends AnyWordSpec with Matchers {
           mockSaveAmendReturnList(submitReturnRequest)(Right(()))
           mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
             Right(HttpResponse(500, emptyJsonBody))
+          )
+
+          await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)
+        }
+
+        "submit response which has return or newline chars is parsed in audit log" in {
+          val formBundleId    = "804123737752"
+          val chargeReference = "XCRG9448959757"
+
+          val submitReturnResponse = SubmitReturnResponse(
+            "804123737752",
+            LocalDateTime.of(
+              LocalDate.of(2020, 2, 20),
+              LocalTime.of(9, 30, 47)
+            ),
+            Some(
+              ReturnCharge(
+                chargeReference,
+                AmountInPence(1100L),
+                LocalDate.of(2020, 3, 11)
+              )
+            ),
+            None
+          )
+
+          val submitReturnRequest    = sample[SubmitReturnRequest].copy(
+            amendReturnData = None
+          )
+          val desSubmitReturnRequest = DesSubmitReturnRequest(submitReturnRequest, None)
+
+          val responseJsonBody =
+            Json.parse(s"""
+                 |{
+                 |"processingDate":"2020-02-20T09:30:47Z",
+                 |"ppdReturnResponseDetails": {
+                 |     "chargeType": "Late Penalty",
+                 |     "chargeReference":"$chargeReference",
+                 |     "amount":11.0,
+                 |     "dueDate":"2020-03-11",
+                 |     "formBundleNumber":"$formBundleId",
+                 |     "cgtReferenceNumber":"${submitReturnRequest.subscribedDetails.cgtReference}"
+                 |  }
+                 |}
+                 |""".stripMargin)
+
+          val illegalResponseJsonBody = s"""
+               |{
+               |"processingDate":"2020-02-20T09:30:47Z",
+               |"ppdReturnResponseDetails": {
+               |     "chargeType": "Late \rPenalty",
+               |     "chargeReference":"$chargeReference",
+               |     "amount":11.0,
+               |     "dueDate":"2020-03-11",
+               |     "formBundleNumber":"$formBundleId",
+               |     "cgtReferenceNumber":"${submitReturnRequest.subscribedDetails.cgtReference}"
+               |  }
+               |}
+               |""".stripMargin
+
+          mockAuditSubmitReturnEvent(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest,
+            submitReturnRequest.agentReferenceNumber
+          )
+
+          mockSubmitReturn(
+            submitReturnRequest.subscribedDetails.cgtReference,
+            desSubmitReturnRequest
+          )(Right(HttpResponse(200, illegalResponseJsonBody, Map.empty[String, Seq[String]])))
+          mockAuditSubmitReturnResponseEvent(
+            200,
+            Some(responseJsonBody),
+            desSubmitReturnRequest,
+            submitReturnRequest.subscribedDetails.name,
+            submitReturnRequest.agentReferenceNumber,
+            submitReturnRequest.amendReturnData
+          )
+          mockSaveAmendReturnList(submitReturnRequest)(Right(()))
+          mockSendReturnSubmitConfirmationEmail(submitReturnRequest, submitReturnResponse)(
+            Right(HttpResponse(ACCEPTED, emptyJsonBody))
           )
 
           await(returnsService.submitReturn(submitReturnRequest, None).value) shouldBe Right(submitReturnResponse)

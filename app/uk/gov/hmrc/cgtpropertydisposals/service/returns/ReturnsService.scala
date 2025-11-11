@@ -46,6 +46,7 @@ import uk.gov.hmrc.cgtpropertydisposals.service.audit.AuditService
 import uk.gov.hmrc.cgtpropertydisposals.service.email.EmailService
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.transformers.{ReturnSummaryListTransformerService, ReturnTransformerService}
 import uk.gov.hmrc.cgtpropertydisposals.util.HttpResponseOps.*
+import uk.gov.hmrc.cgtpropertydisposals.util.StringOps._
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.*
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -465,7 +466,7 @@ class DefaultReturnsService @Inject() (
     amendReturnData: Option[AmendReturnData]
   )(implicit hc: HeaderCarrier, request: Request[?]): Unit = {
     val responseJson =
-      Try(Json.parse(responseBody))
+      Try(Json.parse(responseBody.escapeCarriageReturn()))
         .getOrElse(Json.parse(s"""{ "body" : "could not parse body as JSON: $responseBody" }"""))
     val requestJson  = Json.toJson(desSubmitReturnRequest)
 
