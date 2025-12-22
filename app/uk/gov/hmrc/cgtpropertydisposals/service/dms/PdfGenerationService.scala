@@ -26,7 +26,6 @@ class PdfGenerationService {
   def generatePDFBytes(html: String): Array[Byte] = {
     val byteArrayOutputStream = new ByteArrayOutputStream()
     val builder               = new PdfRendererBuilder()
-    builder.useFastMode()
     builder.withHtmlContent(html, null)
     builder.toStream(byteArrayOutputStream)
     builder.run()

@@ -2,10 +2,10 @@ import sbt.*
 
 object AppDependencies {
   private val playVersion  = "play-30"
-  private val mongoVersion = "2.10.0"
+  private val mongoVersion = "2.11.0"
   private val pekkoVersion = "1.1.4"
 
-  private val bootstrapVersion = "9.19.0"
+  private val bootstrapVersion = "10.5.0"
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapVersion,
@@ -17,14 +17,14 @@ object AppDependencies {
     "org.apache.pekko"                        %% "pekko-serialization-jackson"             % pekkoVersion,
     "org.apache.pekko"                        %% "pekko-stream"                            % pekkoVersion,
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-$playVersion"                % mongoVersion,
-    "io.github.openhtmltopdf"                  % "openhtmltopdf-pdfbox"                    % "1.1.28",
+    "io.github.openhtmltopdf"                  % "openhtmltopdf-pdfbox"                    % "1.1.36",
     "uk.gov.hmrc"                             %% "tax-year"                                % "6.0.0"
   )
 
   def test(scope: String = "test"): Seq[ModuleID] = Seq(
     "uk.gov.hmrc.mongo"          %% s"hmrc-mongo-test-$playVersion" % mongoVersion      % scope,
     "org.apache.pekko"           %% "pekko-testkit"                 % pekkoVersion      % scope,
-    "org.scalacheck"             %% "scalacheck"                    % "1.18.1"          % scope,
+    "org.scalacheck"             %% "scalacheck"                    % "1.19.0"          % scope,
     "org.scalatestplus"           % "scalacheck-1-18_3"             % "3.2.19.0"        % scope,
     "io.github.martinhh"         %% "scalacheck-derived"            % "0.10.0"          % scope,
     "uk.gov.hmrc"                %% s"bootstrap-test-$playVersion"  % bootstrapVersion  % scope)
