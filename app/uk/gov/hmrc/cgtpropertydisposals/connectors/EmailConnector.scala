@@ -32,6 +32,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import org.apache.pekko.util.Helpers.Requiring
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -103,7 +104,7 @@ class EmailConnectorImpl @Inject() (
                           Error("Could not find Accept-Language HTTP header")
                         )
       body            = SendEmailRequest(
-                          List(subscribedDetails.emailAddress.value),
+                          List(subscribedDetails.emailAddress.value.toString),
                           EmailConnectorImpl.getEmailTemplate(acceptLanguage, returnSubmittedTemplateId),
                           Map(
                             "name"         -> subscribedDetails.contactName.value,

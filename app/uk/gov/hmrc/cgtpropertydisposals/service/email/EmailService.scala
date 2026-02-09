@@ -126,7 +126,7 @@ class EmailServiceImpl @Inject() (connector: EmailConnector, auditService: Audit
     auditService.sendEvent(
       "returnConfirmationEmailSent",
       ReturnConfirmationEmailSentEvent(
-        returnRequest.subscribedDetails.emailAddress.value,
+        returnRequest.subscribedDetails.emailAddress.toString,
         returnRequest.subscribedDetails.cgtReference.value,
         submitReturnResponse.formBundleId
       ),

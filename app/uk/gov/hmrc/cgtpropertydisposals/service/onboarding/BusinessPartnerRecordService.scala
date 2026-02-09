@@ -128,7 +128,7 @@ class BusinessPartnerRecordServiceImpl @Inject() (
       _                   <- emailService
                                .sendSubscriptionConfirmationEmail(
                                  cgtReference,
-                                 subscriptionDetails.emailAddress,
+                                 subscriptionDetails.emailAddress.get,
                                  subscriptionDetails.contactName
                                )
                                .leftFlatMap(e =>

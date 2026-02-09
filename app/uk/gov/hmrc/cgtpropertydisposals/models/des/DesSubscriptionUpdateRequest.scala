@@ -52,7 +52,7 @@ object DesSubscriptionUpdateRequest {
       subscribedDetails.telephoneNumber.map(telephoneNumber => telephoneNumber.value),
       None,
       None,
-      Some(subscribedDetails.emailAddress.value)
+      Some(subscribedDetails.emailAddress.toString)
     )
 
     DesSubscriptionUpdateRequest(

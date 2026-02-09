@@ -255,7 +255,7 @@ class SubscriptionServiceImpl @Inject() (
       .mapN { case (address, name, email) =>
         SubscribedDetails(
           name,
-          email,
+          Some(email),
           address,
           ContactName(desSubscriptionDisplayDetails.subscriptionDetails.contactDetails.contactName),
           cgtReference,
