@@ -46,13 +46,14 @@ class CacheRepository[A : ClassTag](
   domainFormat: Format[A],
   cacheTtl: FiniteDuration,
   cacheTtlIndexName: String,
-  objName: String
+  objName: String,
+  indexes: Seq[IndexModel] = Seq.empty
 )(implicit ec: ExecutionContext)
     extends PlayMongoRepository[A](
       mongoComponent,
       collectionName,
       domainFormat,
-      indexes = Seq(
+      indexes = indexes ++ Seq(
         IndexModel(
           ascending("lastUpdated"),
           IndexOptions().name(cacheTtlIndexName).expireAfter(cacheTtl.toSeconds, TimeUnit.SECONDS)

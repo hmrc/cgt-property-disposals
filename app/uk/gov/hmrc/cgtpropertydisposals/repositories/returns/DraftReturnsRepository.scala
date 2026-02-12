@@ -17,13 +17,14 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 
 import cats.data.EitherT
-import cats.instances.future._
+import cats.instances.future.*
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions}
 import org.mongodb.scala.model.Filters.{equal, or}
+import org.mongodb.scala.model.Indexes.ascending
 import play.api.Configuration
 import play.api.libs.json.Format.GenericFormat
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.DraftReturn
@@ -64,7 +65,9 @@ class DefaultDraftReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       domainFormat = DraftReturnWithCgtReferenceWrapper.format,
       cacheTtl = config.get[FiniteDuration]("mongodb.draft-returns.expiry-time"),
       cacheTtlIndexName = "draft-return-cache-ttl",
-      objName = "return"
+      objName = "return",
+      indexes =
+        Seq(IndexModel(ascending("return.cgtReference.value"), IndexOptions().name("return_cgtReference_value_idx")))
     )
     with DraftReturnsRepository {
 
