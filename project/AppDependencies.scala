@@ -2,22 +2,22 @@ import sbt.*
 
 object AppDependencies {
   private val playVersion  = "play-30"
-  private val mongoVersion = "2.11.0"
-  private val pekkoVersion = "1.1.4"
+  private val mongoVersion = "2.12.0"
+  private val pekkoVersion = "1.4.0"
 
   private val bootstrapVersion = "10.5.0"
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"                             %% s"bootstrap-backend-$playVersion"         % bootstrapVersion,
     "org.typelevel"                           %% "cats-core"                               % "2.13.0",
-    "com.github.pureconfig"                   %% "pureconfig-generic-scala3"               % "0.17.9",
-    "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer"               % "20240325.1",
+    "com.github.pureconfig"                   %% "pureconfig-generic-scala3"               % "0.17.10",
+    "com.googlecode.owasp-java-html-sanitizer" % "owasp-java-html-sanitizer"               % "20260102.1",
     "org.apache.pekko"                        %% "pekko-actor-typed"                       % pekkoVersion,
     "org.apache.pekko"                        %% "pekko-protobuf-v3"                       % pekkoVersion,
     "org.apache.pekko"                        %% "pekko-serialization-jackson"             % pekkoVersion,
     "org.apache.pekko"                        %% "pekko-stream"                            % pekkoVersion,
     "uk.gov.hmrc.mongo"                       %% s"hmrc-mongo-$playVersion"                % mongoVersion,
-    "io.github.openhtmltopdf"                  % "openhtmltopdf-pdfbox"                    % "1.1.36",
+    "io.github.openhtmltopdf"                  % "openhtmltopdf-pdfbox"                    % "1.1.37",
     "uk.gov.hmrc"                             %% "tax-year"                                % "6.0.0"
   )
 

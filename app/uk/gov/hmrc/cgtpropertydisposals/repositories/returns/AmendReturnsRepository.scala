@@ -19,7 +19,8 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.returns
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
+import org.mongodb.scala.model.Indexes.ascending
+import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, IndexModel, IndexOptions, ReturnDocument, Updates}
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
@@ -52,7 +53,13 @@ class DefaultAmendReturnsRepository @Inject() (mongo: MongoComponent, config: Co
       domainFormat = SubmitReturnWrapper.format,
       cacheTtl = config.get[FiniteDuration]("mongodb.amend-returns.expiry-time"),
       cacheTtlIndexName = "amend-return-cache-ttl",
-      objName = "return"
+      objName = "return",
+      indexes = Seq(
+        IndexModel(
+          ascending("return.subscribedDetails.cgtReference.value"),
+          IndexOptions().name("return_subscribedDetails_cgtReference_idx")
+        )
+      )
     )
     with AmendReturnsRepository {
 
