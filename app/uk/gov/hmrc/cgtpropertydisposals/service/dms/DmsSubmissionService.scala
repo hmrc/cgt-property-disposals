@@ -35,11 +35,15 @@ import scala.concurrent.Future
 
 @ImplementedBy(classOf[DefaultDmsSubmissionService])
 trait DmsSubmissionService {
+  def prepareAttachments(
+    completeReturn: CompleteReturn
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, List[FileAttachment]]
+
   def submitToDms(
     html: B64Html,
     formBundleId: String,
     cgtReference: CgtReference,
-    completeReturn: CompleteReturn
+    fileAttachments: List[FileAttachment]
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, DmsEnvelopeId]
 
 }
@@ -59,30 +63,45 @@ class DefaultDmsSubmissionService @Inject() (
   private val b64businessArea    = getDmsMetaConfig[String]("b64-business-area")
   private val businessArea       = new String(Base64.getDecoder.decode(b64businessArea))
 
+  override def prepareAttachments(
+    completeReturn: CompleteReturn
+  )(implicit hc: HeaderCarrier): EitherT[Future, Error, List[FileAttachment]] =
+    for
+      attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
+      fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
+      _               <- {
+        val duplicates = fileAttachments.groupBy(_.filename).collect { case (name, files) if files.size > 1 => name }
+        if (duplicates.nonEmpty) {
+          logger.error(s"Duplicate attachment filenames detected: ${duplicates.mkString(", ")}")
+          EitherT.leftT[Future, List[FileAttachment]](
+            Error(s"Duplicate attachment filenames: ${duplicates.mkString(", ")}")
+          )
+        } else {
+          EitherT.rightT[Future, Error](())
+        }
+      }
+    yield fileAttachments
+
   override def submitToDms(
     html: B64Html,
     formBundleId: String,
     cgtReference: CgtReference,
-    completeReturn: CompleteReturn
+    fileAttachments: List[FileAttachment]
   )(implicit hc: HeaderCarrier): EitherT[Future, Error, DmsEnvelopeId] =
-    for
-      attachments     <- EitherT.liftF(upscanService.downloadFilesFromS3(getUpscanSuccesses(completeReturn)))
-      fileAttachments <- EitherT.fromEither[Future](attachments.sequence)
-      envId           <- EitherT.liftF(
-                           dmsConnector.submitToDms(
-                             DmsSubmissionPayload(
-                               html,
-                               fileAttachments,
-                               DmsMetadata(
-                                 formBundleId,
-                                 cgtReference.value,
-                                 classificationType,
-                                 businessArea
-                               )
-                             )
-                           )
-                         )
-    yield envId
+    EitherT.liftF(
+      dmsConnector.submitToDms(
+        DmsSubmissionPayload(
+          html,
+          fileAttachments,
+          DmsMetadata(
+            formBundleId,
+            cgtReference.value,
+            classificationType,
+            businessArea
+          )
+        )
+      )
+    )
 
   private def getUpscanSuccesses(completeReturn: CompleteReturn): List[UpscanSuccess] = {
     val mandatoryEvidence = completeReturn.fold(

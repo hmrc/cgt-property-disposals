@@ -28,7 +28,8 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.ControllerSpec
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
-import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsEnvelopeId}
+import org.apache.pekko.util.ByteString
+import uk.gov.hmrc.cgtpropertydisposals.models.dms.{B64Html, DmsEnvelopeId, FileAttachment}
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.{CgtReference, NINO, SAUTR}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.{CompleteMultipleDisposalsReturn, CompleteSingleDisposalReturn}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.RepresenteeAnswers.CompleteRepresenteeAnswers
@@ -81,7 +82,8 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
     cc = Helpers.stubControllerComponents()
   )
 
-  private val b64Html = B64Html(Base64.getEncoder.encodeToString("some test html".getBytes))
+  private val b64Html         = B64Html(Base64.getEncoder.encodeToString("some test html".getBytes))
+  private val fileAttachments = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
 
   private def mockSubmitReturnService(request: SubmitReturnRequest, representeeDetails: Option[RepresenteeDetails])(
     response: Either[Error, SubmitReturnResponse]
@@ -97,10 +99,18 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         .deleteDraftReturns(List(id))
     ).thenReturn(EitherT.fromEither(response))
 
+  private def mockPrepareAttachments(
+    submitReturnRequest: SubmitReturnRequest
+  )(response: Either[Error, List[FileAttachment]]) =
+    when(
+      mockDmsSubmissionService
+        .prepareAttachments(ArgumentMatchers.eq(submitReturnRequest.completeReturn))(using any())
+    ).thenReturn(EitherT.fromEither(response))
+
   private def mockDmsSubmissionRequest(
     html: B64Html,
     submitReturnResponse: SubmitReturnResponse,
-    submitReturnRequest: SubmitReturnRequest
+    fileAttachments: List[FileAttachment]
   ) = {
     val res: EitherT[Future, Error, DmsEnvelopeId] = EitherT.fromEither(Right(DmsEnvelopeId("test envelope id")))
     when(
@@ -108,8 +118,8 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
         .submitToDms(
           ArgumentMatchers.eq(sanitise(html)),
           ArgumentMatchers.eq(submitReturnResponse.formBundleId),
-          ArgumentMatchers.eq(submitReturnRequest.subscribedDetails.cgtReference),
-          ArgumentMatchers.eq(submitReturnRequest.completeReturn)
+          any[CgtReference](),
+          ArgumentMatchers.eq(fileAttachments)
         )(using any())
     ).thenReturn(res)
   }
@@ -122,8 +132,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           checkYourAnswerPageHtml = b64Html,
           completeReturn = sample[CompleteSingleDisposalReturn].copy(representeeAnswers = None)
         )
+        mockPrepareAttachments(submitReturnRequest)(Right(fileAttachments))
         mockSubmitReturnService(submitReturnRequest, None)(Right(submitReturnResponse))
-        mockDmsSubmissionRequest(b64Html, submitReturnResponse, submitReturnRequest)
+        mockDmsSubmissionRequest(b64Html, submitReturnResponse, fileAttachments)
         mockDeleteDraftReturnService(submitReturnRequest.id)(Right(()))
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(submitReturnRequest)))
@@ -156,8 +167,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
                 representeeAnswers = Some(representeeAnswers)
               )
             )
+            mockPrepareAttachments(submitReturnRequest)(Right(fileAttachments))
             mockSubmitReturnService(submitReturnRequest, Some(representeeDetails))(Right(submitReturnResponse))
-            mockDmsSubmissionRequest(b64Html, submitReturnResponse, submitReturnRequest)
+            mockDmsSubmissionRequest(b64Html, submitReturnResponse, fileAttachments)
             mockDeleteDraftReturnService(submitReturnRequest.id)(Right(()))
 
             val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(submitReturnRequest)))
@@ -190,11 +202,12 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
               checkYourAnswerPageHtml = encodedHtml
             )
 
+            mockPrepareAttachments(submitReturnRequest)(Right(fileAttachments))
             mockSubmitReturnService(submitReturnRequest, None)(Right(submitReturnResponse))
             mockDmsSubmissionRequest(
               encodedHtml,
               submitReturnResponse,
-              submitReturnRequest
+              fileAttachments
             )
             mockDeleteDraftReturnService(submitReturnRequest.id)(Right(()))
 
@@ -212,6 +225,7 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           checkYourAnswerPageHtml = b64Html
         )
 
+        mockPrepareAttachments(requestBody)(Right(fileAttachments))
         mockSubmitReturnService(requestBody, None)(Left(Error.apply("error while submitting return to DES")))
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(requestBody)))
@@ -224,8 +238,9 @@ class SubmitReturnsControllerSpec extends ControllerSpec {
           checkYourAnswerPageHtml = b64Html
         )
         val submitReturnResponse = sample[SubmitReturnResponse]
+        mockPrepareAttachments(submitReturnRequest)(Right(fileAttachments))
         mockSubmitReturnService(submitReturnRequest, None)(Right(submitReturnResponse))
-        mockDmsSubmissionRequest(b64Html, submitReturnResponse, submitReturnRequest)
+        mockDmsSubmissionRequest(b64Html, submitReturnResponse, fileAttachments)
         mockDeleteDraftReturnService(submitReturnRequest.id)(Left(Error.apply("error while deleting draft return")))
 
         val result = controller.submitReturn()(fakeRequestWithJsonBody(Json.toJson(submitReturnRequest)))
