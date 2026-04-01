@@ -36,7 +36,7 @@ import uk.gov.hmrc.cgtpropertydisposals.models.generators.CompleteReturnsGen.giv
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.CompleteReturn.CompleteMultipleDisposalsReturn
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.MandatoryEvidence
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.CompleteSupportingEvidenceAnswers
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.SupportingEvidenceAnswers.{CompleteSupportingEvidenceAnswers, SupportingEvidence}
 import uk.gov.hmrc.cgtpropertydisposals.models.returns.YearToDateLiabilityAnswers.NonCalculatedYTDAnswers.CompleteNonCalculatedYTDAnswers
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.UpscanSuccess
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
@@ -61,7 +61,7 @@ class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
         |   b64-business-area = "YnVzaW5lc3MtYXJlYQ=="
         |   backscan.enabled = true
         | }
-        | 
+        |
         |""".stripMargin
     )
   )
@@ -91,10 +91,7 @@ class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
 
   "Dms Submission Service" when {
 
-    "a dms file submission request is made" must {
-      val cgtReference   = sample[CgtReference]
-      val dmsMetadata    =
-        DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "business-area")
+    "preparing attachments" must {
       val upscanSuccess  = UpscanSuccess(
         "reference",
         "status",
@@ -109,33 +106,56 @@ class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
           CompleteSupportingEvidenceAnswers(doYouWantToUploadSupportingEvidence = false, List.empty)
       )
 
-      "return an error" when {
-        "some of the downloads have failed" in {
-          val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
-          val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
+      "return an error when some of the downloads have failed" in {
+        mockDownloadS3Urls(List(upscanSuccess))(
+          List(Left(Error("error downloading file")))
+        )
 
-          mockDownloadS3Urls(List(upscanSuccess))(
-            List(Left(Error("error downloading file")))
-          )
-
-          await(
-            dmsSubmissionService
-              .submitToDms(
-                dmsSubmissionPayload.b64Html,
-                "form-bundle-id",
-                cgtReference,
-                completeReturn
-              )
-              .value
-          ).isLeft shouldBe true
-        }
+        await(dmsSubmissionService.prepareAttachments(completeReturn).value).isLeft shouldBe true
       }
+
+      "return file attachments when all downloads succeed with unique filenames" in {
+        val fileAttachments = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
+
+        mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
+
+        await(dmsSubmissionService.prepareAttachments(completeReturn).value) shouldBe Right(fileAttachments)
+      }
+
+      "return an error when duplicate attachment filenames are detected" in {
+        val supportingUpscanSuccess      = UpscanSuccess("reference2", "status", "downloadUrl2", Map.empty)
+        val completeReturnWithSupporting = sample[CompleteMultipleDisposalsReturn].copy(
+          yearToDateLiabilityAnswers = sample[CompleteNonCalculatedYTDAnswers].copy(
+            mandatoryEvidence = Some(sample[MandatoryEvidence].copy(upscanSuccess = upscanSuccess))
+          ),
+          supportingDocumentAnswers = CompleteSupportingEvidenceAnswers(
+            doYouWantToUploadSupportingEvidence = true,
+            List(sample[SupportingEvidence].copy(upscanSuccess = supportingUpscanSuccess))
+          )
+        )
+
+        val attachment1 = FileAttachment("key1", "same-file.pdf", Some("pdf"), Seq(ByteString(1)))
+        val attachment2 = FileAttachment("key2", "same-file.pdf", Some("pdf"), Seq(ByteString(2)))
+
+        mockDownloadS3Urls(List(upscanSuccess, supportingUpscanSuccess))(
+          List(Right(attachment1), Right(attachment2))
+        )
+
+        val result = await(dmsSubmissionService.prepareAttachments(completeReturnWithSupporting).value)
+
+        result                   shouldBe a[Left[?, ?]]
+        result.left.map(_.value) shouldBe Left(Left("Duplicate attachment filenames: same-file.pdf"))
+      }
+    }
+
+    "submitting to dms" must {
+      val cgtReference = sample[CgtReference]
+      val dmsMetadata  = DmsMetadata("form-bundle-id", cgtReference.value, "queue-name", "business-area")
 
       "return an envelope id when files have been successfully submitted to the dms service" in {
         val fileAttachments      = List(FileAttachment("key", "filename", Some("pdf"), Seq(ByteString(1))))
         val dmsSubmissionPayload = DmsSubmissionPayload(B64Html("<html>"), fileAttachments, dmsMetadata)
 
-        mockDownloadS3Urls(List(upscanSuccess))(fileAttachments.map(Right(_)))
         mockDmsSubmission(dmsSubmissionPayload)(DmsEnvelopeId("env-id"))
         await(
           dmsSubmissionService
@@ -143,14 +163,10 @@ class DmsSubmissionServiceSpec extends AnyWordSpec with Matchers {
               dmsSubmissionPayload.b64Html,
               "form-bundle-id",
               cgtReference,
-              completeReturn
+              fileAttachments
             )
             .value
-        ) shouldBe Right(
-          DmsEnvelopeId(
-            "env-id"
-          )
-        )
+        ) shouldBe Right(DmsEnvelopeId("env-id"))
       }
     }
   }

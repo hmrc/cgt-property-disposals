@@ -55,12 +55,13 @@ class SubmitReturnsController @Inject() (
           for
             sanitisedHtml      <- EitherT.fromEither(sanitiseHtml(returnRequest.checkYourAnswerPageHtml))
             representeeDetails <- extractRepresenteeAnswersWithValidId(returnRequest)
+            fileAttachments    <- dmsSubmissionService.prepareAttachments(returnRequest.completeReturn)
             submissionResult   <- returnsService.submitReturn(returnRequest, representeeDetails)
             _                  <- dmsSubmissionService.submitToDms(
                                     sanitisedHtml,
                                     submissionResult.formBundleId,
                                     returnRequest.subscribedDetails.cgtReference,
-                                    returnRequest.completeReturn
+                                    fileAttachments
                                   )
             _                   = logger.info(
                                     s"Submitted documents to dms with details 'formBundleId' :CGTSUBMITDOC" +
