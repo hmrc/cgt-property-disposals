@@ -50,7 +50,8 @@ class UpscanRepoSpec extends AnyWordSpec with MongoSupport with ScalaFutures wit
     "inserting" should {
       "insert a new upscan upload document" in {
         val upscanUpload = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
-        await(repository.insert(upscanUpload).value) shouldBe Right(())
+        val ggCredId     = "ggCredId"
+        await(repository.insert(upscanUpload, ggCredId).value) shouldBe Right(())
       }
     }
   }

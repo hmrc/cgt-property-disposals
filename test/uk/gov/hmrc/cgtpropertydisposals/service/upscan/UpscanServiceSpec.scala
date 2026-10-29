@@ -41,13 +41,14 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
   private val mockUpscanRepository                        = mock[UpscanRepository]
   private val mockUpscanConnector                         = mock[S3Connector]
   val service                                             = new UpscanServiceImpl(mockUpscanRepository, mockUpscanConnector)
+  private val ggCredId                                    = "ggCredId"
 
   private def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
     response: Either[Error, Unit]
   ) =
     when(
       mockUpscanRepository
-        .insert(upscanUpload)
+        .insert(upscanUpload, ggCredId)
     ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockReadUpscanUpload(uploadReference: UploadReference)(
@@ -84,21 +85,21 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
     ).thenReturn(Future[Either[Error, FileAttachment]](response))
 
   private val upscanUpload        = sample[UpscanUpload]
-  private val upscanUploadWrapper = sample[UpscanUploadWrapper]
+  private val upscanUploadWrapper = sample[UpscanUploadWrapper].copy(ggCredId = Some(ggCredId))
 
   "Upscan Service" when {
     "it receives a request to store an upscan upload" must {
       "return an error" when {
         "there is a mongo exception" in {
           mockStoreUpscanUpload(upscanUpload)(Left(Error("Connection error")))
-          await(service.storeUpscanUpload(upscanUpload).value).isLeft shouldBe true
+          await(service.storeUpscanUpload(upscanUpload, ggCredId).value).isLeft shouldBe true
         }
       }
 
       "return unit" when {
         "it successfully stores the data" in {
           mockStoreUpscanUpload(upscanUpload)(Right(()))
-          await(service.storeUpscanUpload(upscanUpload).value) shouldBe Right(())
+          await(service.storeUpscanUpload(upscanUpload, ggCredId).value) shouldBe Right(())
         }
       }
     }
@@ -107,14 +108,39 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
       "return an error" when {
         "there is a mongo exception" in {
           mockReadUpscanUpload(upscanUpload.uploadReference)(Left(Error("Connection error")))
-          await(service.readUpscanUpload(upscanUpload.uploadReference).value).isLeft shouldBe true
+          await(
+            service.readUpscanUpload(upscanUpload.uploadReference, ggCredId).value
+          ).isLeft shouldBe true
         }
       }
 
       "return some upscan upload" when {
         "it successfully reads the data" in {
           mockReadUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUploadWrapper)))
-          await(service.readUpscanUpload(upscanUpload.uploadReference).value) shouldBe Right(Some(upscanUploadWrapper))
+          await(service.readUpscanUpload(upscanUpload.uploadReference, ggCredId).value) shouldBe Right(
+            Some(upscanUploadWrapper)
+          )
+        }
+      }
+
+      "return an error for mismatched  ggCredId" when {
+        "it successfully reads the data" in {
+          mockReadUpscanUpload(upscanUpload.uploadReference)(
+            Right(Some(upscanUploadWrapper.copy(ggCredId = Some("mismatched"))))
+          )
+          await(service.readUpscanUpload(upscanUpload.uploadReference, ggCredId).value) shouldBe Left(
+            Error("Error matching ggCredId")
+          )
+        }
+      }
+
+      "return some upscan upload when no ggCredId stored" when {
+        "it successfully reads the data" in {
+          val upscanUploadWrapper1 = upscanUploadWrapper.copy(ggCredId = None)
+          mockReadUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUploadWrapper1.copy(ggCredId = None))))
+          await(service.readUpscanUpload(upscanUpload.uploadReference, ggCredId).value) shouldBe Right(
+            Some(upscanUploadWrapper1)
+          )
         }
       }
     }
