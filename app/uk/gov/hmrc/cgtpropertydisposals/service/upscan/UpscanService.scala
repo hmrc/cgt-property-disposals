@@ -32,11 +32,13 @@ import scala.concurrent.{ExecutionContext, Future}
 trait UpscanService {
 
   def storeUpscanUpload(
-    upscanUpload: UpscanUpload
+    upscanUpload: UpscanUpload,
+    ggCredId: String
   ): EitherT[Future, Error, Unit]
 
   def readUpscanUpload(
-    uploadReference: UploadReference
+    uploadReference: UploadReference,
+    ggCredId: String
   ): EitherT[Future, Error, Option[UpscanUploadWrapper]]
 
   def readUpscanUploads(
@@ -62,13 +64,23 @@ class UpscanServiceImpl @Inject() (
     extends UpscanService
     with Logging {
 
-  override def storeUpscanUpload(upscanUpload: UpscanUpload): EitherT[Future, Error, Unit] =
-    upscanRepository.insert(upscanUpload)
+  override def storeUpscanUpload(upscanUpload: UpscanUpload, ggCredId: String): EitherT[Future, Error, Unit] =
+    upscanRepository.insert(upscanUpload, ggCredId)
 
   override def readUpscanUpload(
-    uploadReference: UploadReference
-  ): EitherT[Future, Error, Option[UpscanUploadWrapper]] =
-    upscanRepository.select(uploadReference)
+    uploadReference: UploadReference,
+    ggCredId: String
+  ): EitherT[Future, Error, Option[UpscanUploadWrapper]] = {
+    val result = upscanRepository.select(uploadReference)
+    result.flatMap { upscanUploadWrapper =>
+      upscanUploadWrapper.flatMap(_.ggCredId) match {
+        case Some(ggId) if ggId.nonEmpty && ggId != ggCredId =>
+          EitherT.leftT[Future, Option[UpscanUploadWrapper]](Error("Error matching ggCredId"))
+        case _                                               =>
+          EitherT.rightT[Future, Error](upscanUploadWrapper)
+      }
+    }
+  }
 
   override def updateUpscanUpload(
     uploadReference: UploadReference,

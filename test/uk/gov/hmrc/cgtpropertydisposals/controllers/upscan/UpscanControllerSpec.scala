@@ -42,14 +42,15 @@ import scala.concurrent.Future
 class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyChecks {
   private val mockUpscanService = mock[UpscanService]
 
-  private val headerCarrier = HeaderCarrier()
+  private val headerCarrier    = HeaderCarrier()
+  private val ggCredId: String = "ggCredId"
 
-  private def mockStoreUpscanUpload(upscanUpload: UpscanUpload)(
+  private def mockStoreUpscanUpload(upscanUpload: UpscanUpload, ggCredId: String)(
     response: Either[Error, Unit]
   ) =
     when(
       mockUpscanService
-        .storeUpscanUpload(upscanUpload)
+        .storeUpscanUpload(upscanUpload, ggCredId)
     ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
   private def mockUpdateUpscanUpload(
@@ -63,12 +64,12 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
         .updateUpscanUpload(uploadReference, upscanUpload)
     ).thenReturn(EitherT[Future, Error, Unit](Future.successful(response)))
 
-  private def mockGetUpscanUpload(uploadReference: UploadReference)(
+  private def mockGetUpscanUpload(uploadReference: UploadReference, ggCredId: String)(
     response: Either[Error, Option[UpscanUploadWrapper]]
   ) =
     when(
       mockUpscanService
-        .readUpscanUpload(uploadReference)
+        .readUpscanUpload(uploadReference, ggCredId)
     ).thenReturn(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
 
   private def mockGetUpscanUploads(uploadReferences: List[UploadReference])(
@@ -108,7 +109,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             FakeRequest()
           )
 
-        mockGetUpscanUpload(uploadReference)(Left(Error("mongo error")))
+        mockGetUpscanUpload(uploadReference, ggCredId)(Left(Error("mongo error")))
 
         val result = controller.getUpscanUpload(uploadReference)(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
@@ -123,14 +124,32 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             FakeRequest()
           )
 
-        mockGetUpscanUpload(uploadReference)(Right(None))
+        mockGetUpscanUpload(uploadReference, ggCredId)(Right(None))
+
+        val result = controller.getUpscanUpload(uploadReference)(request)
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return a bad request if ggID  mismatch" in {
+        val request =
+          new AuthenticatedRequest(
+            Fake.user,
+            LocalDateTime.now(),
+            headerCarrier,
+            FakeRequest()
+          )
+
+        val upscanUploadWrapper =
+          sample[UpscanUploadWrapper].copy(id = uploadReference.value).copy(ggCredId = Some("mismatched"))
+
+        mockGetUpscanUpload(uploadReference, ggCredId)(Right(Some(upscanUploadWrapper)))
 
         val result = controller.getUpscanUpload(uploadReference)(request)
         status(result) shouldBe BAD_REQUEST
       }
 
       "return a 200 OK if the backend call succeeds" in {
-        val upscanUpload = sample[UpscanUploadWrapper]
+        val upscanUpload = sample[UpscanUploadWrapper].copy(ggCredId = Some(ggCredId))
 
         val request =
           new AuthenticatedRequest(
@@ -140,7 +159,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             FakeRequest()
           )
 
-        mockGetUpscanUpload(uploadReference)(Right(Some(upscanUpload)))
+        mockGetUpscanUpload(uploadReference, ggCredId)(Right(Some(upscanUpload)))
 
         val result = controller.getUpscanUpload(uploadReference)(request)
         status(result) shouldBe OK
@@ -223,8 +242,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
           )
 
         val upscanUpload = Json.parse(upscanUploadPayload).as[UpscanUpload]
+        val ggCredId     = "ggCredId"
 
-        mockStoreUpscanUpload(upscanUpload)(Left(Error("mongo error")))
+        mockStoreUpscanUpload(upscanUpload, ggCredId)(Left(Error("mongo error")))
 
         val result = controller.saveUpscanUpload()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
@@ -289,7 +309,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
 
         val upscanUpload = Json.parse(upscanUploadPayload).as[UpscanUpload]
 
-        mockStoreUpscanUpload(upscanUpload)(Right(()))
+        mockStoreUpscanUpload(upscanUpload, ggCredId)(Right(()))
 
         val result = controller.saveUpscanUpload()(request)
         status(result) shouldBe OK
@@ -363,7 +383,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       "return NO CONTENT if the payload contains a valid status" in {
         val uploadReference = UploadReference("11370e18-6e24-453e-b45a-76d3e32ea33d")
         val upscanUpload    =
-          sample[UpscanUploadWrapper].copy(upscan = sample[UpscanUpload].copy(uploadReference = uploadReference))
+          sample[UpscanUploadWrapper]
+            .copy(upscan = sample[UpscanUpload].copy(uploadReference = uploadReference))
+            .copy(ggCredId = Some("ggCredId"))
         val upscanSuccess   = sample[UpscanSuccess].copy(
           reference = "reference",
           fileStatus = "READY",
@@ -391,7 +413,9 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
              |}
              |""".stripMargin
 
-        mockGetUpscanUpload(upscanUpload.upscan.uploadReference)(Right(Some(upscanUpload)))
+        mockGetUpscanUpload(upscanUpload.upscan.uploadReference, ggCredId)(
+          Right(Some(upscanUpload))
+        )
         mockUpdateUpscanUpload(
           upscanUpload.upscan.uploadReference,
           upscanUpload.upscan.copy(upscanCallBack = Some(upscanSuccess))
