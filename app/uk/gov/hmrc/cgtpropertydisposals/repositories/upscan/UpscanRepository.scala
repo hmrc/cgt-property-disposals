@@ -22,11 +22,11 @@ import org.mongodb.scala.model.Filters.in
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.*
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
+import uk.gov.hmrc.mdc.Mdc.preservingMdc
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs
-import uk.gov.hmrc.mdc.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,7 +35,8 @@ import scala.util.control.NonFatal
 @ImplementedBy(classOf[DefaultUpscanRepository])
 trait UpscanRepository {
   def insert(
-    upscanUpload: UpscanUpload
+    upscanUpload: UpscanUpload,
+    ggCredId: String
   ): EitherT[Future, Error, Unit]
 
   def select(
@@ -66,14 +67,16 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
     with UpscanRepository {
 
   override def insert(
-    upscanUpload: UpscanUpload
+    upscanUpload: UpscanUpload,
+    ggCredId: String
   ): EitherT[Future, Error, Unit] =
     EitherT(preservingMdc {
       val selector = Filters.equal("_id", upscanUpload.uploadReference.value)
       val modifier = Updates.combine(
         Updates.set("upscan", Codecs.toBson(upscanUpload)),
         Updates.set("lastUpdated", clock.currentInstant()),
-        Updates.setOnInsert("_id", upscanUpload.uploadReference.value)
+        Updates.setOnInsert("_id", upscanUpload.uploadReference.value),
+        Updates.setOnInsert("ggCredId", ggCredId)
       )
       val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
       collection

@@ -17,20 +17,20 @@
 package uk.gov.hmrc.cgtpropertydisposals.controllers.upscan
 
 import cats.data.EitherT
-import cats.instances.future._
-import cats.instances.string._
-import cats.syntax.eq._
+import cats.instances.future.*
+import cats.instances.string.*
+import cats.syntax.eq.*
 import com.google.inject.Inject
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
-import play.api.mvc._
+import play.api.mvc.*
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.*
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UpscanCallBack.{NewUpscanSuccess, UpscanFailure, UpscanSuccess}
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
 import uk.gov.hmrc.cgtpropertydisposals.service.upscan.UpscanService
-import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps._
+import uk.gov.hmrc.cgtpropertydisposals.util.JsErrorOps.*
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
-import uk.gov.hmrc.cgtpropertydisposals.util.Logging._
+import uk.gov.hmrc.cgtpropertydisposals.util.Logging.*
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,9 +48,10 @@ class UpscanController @Inject() (
   private val FAILED_UPSCAN      = "FAILED"
 
   def getUpscanUpload(uploadReference: UploadReference): Action[AnyContent] =
-    authenticate.async {
+    authenticate.async { implicit request =>
+      val ggCredId = request.user.ggCredId
       upscanService
-        .readUpscanUpload(uploadReference)
+        .readUpscanUpload(uploadReference, Some(ggCredId))
         .fold(
           e => {
             logger.warn(s"could not get upscan upload", e)
@@ -70,11 +71,12 @@ class UpscanController @Inject() (
 
   def saveUpscanUpload(): Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
+      val ggCredId = request.user.ggCredId
       request.body
         .asOpt[UpscanUpload] match {
         case Some(upscanUpload) =>
           upscanService
-            .storeUpscanUpload(upscanUpload)
+            .storeUpscanUpload(upscanUpload, ggCredId)
             .fold(
               e => {
                 logger.warn(s"could not save upscan upload", e)
