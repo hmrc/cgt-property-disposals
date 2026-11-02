@@ -19,10 +19,10 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import com.mongodb.client.model.Indexes.ascending
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.*
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.{MongoComponent, TimestampSupport}
 import uk.gov.hmrc.mdc.Mdc.preservingMdc
@@ -36,7 +36,8 @@ import scala.util.control.NonFatal
 @ImplementedBy(classOf[DefaultUpscanRepo])
 trait UpscanRepo {
   def insert(
-    upscanUpload: UpscanUpload
+    upscanUpload: UpscanUpload,
+    ggCredId: String
   ): EitherT[Future, Error, Unit]
 }
 
@@ -64,7 +65,8 @@ class DefaultUpscanRepo @Inject() (mongo: MongoComponent, config: Configuration)
   override def timestamp(): Instant = Instant.now()
 
   override def insert(
-    upscanUpload: UpscanUpload
+    upscanUpload: UpscanUpload,
+    ggCredId: String
   ): EitherT[Future, Error, Unit] =
     EitherT(preservingMdc {
       val time     = timestamp()
@@ -72,7 +74,8 @@ class DefaultUpscanRepo @Inject() (mongo: MongoComponent, config: Configuration)
       val modifier = Updates.combine(
         Updates.set("upscan", Codecs.toBson(upscanUpload)),
         Updates.set("lastUpdated", time),
-        Updates.setOnInsert("_id", upscanUpload.uploadReference.value)
+        Updates.setOnInsert("_id", upscanUpload.uploadReference.value),
+        Updates.setOnInsert("ggCredId", ggCredId)
       )
       val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
       collection
