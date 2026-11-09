@@ -59,6 +59,13 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
         .select(uploadReference)
     ).thenReturn(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
 
+  private def mockGGCredIdCounter()(
+    response: Either[Error, Option[Long]]
+  ) =
+    when(
+      mockUpscanRepository.ggCredIdCounter()
+    ).thenReturn(EitherT[Future, Error, Option[Long]](Future.successful(response)))
+
   private def mockReadUpscanUploads(uploadReferences: List[UploadReference])(
     response: Either[Error, List[UpscanUploadWrapper]]
   ) =
@@ -107,6 +114,7 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
     "it receives a request to read a upscan upload" must {
       "return an error" when {
         "there is a mongo exception" in {
+          mockGGCredIdCounter()(Right(Some(2L)))
           mockReadUpscanUpload(upscanUpload.uploadReference)(Left(Error("Connection error")))
           await(
             service.readUpscanUpload(upscanUpload.uploadReference, Some(ggCredId)).value
@@ -116,12 +124,14 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
 
       "return some upscan upload" when {
         "it successfully reads the data" in {
+          mockGGCredIdCounter()(Right(Some(2L)))
           mockReadUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUploadWrapper)))
           await(service.readUpscanUpload(upscanUpload.uploadReference, Some(ggCredId)).value) shouldBe Right(
             Some(upscanUploadWrapper)
           )
         }
         "it successfully reads the data when ggid not passed" in {
+          mockGGCredIdCounter()(Right(Some(2L)))
           mockReadUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUploadWrapper)))
           await(service.readUpscanUpload(upscanUpload.uploadReference).value) shouldBe Right(
             Some(upscanUploadWrapper)
@@ -131,6 +141,7 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
 
       "return an error for mismatched  ggCredId" when {
         "it successfully reads the data" in {
+          mockGGCredIdCounter()(Right(Some(2L)))
           mockReadUpscanUpload(upscanUpload.uploadReference)(
             Right(Some(upscanUploadWrapper.copy(ggCredId = Some("mismatched"))))
           )
@@ -143,6 +154,7 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
       "return some upscan upload when no ggCredId stored" when {
         "it successfully reads the data" in {
           val upscanUploadWrapper1 = upscanUploadWrapper.copy(ggCredId = None)
+          mockGGCredIdCounter()(Right(Some(2L)))
           mockReadUpscanUpload(upscanUpload.uploadReference)(Right(Some(upscanUploadWrapper1.copy(ggCredId = None))))
           await(service.readUpscanUpload(upscanUpload.uploadReference, Some(ggCredId)).value) shouldBe Right(
             Some(upscanUploadWrapper1)
@@ -155,15 +167,24 @@ class UpscanServiceSpec extends AnyWordSpec with Matchers with CleanMongoCollect
       "return an error" when {
         "there is a mongo exception" in {
           mockReadUpscanUploads(List(upscanUpload.uploadReference))(Left(Error("Connection error")))
-          await(service.readUpscanUploads(List(upscanUpload.uploadReference)).value).isLeft shouldBe true
+          await(service.readUpscanUploads(List(upscanUpload.uploadReference), "ggCredId").value).isLeft shouldBe true
         }
       }
 
       "return some upscan upload" when {
         "it successfully reads the data" in {
           mockReadUpscanUploads(List(upscanUpload.uploadReference))(Right(List(upscanUploadWrapper)))
-          await(service.readUpscanUploads(List(upscanUpload.uploadReference)).value) shouldBe Right(
+          await(service.readUpscanUploads(List(upscanUpload.uploadReference), "ggCredId").value) shouldBe Right(
             List(upscanUploadWrapper)
+          )
+        }
+      }
+
+      "return empty list" when {
+        "when ggId don't match" in {
+          mockReadUpscanUploads(List(upscanUpload.uploadReference))(Right(List(upscanUploadWrapper)))
+          await(service.readUpscanUploads(List(upscanUpload.uploadReference), "ggCredId1").value) shouldBe Right(
+            List.empty
           )
         }
       }

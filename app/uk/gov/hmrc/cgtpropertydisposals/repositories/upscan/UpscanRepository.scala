@@ -18,7 +18,7 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import org.mongodb.scala.model.Filters.in
+import org.mongodb.scala.model.Filters.{exists, in}
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
@@ -51,6 +51,8 @@ trait UpscanRepository {
   def selectAll(
     uploadReference: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUploadWrapper]]
+
+  def ggCredIdCounter(): EitherT[Future, Error, Long]
 }
 
 @Singleton
@@ -129,5 +131,16 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
             Left(Error(exception))
           }
       }
+    )
+
+  override def ggCredIdCounter(): EitherT[Future, Error, Long] =
+    EitherT(
+      collection
+        .countDocuments(exists("ggCredId", false))
+        .toFuture()
+        .map(count => Right(count): Either[Error, Long])
+        .recover { case NonFatal(_) =>
+          Left(Error("Failed to count ggCredId"))
+        }
     )
 }

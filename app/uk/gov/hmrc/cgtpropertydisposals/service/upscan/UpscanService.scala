@@ -42,7 +42,8 @@ trait UpscanService {
   ): EitherT[Future, Error, Option[UpscanUploadWrapper]]
 
   def readUpscanUploads(
-    uploadReferences: List[UploadReference]
+    uploadReferences: List[UploadReference],
+    ggCredId: String
   ): EitherT[Future, Error, List[UpscanUploadWrapper]]
 
   def updateUpscanUpload(
@@ -71,7 +72,12 @@ class UpscanServiceImpl @Inject() (
     uploadReference: UploadReference,
     ggCredId: Option[String] = None
   ): EitherT[Future, Error, Option[UpscanUploadWrapper]] = {
+    // log upscan without ggID to be cleaned up later
+    upscanRepository.ggCredIdCounter().map { count =>
+      logger.info(s"Upscan without ggCredID counts $count")
+    }
     val result = upscanRepository.select(uploadReference)
+
     result.flatMap { upscanUploadWrapper =>
       upscanUploadWrapper.flatMap(_.ggCredId) match {
         case Some(ggId) if ggCredId.isDefined && ggId.nonEmpty && ggId != ggCredId.get =>
@@ -89,9 +95,10 @@ class UpscanServiceImpl @Inject() (
     upscanRepository.update(uploadReference, upscanUpload)
 
   override def readUpscanUploads(
-    uploadReferences: List[UploadReference]
+    uploadReferences: List[UploadReference],
+    ggCredId: String
   ): EitherT[Future, Error, List[UpscanUploadWrapper]] =
-    upscanRepository.selectAll(uploadReferences)
+    upscanRepository.selectAll(uploadReferences).map(_.filter(u => u.ggCredId.isEmpty || u.ggCredId.contains(ggCredId)))
 
   override def downloadFilesFromS3(
     upscanSuccesses: List[UpscanSuccess]

@@ -91,7 +91,8 @@ class UpscanController @Inject() (
     }
 
   def getUpscanUploads(): Action[JsValue] =
-    Action.async(parse.json) { implicit request: Request[JsValue] =>
+    authenticate(parse.json).async { implicit request =>
+      val ggCredId = request.user.ggCredId
       request.body.validate[GetUpscanUploadsRequest] match {
         case e: JsError =>
           logger.warn(s"Could not parse get all upscan uploads request: ${e.prettyPrint()}")
@@ -99,7 +100,7 @@ class UpscanController @Inject() (
 
         case JsSuccess(GetUpscanUploadsRequest(uploadReferences), _) =>
           upscanService
-            .readUpscanUploads(uploadReferences)
+            .readUpscanUploads(uploadReferences, ggCredId)
             .fold(
               e => {
                 logger.warn(s"could not read upscan uploads", e)

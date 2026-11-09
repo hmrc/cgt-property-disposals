@@ -78,12 +78,12 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
           .readUpscanUpload(uploadReference)
       ).thenReturn(EitherT[Future, Error, Option[UpscanUploadWrapper]](Future.successful(response)))
 
-  private def mockGetUpscanUploads(uploadReferences: List[UploadReference])(
+  private def mockGetUpscanUploads(uploadReferences: List[UploadReference], ggCredId: String)(
     response: Either[Error, List[UpscanUploadWrapper]]
   ) =
     when(
       mockUpscanService
-        .readUpscanUploads(uploadReferences)
+        .readUpscanUploads(uploadReferences, ggCredId)
     ).thenReturn(EitherT[Future, Error, List[UpscanUploadWrapper]](Future.successful(response)))
 
   val request = new AuthenticatedRequest(
@@ -179,7 +179,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             FakeRequest()
           ).withBody(Json.parse(s"""{ "uploadReferences" : [ ${Json.toJson(uploadReference)} ] }"""))
 
-        mockGetUpscanUploads(List(uploadReference))(Left(Error("mongo error")))
+        mockGetUpscanUploads(List(uploadReference), "ggCredId")(Left(Error("mongo error")))
 
         val result = controller.getUpscanUploads()(request)
         status(result) shouldBe INTERNAL_SERVER_ERROR
@@ -199,7 +199,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
       }
 
       "return a 200 OK if the backend call succeeds" in {
-        val upscanUpload = sample[UpscanUploadWrapper]
+        val upscanUpload = sample[UpscanUploadWrapper].copy(ggCredId = Some("ggCredId"))
 
         val request =
           new AuthenticatedRequest(
@@ -209,7 +209,7 @@ class UpscanControllerSpec extends ControllerSpec with ScalaCheckDrivenPropertyC
             FakeRequest()
           ).withBody(Json.parse(s"""{ "uploadReferences" : [ ${Json.toJson(uploadReference)} ] }"""))
 
-        mockGetUpscanUploads(List(uploadReference))(Right(List(upscanUpload)))
+        mockGetUpscanUploads(List(uploadReference), "ggCredId")(Right(List(upscanUpload)))
 
         val result = controller.getUpscanUploads()(request)
         status(result) shouldBe OK
