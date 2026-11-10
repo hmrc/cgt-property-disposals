@@ -17,6 +17,8 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import com.typesafe.config.ConfigFactory
+import org.mongodb.scala.SingleObservableFuture
+import org.mongodb.scala.model.Filters
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
@@ -130,6 +132,26 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
         await(repository.selectAll(List(upscanUpload.uploadReference, upscanUpload2.uploadReference)).value)
           .map(_.toSet) shouldBe Right(
           Set(upscanUploadWrapper, upscanUploadWrapper2)
+        )
+      }
+    }
+
+    "ggCredIdCounter" should {
+      "should return counter where ggCredID is not set" in {
+
+        val upscanUploadWrapper1 = sample[UpscanUploadWrapper]
+        val upscanUploadWrapper2 = sample[UpscanUploadWrapper].copy(ggCredId = None)
+        val upscanUploadWrapper3 = sample[UpscanUploadWrapper].copy(ggCredId = None)
+
+        await(repository.collection.insertOne(upscanUploadWrapper1).toFuture())
+        await(repository.collection.insertOne(upscanUploadWrapper2).toFuture())
+        await(repository.collection.insertOne(upscanUploadWrapper3).toFuture())
+
+        await(repository.ggCredIdCounter().value) shouldBe Right(2)
+
+        val filter = Filters.exists("ggCredId", false)
+        await(
+          repository.collection.deleteMany(filter).toFuture()
         )
       }
     }
