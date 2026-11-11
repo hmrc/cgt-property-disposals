@@ -18,15 +18,15 @@ package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import cats.data.EitherT
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import org.mongodb.scala.model.Filters.in
+import org.mongodb.scala.model.Filters.{exists, in}
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReturnDocument, Updates}
 import play.api.Configuration
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
-import uk.gov.hmrc.cgtpropertydisposals.models.upscan._
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.*
 import uk.gov.hmrc.cgtpropertydisposals.repositories.{CacheRepository, CurrentInstant}
+import uk.gov.hmrc.mdc.Mdc.preservingMdc
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs
-import uk.gov.hmrc.mdc.Mdc.preservingMdc
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,7 +35,8 @@ import scala.util.control.NonFatal
 @ImplementedBy(classOf[DefaultUpscanRepository])
 trait UpscanRepository {
   def insert(
-    upscanUpload: UpscanUpload
+    upscanUpload: UpscanUpload,
+    ggCredId: String
   ): EitherT[Future, Error, Unit]
 
   def select(
@@ -50,6 +51,8 @@ trait UpscanRepository {
   def selectAll(
     uploadReference: List[UploadReference]
   ): EitherT[Future, Error, List[UpscanUploadWrapper]]
+
+  def ggCredIdCounter(): EitherT[Future, Error, Long]
 }
 
 @Singleton
@@ -66,14 +69,16 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
     with UpscanRepository {
 
   override def insert(
-    upscanUpload: UpscanUpload
+    upscanUpload: UpscanUpload,
+    ggCredId: String
   ): EitherT[Future, Error, Unit] =
     EitherT(preservingMdc {
       val selector = Filters.equal("_id", upscanUpload.uploadReference.value)
       val modifier = Updates.combine(
         Updates.set("upscan", Codecs.toBson(upscanUpload)),
         Updates.set("lastUpdated", clock.currentInstant()),
-        Updates.setOnInsert("_id", upscanUpload.uploadReference.value)
+        Updates.setOnInsert("_id", upscanUpload.uploadReference.value),
+        Updates.setOnInsert("ggCredId", ggCredId)
       )
       val options  = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
       collection
@@ -126,5 +131,16 @@ class DefaultUpscanRepository @Inject() (mongo: MongoComponent, config: Configur
             Left(Error(exception))
           }
       }
+    )
+
+  override def ggCredIdCounter(): EitherT[Future, Error, Long] =
+    EitherT(
+      collection
+        .countDocuments(exists("ggCredId", false))
+        .toFuture()
+        .map(count => Right(count): Either[Error, Long])
+        .recover { case NonFatal(_) =>
+          Left(Error("Failed to count ggCredId"))
+        }
     )
 }

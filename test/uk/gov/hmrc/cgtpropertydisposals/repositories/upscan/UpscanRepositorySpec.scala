@@ -17,10 +17,13 @@
 package uk.gov.hmrc.cgtpropertydisposals.repositories.upscan
 
 import com.typesafe.config.ConfigFactory
+import org.mongodb.scala.SingleObservableFuture
+import org.mongodb.scala.model.Filters
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers.*
+import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.UpscanGen.{upscanUploadGen, upscanUploadWrapper}
 import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUpload, UpscanUploadWrapper}
@@ -48,11 +51,13 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 
   val repository = new DefaultUpscanRepository(mongoComponent, config, currentInstant)
 
+  val ggCredId = "ggCredId"
+
   "Upscan Repository" when {
     "inserting" should {
       "insert a new upscan upload document" in {
         val upscanUpload = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
-        await(repository.insert(upscanUpload).value) shouldBe Right(())
+        await(repository.insert(upscanUpload, ggCredId).value) shouldBe Right(())
       }
     }
 
@@ -61,7 +66,7 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 
         val upscanUpload = sample[UpscanUpload].copy(uploadedOn = LocalDateTime.now(Clock.systemUTC()))
 
-        await(repository.insert(upscanUpload).value) shouldBe Right(())
+        await(repository.insert(upscanUpload, ggCredId).value) shouldBe Right(())
 
         val newUpscanUpload = sample[UpscanUpload].copy(
           uploadReference = UploadReference(s"${upscanUpload.uploadReference}-2"),
@@ -69,6 +74,7 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
         )
         val upscanUploadNew = sample[UpscanUploadWrapper].copy(
           upscanUpload.uploadReference.value,
+          Some(ggCredId),
           newUpscanUpload,
           stagedInstant
         )
@@ -98,30 +104,55 @@ class UpscanRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
 
         val upscanUploadWrapper = sample[UpscanUploadWrapper].copy(
           id = upscanUpload.uploadReference.value,
+          ggCredId = Some(ggCredId),
           upscan = upscanUpload,
           lastUpdated = stagedInstant
         )
 
         val upscanUploadWrapper2 = sample[UpscanUploadWrapper].copy(
           id = upscanUpload2.uploadReference.value,
+          ggCredId = Some(ggCredId),
           upscan = upscanUpload2,
           lastUpdated = stagedInstant
         )
 
-        await(repository.insert(upscanUpload).value)  shouldBe Right(())
-        await(repository.insert(upscanUpload2).value) shouldBe Right(())
+        await(repository.insert(upscanUpload, ggCredId).value)  shouldBe Right(())
+        await(repository.insert(upscanUpload2, ggCredId).value) shouldBe Right(())
 
-        await(
+        val ref = upscanUpload.uploadReference
+
+        val result = await(
           repository
-            .select(upscanUpload.uploadReference)
+            .select(ref)
             .value
-        ) shouldBe Right(Some(upscanUploadWrapper))
+        )
+
+        result shouldBe Right(Some(upscanUploadWrapper))
 
         await(repository.selectAll(List(upscanUpload.uploadReference, upscanUpload2.uploadReference)).value)
           .map(_.toSet) shouldBe Right(
           Set(upscanUploadWrapper, upscanUploadWrapper2)
         )
+      }
+    }
 
+    "ggCredIdCounter" should {
+      "should return counter where ggCredID is not set" in {
+
+        val upscanUploadWrapper1 = sample[UpscanUploadWrapper]
+        val upscanUploadWrapper2 = sample[UpscanUploadWrapper].copy(ggCredId = None)
+        val upscanUploadWrapper3 = sample[UpscanUploadWrapper].copy(ggCredId = None)
+
+        await(repository.collection.insertOne(upscanUploadWrapper1).toFuture())
+        await(repository.collection.insertOne(upscanUploadWrapper2).toFuture())
+        await(repository.collection.insertOne(upscanUploadWrapper3).toFuture())
+
+        await(repository.ggCredIdCounter().value) shouldBe Right(2)
+
+        val filter = Filters.exists("ggCredId", false)
+        await(
+          repository.collection.deleteMany(filter).toFuture()
+        )
       }
     }
   }

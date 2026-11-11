@@ -24,6 +24,7 @@ import java.time.Instant
 
 final case class UpscanUploadWrapper(
   id: String,
+  ggCredId: Option[String],
   upscan: UpscanUpload,
   lastUpdated: Instant
 )
@@ -32,6 +33,7 @@ object UpscanUploadWrapper {
   val format: Format[UpscanUploadWrapper] = {
     implicit val dtf: Format[Instant] = MongoJavatimeFormats.instantFormat
     ((__ \ "_id").format[String]
+      ~ (__ \ "ggCredId").formatNullable[String]
       ~ (__ \ "upscan").format[UpscanUpload]
       ~ (__ \ "lastUpdated").format[Instant])(UpscanUploadWrapper.apply, o => Tuple.fromProductTyped(o))
   }

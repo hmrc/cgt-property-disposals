@@ -26,21 +26,27 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUp
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
+import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.{ExecutionContext, Future}
+
+import scala.concurrent.duration._
 
 @ImplementedBy(classOf[UpscanServiceImpl])
 trait UpscanService {
 
   def storeUpscanUpload(
-    upscanUpload: UpscanUpload
+    upscanUpload: UpscanUpload,
+    ggCredId: String
   ): EitherT[Future, Error, Unit]
 
   def readUpscanUpload(
-    uploadReference: UploadReference
+    uploadReference: UploadReference,
+    ggCredId: Option[String] = None
   ): EitherT[Future, Error, Option[UpscanUploadWrapper]]
 
   def readUpscanUploads(
-    uploadReferences: List[UploadReference]
+    uploadReferences: List[UploadReference],
+    ggCredId: String
   ): EitherT[Future, Error, List[UpscanUploadWrapper]]
 
   def updateUpscanUpload(
@@ -62,13 +68,40 @@ class UpscanServiceImpl @Inject() (
     extends UpscanService
     with Logging {
 
-  override def storeUpscanUpload(upscanUpload: UpscanUpload): EitherT[Future, Error, Unit] =
-    upscanRepository.insert(upscanUpload)
+  private val lastLogged = AtomicLong(0L)
+  private val interval   = 1.hour.toMillis
+
+  override def storeUpscanUpload(upscanUpload: UpscanUpload, ggCredId: String): EitherT[Future, Error, Unit] =
+    upscanRepository.insert(upscanUpload, ggCredId)
+
+  private def logCounter(): Unit = {
+    val now = System.currentTimeMillis()
+    if (now - lastLogged.get() >= interval) {
+      // log upscan without ggID to be cleaned up later
+      upscanRepository.ggCredIdCounter().value.map {
+        case Right(count) =>
+          logger.info(s"Upscan without ggCredID counts $count")
+        case Left(e)      =>
+          logger.error(s"Failed to retrieve ggCredIdCounter : $e")
+      }
+      lastLogged.set(now)
+    }
+  }
 
   override def readUpscanUpload(
-    uploadReference: UploadReference
-  ): EitherT[Future, Error, Option[UpscanUploadWrapper]] =
-    upscanRepository.select(uploadReference)
+    uploadReference: UploadReference,
+    ggCredId: Option[String] = None
+  ): EitherT[Future, Error, Option[UpscanUploadWrapper]] = {
+    logCounter()
+    upscanRepository.select(uploadReference).flatMap { upscanUploadWrapper =>
+      upscanUploadWrapper.flatMap(_.ggCredId) match {
+        case Some(ggId) if ggCredId.isDefined && ggId.nonEmpty && ggId != ggCredId.get =>
+          EitherT.leftT[Future, Option[UpscanUploadWrapper]](Error("Error matching ggCredId"))
+        case _                                                                         =>
+          EitherT.rightT[Future, Error](upscanUploadWrapper)
+      }
+    }
+  }
 
   override def updateUpscanUpload(
     uploadReference: UploadReference,
@@ -77,9 +110,10 @@ class UpscanServiceImpl @Inject() (
     upscanRepository.update(uploadReference, upscanUpload)
 
   override def readUpscanUploads(
-    uploadReferences: List[UploadReference]
+    uploadReferences: List[UploadReference],
+    ggCredId: String
   ): EitherT[Future, Error, List[UpscanUploadWrapper]] =
-    upscanRepository.selectAll(uploadReferences)
+    upscanRepository.selectAll(uploadReferences).map(_.filter(u => u.ggCredId.isEmpty || u.ggCredId.contains(ggCredId)))
 
   override def downloadFilesFromS3(
     upscanSuccesses: List[UpscanSuccess]

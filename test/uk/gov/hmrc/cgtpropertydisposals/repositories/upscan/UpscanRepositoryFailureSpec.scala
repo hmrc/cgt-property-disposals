@@ -44,6 +44,7 @@ class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSu
   val defaultCurrentInstant = new DefaultCurrentInstant
 
   val repository = new DefaultUpscanRepository(mongoComponent, config, defaultCurrentInstant)
+  val ggCredId   = "ggCredId"
 
   val clientClosed: Future[Unit] =
     repository.collection.countDocuments().toFuture().map(_ => mongoComponent.client.close())
@@ -54,7 +55,7 @@ class UpscanRepositoryFailureSpec extends AnyWordSpec with Matchers with MongoSu
     "inserting" should {
       "return an error if there is a failure" in {
         val upscanUpload = sample[UpscanUpload]
-        intercept[IllegalStateException](repository.insert(upscanUpload))
+        intercept[IllegalStateException](repository.insert(upscanUpload, ggCredId))
       }
     }
 
