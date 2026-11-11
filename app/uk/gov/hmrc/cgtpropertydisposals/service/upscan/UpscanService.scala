@@ -26,7 +26,10 @@ import uk.gov.hmrc.cgtpropertydisposals.models.upscan.{UploadReference, UpscanUp
 import uk.gov.hmrc.cgtpropertydisposals.repositories.upscan.UpscanRepository
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 
+import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.{ExecutionContext, Future}
+
+import scala.concurrent.duration._
 
 @ImplementedBy(classOf[UpscanServiceImpl])
 trait UpscanService {
@@ -65,20 +68,32 @@ class UpscanServiceImpl @Inject() (
     extends UpscanService
     with Logging {
 
+  private val lastLogged = AtomicLong(0L)
+  private val interval   = 1.hour.toMillis
+
   override def storeUpscanUpload(upscanUpload: UpscanUpload, ggCredId: String): EitherT[Future, Error, Unit] =
     upscanRepository.insert(upscanUpload, ggCredId)
+
+  private def logCounter(): Unit = {
+    val now = System.currentTimeMillis()
+    if (now - lastLogged.get() >= interval) {
+      // log upscan without ggID to be cleaned up later
+      upscanRepository.ggCredIdCounter().value.map {
+        case Right(count) =>
+          logger.info(s"Upscan without ggCredID counts $count")
+        case Left(e)      =>
+          logger.error(s"Failed to retrieve ggCredIdCounter : $e")
+      }
+      lastLogged.set(now)
+    }
+  }
 
   override def readUpscanUpload(
     uploadReference: UploadReference,
     ggCredId: Option[String] = None
   ): EitherT[Future, Error, Option[UpscanUploadWrapper]] = {
-    // log upscan without ggID to be cleaned up later
-    upscanRepository.ggCredIdCounter().map { count =>
-      logger.info(s"Upscan without ggCredID counts $count")
-    }
-    val result = upscanRepository.select(uploadReference)
-
-    result.flatMap { upscanUploadWrapper =>
+    logCounter()
+    upscanRepository.select(uploadReference).flatMap { upscanUploadWrapper =>
       upscanUploadWrapper.flatMap(_.ggCredId) match {
         case Some(ggId) if ggCredId.isDefined && ggId.nonEmpty && ggId != ggCredId.get =>
           EitherT.leftT[Future, Option[UpscanUploadWrapper]](Error("Error matching ggCredId"))
