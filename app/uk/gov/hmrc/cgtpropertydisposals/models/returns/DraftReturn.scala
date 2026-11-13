@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json._
+import play.api.libs.json.*
 import cats.Eq
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.upscan.UploadReference
 
 import java.time.LocalDate
 import java.util.UUID
@@ -30,6 +31,7 @@ sealed trait DraftReturn extends Product with Serializable {
   val exemptionAndLossesAnswers: Option[ExemptionAndLossesAnswers]
   val yearToDateLiabilityAnswers: Option[YearToDateLiabilityAnswers]
   val supportingEvidenceAnswers: Option[SupportingEvidenceAnswers]
+  val pendingUploadRef: Option[UploadReference]
 }
 
 final case class DraftSingleDisposalReturn(
@@ -45,7 +47,8 @@ final case class DraftSingleDisposalReturn(
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
   representeeAnswers: Option[RepresenteeAnswers],
   gainOrLossAfterReliefs: Option[AmountInPence],
-  lastUpdatedDate: LocalDate
+  lastUpdatedDate: LocalDate,
+  pendingUploadRef: Option[UploadReference]
 ) extends DraftReturn
 
 final case class DraftMultipleDisposalsReturn(
@@ -57,7 +60,8 @@ final case class DraftMultipleDisposalsReturn(
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
   representeeAnswers: Option[RepresenteeAnswers],
   gainOrLossAfterReliefs: Option[AmountInPence],
-  lastUpdatedDate: LocalDate
+  lastUpdatedDate: LocalDate,
+  pendingUploadRef: Option[UploadReference]
 ) extends DraftReturn
 
 final case class DraftSingleIndirectDisposalReturn(
@@ -71,7 +75,8 @@ final case class DraftSingleIndirectDisposalReturn(
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
   representeeAnswers: Option[RepresenteeAnswers],
   gainOrLossAfterReliefs: Option[AmountInPence],
-  lastUpdatedDate: LocalDate
+  lastUpdatedDate: LocalDate,
+  pendingUploadRef: Option[UploadReference]
 ) extends DraftReturn
 
 final case class DraftMultipleIndirectDisposalsReturn(
@@ -83,7 +88,8 @@ final case class DraftMultipleIndirectDisposalsReturn(
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
   representeeAnswers: Option[RepresenteeAnswers],
   gainOrLossAfterReliefs: Option[AmountInPence],
-  lastUpdatedDate: LocalDate
+  lastUpdatedDate: LocalDate,
+  pendingUploadRef: Option[UploadReference]
 ) extends DraftReturn
 
 final case class DraftSingleMixedUseDisposalReturn(
@@ -95,7 +101,8 @@ final case class DraftSingleMixedUseDisposalReturn(
   supportingEvidenceAnswers: Option[SupportingEvidenceAnswers],
   representeeAnswers: Option[RepresenteeAnswers],
   gainOrLossAfterReliefs: Option[AmountInPence],
-  lastUpdatedDate: LocalDate
+  lastUpdatedDate: LocalDate,
+  pendingUploadRef: Option[UploadReference]
 ) extends DraftReturn
 
 object DraftReturn {
