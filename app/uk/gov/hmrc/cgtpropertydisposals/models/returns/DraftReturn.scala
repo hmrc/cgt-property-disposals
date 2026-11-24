@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.returns
 
-import play.api.libs.json._
+import play.api.libs.json.*
 import cats.Eq
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address
 import uk.gov.hmrc.cgtpropertydisposals.models.address.Address.UkAddress
 import uk.gov.hmrc.cgtpropertydisposals.models.finance.AmountInPence
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.{CompleteMultipleDisposalsTriageAnswers, IncompleteMultipleDisposalsTriageAnswers}
 
 import java.time.LocalDate
 import java.util.UUID
@@ -148,4 +149,31 @@ object DraftReturn {
     }
   }
 
+}
+object DraftReturnValidator {
+
+  val MinProperties = 1
+  val MaxProperties = 999
+
+  def validateNumberOfProperties(draftReturn: DraftReturn): Either[String, Unit] =
+    draftReturn match {
+      case d: DraftMultipleDisposalsReturn         => checkTriage(d.triageAnswers)
+      case d: DraftMultipleIndirectDisposalsReturn => checkTriage(d.triageAnswers)
+      case _: DraftSingleDisposalReturn            => Right(())
+      case _: DraftSingleIndirectDisposalReturn    => Right(())
+      case _: DraftSingleMixedUseDisposalReturn    => Right(())
+    }
+
+  private def checkTriage(answers: MultipleDisposalsTriageAnswers): Either[String, Unit] =
+    answers match {
+      case i: IncompleteMultipleDisposalsTriageAnswers => check(i.numberOfProperties)
+      case c: CompleteMultipleDisposalsTriageAnswers   => check(Some(c.numberOfProperties))
+    }
+
+  private def check(n: Option[Int]): Either[String, Unit] =
+    n match {
+      case Some(value) if value < MinProperties || value > MaxProperties =>
+        Left(s"numberOfProperties must be between $MinProperties and $MaxProperties")
+      case _                                                             => Right(())
+    }
 }
