@@ -30,10 +30,12 @@ import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticatedRequest
 import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.Error
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.DraftReturnGen.given
+import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.Generators.*
 import uk.gov.hmrc.cgtpropertydisposals.models.generators.IdGen.given
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.MultipleDisposalsTriageAnswers.{CompleteMultipleDisposalsTriageAnswers, IncompleteMultipleDisposalsTriageAnswers}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftMultipleDisposalsReturn, DraftMultipleIndirectDisposalsReturn, DraftReturn, GetDraftReturnResponse, MultipleDisposalsTriageAnswers}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -46,8 +48,6 @@ class DraftReturnsControllerSpec extends ControllerSpec {
   private val draftReturnsService = mock[DraftReturnsService]
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
-
-  private val draftReturn = sample[DraftReturn]
 
   private def mockStoreDraftReturnsService(df: DraftReturn, cgtReference: CgtReference)(response: Either[Error, Unit]) =
     when(
@@ -83,6 +83,23 @@ class DraftReturnsControllerSpec extends ControllerSpec {
     cc = Helpers.stubControllerComponents()
   )
 
+  private def validTriage(multipleDisposalsTriageAnswers: MultipleDisposalsTriageAnswers): MultipleDisposalsTriageAnswers =
+    multipleDisposalsTriageAnswers match {
+      case incompleteMultipleDisposalsTriageAnswers : IncompleteMultipleDisposalsTriageAnswers =>
+        incompleteMultipleDisposalsTriageAnswers.copy(numberOfProperties = incompleteMultipleDisposalsTriageAnswers.numberOfProperties.map(_ => 5))
+      case completeMultipleDisposalsTriageAnswers: CompleteMultipleDisposalsTriageAnswers =>
+        completeMultipleDisposalsTriageAnswers.copy(numberOfProperties = 5)
+    }
+
+  private def withValidNumberOfProperties(draftReturn: DraftReturn): DraftReturn =
+    draftReturn match {
+      case multipleDisposalsReturn: DraftMultipleDisposalsReturn => multipleDisposalsReturn.copy(triageAnswers = validTriage(multipleDisposalsReturn.triageAnswers))
+      case multipleDisposalsReturn: DraftMultipleIndirectDisposalsReturn => multipleDisposalsReturn.copy(triageAnswers = validTriage(multipleDisposalsReturn.triageAnswers))
+      case other => other
+    }
+
+  val draftReturn: DraftReturn = withValidNumberOfProperties(Generators.sample[DraftReturn])
+
   "DraftReturnsController" when {
     "handling requests to store a draft return" must {
       val cgtReference = sample[CgtReference]
@@ -112,6 +129,7 @@ class DraftReturnsControllerSpec extends ControllerSpec {
         }
       }
     }
+
 
     "handling requests to get draft returns" must {
       val cgtReference = sample[CgtReference]

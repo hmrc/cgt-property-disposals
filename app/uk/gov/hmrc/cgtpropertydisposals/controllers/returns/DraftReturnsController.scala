@@ -16,21 +16,21 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.controllers.returns
 
-import cats.instances.future._
+import cats.instances.future.*
 import com.google.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json, OFormat}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.cgtpropertydisposals.controllers.actions.AuthenticateActions
 import uk.gov.hmrc.cgtpropertydisposals.controllers.returns.DraftReturnsController.DeleteDraftReturnsRequest
 import uk.gov.hmrc.cgtpropertydisposals.models.ids.CgtReference
-import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, GetDraftReturnResponse}
+import uk.gov.hmrc.cgtpropertydisposals.models.returns.{DraftReturn, DraftReturnValidator, GetDraftReturnResponse}
 import uk.gov.hmrc.cgtpropertydisposals.service.returns.DraftReturnsService
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging
 import uk.gov.hmrc.cgtpropertydisposals.util.Logging.LoggerOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.util.UUID
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class DraftReturnsController @Inject() (
@@ -58,15 +58,22 @@ class DraftReturnsController @Inject() (
   def storeDraftReturn(cgtReference: String): Action[JsValue] =
     authenticate(parse.json).async { implicit request =>
       withJsonBody[DraftReturn] { draftReturn =>
-        draftReturnsService
-          .saveDraftReturn(draftReturn, CgtReference(cgtReference))
-          .fold(
-            { e =>
-              logger.warn("Could not store draft return", e)
-              InternalServerError
-            },
-            _ => Ok
-          )
+        DraftReturnValidator.validateNumberOfProperties(draftReturn) match {
+          case Left(error) =>
+            logger.warn(s"Rejected draft return: $error")
+            Future.successful(BadRequest(error))
+
+          case Right(_) =>
+            draftReturnsService
+              .saveDraftReturn(draftReturn, CgtReference(cgtReference))
+              .fold(
+                { e =>
+                  logger.warn("Could not store draft return", e)
+                  InternalServerError
+                },
+                _ => Ok
+              )
+        }
       }
     }
 
