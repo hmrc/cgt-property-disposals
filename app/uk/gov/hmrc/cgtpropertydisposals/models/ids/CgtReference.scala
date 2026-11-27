@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.cgtpropertydisposals.models.ids
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, JsonValidationError, OFormat, OWrites, Reads, Writes}
 import play.api.mvc.PathBindable
 
 final case class CgtReference(value: String)
@@ -34,5 +34,12 @@ object CgtReference {
         stringBinder.unbind(key, value.value)
     }
 
-  implicit val format: OFormat[CgtReference] = Json.format[CgtReference]
+  private val reads: Reads[CgtReference] = Json
+    .reads[CgtReference]
+    .filter(JsonValidationError("CGT Reference invalid"))(_.value.length <= 15)
+
+  private val writes: OWrites[CgtReference] = Json.writes[CgtReference]
+
+  implicit val format: OFormat[CgtReference] = OFormat(reads, writes)
+
 }
